@@ -1,5 +1,7 @@
 #include "ui.h"
-#include "../hw/sensor.h"
+#include "../hw/sensor.h"          // Link the environmental sensor metrics layer
+#include "../services/wifi_manager.h" // THE FIX: Allow the UI to query background network status
+#include "../core/timekeeper.h" // Allow the UI to pull live network time strings
 #include <lvgl.h>
 #include <stdio.h>
 #include <string.h>
@@ -77,12 +79,31 @@ static void add_navigation_bar(lv_obj_t * parent, ui_page_t active_page) {
 
 // --- Page Content Layout Painters ---
 
+static void clock_timer_cb(lv_timer_t * timer) {
+    lv_obj_t * lbl = (lv_obj_t *)lv_timer_get_user_data(timer);
+
+    char buf[64];
+    // Fetch accurate time data directly out of our background time core
+    snprintf(buf, sizeof(buf), "%s\n%s", timekeeper_get_utc_string(), timekeeper_get_local_string());
+
+    lv_label_set_text(lbl, buf);
+}
+
 static void draw_clock_page(lv_obj_t * parent) {
     lv_obj_t * lbl = lv_label_create(parent);
-    lv_label_set_text(lbl, "00:00:00 UTC\n12:00:00 LOC");
+    lv_label_set_text(lbl, "AWAITING SYNC\n00:00:00 LOC");
     lv_obj_set_style_text_align(lbl, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_set_style_text_color(lbl, lv_color_hex(0xFFB000), 0);
     lv_obj_align(lbl, LV_ALIGN_CENTER, 0, -30);
+
+    // Spawn a high-speed 200ms refresher to capture rolling digital clock changes flawlessly
+    lv_timer_t * c_timer = lv_timer_create(clock_timer_cb, 200, lbl);
+
+    // Self-cleaning protection: delete the timer instance if we navigate away from this screen container
+    lv_obj_add_event_cb(parent, [](lv_event_t * e) {
+        lv_timer_t * tmr = (lv_timer_t *)lv_event_get_user_data(e);
+        lv_timer_delete(tmr);
+    }, LV_EVENT_DELETE, c_timer);
 }
 
 static void weather_timer_cb(lv_timer_t * timer) {
@@ -110,90 +131,82 @@ static void draw_weather_page(lv_obj_t * parent) {
     }, LV_EVENT_DELETE, w_timer);
 }
 
-// Callback macro to manage Keyboard lifecycle configurations
 static void keyboard_event_cb(lv_event_t * e) {
     lv_event_code_t code = lv_event_get_code(e);
-    // Explicit typecast from void* to lv_obj_t* resolved C++ pointer compiler errors
     lv_obj_t * kb = (lv_obj_t *)lv_event_get_target(e);
     lv_obj_t * ta = (lv_obj_t *)lv_event_get_user_data(e);
 
-    // If the user clicks the checkmark (Apply) or close button on the keyboard layout
     if (code == LV_EVENT_READY || code == LV_EVENT_CANCEL) {
         if (code == LV_EVENT_READY) {
-            // Save the newly input string straight into our persistent text array buffer
             strncpy(station_call, lv_textarea_get_text(ta), sizeof(station_call) - 1);
-            station_call[sizeof(station_call) - 1] = '\0'; // Guarantee safe string termination
+            station_call[sizeof(station_call) - 1] = '\0';
         }
-
-        // Remove focus from text area and cleanly delete the keyboard object from RAM
         lv_obj_remove_state(ta, LV_STATE_FOCUSED);
         lv_obj_delete(kb);
     }
 }
 
-// Callback macro triggered when the user taps on the interactive Text Area box
 static void textarea_event_cb(lv_event_t * e) {
     lv_event_code_t code = lv_event_get_code(e);
-    // Explicit typecast from void* to lv_obj_t* resolved C++ pointer compiler errors
     lv_obj_t * ta = (lv_obj_t *)lv_event_get_target(e);
     lv_obj_t * parent_scr = lv_obj_get_screen(ta);
 
     if (code == LV_EVENT_CLICKED) {
-        // Instantiate a sliding visual keyboard directly over the parent workspace canvas
         lv_obj_t * kb = lv_keyboard_create(parent_scr);
         lv_obj_set_size(kb, 320, 130);
         lv_obj_align(kb, LV_ALIGN_BOTTOM_MID, 0, 0);
 
-        // Optimize layout layout properties for tactical look
         lv_obj_set_style_bg_color(kb, lv_color_hex(0x1A1A1A), 0);
         lv_obj_set_style_text_color(kb, lv_color_hex(0xFFB000), 0);
 
-        // Bind the keyboard tracking engine to input text frames explicitly into this text area box
         lv_keyboard_set_textarea(kb, ta);
-
-        // Enforce upper-case character layouts by default for cleaner Ham Radio Call Sign entry
         lv_keyboard_set_mode(kb, LV_KEYBOARD_MODE_TEXT_UPPER);
-
-        // Attach completion and cancel handler callbacks to the keyboard entity
         lv_obj_add_event_cb(kb, keyboard_event_cb, LV_EVENT_ALL, ta);
     }
 }
 
+static void wifi_timer_cb(lv_timer_t * timer) {
+    lv_obj_t * lbl = (lv_obj_t *)lv_timer_get_user_data(timer);
+    char buf[128];
+    snprintf(buf, sizeof(buf), "Wi-Fi Link Status: %s", wifi_manager_get_status_text());
+    lv_label_set_text(lbl, buf);
+}
+
 static void draw_settings_page(lv_obj_t * parent) {
-    // 1. Static Configuration Section Heading Label
     lv_obj_t * title_lbl = lv_label_create(parent);
     lv_label_set_text(title_lbl, "SYSTEM CONFIGURATION");
-    lv_obj_set_style_text_color(title_lbl, lv_color_hex(0x00FFFF), 0); // Cyber Cyan
+    lv_obj_set_style_text_color(title_lbl, lv_color_hex(0x00FFFF), 0);
     lv_obj_align(title_lbl, LV_ALIGN_TOP_LEFT, 20, 15);
 
-    // 2. Wi-Fi Status read-out trace
     lv_obj_t * wifi_lbl = lv_label_create(parent);
-    lv_label_set_text(wifi_lbl, "Wi-Fi Link Status: DISCONNECTED");
+    lv_label_set_text(wifi_lbl, "Wi-Fi Link Status: INITIALIZING...");
     lv_obj_set_style_text_color(wifi_lbl, lv_color_hex(0x888888), 0);
     lv_obj_align(wifi_lbl, LV_ALIGN_TOP_LEFT, 20, 45);
 
-    // 3. Station Identification Field descriptor label
+    lv_timer_t * w_timer = lv_timer_create(wifi_timer_cb, 1000, wifi_lbl);
+
+    lv_obj_add_event_cb(parent, [](lv_event_t * e) {
+        lv_timer_t * tmr = (lv_timer_t *)lv_event_get_user_data(e);
+        lv_timer_delete(tmr);
+    }, LV_EVENT_DELETE, w_timer);
+
     lv_obj_t * call_lbl = lv_label_create(parent);
     lv_label_set_text(call_lbl, "Station Call:");
     lv_obj_set_style_text_color(call_lbl, lv_color_hex(0x00FFFF), 0);
     lv_obj_align(call_lbl, LV_ALIGN_TOP_LEFT, 20, 85);
 
-    // 4. Interactive Data Field Container Component (Text Area)
     lv_obj_t * ta = lv_textarea_create(parent);
     lv_obj_set_size(ta, 140, 38);
     lv_obj_align(ta, LV_ALIGN_TOP_LEFT, 140, 74);
 
-    // Bind current text state configurations from persistent buffer allocation
     lv_textarea_set_text(ta, station_call);
     lv_textarea_set_one_line(ta, true);
     lv_textarea_set_max_length(ta, 10);
 
-    // Apply dark high-contrast panel design overrides to the text box
     lv_obj_set_style_bg_color(ta, lv_color_hex(0x1C1C1C), 0);
     lv_obj_set_style_border_color(ta, lv_color_hex(0x00FFFF), 0);
-    lv_obj_set_style_text_color(ta, lv_color_hex(0x33FF33), 0); // Terminal Green Entry text
+    lv_obj_set_style_text_color(ta, lv_color_hex(0x33FF33), 0);
     lv_obj_set_style_radius(ta, 4, 0);
 
-    // Bind event trigger to spawn virtual keyboard upon cursor click focus
     lv_obj_add_event_cb(ta, textarea_event_cb, LV_EVENT_ALL, NULL);
 }
