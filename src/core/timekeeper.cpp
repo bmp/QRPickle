@@ -1,5 +1,6 @@
 #include "timekeeper.h"
 #include "../services/wifi_manager.h"
+#include "config_manager.h" // Ensure the configuration header is included at the top
 #include <Arduino.h>
 #include <time.h>
 
@@ -42,7 +43,8 @@ void timekeeper_update() {
 
     // Compute Local Time (Example: Hardcoded -5 Hour Offset for Eastern Standard Time)
     // We will build a dynamic configuration setting for this offset variable in Milestone 4!
-    time_t local_epoch = now + (+5.5 * 3600);
+    sys_config_t * cfg = config_get_runtime();
+    time_t local_epoch = now + (cfg->timezone_offset * 3600.0f);
     struct tm * local_info = gmtime(&local_epoch);
     if (local_info && now > 100000) {
         snprintf(local_str, sizeof(local_str), "%02d:%02d:%02d LOC",

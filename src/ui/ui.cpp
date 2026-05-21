@@ -2,6 +2,7 @@
 #include "../hw/sensor.h"          // Link the environmental sensor metrics layer
 #include "../services/wifi_manager.h" // THE FIX: Allow the UI to query background network status
 #include "../core/timekeeper.h" // Allow the UI to pull live network time strings
+#include "../core/config_manager.h" // Direct hook into flash runtime memory mapping structures
 #include <lvgl.h>
 #include <stdio.h>
 #include <string.h>
@@ -10,7 +11,7 @@
 static lv_obj_t * current_screen = NULL;
 
 // Persistent Global Settings Buffer: Stores callsign state across page changes
-static char station_call[12] = "N0CALL";
+// static char station_call[12] = "N0CALL";
 
 // Forward declarations for internal component subroutines
 static void draw_clock_page(lv_obj_t * parent);
@@ -138,9 +139,17 @@ static void keyboard_event_cb(lv_event_t * e) {
 
     if (code == LV_EVENT_READY || code == LV_EVENT_CANCEL) {
         if (code == LV_EVENT_READY) {
-            strncpy(station_call, lv_textarea_get_text(ta), sizeof(station_call) - 1);
-            station_call[sizeof(station_call) - 1] = '\0';
+            // 1. Fetch our active deep flash memory data pointer structure
+            sys_config_t * cfg = config_get_runtime();
+
+            // 2. Extract the keyboard string array input and write it straight to the system configuration
+            strncpy(cfg->station_call, lv_textarea_get_text(ta), sizeof(cfg->station_call) - 1);
+            cfg->station_call[sizeof(cfg->station_call) - 1] = '\0';
+
+            // 3. Commit this change to the storage device immediately!
+            config_manager_save();
         }
+
         lv_obj_remove_state(ta, LV_STATE_FOCUSED);
         lv_obj_delete(kb);
     }
@@ -195,11 +204,13 @@ static void draw_settings_page(lv_obj_t * parent) {
     lv_obj_set_style_text_color(call_lbl, lv_color_hex(0x00FFFF), 0);
     lv_obj_align(call_lbl, LV_ALIGN_TOP_LEFT, 20, 85);
 
+    // Look down near the text-area creation inside draw_settings_page...
     lv_obj_t * ta = lv_textarea_create(parent);
     lv_obj_set_size(ta, 140, 38);
     lv_obj_align(ta, LV_ALIGN_TOP_LEFT, 140, 74);
 
-    lv_textarea_set_text(ta, station_call);
+    // THE CHANGE: Populate textbox with the callsign loaded straight from LittleFS partition configuration files
+    lv_textarea_set_text(ta, config_get_runtime()->station_call);
     lv_textarea_set_one_line(ta, true);
     lv_textarea_set_max_length(ta, 10);
 

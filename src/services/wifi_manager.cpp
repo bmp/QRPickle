@@ -1,32 +1,64 @@
 #include "wifi_manager.h"
+#include "web_server.h" // Allow connection state adjustments to control server lifecycles
+#include "../core/config_manager.h" // Include our active flash memory data definitions
 #include <WiFi.h>
 #include <Arduino.h>
+#include <string.h>
 
-// PLACEHOLDERS: Change these to match your local router parameters
-#define WIFI_SSID     "YOUR_WIFI_SSID_PLACEHOLDER"
-#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD_PLACEHOLDER"
+#define AP_SSID "FoxClock-Setup"
 
 static wifi_state_t current_state = WIFI_STATE_OFFLINE;
 static unsigned long connection_timeout_mark = 0;
 static char status_msg[64] = "DISCONNECTED";
 
 void wifi_manager_init() {
-    Serial.println("[Wi-Fi] Initializing network subsystem...");
-    WiFi.mode(WIFI_STA);
+    Serial.println("[Wi-Fi] Accessing storage data for network parameters...");
 
-    // Begin background association request
-    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+    // Fetch the loaded configuration struct directly from flash memory runtime pointers
+    sys_config_t * cfg = config_get_runtime();
+
+    // Check if the flash still contains the unconfigured factory placeholder token
+    if (strcmp(cfg->wifi_ssid, "YOUR_WIFI_SSID_PLACEHOLDER") == 0 || strlen(cfg->wifi_ssid) == 0) {
+        Serial.println("[Wi-Fi] Flash memory lacks configured network link. Launching setup AP...");
+        wifi_manager_start_ap();
+        return;
+    }
+
+    WiFi.mode(WIFI_STA);
+    // Connect using strings loaded straight out of internal flash silicon!
+    WiFi.begin(cfg->wifi_ssid, cfg->wifi_secret);
 
     current_state = WIFI_STATE_CONNECTING;
     connection_timeout_mark = millis();
-    snprintf(status_msg, sizeof(status_msg), "CONNECTING TO NETWORK...");
+    snprintf(status_msg, sizeof(status_msg), "CONNECTING TO %s...", cfg->wifi_ssid);
+}
+
+void wifi_manager_start_ap() {
+  Serial.println("[Wi-Fi] Launching localized Access Point hotspot...");
+  WiFi.disconnect(true);
+  delay(100);
+
+  WiFi.mode(WIFI_AP);
+  if (WiFi.softAP(AP_SSID)) {
+    current_state = WIFI_STATE_AP_MODE;
+    IPAddress ap_ip = WiFi.softAPIP();
+    snprintf(status_msg, sizeof(status_msg), "AP MODE ACTIVE | SSID: %s | IP: %d.%d.%d.%d",
+             AP_SSID, ap_ip[0], ap_ip[1], ap_ip[2], ap_ip[3]);
+    Serial.printf("[Wi-Fi] Hotspot Broadcast Up! Target string: %s\n", status_msg);
+
+    // THE UPGRADE: Spin up our web configuration listener engine now!
+    web_server_init();
+  } else {
+    snprintf(status_msg, sizeof(status_msg), "HOTSPOT INITIALIZATION FAULT");
+  }
 }
 
 void wifi_manager_update() {
-    // Coarse 500ms execution cadence limit to save CPU cycle overhead
     static unsigned long last_poll = 0;
     if (millis() - last_poll < 500) return;
     last_poll = millis();
+
+    sys_config_t * cfg = config_get_runtime();
 
     switch (current_state) {
         case WIFI_STATE_CONNECTING:
@@ -36,38 +68,24 @@ void wifi_manager_update() {
                 snprintf(status_msg, sizeof(status_msg), "CONNECTED | IP: %d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
                 Serial.printf("[Wi-Fi] Association successful! IP assigned: %s\n", status_msg);
             }
-            // Enforce a strict 15-second timeout window to prevent infinite hanging
             else if (millis() - connection_timeout_mark > 15000) {
-                current_state = WIFI_STATE_FAILED;
-                WiFi.disconnect();
-                snprintf(status_msg, sizeof(status_msg), "CONNECTION TIMEOUT");
-                Serial.println("[Wi-Fi] Association timeout hit.");
+                Serial.println("[Wi-Fi] Station link handshake timeout. Shifting to fallback AP Mode...");
+                wifi_manager_start_ap();
             }
             break;
 
         case WIFI_STATE_CONNECTED:
-            // Continuous verification link check
             if (WiFi.status() != WL_CONNECTED) {
                 current_state = WIFI_STATE_OFFLINE;
                 snprintf(status_msg, sizeof(status_msg), "LINK LOST. RECONNECTING...");
-                Serial.println("[Wi-Fi] Physical connection link lost. Retrying...");
-                WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+                WiFi.mode(WIFI_STA);
+                WiFi.begin(cfg->wifi_ssid, cfg->wifi_secret);
                 current_state = WIFI_STATE_CONNECTING;
                 connection_timeout_mark = millis();
             }
             break;
 
-        case WIFI_STATE_FAILED:
-            // Auto-retry cadence loop after failure state cooldowns
-            static unsigned long retry_mark = 0;
-            if (retry_mark == 0) retry_mark = millis();
-            if (millis() - retry_mark > 10000) { // Retry after 10s
-                retry_mark = 0;
-                Serial.println("[Wi-Fi] Executing scheduled network connection retry...");
-                WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-                current_state = WIFI_STATE_CONNECTING;
-                connection_timeout_mark = millis();
-            }
+        case WIFI_STATE_AP_MODE:
             break;
 
         default:
