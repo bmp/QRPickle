@@ -3,16 +3,13 @@
 #include <TFT_eSPI.h>
 #include <lvgl.h>
 
-// Instantiate the TFT_eSPI driver wrapper to interact with the physical display controller
 static TFT_eSPI tft = TFT_eSPI();
 
-// THE OPTIMIZATION: Reduced from (320 * 24) to (320 * 16)
-// This drops the static allocation footprint from 30.7KB to 20.4KB, freeing up 10.2KB of DRAM.
-// This easily satisfies the linker requirements while keeping rendering fluid.
 #define DRAW_BUF_SIZE (320 * 16)
-static uint8_t draw_buf[DRAW_BUF_SIZE * 2];
 
-// LVGL v9 Flush Callback function
+// FIXED: Force 4-byte word alignment to prevent internal rendering pipeline constraints from deadlocking the CPU
+alignas(4) static uint8_t draw_buf[DRAW_BUF_SIZE * 2];
+
 static void flush_cb(lv_display_t * disp, const lv_area_t * area, uint8_t * px_map) {
     int32_t w = lv_area_get_width(area);
     int32_t h = lv_area_get_height(area);
@@ -20,7 +17,7 @@ static void flush_cb(lv_display_t * disp, const lv_area_t * area, uint8_t * px_m
     tft.startWrite();
     tft.setAddrWindow(area->x1, area->y1, w, h);
 
-    // High-speed byte swapping to align little-endian RAM with big-endian panel
+    // Byte-swapping MUST be true to keep fonts crisp!
     tft.pushColors((uint16_t *)px_map, w * h, true);
 
     tft.endWrite();
@@ -28,27 +25,44 @@ static void flush_cb(lv_display_t * disp, const lv_area_t * area, uint8_t * px_m
 }
 
 void display_init() {
-    // 1. Initialize physical Backlight Pin (GPIO 21)
+    Serial.println("  [Display Sub-Check] Configuring backlight hardware GPIO..."); Serial.flush();
     pinMode(21, OUTPUT);
     digitalWrite(21, HIGH);
 
-    // 2. Drive the screen hardware orientation and inversion settings
+    Serial.println("  [Display Sub-Check] Initializing TFT_eSPI driver bus (tft.begin)..."); Serial.flush();
     tft.begin();
-    tft.setRotation(1);        // Landscape view mode
-    tft.invertDisplay(true);   // Correct color inversion profiles
 
-    // 3. Fire up the core LVGL subsystem
+    Serial.println("  [Display Sub-Check] Applying rotation and screen inversion parameters..."); Serial.flush();
+    tft.setRotation(1);
+    tft.invertDisplay(true);
+
+    Serial.println("  [Display Sub-Check] Executing hardware screen clear (fillScreen)..."); Serial.flush();
+    tft.fillScreen(0x0000);
+
+    Serial.println("  [Display Sub-Check] Initializing LVGL core subsystem structures (lv_init)..."); Serial.flush();
     lv_init();
 
-    // 4. Create and bind the LVGL display object
+    Serial.println("  [Display Sub-Check] Allocating virtual display canvas (lv_display_create)..."); Serial.flush();
     lv_display_t * disp = lv_display_create(320, 240);
+
+    // FIXED: Explicitly verify the display handle isn't null before calling buffer configurations
+    if (disp == nullptr) {
+        Serial.println("\n[CRITICAL MEMORY FAULT] lv_display_create returned NULL!");
+        Serial.println("The LVGL internal heap allocation failed. Check your LV_MEM_SIZE setting inside lv_conf.h!");
+        Serial.flush();
+        while (1) { delay(100); } // Trap execution safely right here to show the message
+    }
+
+    Serial.println("  [Display Sub-Check] Assigning static drawing buffers..."); Serial.flush();
     lv_display_set_buffers(disp, draw_buf, NULL, sizeof(draw_buf), LV_DISPLAY_RENDER_MODE_PARTIAL);
 
-    // Use the standard public native format
+    Serial.println("  [Display Sub-Check] Selecting native color formatting rules..."); Serial.flush();
     lv_display_set_color_format(disp, LV_COLOR_FORMAT_NATIVE);
 
-    // Bind the hardware transmission flush callback subroutine to the screen object
+    Serial.println("  [Display Sub-Check] Registering low-level flush callback hooks..."); Serial.flush();
     lv_display_set_flush_cb(disp, flush_cb);
+
+    Serial.println("  [Display Sub-Check] Display initialization successfully completed."); Serial.flush();
 }
 
 void display_update() {

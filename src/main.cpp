@@ -2,40 +2,57 @@
 #include "hw/display.h"
 #include "hw/touch.h"
 #include "hw/sensor.h"
-#include "core/config_manager.h" // Mount the file storage engine
+#include "config/config.h"
 #include "core/timekeeper.h"
 #include "services/wifi_manager.h"
-#include "services/web_server.h" // Add the include handler
+#include "services/web_server.h"
 #include "ui/ui.h"
-#include <lvgl.h>
+#include "ui/fonts.h"
 
 void setup() {
     Serial.begin(115200);
-    delay(1000);
-    Serial.println("--- FoxClock Booting Subsystems (Milestone 4) ---");
+    delay(500); // Give the serial monitor extra time to stabilize
+    Serial.println("\n--- FoxClock System Initializing (NVS Production Core) ---");
+    Serial.flush();
 
-    // 1. Initialize data layer storage configurations first
-    config_manager_init();
+    config::load();
+    config::log_summary();
+    Serial.flush();
 
-    // 2. Start physical hardware layers
-    display_init();
-    touch_init();
+    Serial.println("[Boot Check] Initializing Sensors...");
+    Serial.flush();
     sensor_init();
+    Serial.println("[Boot Check] Sensors OK.");
+    Serial.flush();
 
-    // 3. Kick off background network services and clock tasks
+    Serial.println("[Boot Check] Initializing Display Driver...");
+    Serial.flush();
+    display_init();
+    Serial.println("[Boot Check] Display Driver OK.");
+    Serial.flush();
+
+    Serial.println("[Boot Check] Initializing Touch Controller...");
+    Serial.flush();
+    touch_init();
+    Serial.println("[Boot Check] Touch Controller OK.");
+    Serial.flush();
+
+    Serial.println("[Boot Check] Launching Network Stack...");
+    Serial.flush();
     wifi_manager_init();
-    timekeeper_init();
 
-    // 4. Launch visual UI engine shell
-    ui_init();
+    fonts_init();
+    ui::ui_init();
+    web_server_init();
 
-    Serial.println("--- HAL Execution Successful. All Cores Online. ---");
+    Serial.println("--- All operational tasks successfully scheduled ---");
+    Serial.flush();
 }
 
 void loop() {
-    display_update();
     wifi_manager_update();
     timekeeper_update();
+    ui::display_update();
     web_server_update();
     delay(5);
 }

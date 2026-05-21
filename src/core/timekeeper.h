@@ -11,4 +11,7 @@ void timekeeper_update();
 const char * timekeeper_get_utc_string();
 const char * timekeeper_get_local_string();
 
+// Returns true if the native lwIP engine has achieved a valid atomic lock with an NTP server
+bool timekeeper_is_synced();
+
 #endif // TIMEKEEPER_H

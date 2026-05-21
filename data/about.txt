@@ -1,0 +1,31 @@
+QRP HAM Clock
+
+This is a custom-built, open-source dashboard and environmental monitor for Amateur Radio operators, utilizing the ESP32 platform. It is a highly opinionated take on a HAM Clock, with field QRP operations being the first class-citizen use-case.
+
+Features:
+- Live Local and UTC Time tracking
+- Native Web Configuration Portal
+- Live Wi-Fi & NTP Synchronization
+- Live Wx data (BME280 I2C Sensor & OpenWeatherMap API)
+- Forecast Wx data from OpenWeatherMap API
+- DX Clusters using Telnet
+- xOTA spots (currently has POTA and SOTA) using HTTP
+- Band conditions and Solar propogation
+- HamAlert triggers via Telnet
+- APRS-IS, APRS Wx transmit and APRS messaging using Telnet
+- Spotting through AP2SOTA and POTAGW from APRS
+
+Created by VU3GLJ with LLMs.
+
+Attributions:
+------------
+Icons:
+- Directions Icons by Gonzalo Bravo from Noun Project (CC BY 3.0)
+- Rain by Jae Deasigner from Noun Project (CC BY 3.0)
+- Weather Conditions Icons by OpenWeather
+- sunny by iconbysonny from Noun Project (CC BY 3.0)
+- Night by iconbysonny from Noun Project (CC BY 3.0)
+- Magnetic Field by Fusion Experience from Noun Project (CC BY 3.0)
+- ion by Lars Meiertoberens from Noun Project (CC BY 3.0)
+- Night Mode by Zeva Zahra from Noun Project (CC BY 3.0)
+- Compass by Sadie Kroll from Noun Project (CC BY 3.0)

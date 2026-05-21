@@ -12,8 +12,16 @@
 #define LV_USE_DRAW_ARM2D_SYNC 0
 #define LV_USE_NATIVE_HELIUM_ASM 0
 
-#define LV_FONT_MONTSERRAT_14 1  // Keep this enabled for normal labels/buttons
-#define LV_FONT_MONTSERRAT_24 1  // THE UPGRADE: Enable for Local Time/Callsign readouts
-#define LV_FONT_MONTSERRAT_32 1  // THE UPGRADE: Enable for massive high-visibility UTC Time
+#define LV_FONT_MONTSERRAT_14 1  // Keep this enabled for native symbols
+
+/* Inject our global font instances cleanly into the library core headers */
+#define LV_FONT_CUSTOM_DECLARE \
+extern struct _lv_font_t font_atkinson_14; \
+extern struct _lv_font_t font_atkinson_18; \
+extern struct _lv_font_t font_jetbrains_14; \
+extern struct _lv_font_t font_jetbrains_24;
+
+/* Set our runtime-patched Atkinson 14px as the global default layout font */
+#define LV_FONT_DEFAULT &font_atkinson_14
 
 #endif /*LV_CONF_H*/

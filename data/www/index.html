@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FoxClock Interface Console</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header>
+        <h1>FoxClock Operator Portal</h1>
+    </header>
+
+    <div class="wrapper">
+        <nav class="tabs">
+            <button class="tab-btn active" data-tab="basic">Basic Settings</button>
+            <button class="tab-btn" data-tab="advanced">Advanced</button>
+            <button class="tab-btn" data-tab="profiles">Profiles</button>
+            <button class="tab-btn" data-tab="system">System Info</button>
+            <button class="tab-btn" data-tab="about">About</button>
+        </nav>
+
+        <section id="tab-basic" class="tab-content active">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Operator Callsign</label>
+                    <input type="text" id="cfg-callsign" maxlength="11">
+                </div>
+                <div class="form-group">
+                    <label>Grid Square Target</label>
+                    <input type="text" id="cfg-grid" maxlength="6">
+                </div>
+                <div class="form-group">
+                    <label>UTC Offset Matrix (Decimal Hours)</label>
+                    <input type="number" id="cfg-offset" step="0.5" min="-12" max="14">
+                </div>
+                <div class="form-group">
+                    <label>Local Network SSID</label>
+                    <input type="text" id="cfg-ssid" maxlength="32">
+                </div>
+                <div class="form-group">
+                    <label>Network Encryption WPA Passphrase</label>
+                    <div class="password-wrapper">
+                        <input type="password" id="cfg-password" placeholder="••••••••••••" maxlength="63">
+                        <button class="eye-toggle" type="button" onclick="togglePass('cfg-password')">👁️</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Station Latitude</label>
+                    <input type="number" id="cfg-lat" step="0.00001" min="-90" max="90">
+                </div>
+                <div class="form-group">
+                    <label>Station Longitude</label>
+                    <input type="number" id="cfg-lon" step="0.00001" min="-180" max="180">
+                </div>
+                <div class="form-group">
+                    <label>TFT Display Backlight PWM</label>
+                    <input type="range" id="cfg-brightness" min="10" max="255">
+                </div>
+                <div class="form-group">
+                    <label>System Color Profile Theme</label>
+                    <select id="cfg-theme">
+                        <option value="0">Classic Tactical</option>
+                        <option value="1">Tactical Field Red</option>
+                        <option value="2">GitHub Slate Dark</option>
+                        <option value="3">Clean High-Contrast</option>
+                        <option value="4">Terminal Green</option>
+                    </select>
+                </div>
+            </div>
+        </section>
+
+        <section id="tab-advanced" class="tab-content">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>OpenWeatherMap API Token</label>
+                    <div class="password-wrapper">
+                        <input type="password" id="cfg-apikey" placeholder="Paste API Key here..." maxlength="64">
+                        <button class="eye-toggle" type="button" onclick="togglePass('cfg-apikey')">👁️</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="tab-profiles" class="tab-content">
+            <div class="profile-section">
+                <h2>Saved Deployment Profiles</h2>
+                <div class="profile-controls">
+                    <input type="text" id="new-profile-name" placeholder="Profile name (e.g. Field, Shack)" maxlength="20">
+                    <button class="btn btn-secondary" onclick="saveProfile()">Save Profile File</button>
+                </div>
+                <div id="profile-bin" class="profile-list"></div>
+            </div>
+        </section>
+
+        <section id="tab-system" class="tab-content">
+            <div class="sys-section-title">Hardware Telemetry</div>
+            <div class="sys-grid">
+                <div class="sys-card"><label>System Uptime</label><div id="sys-uptime" class="val">--s</div></div>
+                <div class="sys-card"><label>Free Heap Space</label><div id="sys-heap" class="val">-- B</div></div>
+                <div class="sys-card"><label>Wireless RSSI</label><div id="sys-rssi" class="val">-- dBm</div></div>
+                <div class="sys-card"><label>Ambient Temperature</label><div id="sys-temp" class="val">--.- °C</div></div>
+                <div class="sys-card"><label>Relative Humidity</label><div id="sys-humidity" class="val">--.- %</div></div>
+                <div class="sys-card"><label>Barometric Pressure</label><div id="sys-pressure" class="val">---- hPa</div></div>
+            </div>
+
+            <div class="sys-section-title">Software Specifications</div>
+            <div class="sys-grid">
+                <div class="sys-card"><label>Core Graphics Library</label><div id="sys-lib-lvgl" class="val">--</div></div>
+                <div class="sys-card"><label>Serialization Parser</label><div id="sys-lib-json" class="val">--</div></div>
+                <div class="sys-card"><label>ESP32 Arduino Core</label><div id="sys-lib-core" class="val">--</div></div>
+                <div class="sys-card"><label>Native Espressif IDF</label><div id="sys-lib-idf" class="val">--</div></div>
+            </div>
+        </section>
+
+        <section id="tab-about" class="tab-content">
+            <div id="about-bin" class="pre-wrap">Querying text storage descriptors...</div>
+        </section>
+
+        <div class="action-bar">
+            <button class="btn btn-primary" onclick="saveActiveConfig()">Save Configuration</button>
+            <button class="btn btn-secondary" onclick="loadCurrentConfig()">Cancel</button>
+            <button class="btn btn-danger" onclick="triggerReboot()">Reboot Device</button>
+        </div>
+    </div>
+
+    <footer>
+        <span id="foot-name">--</span> | <span id="foot-version">--</span> | <a id="foot-link" href="https://ham.bharathpalavalli.com/" target="_blank">--</a>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>

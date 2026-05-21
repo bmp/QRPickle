@@ -8,6 +8,8 @@
 // Alternate initialization sequence used for specific CYD display panel clone variants
 #define ILI9341_2_DRIVER
 
+#define TFT_RGB_ORDER TFT_BGR
+
 // Display boundary sizes mapping landscape/portrait orientation limits
 #define TFT_WIDTH  240
 #define TFT_HEIGHT 320
