@@ -81,26 +81,54 @@ static void add_navigation_bar(lv_obj_t * parent, ui_page_t active_page) {
 // --- Page Content Layout Painters ---
 
 static void clock_timer_cb(lv_timer_t * timer) {
-    lv_obj_t * lbl = (lv_obj_t *)lv_timer_get_user_data(timer);
+    // Extract the parent panel screen instance passed via user data
+    lv_obj_t * parent = (lv_obj_t *)lv_timer_get_user_data(timer);
 
-    char buf[64];
-    // Fetch accurate time data directly out of our background time core
-    snprintf(buf, sizeof(buf), "%s\n%s", timekeeper_get_utc_string(), timekeeper_get_local_string());
+    // Retrieve the target sub-labels by their internal child indices
+    lv_obj_t * utc_lbl = lv_obj_get_child(parent, 0);
+    lv_obj_t * loc_lbl = lv_obj_get_child(parent, 1);
 
-    lv_label_set_text(lbl, buf);
+    // Safety check: verify both label instances exist before writing text
+    if (!utc_lbl || !loc_lbl) return;
+
+    // Fetch up-to-date formatted metrics from the background time core
+    // (e.g. "23:45:12 UTC" and "05:15:12 LOC")
+    const char * utc_text = timekeeper_get_utc_string();
+    const char * local_text = timekeeper_get_local_string();
+
+    // Push the updated string arrays straight to the glass layout layers
+    lv_label_set_text(utc_lbl, utc_text);
+    lv_label_set_text(loc_lbl, local_text);
 }
 
 static void draw_clock_page(lv_obj_t * parent) {
-    lv_obj_t * lbl = lv_label_create(parent);
-    lv_label_set_text(lbl, "AWAITING SYNC\n00:00:00 LOC");
-    lv_obj_set_style_text_align(lbl, LV_TEXT_ALIGN_CENTER, 0);
-    lv_obj_set_style_text_color(lbl, lv_color_hex(0xFFB000), 0);
-    lv_obj_align(lbl, LV_ALIGN_CENTER, 0, -30);
+    // 1. Primary High-Visibility UTC Display Label
+    lv_obj_t * utc_lbl = lv_label_create(parent);
+    lv_label_set_text(utc_lbl, "00:00:00 UTC");
+    lv_obj_set_style_text_font(utc_lbl, &lv_font_montserrat_32, 0); // Massive 32pt Font
+    lv_obj_set_style_text_color(utc_lbl, lv_color_hex(0xFFB000), 0); // Tactical Amber
+    lv_obj_align(utc_lbl, LV_ALIGN_CENTER, 0, -45);                  // Shift upward
 
-    // Spawn a high-speed 200ms refresher to capture rolling digital clock changes flawlessly
-    lv_timer_t * c_timer = lv_timer_create(clock_timer_cb, 200, lbl);
+    // 2. Secondary Local Display Label
+    lv_obj_t * loc_lbl = lv_label_create(parent);
+    lv_label_set_text(loc_lbl, "00:00:00 LOC");
+    lv_obj_set_style_text_font(loc_lbl, &lv_font_montserrat_24, 0); // Balanced 24pt Font
+    lv_obj_set_style_text_color(loc_lbl, lv_color_hex(0xCCA040), 0); // Muted Amber/Orange
+    lv_obj_align(loc_lbl, LV_ALIGN_CENTER, 0, -5);                   // Stack beneath UTC
 
-    // Self-cleaning protection: delete the timer instance if we navigate away from this screen container
+    // 3. Persistent Station Callsign Watermark
+    lv_obj_t * call_lbl = lv_label_create(parent);
+    // Fetch directly from storage cache so your callsign displays right on the main screen!
+    lv_label_set_text(call_lbl, config_get_runtime()->station_call);
+    lv_obj_set_style_text_font(call_lbl, &lv_font_montserrat_14, 0);
+    lv_obj_set_style_text_color(call_lbl, lv_color_hex(0x444444), 0); // Stealth Low-Contrast Gray
+    lv_obj_align(call_lbl, LV_ALIGN_TOP_RIGHT, -15, 15);              // Lock to top corner
+
+    // Spawn our quick 200ms background visual refresh task loop
+    // Passing 'parent' as user data lets the callback manipulate both sub-labels cleanly
+    lv_timer_t * c_timer = lv_timer_create(clock_timer_cb, 200, parent);
+
+    // Dynamic garbage collection: scrap the timer the instant this screen is unmounted
     lv_obj_add_event_cb(parent, [](lv_event_t * e) {
         lv_timer_t * tmr = (lv_timer_t *)lv_event_get_user_data(e);
         lv_timer_delete(tmr);
@@ -108,23 +136,76 @@ static void draw_clock_page(lv_obj_t * parent) {
 }
 
 static void weather_timer_cb(lv_timer_t * timer) {
-    lv_obj_t * lbl = (lv_obj_t *)lv_timer_get_user_data(timer);
+    // Extract the parent page container
+    lv_obj_t * parent = (lv_obj_t *)lv_timer_get_user_data(timer);
+
+    // Retrieve our UI components by their internal child hierarchy indices
+    lv_obj_t * lbl = lv_obj_get_child(parent, 0);
+    lv_obj_t * chart = lv_obj_get_child(parent, 1);
+
+    if (!lbl || !chart) return;
+
+    // Fetch fresh metrics from your physical environmental sensor core
     float t = sensor_get_temp();
     float h = sensor_get_humidity();
     float p = sensor_get_pressure();
 
+    // 1. Update the textual metrics dashboard layout
     char buf[128];
-    snprintf(buf, sizeof(buf), "TEMPERATURE: %.1f C\nHUMIDITY: %.1f %%\nBARO: %.1f hPa", t, h, p);
+    snprintf(buf, sizeof(buf), "TEMP: %.1f C  |  HUMIDITY: %.1f %%\nBARO: %.1f hPa", t, h, p);
     lv_label_set_text(lbl, buf);
+
+    // 2. Feed the new barometric pressure reading into the live line chart!
+    // Extract the series configuration pointer we attached to the chart's user data slot
+    lv_chart_series_t * ser = (lv_chart_series_t *)lv_obj_get_user_data(chart);
+    if (ser) {
+        // Cast float pressure directly to an integer matching our chart scale (e.g. 1013 hPa)
+        lv_chart_set_next_value(chart, ser, (int32_t)p);
+    }
 }
 
 static void draw_weather_page(lv_obj_t * parent) {
+    // [Component 0]: Text Metrics Header
     lv_obj_t * lbl = lv_label_create(parent);
-    lv_label_set_text(lbl, "TEMPERATURE: --.- C\nHUMIDITY: --.-\nBARO: ---- hPa");
+    lv_label_set_text(lbl, "TEMP: --.- C  |  HUMIDITY: --.-\nBARO: ---- hPa");
+    lv_obj_set_style_text_font(lbl, &lv_font_montserrat_14, 0);
     lv_obj_set_style_text_color(lbl, lv_color_hex(0x33FF33), 0);
-    lv_obj_align(lbl, LV_ALIGN_LEFT_MID, 20, -30);
+    lv_obj_align(lbl, LV_ALIGN_TOP_LEFT, 20, 15);
 
-    lv_timer_t * w_timer = lv_timer_create(weather_timer_cb, 1000, lbl);
+    // [Component 1]: Telemetry Barograph Trend Line Chart
+    lv_obj_t * chart = lv_chart_create(parent);
+    lv_obj_set_size(chart, 280, 100);
+    lv_obj_align(chart, LV_ALIGN_TOP_MID, 0, 65);
+
+    lv_obj_set_style_bg_color(chart, lv_color_hex(0x111111), 0);
+    lv_obj_set_style_border_color(chart, lv_color_hex(0x222222), 0);
+    lv_obj_set_style_border_width(chart, 1, 0);
+
+    lv_chart_set_type(chart, LV_CHART_TYPE_LINE);
+    lv_chart_set_point_count(chart, 20);
+
+    // --- THE ELEVATION FIX: DYNAMIC ACCORDION SCALING ---
+    // 1. Snag your exact local ambient pressure right now at startup
+    float boot_pressure = sensor_get_pressure();
+
+    // 2. Set a tight 10 hPa span centered exactly on your local altitude baseline.
+    // This shifts the window down to match Bengaluru's atmosphere perfectly!
+    int32_t y_min = (int32_t)(boot_pressure - 5.0f);
+    int32_t y_max = (int32_t)(boot_pressure + 5.0f);
+    lv_chart_set_range(chart, LV_CHART_AXIS_PRIMARY_Y, y_min, y_max);
+
+    lv_obj_set_style_line_color(chart, lv_color_hex(0x222222), LV_PART_ITEMS);
+    lv_obj_set_style_line_width(chart, 1, LV_PART_ITEMS);
+
+    lv_chart_series_t * ser = lv_chart_add_series(chart, lv_color_hex(0x33FF33), LV_CHART_AXIS_PRIMARY_Y);
+    lv_obj_set_user_data(chart, ser);
+
+    // Prime the rolling timeline history using your actual boot pressure
+    for(int i = 0; i < 20; i++) {
+        lv_chart_set_next_value(chart, ser, (int32_t)boot_pressure);
+    }
+
+    lv_timer_t * w_timer = lv_timer_create(weather_timer_cb, 1000, parent);
 
     lv_obj_add_event_cb(parent, [](lv_event_t * e) {
         lv_timer_t * tmr = (lv_timer_t *)lv_event_get_user_data(e);
