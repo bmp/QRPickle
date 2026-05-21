@@ -1,6 +1,11 @@
-# Name,     Type, SubType, Offset,   Size
-nvs,        data, nvs,     0x9000,   0x5000
-otadata,    data, ota,     0xe000,   0x2000
-app0,       app,  ota_0,   0x10000,  0x180000
-app1,       app,  ota_1,   0x190000, 0x180000
-spiffs,     data, spiffs,  0x310000, 0xF0000
+# Name,   Type, SubType, Offset,  Size,     Flags
+# Non-Volatile Storage (NVS) for persistent system variables, calibration tables, and Wi-Fi configurations
+nvs,      data, nvs,     0x9000,  0x5000,
+# Over-the-Air (OTA) selection data slot used by the bootloader to determine the active app partition
+otadata,  data, ota,     0xe000,  0x2000,
+# Primary factory/application firmware slot (Allocated 1.5 MB)
+app0,     app,  ota_0,   0x10000, 0x180000,
+# Secondary application firmware slot for staging over-the-air rolling updates (Allocated 1.5 MB)
+app1,     app,  ota_1,   0x190000,0x180000,
+# File storage partition mapped via LittleFS for themes, scripts, asset graphics, and JSON files (896 KB)
+spiffs,   data, spiffs,  0x310000,0xE0000,
