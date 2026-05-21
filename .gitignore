@@ -1,0 +1,5 @@
+.pio/
+.clang_complete
+.gcc-flags.json
+src/config/secrets_default.h
+scripts/fonts-src/
