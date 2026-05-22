@@ -6,9 +6,8 @@
 #include "../../config/config.h"
 #include "../../config/config_validation.h"
 #include "../../hw/display.h"
+#include "../../services/profile_manager.h" // FIXED: Linked cleanly to manager
 #include <Arduino.h>
-#include <LittleFS.h>
-#include <ArduinoJson.h>
 #include <string.h>
 #include <vector>
 
@@ -36,13 +35,11 @@ namespace ui {
     static lv_obj_t* btn_reboot = nullptr;
     static bool pw_visible = false;
 
-    // FIXED: Active profile list tracking state vectors
     static lv_obj_t* btn_profile = nullptr;
     static lv_obj_t* lbl_profile = nullptr;
     static std::vector<String> profile_list;
     static int current_profile_idx = -1;
 
-    // FIXED: Isolated pending staging registers to guard against early parameter corruption
     static int8_t pending_tz_offset_hh = 0;
     static uint8_t pending_theme_id = 0;
     static char pending_owm_api_key[41] = "";
@@ -72,7 +69,6 @@ namespace ui {
         if (btn_theme)     { lv_obj_set_style_bg_color(btn_theme, bg_panel, 0); lv_obj_set_style_border_color(btn_theme, border, 0); }
         if (lbl_theme)     lv_obj_set_style_text_color(lbl_theme, txt_main, 0);
 
-        // THEMED: Profiles list container dropdown button hooks
         if (btn_profile)   { lv_obj_set_style_bg_color(btn_profile, bg_panel, 0); lv_obj_set_style_border_color(btn_profile, border, 0); }
         if (lbl_profile)   lv_obj_set_style_text_color(lbl_profile, txt_main, 0);
 
@@ -142,7 +138,6 @@ namespace ui {
         }
     }
 
-    // FIXED: Processes profile filesystem reads and applies values to the staging components instantly
     static void profile_clicked(lv_event_t* e) {
         if (profile_list.empty()) return;
 
@@ -155,27 +150,22 @@ namespace ui {
             lv_label_set_text(lbl_profile, clean_name.c_str());
         }
 
-        File file = LittleFS.open("/profiles/" + name + ".json", "r");
-        if (!file) return;
+        // FIXED: Replaced raw JSON disk-read with modular exchange vehicle
+        services::profile_manager::ProfileData p_data;
+        if (services::profile_manager::read_profile(name.c_str(), p_data)) {
+            if (ta_call) lv_textarea_set_text(ta_call, p_data.callsign);
+            if (ta_grid) lv_textarea_set_text(ta_grid, p_data.grid);
+            if (ta_ssid) lv_textarea_set_text(ta_ssid, p_data.wifi_ssid);
+            if (ta_pw)   lv_textarea_set_text(ta_pw, p_data.wifi_password);
+            if (slider_bright) lv_slider_set_value(slider_bright, p_data.brightness, LV_ANIM_OFF);
 
-        JsonDocument doc;
-        DeserializationError err = deserializeJson(doc, file);
-        file.close();
+            pending_theme_id = p_data.theme_id;
+            if (lbl_theme) lv_label_set_text(lbl_theme, theme_get_name(pending_theme_id));
 
-        if (!err) {
-            if (!doc["callsign"].isNull())   lv_textarea_set_text(ta_call, doc["callsign"]);
-            if (!doc["grid"].isNull())       lv_textarea_set_text(ta_grid, doc["grid"]);
-            if (!doc["ssid"].isNull())       lv_textarea_set_text(ta_ssid, doc["ssid"]);
-            if (!doc["password"].isNull())   lv_textarea_set_text(ta_pw, doc["password"]);
-            if (!doc["brightness"].isNull()) lv_slider_set_value(slider_bright, doc["brightness"].as<int>(), LV_ANIM_OFF);
-            if (!doc["theme_id"].isNull()) {
-                pending_theme_id = doc["theme_id"].as<uint8_t>();
-                if (lbl_theme) lv_label_set_text(lbl_theme, theme_get_name(pending_theme_id));
-            }
-            if (!doc["offset"].isNull()) {
-                pending_tz_offset_hh = (int8_t)(doc["offset"].as<float>() * 2.0f);
-                render_tz(pending_tz_offset_hh);
-            }
+            pending_tz_offset_hh = p_data.tz_offset_hh;
+            render_tz(pending_tz_offset_hh);
+
+            strncpy(pending_owm_api_key, p_data.openweather_api_key, sizeof(pending_owm_api_key) - 1);
         }
     }
 
@@ -199,9 +189,9 @@ namespace ui {
         kcb.on_accept = [](const char* t) {
             if (current_target) lv_textarea_set_text(current_target, t);
         };
-            kcb.on_cancel = []{};
+        kcb.on_cancel = []{};
 
-            keyboard_show(mode, lv_textarea_get_text(target), kcb);
+        keyboard_show(mode, lv_textarea_get_text(target), kcb);
     }
 
     static void tz_minus(lv_event_t*) {
@@ -214,11 +204,8 @@ namespace ui {
         render_tz(pending_tz_offset_hh);
     }
 
-    static void bright_changed(lv_event_t* e) {
-        // Handled strictly inside the master modification engine validation sequence
-    }
+    static void bright_changed(lv_event_t* e) {}
 
-    // FIXED: Evaluates input changes against NVS state and applies modifications instantly
     static void save_clicked(lv_event_t*) {
         const auto& c = config::get();
         bool modified = false;
@@ -262,7 +249,6 @@ namespace ui {
 
             config::save();
 
-            // HOT-RELOAD: Force global layout layers to update instantly
             status_bar_refresh_theme();
             settings_refresh_theme();
 
@@ -287,25 +273,12 @@ namespace ui {
         callbacks = cb;
         const auto& c = config::get();
 
-        // Populate initial verification values
         pending_tz_offset_hh = c.tz_offset_hh;
         pending_theme_id = c.theme_id;
 
-        // FIXED: Query available filesystems to fetch profile names dynamically
-        profile_list.clear();
+        // FIXED: Substituted filesystem path walk with single service call
+        profile_list = services::profile_manager::get_profile_list();
         current_profile_idx = -1;
-        File dir = LittleFS.open("/profiles");
-        if (dir && dir.isDirectory()) {
-            File file = dir.openNextFile();
-            while (file) {
-                String name = String(file.name());
-                if (name.endsWith(".json")) {
-                    name.replace(".json", "");
-                    profile_list.push_back(name);
-                }
-                file = dir.openNextFile();
-            }
-        }
 
         scr = lv_obj_create(lv_screen_active());
         lv_obj_set_size(scr, 320, 216);
@@ -422,7 +395,6 @@ namespace ui {
         lv_obj_set_style_text_font(lbl_theme, &font_atkinson_14, 0);
         lv_obj_center(lbl_theme);
 
-        // FIXED: Profile Selection Click Switch Container Control
         make_label(form, "Staged Deployment Profile");
         btn_profile = lv_btn_create(form);
         lv_obj_set_width(btn_profile, lv_pct(100));
@@ -476,7 +448,9 @@ namespace ui {
 
     void settings_destroy() {
         if (scr) {
+            lv_obj_add_flag(scr, LV_OBJ_FLAG_HIDDEN);
             lv_obj_delete_async(scr);
+
             scr = nullptr;
             form = nullptr;
             btn_minus = nullptr;

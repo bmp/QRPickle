@@ -1,4 +1,5 @@
 #include "web_server.h"
+#include "profile_manager.h" // FIXED: Linked cleanly to manager
 #include "../config/config.h"
 #include "../core/metadata.h"
 #include "../hw/sensor.h"
@@ -125,24 +126,49 @@ const char fallback_html[] PROGMEM = R"rawhtml(
             request->send(response);
         });
 
+        server.on("/api/profiles/get", HTTP_GET, [](AsyncWebServerRequest *request) {
+            if (request->hasParam("name")) {
+                String name = request->getParam("name")->value();
+                services::profile_manager::ProfileData p_data;
+                if (services::profile_manager::read_profile(name.c_str(), p_data)) {
+                    AsyncResponseStream *response = request->beginResponseStream("application/json");
+                    JsonDocument doc;
+                    doc["callsign"] = p_data.callsign;
+                    doc["grid"] = p_data.grid;
+                    doc["ssid"] = p_data.wifi_ssid;
+                    doc["password"] = p_data.wifi_password;
+                    doc["apikey"] = p_data.openweather_api_key;
+                    doc["lat"] = p_data.lat;
+                    doc["lon"] = p_data.lon;
+                    doc["offset"] = (float)p_data.tz_offset_hh / 2.0f;
+                    doc["brightness"] = p_data.brightness;
+                    doc["theme_id"] = p_data.theme_id;
+                    serializeJson(doc, *response);
+                    request->send(response);
+                    return;
+                }
+            }
+            request->send(404, "application/json", "{\"status\":\"not_found\"}");
+        });
+
         server.on("/api/config/save", HTTP_POST, [](AsyncWebServerRequest *request) {}, nullptr,
                   [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
                       JsonDocument doc;
                       DeserializationError err = deserializeJson(doc, data, len);
                       if (!err) {
-                          auto& c = config::mutable_get(); // FIXED: Variable context anchor is 'c'
-        if (!doc["callsign"].isNull())   strncpy(c.callsign, doc["callsign"], sizeof(c.callsign)-1);
-        if (!doc["grid"].isNull())       strncpy(c.grid, doc["grid"], sizeof(c.grid)-1);
-        if (!doc["ssid"].isNull())       strncpy(c.wifi_ssid, doc["ssid"], sizeof(c.wifi_ssid)-1);
-        if (!doc["password"].isNull())   strncpy(c.wifi_password, doc["password"], sizeof(c.wifi_password)-1);
-        if (!doc["apikey"].isNull())     strncpy(c.openweather_api_key, doc["apikey"], sizeof(c.openweather_api_key)-1);
-        if (!doc["lat"].isNull())        c.lat = doc["lat"].as<float>(); // FIXED: Resolved 'mc' reference scope gap
-        if (!doc["lon"].isNull())        c.lon = doc["lon"].as<float>(); // FIXED: Resolved 'mc' reference scope gap
-        if (!doc["brightness"].isNull()) c.brightness = doc["brightness"].as<uint8_t>();
-        if (!doc["theme_id"].isNull())   c.theme_id = doc["theme_id"].as<uint8_t>();
-        if (!doc["offset"].isNull())     c.tz_offset_hh = (int8_t)(doc["offset"].as<float>() * 2.0f);
+                          auto& c = config::mutable_get(); 
+                          if (!doc["callsign"].isNull())   strncpy(c.callsign, doc["callsign"], sizeof(c.callsign)-1);
+                          if (!doc["grid"].isNull())       strncpy(c.grid, doc["grid"], sizeof(c.grid)-1);
+                          if (!doc["ssid"].isNull())       strncpy(c.wifi_ssid, doc["ssid"], sizeof(c.wifi_ssid)-1);
+                          if (!doc["password"].isNull())   strncpy(c.wifi_password, doc["password"], sizeof(c.wifi_password)-1);
+                          if (!doc["apikey"].isNull())     strncpy(c.openweather_api_key, doc["apikey"], sizeof(c.openweather_api_key)-1);
+                          if (!doc["lat"].isNull())        c.lat = doc["lat"].as<float>(); 
+                          if (!doc["lon"].isNull())        c.lon = doc["lon"].as<float>(); 
+                          if (!doc["brightness"].isNull()) c.brightness = doc["brightness"].as<uint8_t>();
+                          if (!doc["theme_id"].isNull())   c.theme_id = doc["theme_id"].as<uint8_t>();
+                          if (!doc["offset"].isNull())     c.tz_offset_hh = (int8_t)(doc["offset"].as<float>() * 2.0f);
 
-        config::save();
+                          config::save();
                           flag_trigger_ui_refresh = true;
                           request->send(200, "application/json", "{\"status\":\"success\"}");
                       } else {
@@ -150,37 +176,29 @@ const char fallback_html[] PROGMEM = R"rawhtml(
                       }
                   });
 
+        // FIXED: Replaced manual dir walk with modular list query
         server.on("/api/profiles", HTTP_GET, [](AsyncWebServerRequest *request) {
             AsyncResponseStream *response = request->beginResponseStream("application/json");
             JsonDocument doc;
             JsonArray array = doc.to<JsonArray>();
-            File dir = LittleFS.open("/profiles");
-            if (dir && dir.isDirectory()) {
-                File file = dir.openNextFile();
-                while (file) {
-                    String name = String(file.name());
-                    if (name.endsWith(".json")) {
-                        name.replace(".json", "");
-                        array.add(name);
-                    }
-                    file = dir.openNextFile();
-                }
+            
+            auto list = services::profile_manager::get_profile_list();
+            for (const auto& name : list) {
+                array.add(name);
             }
+
             serializeJson(doc, *response);
             request->send(response);
         });
 
+        // FIXED: Simplified down to pass the raw incoming json pointer straight down the stack
         server.on("/api/profiles/save", HTTP_POST, [](AsyncWebServerRequest *request) {}, nullptr,
                   [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
                       JsonDocument doc;
                       DeserializationError err = deserializeJson(doc, data, len);
                       if (!err && !doc["name"].isNull() && !doc["config"].isNull()) {
                           String p_name = doc["name"].as<String>();
-                          p_name.replace(" ", "_");
-                          File f = LittleFS.open("/profiles/" + p_name + ".json", "w");
-                          if (f) {
-                              serializeJson(doc["config"], f);
-                              f.close();
+                          if (services::profile_manager::save_profile_from_json(p_name.c_str(), doc["config"])) {
                               request->send(200, "application/json", "{\"status\":\"success\"}");
                               return;
                           }
@@ -188,33 +206,14 @@ const char fallback_html[] PROGMEM = R"rawhtml(
                       request->send(400, "application/json", "{\"status\":\"failed\"}");
                   });
 
+        // FIXED: Removed the disruptive reboot sequence, forcing an instant live Hot-Swap UI paint refresh
         server.on("/api/profiles/load", HTTP_POST, [](AsyncWebServerRequest *request) {
             if (request->hasParam("name")) {
-                String path = "/profiles/" + request->getParam("name")->value() + ".json";
-                if (LittleFS.exists(path)) {
-                    File f = LittleFS.open(path, "r");
-                    JsonDocument doc;
-                    DeserializationError err = deserializeJson(doc, f);
-                    f.close();
-                    if (!err) {
-                        auto& c = config::mutable_get(); // FIXED: Variable context anchor is 'c'
-        if (!doc["callsign"].isNull())   strncpy(c.callsign, doc["callsign"], sizeof(c.callsign)-1);
-        if (!doc["grid"].isNull())       strncpy(c.grid, doc["grid"], sizeof(c.grid)-1);
-        if (!doc["ssid"].isNull())       strncpy(c.wifi_ssid, doc["ssid"], sizeof(c.wifi_ssid)-1);
-        if (!doc["password"].isNull())   strncpy(c.wifi_password, doc["password"], sizeof(c.wifi_password)-1);
-        if (!doc["apikey"].isNull())     strncpy(c.openweather_api_key, doc["apikey"], sizeof(c.openweather_api_key)-1);
-        if (!doc["lat"].isNull())        c.lat = doc["lat"].as<float>(); // FIXED: Resolved 'mc' reference scope gap
-        if (!doc["lon"].isNull())        c.lon = doc["lon"].as<float>(); // FIXED: Resolved 'mc' reference scope gap
-        if (!doc["brightness"].isNull()) c.brightness = doc["brightness"].as<uint8_t>();
-        if (!doc["theme_id"].isNull())   c.theme_id = doc["theme_id"].as<uint8_t>();
-        if (!doc["offset"].isNull())     c.tz_offset_hh = (int8_t)(doc["offset"].as<float>() * 2.0f);
-
-        config::save();
-                        request->send(200, "application/json", "{\"status\":\"loaded\"}");
-                        flag_trigger_reboot = true;
-                        reboot_timer_mark = millis();
-                        return;
-                    }
+                String name = request->getParam("name")->value();
+                if (services::profile_manager::apply_profile_to_live(name.c_str())) {
+                    flag_trigger_ui_refresh = true; // Instantly re-paints display layout templates
+                    request->send(200, "application/json", "{\"status\":\"success\"}");
+                    return;
                 }
             }
             request->send(404, "application/json", "{\"status\":\"not_found\"}");

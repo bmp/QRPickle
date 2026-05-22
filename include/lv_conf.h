@@ -12,6 +12,7 @@
 #define LV_USE_DRAW_ARM2D_SYNC 0
 #define LV_USE_NATIVE_HELIUM_ASM 0
 
+#define LV_FONT_MONTSERRAT_10 1
 #define LV_FONT_MONTSERRAT_14 1  // Keep this enabled for native symbols
 
 /* Inject our global font instances cleanly into the library core headers */

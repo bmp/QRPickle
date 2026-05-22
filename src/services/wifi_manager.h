@@ -7,7 +7,8 @@ enum wifi_state_t {
     WIFI_STATE_CONNECTING,
     WIFI_STATE_CONNECTED,
     WIFI_STATE_FAILED,
-    WIFI_STATE_AP_MODE // Added tracking for active local hotspot state
+    WIFI_STATE_AP_MODE,
+    WIFI_STATE_BACKGROUND_RETRY // FIXED: Isolated background recovery state
 };
 
 // Configures the ESP32 network stack and launches an async connection attempt

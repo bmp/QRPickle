@@ -4,6 +4,7 @@
 #include "hw/sensor.h"
 #include "config/config.h"
 #include "core/timekeeper.h"
+#include "core/lvgl_fs.h" // FIXED: Include the new bridge
 #include "services/wifi_manager.h"
 #include "services/web_server.h"
 #include "ui/ui.h"
@@ -11,7 +12,7 @@
 
 void setup() {
     Serial.begin(115200);
-    delay(500); // Give the serial monitor extra time to stabilize
+    delay(500);
     Serial.println("\n--- QRPickle System Initializing (NVS Production Core) ---");
     Serial.flush();
 
@@ -28,6 +29,10 @@ void setup() {
     Serial.println("[Boot Check] Initializing Display Driver...");
     Serial.flush();
     display_init();
+
+    // FIXED: Register the filesystem bridge directly to the core
+    core::lvgl_fs_init();
+
     Serial.println("[Boot Check] Display Driver OK.");
     Serial.flush();
 

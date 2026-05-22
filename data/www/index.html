@@ -85,12 +85,66 @@
 
         <section id="tab-profiles" class="tab-content">
             <div class="profile-section">
-                <h2>Saved Deployment Profiles</h2>
-                <div class="profile-controls">
-                    <input type="text" id="new-profile-name" placeholder="Profile name (e.g. Field, Shack)" maxlength="20">
-                    <button class="btn btn-secondary" onclick="saveProfile()">Save Profile File</button>
+                <h2>Deployed Profile Selection & Modification Terminal</h2>
+                <div class="form-group">
+                    <label>Select Stored Profile Layout</label>
+                    <select id="profile-select" onchange="handleProfileSelectionChange()">
+                        <option value="">-- No Profile Selected --</option>
+                    </select>
                 </div>
-                <div id="profile-bin" class="profile-list"></div>
+
+                <div id="profile-inspect-panel" class="profile-details-card hidden">
+                    <h3>Modifying Isolated Profile Parameters</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Profile Callsign</label>
+                            <input type="text" id="prof-edit-callsign" maxlength="11">
+                        </div>
+                        <div class="form-group">
+                            <label>Profile Grid Square</label>
+                            <input type="text" id="prof-edit-grid" maxlength="6">
+                        </div>
+                        <div class="form-group">
+                            <label>Profile Network SSID</label>
+                            <input type="text" id="prof-edit-ssid" maxlength="32">
+                        </div>
+                        <div class="form-group">
+                            <label>Profile Network Password</label>
+                            <input type="password" id="prof-edit-password" maxlength="63">
+                        </div>
+                        <div class="form-group">
+                            <label>UTC Offset (Decimal Hours)</label>
+                            <input type="number" id="prof-edit-offset" step="0.5" min="-12" max="14">
+                        </div>
+                        <div class="form-group">
+                            <label>TFT Backlight PWM</label>
+                            <input type="range" id="prof-edit-brightness" min="10" max="255">
+                        </div>
+                        <div class="form-group">
+                            <label>Color Profile Theme</label>
+                            <select id="prof-edit-theme">
+                                <option value="0">Classic Tactical</option>
+                                <option value="1">Tactical Field Red</option>
+                                <option value="2">GitHub Slate Dark</option>
+                                <option value="3">Clean High-Contrast</option>
+                                <option value="4">Terminal Green</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="action-bar" style="margin-top: 20px; padding:0; background:none; border:0;">
+                        <button class="btn btn-primary" onclick="applySelectedProfile()">Commit Hot-Swap Live</button>
+                        <button class="btn btn-secondary" onclick="saveProfileChanges()">Save Changes to Profile</button>
+                    </div>
+                </div>
+
+                <hr style="border:0; border-top:1px dashed #333; margin:25px 0;">
+
+                <h2>Snapshot Active Settings into New Profile</h2>
+                <div class="profile-controls">
+                    <input type="text" id="new-profile-name" placeholder="Profile name (e.g. Field Ops, Home Shack)" maxlength="20">
+                    <button class="btn btn-secondary" onclick="saveProfile()">Compile Profile Descriptor</button>
+                </div>
             </div>
         </section>
 

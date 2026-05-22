@@ -3,13 +3,11 @@
 #include "sidebar.h"
 #include "home_button.h"
 #include "theme.h"
+#include "screens/dashboard.h" // FIXED: Imported the new dedicated module
 #include "screens/settings.h"
 #include "screens/weather.h"
 #include "screens/splash.h"
 #include "screens/network.h"
-#include "widgets/widget_clock.h"
-#include "widgets/widget_wx_all.h"
-#include "widgets/widget_band.h"
 #include "fonts.h"
 #include "../config/config.h"
 #include "../hw/sensor.h"
@@ -28,14 +26,13 @@ namespace ui {
     static void global_ui_timer_cb(lv_timer_t* timer);
     static void sidebar_selection_cb(DestScreen dest);
     static void open_settings_screen();
-    static void draw_dashboard_page(lv_obj_t* parent);
     void display_update();
 
     static lv_obj_t* view_container = nullptr;
     static lv_obj_t* status_bar_obj = nullptr;
     static lv_timer_t* global_timer = nullptr;
     static LocalPage active_page = PAGE_DASHBOARD;
-    static lv_obj_t* global_home_btn = nullptr;
+    static lv_obj_t* global_home_btn = nullptr; 
 
     static void global_ui_timer_cb(lv_timer_t* timer) {
         const char* full_time = timekeeper_get_local_string();
@@ -53,7 +50,10 @@ namespace ui {
     }
 
     static void sidebar_selection_cb(DestScreen dest) {
-        sidebar_toggle();
+        if (active_page == PAGE_SETTINGS) {
+            settings_destroy(); 
+        }
+
         if (dest == DEST_DASHBOARD) {
             ui_navigate_local(PAGE_DASHBOARD);
         } else if (dest == DEST_WEATHER) {
@@ -66,10 +66,10 @@ namespace ui {
     }
 
     static void open_settings_screen() {
-        sidebar_toggle();
+        sidebar_hide(); 
         if (global_home_btn) {
-            lv_obj_clear_flag(global_home_btn, LV_OBJ_FLAG_HIDDEN);
-            lv_obj_move_foreground(global_home_btn); // Ensure it's on top of settings modal
+            lv_obj_clear_flag(global_home_btn, LV_OBJ_FLAG_HIDDEN); 
+            lv_obj_move_foreground(global_home_btn); 
         }
 
         SettingsCallbacks scb;
@@ -80,6 +80,7 @@ namespace ui {
         scb.on_reboot = []() { ESP.restart(); };
 
         settings_create(scb);
+        active_page = PAGE_SETTINGS; 
     }
 
     void ui_init() {
@@ -117,6 +118,7 @@ namespace ui {
             global_timer = lv_timer_create(global_ui_timer_cb, 500, nullptr);
 
             global_home_btn = home_button_create(lv_screen_active(), []() {
+                if (active_page == PAGE_SETTINGS) settings_destroy();
                 ui_navigate_local(PAGE_DASHBOARD);
             });
 
@@ -136,19 +138,20 @@ namespace ui {
         lv_obj_clean(view_container);
 
         if (page == PAGE_DASHBOARD) {
-            if (global_home_btn) lv_obj_add_flag(global_home_btn, LV_OBJ_FLAG_HIDDEN);
+            if (global_home_btn) lv_obj_add_flag(global_home_btn, LV_OBJ_FLAG_HIDDEN); 
 
             char buf[32];
             snprintf(buf, sizeof(buf), "%s @ %s", config::get().callsign, config::get().grid);
             status_bar_set_title(buf);
-            status_bar_refresh_theme();
-            sidebar_rebuild();
+            
             lv_obj_set_style_bg_color(view_container, theme_color(COLOR_BG_APP), 0);
+            
+            // FIXED: Routed through the dedicated screen module
             draw_dashboard_page(view_container);
         } else {
             if (global_home_btn) {
-                lv_obj_clear_flag(global_home_btn, LV_OBJ_FLAG_HIDDEN);
-                lv_obj_move_foreground(global_home_btn); // FIXED: Forces the home button to the highest Z-layer above opaque tab views
+                lv_obj_clear_flag(global_home_btn, LV_OBJ_FLAG_HIDDEN); 
+                lv_obj_move_foreground(global_home_btn); 
             }
 
             if (page == PAGE_WEATHER) {
@@ -159,17 +162,6 @@ namespace ui {
                 draw_network_page(view_container);
             }
         }
-    }
-
-    static void draw_dashboard_page(lv_obj_t* parent) {
-        lv_obj_t* clock_widget = widget_clock_create(parent, WIDGET_SIZE_QUARTER);
-        lv_obj_align(clock_widget, LV_ALIGN_TOP_LEFT, 4, 4);
-
-        lv_obj_t* wx_all_widget = widget_wx_all_create(parent, WIDGET_SIZE_QUARTER);
-        lv_obj_align(wx_all_widget, LV_ALIGN_TOP_LEFT, 4, 112);
-
-        lv_obj_t* band_widget = widget_band_create(parent, WIDGET_SIZE_HALF_VERT);
-        lv_obj_align(band_widget, LV_ALIGN_TOP_RIGHT, -4, 4);
     }
 
     void display_update() {

@@ -1,8 +1,7 @@
 #!/bin/bash
 
-# Ensure output directory exists and wipe any old generated files
+# Ensure output directory exists
 mkdir -p src/ui/fonts
-rm -f src/ui/fonts/*.c
 
 echo "🔍 Checking for local TTF fonts in assets/fonts/..."
 if [ ! -f "assets/fonts/AtkinsonHyperlegible-Regular.ttf" ] || [ ! -f "assets/fonts/JetBrainsMono-Bold.ttf" ]; then
@@ -11,24 +10,40 @@ if [ ! -f "assets/fonts/AtkinsonHyperlegible-Regular.ttf" ] || [ ! -f "assets/fo
     exit 1
 fi
 
-echo "⚙️  Compiling Atkinson Hyperlegible (14px)..."
-lv_font_conv --no-compress --no-prefilter --bpp 4 --size 14 \
-    --font assets/fonts/AtkinsonHyperlegible-Regular.ttf -r 0x20-0x7F \
-    --format lvgl -o src/ui/fonts/font_atkinson_14_raw.c
+# Helper function to generate fonts with overwrite protection
+generate_font() {
+    local name="$1"
+    local size="$2"
+    local font_path="$3"
+    local out_path="$4"
 
-echo "⚙️  Compiling Atkinson Hyperlegible (18px)..."
-lv_font_conv --no-compress --no-prefilter --bpp 4 --size 18 \
-    --font assets/fonts/AtkinsonHyperlegible-Regular.ttf -r 0x20-0x7F \
-    --format lvgl -o src/ui/fonts/font_atkinson_18_raw.c
+    if [ -f "$out_path" ]; then
+        read -p "⚠️  $out_path already exists. Overwrite? (y/n): " choice
+        case "$choice" in
+            [Yy]* )
+                echo "Overwriting $name..."
+                ;;
+            * )
+                echo "⏭️  Skipping $name..."
+                return 0
+                ;;
+        esac
+    fi
 
-echo "⚙️  Compiling JetBrains Mono (14px)..."
-lv_font_conv --no-compress --no-prefilter --bpp 4 --size 14 \
-    --font assets/fonts/JetBrainsMono-Bold.ttf -r 0x20-0x7F \
-    --format lvgl -o src/ui/fonts/font_jetbrains_14_raw.c
+    echo "⚙️  Compiling $name..."
+    lv_font_conv --no-compress --no-prefilter --bpp 4 --size "$size" \
+        --font "$font_path" -r 0x20-0x7F \
+        --format lvgl -o "$out_path"
+}
 
-echo "⚙️  Compiling JetBrains Mono (24px)..."
-lv_font_conv --no-compress --no-prefilter --bpp 4 --size 24 \
-    --font assets/fonts/JetBrainsMono-Bold.ttf -r 0x20-0x7F \
-    --format lvgl -o src/ui/fonts/font_jetbrains_24_raw.c
+# --- Atkinson Hyperlegible Generations ---
+generate_font "Atkinson Hyperlegible (10px)" 10 "assets/fonts/AtkinsonHyperlegible-Regular.ttf" "src/ui/fonts/font_atkinson_10_raw.c"
+generate_font "Atkinson Hyperlegible (14px)" 14 "assets/fonts/AtkinsonHyperlegible-Regular.ttf" "src/ui/fonts/font_atkinson_14_raw.c"
+generate_font "Atkinson Hyperlegible (18px)" 18 "assets/fonts/AtkinsonHyperlegible-Regular.ttf" "src/ui/fonts/font_atkinson_18_raw.c"
 
-echo "✅ Fonts successfully built into src/ui/fonts/ with _raw extensions!"
+# --- JetBrains Mono Generations ---
+generate_font "JetBrains Mono (10px)" 10 "assets/fonts/JetBrainsMono-Bold.ttf" "src/ui/fonts/font_jetbrains_10_raw.c"
+generate_font "JetBrains Mono (14px)" 14 "assets/fonts/JetBrainsMono-Bold.ttf" "src/ui/fonts/font_jetbrains_14_raw.c"
+generate_font "JetBrains Mono (24px)" 24 "assets/fonts/JetBrainsMono-Bold.ttf" "src/ui/fonts/font_jetbrains_24_raw.c"
+
+echo "✅ Font checking and building process complete!"

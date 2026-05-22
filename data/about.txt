@@ -1,6 +1,8 @@
-QRP HAM Clock
+QRPPickle
 
-This is a custom-built, open-source dashboard and environmental monitor for Amateur Radio operators, utilizing the ESP32 platform. It is a highly opinionated take on a HAM Clock, with field QRP operations being the first class-citizen use-case.
+This is a custom-built, open-source dashboard and environmental monitor for mateur radio operators, utilizing the ESP32 platform.
+
+It is a highly opinionated take on a HAM Clock, with QRP field operations being the first-class citizen use-case.
 
 Features:
 - Live Local and UTC Time tracking

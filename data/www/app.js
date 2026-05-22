@@ -18,11 +18,6 @@ function initTabs() {
     });
 }
 
-function togglePassVisibility(id) {
-    const el = document.getElementById(id);
-    el.type = el.type === "password" ? "text" : "password";
-}
-
 function loadCurrentConfig() {
     fetch('/api/config')
     .then(res => res.json())
@@ -31,158 +26,14 @@ function loadCurrentConfig() {
         document.getElementById('cfg-grid').value = data.grid;
         document.getElementById('cfg-ssid').value = data.ssid;
         document.getElementById('cfg-password').value = data.password;
-        document.getElementById('cfg-offset').value = data.offset;
-        document.getElementById('cfg-brightness').value = data.brightness;
-        document.getElementById('cfg-theme').value = data.theme_id;
-    }).catch(err => console.error("Config read block fail:", err));
-    refreshProfilesList();
-}
-
-function saveActiveConfig() {
-    const payload = {
-        callsign: document.getElementById('cfg-callsign').value,
-        grid: document.getElementById('cfg-grid').value,
-        ssid: document.getElementById('cfg-ssid').value,
-        password: document.getElementById('cfg-password').value,
-        offset: parseFloat(document.getElementById('cfg-offset').value),
-        brightness: parseInt(document.getElementById('cfg-brightness').value),
-        theme_id: parseInt(document.getElementById('cfg-theme').value)
-    };
-
-    fetch('/api/config/save', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(payload)
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.status === 'success') {
-            alert('Active layout configuration updated on device instantly!');
-        }
-    }).catch(err => alert("Transmission timeout syncing config vectors."));
-}
-
-function refreshProfilesList() {
-    fetch('/api/profiles')
-    .then(res => res.json())
-    .then(list => {
-        const bin = document.getElementById('profile-bin');
-        bin.innerHTML = '';
-        if (list.length === 0) {
-            bin.innerHTML = '<span style="font-size:12px; color:var(--text-muted);">No profiles saved on flash partition layout.</span>';
-            return;
-        }
-        list.forEach(p => {
-            const chip = document.createElement('div');
-            chip.className = 'profile-chip';
-            chip.innerHTML = `📦 ${p.replace(/_/g, ' ')}`;
-            chip.addEventListener('click', () => loadProfile(p));
-            bin.appendChild(chip);
-        });
-    });
-}
-
-// FIXED: Packages web form fields into JSON payload to write straight to disk without applying live changes
-function saveProfile() {
-    const nameInput = document.getElementById('new-profile-name');
-    if (!nameInput.value.trim()) return;
-
-    const payload = {
-        name: nameInput.value.trim(),
-        config: {
-            callsign: document.getElementById('cfg-callsign').value,
-            grid: document.getElementById('cfg-grid').value,
-            ssid: document.getElementById('cfg-ssid').value,
-            password: document.getElementById('cfg-password').value,
-            offset: parseFloat(document.getElementById('cfg-offset').value),
-            brightness: parseInt(document.getElementById('cfg-brightness').value),
-            theme_id: parseInt(document.getElementById('cfg-theme').value)
-        }
-    };
-
-    fetch('/api/profiles/save', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(payload)
-    })
-    .then(res => res.json())
-    .then(data => {
-        nameInput.value = '';
-        refreshProfilesList();
-    });
-}
-
-function loadProfile(name) {
-    if (confirm(`Inject and execute deployment profile "${name.replace(/_/g, ' ')}"? Hardware will save and trigger a system power cycle.`)) {
-        fetch(`/api/profiles/load?name=${encodeURIComponent(name)}`, { method: 'POST' })
-        .then(res => res.json())
-        .then(data => {
-            alert('Profile committed safely! Connection terminal severed while device reboots execution context.');
-            window.location.reload();
-        });
-    }
-}
-
-function runTelemetryPoller() {
-    fetch('/api/status')
-    .then(res => res.json())
-    .then(d => {
-        document.getElementById('sys-uptime').textContent = d.uptime + 's';
-        document.getElementById('sys-heap').textContent = d.heap.toLocaleString() + ' B';
-        document.getElementById('sys-rssi').textContent = d.rssi + ' dBm';
-        document.getElementById('sys-temp').textContent = d.temp.toFixed(1) + ' °C';
-        document.getElementById('sys-humidity').textContent = d.humidity.toFixed(1) + ' %';
-        document.getElementById('sys-pressure').textContent = d.pressure.toFixed(1) + ' hPa';
-
-        document.getElementById('sys-lib-lvgl').textContent = d.ver_lvgl;
-        document.getElementById('sys-lib-json').textContent = d.ver_json;
-        document.getElementById('sys-lib-core').textContent = d.ver_core;
-        document.getElementById('sys-lib-idf').textContent = d.ver_idf;
-
-        document.getElementById('foot-name').textContent = d.fw_name;
-        document.getElementById('foot-version').textContent = d.fw_version;
-        document.getElementById('foot-link').textContent = d.author_call;
-    }).catch(() => {});
-}
-
-function fetchAboutText() {
-    fetch('/api/about').then(res => res.text()).then(text => {
-        document.getElementById('about-bin').textContent = text;
-    });
-}
-
-function triggerReboot() {
-    if (confirm('Issue absolute execution command override to force-reboot the device?')) {
-        fetch('/api/system/reboot', { method: 'POST' });
-        alert('Reboot execution command broadcasted.');
-    }
-}
-
-function togglePass(id) {
-    const field = document.getElementById(id);
-    if (field.type === "password") {
-        field.type = "text";
-    } else {
-        field.type = "password";
-    }
-}
-
-function loadCurrentConfig() {
-    fetch('/api/config')
-    .then(res => res.json())
-    .then(data => {
-        document.getElementById('cfg-callsign').value = data.callsign;
-        document.getElementById('cfg-grid').value = data.grid;
-        document.getElementById('cfg-ssid').value = data.ssid;
-        document.getElementById('cfg-password').value = data.password;
-        document.getElementById('cfg-apikey').value = data.apikey || ""; // FIXED: Loads OWM Key
+        document.getElementById('cfg-apikey').value = data.apikey || "";
         document.getElementById('cfg-lat').value = data.lat || 0;
         document.getElementById('cfg-lon').value = data.lon || 0;
         document.getElementById('cfg-offset').value = data.offset;
         document.getElementById('cfg-brightness').value = data.brightness;
         document.getElementById('cfg-theme').value = data.theme_id;
-    }).catch(err => console.error("Config read block fail:", err));
-    refreshProfilesList();
+    }).catch(err => console.error("Config read fail:", err));
+    refreshProfilesDropdown();
 }
 
 function saveActiveConfig() {
@@ -206,10 +57,77 @@ function saveActiveConfig() {
     })
     .then(res => res.json())
     .then(data => {
-        if (data.status === 'success') {
-            alert('Active layout configuration updated on device instantly!');
+        if (data.status === 'success') alert('Configuration hot-swapped onto device instantly!');
+    }).catch(() => alert("Timeout syncing layout config."));
+}
+
+function refreshProfilesDropdown() {
+    fetch('/api/profiles')
+    .then(res => res.json())
+    .then(list => {
+        const select = document.getElementById('profile-select');
+        select.innerHTML = '<option value="">-- Choose a Profile --</option>';
+        list.forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p;
+            opt.textContent = p.replace(/_/g, ' ');
+            select.appendChild(opt);
+        });
+        document.getElementById('profile-inspect-panel').classList.add('hidden');
+    });
+}
+
+// FIXED: Option B - Fetches isolated parameters via GET route and populates modification inputs
+function handleProfileSelectionChange() {
+    const select = document.getElementById('profile-select');
+    const panel = document.getElementById('profile-inspect-panel');
+    if (!select.value) {
+        panel.classList.add('hidden');
+        return;
+    }
+
+    fetch(`/api/profiles/get?name=${encodeURIComponent(select.value)}`)
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById('prof-edit-callsign').value = data.callsign;
+        document.getElementById('prof-edit-grid').value = data.grid;
+        document.getElementById('prof-edit-ssid').value = data.ssid;
+        document.getElementById('prof-edit-password').value = data.password;
+        document.getElementById('prof-edit-offset').value = data.offset;
+        document.getElementById('prof-edit-brightness').value = data.brightness;
+        document.getElementById('prof-edit-theme').value = data.theme_id;
+        
+        panel.classList.remove('hidden');
+    }).catch(() => alert("Error unrolling profile description."));
+}
+
+// FIXED: Option B - Package inputs inside details panel card to save modifications back to file
+function saveProfileChanges() {
+    const select = document.getElementById('profile-select');
+    if (!select.value) return;
+
+    const payload = {
+        name: select.value,
+        config: {
+            callsign: document.getElementById('prof-edit-callsign').value,
+            grid: document.getElementById('prof-edit-grid').value,
+            ssid: document.getElementById('prof-edit-ssid').value,
+            password: document.getElementById('prof-edit-password').value,
+            offset: parseFloat(document.getElementById('prof-edit-offset').value),
+            brightness: parseInt(document.getElementById('prof-edit-brightness').value),
+            theme_id: parseInt(document.getElementById('prof-edit-theme').value)
         }
-    }).catch(err => alert("Transmission timeout syncing config vectors."));
+    };
+
+    fetch('/api/profiles/save', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(() => {
+        alert('Changes successfully saved to profile layout file.');
+    }).catch(() => alert("Error writing updates to profile."));
 }
 
 function saveProfile() {
@@ -223,7 +141,7 @@ function saveProfile() {
             grid: document.getElementById('cfg-grid').value,
             ssid: document.getElementById('cfg-ssid').value,
             password: document.getElementById('cfg-password').value,
-            apikey: document.getElementById('cfg-apikey').value, // FIXED: Bundles token cleanly into saved profile JSON string files
+            apikey: document.getElementById('cfg-apikey').value,
             lat: parseFloat(document.getElementById('cfg-lat').value),
             lon: parseFloat(document.getElementById('cfg-lon').value),
             offset: parseFloat(document.getElementById('cfg-offset').value),
@@ -238,8 +156,61 @@ function saveProfile() {
         body: JSON.stringify(payload)
     })
     .then(res => res.json())
-    .then(data => {
+    .then(() => {
         nameInput.value = '';
-        refreshProfilesList();
+        refreshProfilesDropdown();
+        alert('Profile compilation committed to disk partition.');
     });
+}
+
+function applySelectedProfile() {
+    const select = document.getElementById('profile-select');
+    if (!select.value) return;
+
+    if (confirm(`Inject operational deployment profile "${select.value.replace(/_/g, ' ')}"? Hardware layers will swap instantly.`)) {
+        fetch(`/api/profiles/load?name=${encodeURIComponent(select.value)}`, { method: 'POST' })
+        .then(res => res.json())
+        .then(() => {
+            alert('Profile parameters injected successfully! Device hardware layers updated hot-swapped without power cycle.');
+            window.location.reload();
+        });
+    }
+}
+
+function runTelemetryPoller() {
+    fetch('/api/status')
+    .then(res => res.json())
+    .then(d => {
+        document.getElementById('sys-uptime').textContent = d.uptime + 's';
+        document.getElementById('sys-heap').textContent = d.heap.toLocaleString() + ' B';
+        document.getElementById('sys-rssi').textContent = d.rssi + ' dBm';
+        document.getElementById('sys-temp').textContent = d.temp.toFixed(1) + ' °C';
+        document.getElementById('sys-humidity').textContent = d.humidity.toFixed(1) + ' %';
+        document.getElementById('sys-pressure').textContent = d.pressure.toFixed(1) + ' hPa';
+        document.getElementById('sys-lib-lvgl').textContent = d.ver_lvgl;
+        document.getElementById('sys-lib-json').textContent = d.ver_json;
+        document.getElementById('sys-lib-core').textContent = d.ver_core;
+        document.getElementById('sys-lib-idf').textContent = d.ver_idf;
+        document.getElementById('foot-name').textContent = d.fw_name;
+        document.getElementById('foot-version').textContent = d.fw_version;
+        document.getElementById('foot-link').textContent = d.author_call;
+    }).catch(() => {});
+}
+
+function fetchAboutText() {
+    fetch('/api/about').then(res => res.text()).then(text => {
+        document.getElementById('about-bin').textContent = text;
+    });
+}
+
+function triggerReboot() {
+    if (confirm('Issue absolute execution command override to force-reboot the device?')) {
+        fetch('/api/system/reboot', { method: 'POST' });
+        alert('Reboot execution command broadcasted.');
+    }
+}
+
+function togglePass(id) {
+    const field = document.getElementById(id);
+    field.type = field.type === "password" ? "text" : "password";
 }

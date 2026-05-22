@@ -1,5 +1,5 @@
 #include "wifi_manager.h"
-#include "../config/config.h" // Hook up the new storage headers
+#include "../config/config.h" 
 #include "web_server.h"
 #include <WiFi.h>
 #include <Arduino.h>
@@ -9,12 +9,11 @@
 
 static wifi_state_t current_state = WIFI_STATE_OFFLINE;
 static unsigned long connection_timeout_mark = 0;
+static unsigned long last_background_retry_mark = 0; // FIXED: Separate clock tracker
 static char status_msg[64] = "DISCONNECTED";
 
 void wifi_manager_init() {
     Serial.println("[Wi-Fi] Querying NVS parameters for link parameters...");
-
-    // Retrieve credentials directly from the power-safe memory cache
     const auto& cfg = config::get();
 
     if (strcmp(cfg.wifi_ssid, "YOUR_WIFI_SSID_PLACEHOLDER") == 0 || strlen(cfg.wifi_ssid) == 0) {
@@ -52,6 +51,8 @@ void wifi_manager_update() {
     if (millis() - last_poll < 500) return;
     last_poll = millis();
 
+    const auto& cfg = config::get();
+
     switch (current_state) {
         case WIFI_STATE_CONNECTING:
             if (WiFi.status() == WL_CONNECTED) {
@@ -60,20 +61,36 @@ void wifi_manager_update() {
                 snprintf(status_msg, sizeof(status_msg), "CONNECTED | IP: %d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
                 Serial.printf("[Wi-Fi] Association successful! IP: %s\n", status_msg);
             }
-            else if (millis() - connection_timeout_mark > 15000) {
-                Serial.println("[Wi-Fi] Handshake timeout. Dropping back to Fallback Setup AP Mode...");
+            else if (millis() - connection_timeout_mark > 20000) {
+                // FIXED: Only falls back to AP during initial boot verification
+                Serial.println("[Wi-Fi] Boot connection timeout. Dropping back to Fallback Setup AP Mode...");
                 wifi_manager_start_ap();
             }
             break;
 
         case WIFI_STATE_CONNECTED:
             if (WiFi.status() != WL_CONNECTED) {
-                current_state = WIFI_STATE_OFFLINE;
+                // FIXED: Runtime link drops route to background retry instead of dropping to AP
+                current_state = WIFI_STATE_BACKGROUND_RETRY;
                 snprintf(status_msg, sizeof(status_msg), "LINK LOST. RETRYING...");
-                WiFi.mode(WIFI_STA);
-                WiFi.begin(config::get().wifi_ssid, config::get().wifi_password);
-                current_state = WIFI_STATE_CONNECTING;
-                connection_timeout_mark = millis();
+                Serial.println("[Wi-Fi] Connection lost. Initiating background recovery cycles.");
+                last_background_retry_mark = millis();
+                WiFi.begin(cfg.wifi_ssid, cfg.wifi_password);
+            }
+            break;
+
+        case WIFI_STATE_BACKGROUND_RETRY:
+            if (WiFi.status() == WL_CONNECTED) {
+                current_state = WIFI_STATE_CONNECTED;
+                IPAddress ip = WiFi.localIP();
+                snprintf(status_msg, sizeof(status_msg), "CONNECTED | IP: %d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
+                Serial.printf("[Wi-Fi] Background recovery successful! IP: %s\n", status_msg);
+            } 
+            else if (millis() - last_background_retry_mark >= 30000) {
+                // FIXED: Issues non-blocking reconnection check command every 30 seconds
+                last_background_retry_mark = millis();
+                Serial.println("[Wi-Fi] Heartbeat retry: reconnecting radio interface...");
+                WiFi.begin(cfg.wifi_ssid, cfg.wifi_password);
             }
             break;
 
