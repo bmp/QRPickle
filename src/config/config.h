@@ -8,7 +8,9 @@ struct Config {
     char    grid[8];
     uint8_t brightness;
     uint8_t theme_id;
-    int8_t  tz_offset_hh;     // Internal tracking offset tracking via half-hours (-24..+28)
+    int8_t  tz_offset_hh;     
+    uint8_t screen_timeout_min; 
+    uint8_t forecast_slots;     // Bitmask for chosen forecast checkboxes (Bit 0 = +3h ... Bit 7 = +24h)
     bool    web_enabled;
 
     char    wifi_ssid[33];

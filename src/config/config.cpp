@@ -7,7 +7,7 @@
 namespace config {
 
 static Config cfg;
-static const char* NS = "qrpclock"; // Registry isolation name
+static const char* NS = "qrpclock"; 
 
 static void mask(const char* s, char* out, size_t out_len) {
     size_t n = strnlen(s, 64);
@@ -22,18 +22,20 @@ void reset_to_defaults() {
     strncpy(cfg.grid,     "MK82wb", sizeof(cfg.grid) - 1);
     cfg.brightness   = 180;
     cfg.theme_id     = 0;
-    cfg.tz_offset_hh = 11; // Anchor to IST (+5.5) as our standard startup baseline
+    cfg.tz_offset_hh = 11; 
+    cfg.screen_timeout_min = 5;
+    cfg.forecast_slots = 0x0F; // Default to first 4 slots active (+3h, +6h, +9h, +12h)
     cfg.web_enabled  = true;
     cfg.wifi_ssid[0] = '\0';
     cfg.wifi_password[0] = '\0';
     cfg.openweather_api_key[0] = '\0';
-    cfg.lat = 12.9716f;   // Bengaluru center coordinates
+    cfg.lat = 12.9716f;   
     cfg.lon = 77.5946f;
 }
 
 void load() {
     Preferences p;
-    p.begin(NS, true); // Instantiate isolated space in read-only mode
+    p.begin(NS, true); 
     reset_to_defaults();
 
     if (p.isKey("callsign")) {
@@ -42,6 +44,8 @@ void load() {
         cfg.brightness   = p.getUChar("brightness", cfg.brightness);
         cfg.theme_id     = p.getUChar("theme_id",   cfg.theme_id);
         cfg.tz_offset_hh = p.getChar("tz_hh",       cfg.tz_offset_hh);
+        cfg.screen_timeout_min = p.getUChar("scr_to", cfg.screen_timeout_min); 
+        cfg.forecast_slots = p.getUChar("fc_slots", cfg.forecast_slots); 
         cfg.web_enabled  = p.getBool("web_en",      cfg.web_enabled);
         p.getString("wifi_ssid", cfg.wifi_ssid,    sizeof(cfg.wifi_ssid));
         p.getString("wifi_pw",   cfg.wifi_password,sizeof(cfg.wifi_password));
@@ -51,7 +55,6 @@ void load() {
     }
     p.end();
 
-    // Enforce logic validation filters over recovered entries
     cfg.brightness   = clamp_brightness((int)cfg.brightness);
     cfg.theme_id     = clamp_theme_id((int)cfg.theme_id);
     cfg.tz_offset_hh = clamp_tz_hh((int)cfg.tz_offset_hh);
@@ -59,12 +62,14 @@ void load() {
 
 void save() {
     Preferences p;
-    p.begin(NS, false); // Request write access permissions
+    p.begin(NS, false); 
     p.putString("callsign",  cfg.callsign);
     p.putString("grid",      cfg.grid);
     p.putUChar("brightness", cfg.brightness);
     p.putUChar("theme_id",   cfg.theme_id);
     p.putChar("tz_hh",       cfg.tz_offset_hh);
+    p.putUChar("scr_to",     cfg.screen_timeout_min); 
+    p.putUChar("fc_slots",   cfg.forecast_slots); 
     p.putBool("web_en",      cfg.web_enabled);
     p.putString("wifi_ssid", cfg.wifi_ssid);
     p.putString("wifi_pw",   cfg.wifi_password);

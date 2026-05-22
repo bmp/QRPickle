@@ -6,7 +6,8 @@
 #include "../../config/config.h"
 #include "../../config/config_validation.h"
 #include "../../hw/display.h"
-#include "../../services/profile_manager.h" // FIXED: Linked cleanly to manager
+#include "../../services/display_manager.h" 
+#include "../../services/profile_manager.h"
 #include <Arduino.h>
 #include <string.h>
 #include <vector>
@@ -31,6 +32,12 @@ namespace ui {
 
     static lv_obj_t* btn_minus = nullptr;
     static lv_obj_t* btn_plus = nullptr;
+    
+    // FIXED: Layout bindings for timeout modifier row
+    static lv_obj_t* btn_timeout_minus = nullptr;
+    static lv_obj_t* btn_timeout_plus = nullptr;
+    static lv_obj_t* lbl_timeout = nullptr;
+
     static lv_obj_t* btn_exit = nullptr;
     static lv_obj_t* btn_reboot = nullptr;
     static bool pw_visible = false;
@@ -42,6 +49,7 @@ namespace ui {
 
     static int8_t pending_tz_offset_hh = 0;
     static uint8_t pending_theme_id = 0;
+    static uint8_t pending_timeout_min = 5; // FIXED: Added active state tracker
     static char pending_owm_api_key[41] = "";
 
     static void settings_refresh_theme() {
@@ -65,6 +73,7 @@ namespace ui {
         if (lbl_pw_masked) lv_obj_set_style_text_color(lbl_pw_masked, txt_muted, 0);
         if (btn_pw_eye)    lv_obj_set_style_text_color(btn_pw_eye, accent, 0);
         if (lbl_tz)        lv_obj_set_style_text_color(lbl_tz, txt_main, 0);
+        if (lbl_timeout)   lv_obj_set_style_text_color(lbl_timeout, txt_main, 0);
 
         if (btn_theme)     { lv_obj_set_style_bg_color(btn_theme, bg_panel, 0); lv_obj_set_style_border_color(btn_theme, border, 0); }
         if (lbl_theme)     lv_obj_set_style_text_color(lbl_theme, txt_main, 0);
@@ -78,28 +87,22 @@ namespace ui {
             lv_obj_set_style_bg_color(slider_bright, txt_main, LV_PART_KNOB);
         }
 
-        if (btn_minus) {
-            lv_obj_set_style_bg_color(btn_minus, bg_panel, 0);
-            lv_obj_set_style_border_color(btn_minus, border, 0);
-            lv_obj_set_style_border_width(btn_minus, 1, 0);
-            lv_obj_t* lbl = lv_obj_get_child(btn_minus, 0);
+        // Sub-routine styling mapping for control rows
+        auto style_btn_row = [&](lv_obj_t* b) {
+            if (!b) return;
+            lv_obj_set_style_bg_color(b, bg_panel, 0);
+            lv_obj_set_style_border_color(b, border, 0);
+            lv_obj_set_style_border_width(b, 1, 0);
+            lv_obj_t* lbl = lv_obj_get_child(b, 0);
             if (lbl) lv_obj_set_style_text_color(lbl, txt_main, 0);
-        }
-        if (btn_plus) {
-            lv_obj_set_style_bg_color(btn_plus, bg_panel, 0);
-            lv_obj_set_style_border_color(btn_plus, border, 0);
-            lv_obj_set_style_border_width(btn_plus, 1, 0);
-            lv_obj_t* lbl = lv_obj_get_child(btn_plus, 0);
-            if (lbl) lv_obj_set_style_text_color(lbl, txt_main, 0);
-        }
+        };
 
-        if (btn_exit) {
-            lv_obj_set_style_bg_color(btn_exit, bg_panel, 0);
-            lv_obj_set_style_border_color(btn_exit, border, 0);
-            lv_obj_set_style_border_width(btn_exit, 1, 0);
-            lv_obj_t* lbl = lv_obj_get_child(btn_exit, 0);
-            if (lbl) lv_obj_set_style_text_color(lbl, txt_main, 0);
-        }
+        style_btn_row(btn_minus);
+        style_btn_row(btn_plus);
+        style_btn_row(btn_timeout_minus);
+        style_btn_row(btn_timeout_plus);
+        style_btn_row(btn_exit);
+
         if (btn_reboot) {
             lv_obj_set_style_bg_color(btn_reboot, theme_color(COLOR_BAND_POOR), 0);
             lv_obj_t* lbl = lv_obj_get_child(btn_reboot, 0);
@@ -131,6 +134,16 @@ namespace ui {
         if (lbl_tz) lv_label_set_text(lbl_tz, buf);
     }
 
+    // FIXED: Dynamic string formatting logic for timeout
+    static void render_timeout() {
+        if (!lbl_timeout) return;
+        if (pending_timeout_min == 0) {
+            lv_label_set_text(lbl_timeout, "Never");
+        } else {
+            lv_label_set_text_fmt(lbl_timeout, "%d min", pending_timeout_min);
+        }
+    }
+
     static void theme_clicked(lv_event_t* e) {
         pending_theme_id = (pending_theme_id + 1) % THEME_COUNT;
         if (lbl_theme) {
@@ -150,7 +163,6 @@ namespace ui {
             lv_label_set_text(lbl_profile, clean_name.c_str());
         }
 
-        // FIXED: Replaced raw JSON disk-read with modular exchange vehicle
         services::profile_manager::ProfileData p_data;
         if (services::profile_manager::read_profile(name.c_str(), p_data)) {
             if (ta_call) lv_textarea_set_text(ta_call, p_data.callsign);
@@ -164,6 +176,9 @@ namespace ui {
 
             pending_tz_offset_hh = p_data.tz_offset_hh;
             render_tz(pending_tz_offset_hh);
+            
+            pending_timeout_min = p_data.screen_timeout_min;
+            render_timeout();
 
             strncpy(pending_owm_api_key, p_data.openweather_api_key, sizeof(pending_owm_api_key) - 1);
         }
@@ -204,7 +219,22 @@ namespace ui {
         render_tz(pending_tz_offset_hh);
     }
 
-    static void bright_changed(lv_event_t* e) {}
+    // FIXED: Handlers for new timeout modifier bounds (0 min to 120 max)
+    static void timeout_minus(lv_event_t*) {
+        if (pending_timeout_min > 0) pending_timeout_min--;
+        render_timeout();
+    }
+
+    static void timeout_plus(lv_event_t*) {
+        if (pending_timeout_min < 120) pending_timeout_min++;
+        render_timeout();
+    }
+
+    static void bright_changed(lv_event_t* e) {
+        lv_obj_t* slider = (lv_obj_t*)lv_event_get_target(e);
+        uint8_t current_val = (uint8_t)lv_slider_get_value(slider);
+        services::display_manager::set_brightness(current_val);
+    }
 
     static void save_clicked(lv_event_t*) {
         const auto& c = config::get();
@@ -223,7 +253,8 @@ namespace ui {
             strcmp(c.openweather_api_key, pending_owm_api_key) != 0 ||
             c.tz_offset_hh != pending_tz_offset_hh ||
             c.brightness != new_bright ||
-            c.theme_id != pending_theme_id)
+            c.theme_id != pending_theme_id ||
+            c.screen_timeout_min != pending_timeout_min) // FIXED: Add verification parameter
         {
             modified = true;
         }
@@ -246,6 +277,7 @@ namespace ui {
             mc.tz_offset_hh = pending_tz_offset_hh;
             mc.brightness = new_bright;
             mc.theme_id = pending_theme_id;
+            mc.screen_timeout_min = pending_timeout_min; // FIXED: Save explicit active timeout
 
             config::save();
 
@@ -275,8 +307,8 @@ namespace ui {
 
         pending_tz_offset_hh = c.tz_offset_hh;
         pending_theme_id = c.theme_id;
+        pending_timeout_min = c.screen_timeout_min;
 
-        // FIXED: Substituted filesystem path walk with single service call
         profile_list = services::profile_manager::get_profile_list();
         current_profile_idx = -1;
 
@@ -375,6 +407,35 @@ namespace ui {
             lv_obj_set_style_text_font(plbl, &font_atkinson_14, 0);
         }
 
+        // FIXED: New layout block for adjusting the physical sleep timeout variable
+        {
+            lv_obj_t* row = lv_obj_create(form);
+            lv_obj_set_size(row, lv_pct(100), 44);
+            lv_obj_set_style_bg_opa(row, LV_OPA_TRANSP, 0);
+            lv_obj_set_style_border_width(row, 0, 0);
+            lv_obj_set_style_pad_all(row, 0, 0);
+            make_label(row, "Screen Sleep Timer");
+
+            btn_timeout_minus = lv_button_create(row);
+            lv_obj_set_size(btn_timeout_minus, 36, 26);
+            lv_obj_align(btn_timeout_minus, LV_ALIGN_BOTTOM_LEFT, 130, 0);
+            lv_obj_add_event_cb(btn_timeout_minus, timeout_minus, LV_EVENT_CLICKED, NULL);
+            lv_obj_t* mlbl = lv_label_create(btn_timeout_minus); lv_label_set_text(mlbl, "-"); lv_obj_center(mlbl);
+            lv_obj_set_style_text_font(mlbl, &font_atkinson_14, 0);
+
+            lbl_timeout = lv_label_create(row);
+            render_timeout();
+            lv_obj_align(lbl_timeout, LV_ALIGN_BOTTOM_LEFT, 175, -4);
+            lv_obj_set_style_text_font(lbl_timeout, &font_jetbrains_14, 0);
+
+            btn_timeout_plus = lv_button_create(row);
+            lv_obj_set_size(btn_timeout_plus, 36, 26);
+            lv_obj_align(btn_timeout_plus, LV_ALIGN_BOTTOM_LEFT, 230, 0);
+            lv_obj_add_event_cb(btn_timeout_plus, timeout_plus, LV_EVENT_CLICKED, NULL);
+            lv_obj_t* plbl = lv_label_create(btn_timeout_plus); lv_label_set_text(plbl, "+"); lv_obj_center(plbl);
+            lv_obj_set_style_text_font(plbl, &font_atkinson_14, 0);
+        }
+
         make_label(form, "Brightness");
         slider_bright = lv_slider_create(form);
         lv_slider_set_range(slider_bright, 10, 255);
@@ -455,6 +516,9 @@ namespace ui {
             form = nullptr;
             btn_minus = nullptr;
             btn_plus = nullptr;
+            btn_timeout_minus = nullptr;
+            btn_timeout_plus = nullptr;
+            lbl_timeout = nullptr;
             btn_exit = nullptr;
             btn_reboot = nullptr;
             btn_profile = nullptr;

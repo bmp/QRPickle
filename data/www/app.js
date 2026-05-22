@@ -31,12 +31,23 @@ function loadCurrentConfig() {
         document.getElementById('cfg-lon').value = data.lon || 0;
         document.getElementById('cfg-offset').value = data.offset;
         document.getElementById('cfg-brightness').value = data.brightness;
+        document.getElementById('cfg-timeout').value = data.timeout; // FIXED
         document.getElementById('cfg-theme').value = data.theme_id;
+        const mask = data.fc_slots || 0x0F;
+        for (let i = 0; i < 8; i++) {
+            document.getElementById(`fc-bit${i}`).checked = (mask & (1 << i)) !== 0;
+        }
     }).catch(err => console.error("Config read fail:", err));
     refreshProfilesDropdown();
 }
 
 function saveActiveConfig() {
+    let fcMask = 0;
+    for (let i = 0; i < 8; i++) {
+        if (document.getElementById(`fc-bit${i}`).checked) {
+            fcMask |= (1 << i);
+        }
+    }
     const payload = {
         callsign: document.getElementById('cfg-callsign').value,
         grid: document.getElementById('cfg-grid').value,
@@ -47,7 +58,10 @@ function saveActiveConfig() {
         lon: parseFloat(document.getElementById('cfg-lon').value),
         offset: parseFloat(document.getElementById('cfg-offset').value),
         brightness: parseInt(document.getElementById('cfg-brightness').value),
+        timeout: parseInt(document.getElementById('cfg-timeout').value), // FIXED
+        fc_slots: fcMask,
         theme_id: parseInt(document.getElementById('cfg-theme').value)
+
     };
 
     fetch('/api/config/save', {
@@ -77,7 +91,6 @@ function refreshProfilesDropdown() {
     });
 }
 
-// FIXED: Option B - Fetches isolated parameters via GET route and populates modification inputs
 function handleProfileSelectionChange() {
     const select = document.getElementById('profile-select');
     const panel = document.getElementById('profile-inspect-panel');
@@ -95,13 +108,13 @@ function handleProfileSelectionChange() {
         document.getElementById('prof-edit-password').value = data.password;
         document.getElementById('prof-edit-offset').value = data.offset;
         document.getElementById('prof-edit-brightness').value = data.brightness;
+        document.getElementById('prof-edit-timeout').value = data.timeout; // FIXED
         document.getElementById('prof-edit-theme').value = data.theme_id;
         
         panel.classList.remove('hidden');
     }).catch(() => alert("Error unrolling profile description."));
 }
 
-// FIXED: Option B - Package inputs inside details panel card to save modifications back to file
 function saveProfileChanges() {
     const select = document.getElementById('profile-select');
     if (!select.value) return;
@@ -115,6 +128,7 @@ function saveProfileChanges() {
             password: document.getElementById('prof-edit-password').value,
             offset: parseFloat(document.getElementById('prof-edit-offset').value),
             brightness: parseInt(document.getElementById('prof-edit-brightness').value),
+            timeout: parseInt(document.getElementById('prof-edit-timeout').value), // FIXED
             theme_id: parseInt(document.getElementById('prof-edit-theme').value)
         }
     };
@@ -146,6 +160,7 @@ function saveProfile() {
             lon: parseFloat(document.getElementById('cfg-lon').value),
             offset: parseFloat(document.getElementById('cfg-offset').value),
             brightness: parseInt(document.getElementById('cfg-brightness').value),
+            timeout: parseInt(document.getElementById('cfg-timeout').value), // FIXED
             theme_id: parseInt(document.getElementById('cfg-theme').value)
         }
     };
@@ -213,4 +228,67 @@ function triggerReboot() {
 function togglePass(id) {
     const field = document.getElementById(id);
     field.type = field.type === "password" ? "text" : "password";
+}
+
+function executeWirelessOTA() {
+    const fileInput = document.getElementById('ota-file-input');
+    const targetSelect = document.getElementById('ota-target');
+    const progressContainer = document.getElementById('ota-progress-container');
+    const progressBar = document.getElementById('ota-progress-bar');
+    const pctLabel = document.getElementById('ota-pct-lbl');
+    const statusLabel = document.getElementById('ota-status-lbl');
+
+    if (fileInput.files.length === 0) {
+        alert('Please select a compiled binary output artifact file first.');
+        return;
+    }
+
+    const file = fileInput.files[0];
+    const target = targetSelect.value;
+
+    if (!confirm(`Are you sure you want to write "${file.name}" to device flash partition [${target.toUpperCase()}]? Connection will be severed.`)) {
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append("update", file);
+
+    const xhr = new XMLHttpRequest();
+    
+    xhr.upload.addEventListener("progress", (e) => {
+        if (e.lengthComputable) {
+            progressContainer.classList.remove('hidden');
+            const percent = Math.round((e.loaded / e.total) * 100);
+            progressBar.style.width = percent + '%';
+            pctLabel.textContent = percent + '%';
+            statusLabel.textContent = `Streaming bytes: ${Math.round(e.loaded/1024)} KB / ${Math.round(e.total/1024)} KB`;
+        }
+    });
+
+    xhr.addEventListener("load", () => {
+        if (xhr.status === 200) {
+            statusLabel.textContent = "Flash verification secure! Rebooting target hardware...";
+            progressBar.style.backgroundColor = "#3FB950";
+            alert("Upgrade deployed successfully! The hardware terminal is now swapping boot vectors and rebooting.");
+            setTimeout(() => { window.location.reload(); }, 3000);
+        } else {
+            progressBar.style.backgroundColor = "#FF3333";
+            statusLabel.textContent = "Error: Partition rejected flash image payload.";
+            try {
+                const resp = JSON.parse(xhr.responseText);
+                alert(`OTA Failure: ${resp.error || 'Signature rejected'}`);
+            } catch {
+                alert("OTA Error: Connection timed out or structure validation failure.");
+            }
+        }
+    });
+
+    xhr.addEventListener("error", () => {
+        progressBar.style.backgroundColor = "#FF3333";
+        statusLabel.textContent = "Network transaction interrupted.";
+        alert("CRITICAL: Network terminal link dropped during transmission.");
+    });
+
+    xhr.open("POST", `/api/system/update?target=${target}`);
+    xhr.send(formData);
 }

@@ -43,6 +43,7 @@ namespace services {
             if (!doc["brightness"].isNull()) data.brightness = doc["brightness"].as<uint8_t>();
             if (!doc["theme_id"].isNull())   data.theme_id = doc["theme_id"].as<uint8_t>();
             if (!doc["offset"].isNull())     data.tz_offset_hh = (int8_t)(doc["offset"].as<float>() * 2.0f);
+            if (!doc["scr_to"].isNull())     data.screen_timeout_min = doc["scr_to"].as<uint8_t>();
 
             return true;
         }
@@ -66,6 +67,7 @@ namespace services {
             doc["offset"] = (float)data.tz_offset_hh / 2.0f;
             doc["brightness"] = data.brightness;
             doc["theme_id"] = data.theme_id;
+            doc["scr_to"] = data.screen_timeout_min;
 
             serializeJson(doc, file);
             file.close();
@@ -85,6 +87,7 @@ namespace services {
             if (!json["brightness"].isNull()) p_data.brightness = json["brightness"].as<uint8_t>();
             if (!json["theme_id"].isNull())   p_data.theme_id = json["theme_id"].as<uint8_t>();
             if (!json["offset"].isNull())     p_data.tz_offset_hh = (int8_t)(json["offset"].as<float>() * 2.0f);
+            if (!json["scr_to"].isNull())     p_data.screen_timeout_min = json["scr_to"].as<uint8_t>();
 
             return write_profile(name, p_data);
         }
@@ -104,6 +107,7 @@ namespace services {
             c.brightness = data.brightness;
             c.theme_id = data.theme_id;
             c.tz_offset_hh = data.tz_offset_hh;
+            c.screen_timeout_min = data.screen_timeout_min;
 
             config::save();
             return true;

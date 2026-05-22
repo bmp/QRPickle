@@ -7,6 +7,8 @@
 #include "core/lvgl_fs.h" // FIXED: Include the new bridge
 #include "services/wifi_manager.h"
 #include "services/web_server.h"
+#include "services/display_manager.h"
+#include "services/weather_manager.h"
 #include "ui/ui.h"
 #include "ui/fonts.h"
 
@@ -59,5 +61,7 @@ void loop() {
     timekeeper_update();
     ui::display_update();
     web_server_update();
+    services::display_manager::update();
+    services::weather_manager::update();
     delay(5);
 }

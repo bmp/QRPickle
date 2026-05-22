@@ -17,6 +17,7 @@ namespace services {
             uint8_t brightness = 128;
             uint8_t theme_id = 0;
             int8_t tz_offset_hh = 0;
+            uint8_t screen_timeout_min = 5;
         };
 
         std::vector<String> get_profile_list();

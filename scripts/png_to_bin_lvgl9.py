@@ -76,8 +76,9 @@ def process_file(in_path, out_dir):
     return False
 
 def main():
-    parser = argparse.ArgumentParser(description="Convert a specific PNG to LVGL v9 Split-Map .bin")
-    parser.add_argument("-f", "--file", help="Filename of the PNG (e.g., icon_web_20x20.png)", required=True, type=str)
+    parser = argparse.ArgumentParser(description="Convert PNGs to LVGL v9 Split-Map .bin")
+    parser.add_argument("-f", "--file", help="Filename of the PNG (e.g., icon_web_20x20.png)", required=False, type=str)
+    parser.add_argument("-a", "--all", help="Batch convert all PNG files in the assets/img directory", action="store_true")
     args = parser.parse_args()
 
     # Define base paths
@@ -87,17 +88,31 @@ def main():
 
     os.makedirs(out_dir, exist_ok=True)
 
-    # Allow full paths to be passed, but default to checking assets/img/ if just a filename is provided
-    if os.path.isfile(args.file):
-        input_path = args.file
+    if args.all:
+        print(f"Scanning {src_dir} for assets...")
+        count = 0
+        if os.path.exists(src_dir):
+            for filename in os.listdir(src_dir):
+                if filename.lower().endswith('.png'):
+                    if process_file(os.path.join(src_dir, filename), out_dir):
+                        count += 1
+            print(f"\n🎯 Total assets converted: {count}")
+        else:
+            print(f"❌ Error: Source directory '{src_dir}' does not exist.")
+    elif args.file:
+        # Allow full paths to be passed, but default to checking assets/img/ if just a filename is provided
+        if os.path.isfile(args.file):
+            input_path = args.file
+        else:
+            input_path = os.path.join(src_dir, args.file)
+
+        if not os.path.isfile(input_path):
+            print(f"❌ Error: Could not find file at '{input_path}'")
+            return
+
+        process_file(input_path, out_dir)
     else:
-        input_path = os.path.join(src_dir, args.file)
-
-    if not os.path.isfile(input_path):
-        print(f"❌ Error: Could not find file at '{input_path}'")
-        return
-
-    process_file(input_path, out_dir)
+        parser.print_help()
 
 if __name__ == "__main__":
     main()

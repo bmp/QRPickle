@@ -1,13 +1,12 @@
 #include "display.h"
+#include "../services/display_manager.h" // FIXED: Linked to dedicated power logic
 #include <Arduino.h>
 #include <TFT_eSPI.h>
 #include <lvgl.h>
 
 static TFT_eSPI tft = TFT_eSPI();
 
-#define DRAW_BUF_SIZE (320 * 16)
-
-// FIXED: Force 4-byte word alignment to prevent internal rendering pipeline constraints from deadlocking the CPU
+#define DRAW_BUF_SIZE (320 * 10)
 alignas(4) static uint8_t draw_buf[DRAW_BUF_SIZE * 2];
 
 static void flush_cb(lv_display_t * disp, const lv_area_t * area, uint8_t * px_map) {
@@ -16,18 +15,14 @@ static void flush_cb(lv_display_t * disp, const lv_area_t * area, uint8_t * px_m
 
     tft.startWrite();
     tft.setAddrWindow(area->x1, area->y1, w, h);
-
-    // Byte-swapping MUST be true to keep fonts crisp!
     tft.pushColors((uint16_t *)px_map, w * h, true);
-
     tft.endWrite();
     lv_display_flush_ready(disp);
 }
 
 void display_init() {
-    Serial.println("  [Display Sub-Check] Configuring backlight hardware GPIO..."); Serial.flush();
-    pinMode(21, OUTPUT);
-    digitalWrite(21, HIGH);
+    // FIXED: Offloaded raw backlight GPIO init to the dedicated manager
+    services::display_manager::init();
 
     Serial.println("  [Display Sub-Check] Initializing TFT_eSPI driver bus (tft.begin)..."); Serial.flush();
     tft.begin();
@@ -45,12 +40,9 @@ void display_init() {
     Serial.println("  [Display Sub-Check] Allocating virtual display canvas (lv_display_create)..."); Serial.flush();
     lv_display_t * disp = lv_display_create(320, 240);
 
-    // FIXED: Explicitly verify the display handle isn't null before calling buffer configurations
     if (disp == nullptr) {
         Serial.println("\n[CRITICAL MEMORY FAULT] lv_display_create returned NULL!");
-        Serial.println("The LVGL internal heap allocation failed. Check your LV_MEM_SIZE setting inside lv_conf.h!");
-        Serial.flush();
-        while (1) { delay(100); } // Trap execution safely right here to show the message
+        while (1) { delay(100); } 
     }
 
     Serial.println("  [Display Sub-Check] Assigning static drawing buffers..."); Serial.flush();
