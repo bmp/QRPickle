@@ -12,6 +12,9 @@
 #define LV_USE_DRAW_ARM2D_SYNC 0
 #define LV_USE_NATIVE_HELIUM_ASM 0
 
+/* LVGL cache for fonts and icons */
+#define LV_CACHE_DEF_SIZE       32768
+
 /*==================
  * FONT USAGE
  *===================*/

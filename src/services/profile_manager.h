@@ -18,6 +18,9 @@ namespace services {
             uint8_t theme_id = 0;
             int8_t tz_offset_hh = 0;
             uint8_t screen_timeout_min = 5;
+            bool    aprs_enabled;
+            char    aprs_passcode[8];
+            int8_t  aprs_ssid;
         };
 
         std::vector<String> get_profile_list();

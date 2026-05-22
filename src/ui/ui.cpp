@@ -3,11 +3,15 @@
 #include "sidebar.h"
 #include "home_button.h"
 #include "theme.h"
-#include "screens/dashboard.h" // FIXED: Imported the new dedicated module
+#include "screens/dashboard.h" 
 #include "screens/settings.h"
 #include "screens/weather.h"
 #include "screens/splash.h"
 #include "screens/network.h"
+#include "screens/spots.h"
+#include "screens/xota.h"
+#include "screens/aprs.h"
+#include "../services/aprs_manager.h"
 #include "fonts.h"
 #include "../config/config.h"
 #include "../hw/sensor.h"
@@ -62,6 +66,12 @@ namespace ui {
             ui_navigate_local(PAGE_NETWORK);
         } else if (dest == DEST_SETTINGS) {
             open_settings_screen();
+        } else if (dest == DEST_SPOTS) { 
+            ui_navigate_local(PAGE_SPOTS);
+        } else if (dest == DEST_XOTA) { // FIXED: Route directly to unified xOTA module
+            ui_navigate_local(PAGE_XOTA);
+        } else if (dest == DEST_APRS) {
+            ui_navigate_local(PAGE_APRS); // Routes to APRS
         }
     }
 
@@ -122,6 +132,10 @@ namespace ui {
                 ui_navigate_local(PAGE_DASHBOARD);
             });
 
+            if (config::get().aprs_enabled) {
+                services::AprsManager::start();
+            }
+
             ui_navigate_local(PAGE_DASHBOARD);
         });
     }
@@ -145,8 +159,6 @@ namespace ui {
             status_bar_set_title(buf);
             
             lv_obj_set_style_bg_color(view_container, theme_color(COLOR_BG_APP), 0);
-            
-            // FIXED: Routed through the dedicated screen module
             draw_dashboard_page(view_container);
         } else {
             if (global_home_btn) {
@@ -160,6 +172,15 @@ namespace ui {
             } else if (page == PAGE_NETWORK) {
                 status_bar_set_title("Network");
                 draw_network_page(view_container);
+            } else if (page == PAGE_SPOTS) { 
+                status_bar_set_title("DX Cluster");
+                draw_spots_page(view_container);
+            } else if (page == PAGE_XOTA) { // FIXED: Route Mount 
+                status_bar_set_title("xOTA");
+                draw_xota_page(view_container);
+            } else if (page == PAGE_APRS) {
+                status_bar_set_title("APRS Radar");
+                draw_aprs_page(view_container);
             }
         }
     }

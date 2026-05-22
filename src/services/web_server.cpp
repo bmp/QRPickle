@@ -111,7 +111,18 @@ void web_server_init() {
         doc["brightness"] = c.brightness;
         doc["theme_id"] = c.theme_id;
         doc["timeout"] = c.screen_timeout_min;
-        doc["fc_slots"] = c.forecast_slots; // FIXED: Output value mapping to network stream
+        doc["fc_slots"] = c.forecast_slots; 
+        
+        doc["dx_url_p"]  = c.dx_url_primary;
+        doc["dx_port_p"] = c.dx_port_primary;
+        doc["dx_url_s"]  = c.dx_url_secondary;
+        doc["dx_port_s"] = c.dx_port_secondary;
+        
+        // FIXED: Stream APRS attributes down to web dashboard
+        doc["aprs_en"]   = c.aprs_enabled;
+        doc["aprs_pass"] = c.aprs_passcode;
+        doc["aprs_ssid"] = c.aprs_ssid;
+
         serializeJson(doc, *response);
         request->send(response);
     });
@@ -133,7 +144,13 @@ void web_server_init() {
                 doc["offset"] = (float)p_data.tz_offset_hh / 2.0f;
                 doc["brightness"] = p_data.brightness;
                 doc["theme_id"] = p_data.theme_id;
-                doc["timeout"] = p_data.screen_timeout_min; // FIXED: Injecting profile timeout
+                doc["timeout"] = p_data.screen_timeout_min; 
+
+                // FIXED: Stream profile APRS attributes down to web dashboard
+                doc["aprs_en"]   = p_data.aprs_enabled;
+                doc["aprs_pass"] = p_data.aprs_passcode;
+                doc["aprs_ssid"] = p_data.aprs_ssid;
+
                 serializeJson(doc, *response);
                 request->send(response);
                 return;
@@ -158,8 +175,18 @@ void web_server_init() {
                       if (!doc["brightness"].isNull()) c.brightness = doc["brightness"].as<uint8_t>();
                       if (!doc["theme_id"].isNull())   c.theme_id = doc["theme_id"].as<uint8_t>();
                       if (!doc["offset"].isNull())     c.tz_offset_hh = (int8_t)(doc["offset"].as<float>() * 2.0f);
-                      if (!doc["timeout"].isNull())    c.screen_timeout_min = doc["timeout"].as<uint8_t>(); // FIXED: Parsing active timeout
-                      if (!doc["fc_slots"].isNull())   c.forecast_slots = doc["fc_slots"].as<uint8_t>(); // FIXED: Save endpoint parsing block
+                      if (!doc["timeout"].isNull())    c.screen_timeout_min = doc["timeout"].as<uint8_t>(); 
+                      if (!doc["fc_slots"].isNull())   c.forecast_slots = doc["fc_slots"].as<uint8_t>(); 
+                      
+                      if (!doc["dx_url_p"].isNull())  strncpy(c.dx_url_primary, doc["dx_url_p"], sizeof(c.dx_url_primary)-1);
+                      if (!doc["dx_port_p"].isNull()) c.dx_port_primary = doc["dx_port_p"].as<uint16_t>();
+                      if (!doc["dx_url_s"].isNull())  strncpy(c.dx_url_secondary, doc["dx_url_s"], sizeof(c.dx_url_secondary)-1);
+                      if (!doc["dx_port_s"].isNull()) c.dx_port_secondary = doc["dx_port_s"].as<uint16_t>();
+
+                      // FIXED: Commit APRS Variables from Web Dashboard to Storage
+                      if (!doc["aprs_en"].isNull())    c.aprs_enabled = doc["aprs_en"].as<bool>();
+                      if (!doc["aprs_pass"].isNull())  strncpy(c.aprs_passcode, doc["aprs_pass"], sizeof(c.aprs_passcode)-1);
+                      if (!doc["aprs_ssid"].isNull())  c.aprs_ssid = doc["aprs_ssid"].as<int8_t>();
 
                       config::save();
                       flag_trigger_ui_refresh = true;
@@ -275,7 +302,6 @@ void web_server_update() {
     if (flag_trigger_ui_refresh) {
         flag_trigger_ui_refresh = false;
         ui::status_bar_refresh_theme();
-        // Push newly saved UI brightness instantly
         services::display_manager::set_brightness(config::get().brightness); 
     }
     if (flag_trigger_reboot && (millis() - reboot_timer_mark > 1500)) {

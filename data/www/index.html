@@ -98,6 +98,56 @@
                     </div>
                 </div>
             </div>
+
+            <div class="form-grid" style="margin-top: 15px;">
+                <label style="grid-column: span 2; font-weight: bold; border-bottom: 1px solid var(--border); padding-bottom: 5px; color: var(--accent);">APRS-IS Global Network Parameters</label>
+                <div class="form-group">
+                    <label>APRS Network Connection</label>
+                    <select id="cfg-aprs-en">
+                        <option value="0">Disabled (Offline)</option>
+                        <option value="1">Enabled (TCP/IP Streams Active)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>APRS 5-Digit Registration Passcode</label>
+                    <div class="password-wrapper">
+                        <input type="password" id="cfg-aprs-pass" placeholder="12345" maxlength="5">
+                        <button class="eye-toggle" type="button" onclick="togglePass('cfg-aprs-pass')">👁️</button>
+                    </div>
+                </div>
+                <div class="form-group" style="grid-column: span 2;">
+                    <label>Station SSID Suffix (Official APRS Identifiers)</label>
+                    <select id="cfg-aprs-ssid">
+                        <option value="0">-0 : Primary Home Station / Fixed Base</option>
+                        <option value="1">-1 : Generic Digipeater / WX Station</option>
+                        <option value="5">-5 : Smartphone App / Network Tracker</option>
+                        <option value="7">-7 : Portable Handheld / Walkie-Talkie</option>
+                        <option value="9">-9 : Primary Mobile Vehicle / Car</option>
+                        <option value="10">-10 : Internet Gateway (IGate) / Echolink</option>
+                        <option value="15">-15 : HF Station</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-grid" style="margin-top: 15px;">
+                <label style="grid-column: span 2; font-weight: bold; border-bottom: 1px solid var(--border); padding-bottom: 5px; color: var(--accent);">DX Cluster Endpoints</label>
+                <div class="form-group">
+                    <label>Primary Node URL:</label>
+                    <input type="text" id="dx_url_p" maxlength="63">
+                </div>
+                <div class="form-group">
+                    <label>Primary Port:</label>
+                    <input type="number" id="dx_port_p" min="1" max="65535">
+                </div>
+                <div class="form-group">
+                    <label>Secondary Node URL:</label>
+                    <input type="text" id="dx_url_s" maxlength="63">
+                </div>
+                <div class="form-group">
+                    <label>Secondary Port:</label>
+                    <input type="number" id="dx_port_s" min="1" max="65535">
+                </div>
+            </div>
         </section>
 
         <section id="tab-profiles" class="tab-content">
@@ -138,10 +188,6 @@
                             <input type="range" id="prof-edit-brightness" min="10" max="255">
                         </div>
                         <div class="form-group">
-                            <label>Sleep Timeout (Min, 0=Manual)</label>
-                            <input type="number" id="prof-edit-timeout" min="0" max="120">
-                        </div>
-                        <div class="form-group">
                             <label>Color Profile Theme</label>
                             <select id="prof-edit-theme">
                                 <option value="0">Classic Tactical</option>
@@ -150,6 +196,29 @@
                                 <option value="3">Clean High-Contrast</option>
                                 <option value="4">Terminal Green</option>
                             </select>
+                        </div>
+                        <div class="form-group">
+                            <label>APRS Connection</label>
+                            <select id="prof-edit-aprs-en">
+                                <option value="0">Disabled</option>
+                                <option value="1">Enabled</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>APRS SSID Suffix</label>
+                            <select id="prof-edit-aprs-ssid">
+                                <option value="0">-0 (Home)</option>
+                                <option value="1">-1 (WX)</option>
+                                <option value="5">-5 (Phone)</option>
+                                <option value="7">-7 (HT)</option>
+                                <option value="9">-9 (Car)</option>
+                                <option value="10">-10 (IGate)</option>
+                                <option value="15">-15 (HF)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Sleep Timeout (Min)</label>
+                            <input type="number" id="prof-edit-timeout" min="0" max="120">
                         </div>
                     </div>
                     
@@ -164,7 +233,7 @@
                 <h2>Snapshot Active Settings into New Profile</h2>
                 <div class="profile-controls">
                     <input type="text" id="new-profile-name" placeholder="Profile name (e.g. Field Ops, Home Shack)" maxlength="20">
-                    <button class="btn btn-secondary" onclick="saveProfile()">Compile Profile Descriptor</button>
+                    <button class="btn btn-secondary" onclick="saveProfile()">Save New Profile</button>
                 </div>
             </div>
         </section>

@@ -5,7 +5,10 @@ namespace ui {
         PAGE_DASHBOARD,
         PAGE_WEATHER,
         PAGE_NETWORK,
-        PAGE_SETTINGS
+        PAGE_SETTINGS,
+        PAGE_SPOTS,
+        PAGE_XOTA,
+        PAGE_APRS
     };
 
     void ui_init();

@@ -8,9 +8,10 @@ namespace ui {
         DEST_SETTINGS,
         DEST_NETWORK,
         DEST_SPOTS,
-        DEST_POTA,
+        DEST_XOTA,
         DEST_PROP,
-        DEST_WEATHER
+        DEST_WEATHER,
+        DEST_APRS
     };
 
     struct SidebarCallbacks {

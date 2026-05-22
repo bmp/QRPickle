@@ -18,6 +18,16 @@ struct Config {
     char    openweather_api_key[40];
     float   lat;
     float   lon;
+
+    char dx_url_primary[64];
+    uint16_t dx_port_primary;
+    char dx_url_secondary[64];
+    uint16_t dx_port_secondary;
+
+    // APRS-IS Configuration
+    bool    aprs_enabled;
+    char    aprs_passcode[8]; // 5-digits + null terminator + 2 bytes padding alignment
+    int8_t  aprs_ssid;        // Official APRS SSID suffix (e.g., 0, 5, 7, 9)
 };
 
 // Initializes the NVS memory space and maps values directly into RAM cache

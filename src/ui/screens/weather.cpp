@@ -307,8 +307,8 @@ namespace ui {
             for(int i=0; i<8; i++) dyn_rows[i].base_row = nullptr;
         }, LV_EVENT_DELETE, NULL);
 
-        wx_timer = lv_timer_create([](lv_timer_t* t){ weather_update_data(); }, 1500, NULL);
-        weather_update_data(); 
+        wx_timer = lv_timer_create([](lv_timer_t* t){ weather_update_data(); }, 250, NULL);
+        // weather_update_data();
     }
 
     void weather_update_data() {
@@ -318,10 +318,10 @@ namespace ui {
         // 1. Tab 1: Local Calculations
         float t = sensor_get_temp(); float h = sensor_get_humidity(); float p = sensor_get_pressure();
 
-        if (lbl_loc_temp) { snprintf(buf, sizeof(buf), "%.1f", t); lv_label_set_text(lbl_loc_temp, buf); lv_label_set_text(lbl_unit_temp, "°C"); }
-        if (lbl_loc_hum)  { snprintf(buf, sizeof(buf), "%.0f", h);  lv_label_set_text(lbl_loc_hum, buf);  lv_label_set_text(lbl_unit_hum, "%"); }
-        if (lbl_loc_pres) { snprintf(buf, sizeof(buf), "%.0f", p);  lv_label_set_text(lbl_loc_pres, buf); lv_label_set_text(lbl_unit_pres, "hPa"); }
-        if (lbl_loc_dew)  { snprintf(buf, sizeof(buf), "%.1f", t - ((100.0f - h) / 5.0f)); lv_label_set_text(lbl_loc_dew, buf); lv_label_set_text(lbl_unit_dew, "°C"); }
+        if (lbl_loc_temp) { snprintf(buf, sizeof(buf), "%.1f°C", t); lv_label_set_text(lbl_loc_temp, buf); }
+        if (lbl_loc_hum)  { snprintf(buf, sizeof(buf), "%.0f %", h);  lv_label_set_text(lbl_loc_hum, buf);  lv_label_set_text(lbl_unit_hum, "%"); }
+        if (lbl_loc_pres) { snprintf(buf, sizeof(buf), "%.0f hPa", p);  lv_label_set_text(lbl_loc_pres, buf); lv_label_set_text(lbl_unit_pres, "hPa"); }
+        if (lbl_loc_dew)  { snprintf(buf, sizeof(buf), "%.1f°C", t - ((100.0f - h) / 5.0f)); lv_label_set_text(lbl_loc_dew, buf); }
         
         if (lbl_loc_alt && p > 100.0f) {
             float alt_m = 44330.0f * (1.0f - powf((p / 1013.25f), 0.1903f));

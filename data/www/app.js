@@ -31,8 +31,19 @@ function loadCurrentConfig() {
         document.getElementById('cfg-lon').value = data.lon || 0;
         document.getElementById('cfg-offset').value = data.offset;
         document.getElementById('cfg-brightness').value = data.brightness;
-        document.getElementById('cfg-timeout').value = data.timeout; // FIXED
+        document.getElementById('cfg-timeout').value = data.timeout; 
         document.getElementById('cfg-theme').value = data.theme_id;
+        
+        document.getElementById('dx_url_p').value = data.dx_url_p || "";
+        document.getElementById('dx_port_p').value = data.dx_port_p || "";
+        document.getElementById('dx_url_s').value = data.dx_url_s || "";
+        document.getElementById('dx_port_s').value = data.dx_port_s || "";
+
+        // Bind APRS Variables
+        document.getElementById('cfg-aprs-en').value = (data.aprs_en === true || data.aprs_en === 1) ? "1" : "0";
+        document.getElementById('cfg-aprs-pass').value = data.aprs_pass || "";
+        document.getElementById('cfg-aprs-ssid').value = data.aprs_ssid || 0;
+
         const mask = data.fc_slots || 0x0F;
         for (let i = 0; i < 8; i++) {
             document.getElementById(`fc-bit${i}`).checked = (mask & (1 << i)) !== 0;
@@ -48,6 +59,7 @@ function saveActiveConfig() {
             fcMask |= (1 << i);
         }
     }
+    
     const payload = {
         callsign: document.getElementById('cfg-callsign').value,
         grid: document.getElementById('cfg-grid').value,
@@ -58,10 +70,18 @@ function saveActiveConfig() {
         lon: parseFloat(document.getElementById('cfg-lon').value),
         offset: parseFloat(document.getElementById('cfg-offset').value),
         brightness: parseInt(document.getElementById('cfg-brightness').value),
-        timeout: parseInt(document.getElementById('cfg-timeout').value), // FIXED
+        timeout: parseInt(document.getElementById('cfg-timeout').value), 
         fc_slots: fcMask,
-        theme_id: parseInt(document.getElementById('cfg-theme').value)
-
+        theme_id: parseInt(document.getElementById('cfg-theme').value),
+        dx_url_p: document.getElementById('dx_url_p').value,
+        dx_port_p: parseInt(document.getElementById('dx_port_p').value) || 7373,
+        dx_url_s: document.getElementById('dx_url_s').value,
+        dx_port_s: parseInt(document.getElementById('dx_port_s').value) || 7373,
+        
+        // Pack APRS Variables into JSON
+        aprs_en: parseInt(document.getElementById('cfg-aprs-en').value) === 1,
+        aprs_pass: document.getElementById('cfg-aprs-pass').value,
+        aprs_ssid: parseInt(document.getElementById('cfg-aprs-ssid').value) || 0
     };
 
     fetch('/api/config/save', {
@@ -108,8 +128,11 @@ function handleProfileSelectionChange() {
         document.getElementById('prof-edit-password').value = data.password;
         document.getElementById('prof-edit-offset').value = data.offset;
         document.getElementById('prof-edit-brightness').value = data.brightness;
-        document.getElementById('prof-edit-timeout').value = data.timeout; // FIXED
+        document.getElementById('prof-edit-timeout').value = data.timeout; 
         document.getElementById('prof-edit-theme').value = data.theme_id;
+        
+        document.getElementById('prof-edit-aprs-en').value = (data.aprs_en === true || data.aprs_en === 1) ? "1" : "0";
+        document.getElementById('prof-edit-aprs-ssid').value = data.aprs_ssid || 0;
         
         panel.classList.remove('hidden');
     }).catch(() => alert("Error unrolling profile description."));
@@ -128,8 +151,10 @@ function saveProfileChanges() {
             password: document.getElementById('prof-edit-password').value,
             offset: parseFloat(document.getElementById('prof-edit-offset').value),
             brightness: parseInt(document.getElementById('prof-edit-brightness').value),
-            timeout: parseInt(document.getElementById('prof-edit-timeout').value), // FIXED
-            theme_id: parseInt(document.getElementById('prof-edit-theme').value)
+            timeout: parseInt(document.getElementById('prof-edit-timeout').value), 
+            theme_id: parseInt(document.getElementById('prof-edit-theme').value),
+            aprs_en: parseInt(document.getElementById('prof-edit-aprs-en').value) === 1,
+            aprs_ssid: parseInt(document.getElementById('prof-edit-aprs-ssid').value) || 0
         }
     };
 
@@ -160,8 +185,11 @@ function saveProfile() {
             lon: parseFloat(document.getElementById('cfg-lon').value),
             offset: parseFloat(document.getElementById('cfg-offset').value),
             brightness: parseInt(document.getElementById('cfg-brightness').value),
-            timeout: parseInt(document.getElementById('cfg-timeout').value), // FIXED
-            theme_id: parseInt(document.getElementById('cfg-theme').value)
+            timeout: parseInt(document.getElementById('cfg-timeout').value), 
+            theme_id: parseInt(document.getElementById('cfg-theme').value),
+            aprs_en: parseInt(document.getElementById('cfg-aprs-en').value) === 1,
+            aprs_pass: document.getElementById('cfg-aprs-pass').value,
+            aprs_ssid: parseInt(document.getElementById('cfg-aprs-ssid').value) || 0
         }
     };
 

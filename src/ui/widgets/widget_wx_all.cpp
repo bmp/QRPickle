@@ -4,9 +4,11 @@
 #include "../ui.h" 
 #include "../../hw/sensor.h"
 #include "../../config/config.h"
+#include "../../services/weather_manager.h" 
 #include <cstdio>
 #include <cstring>
 #include <Arduino.h>
+#include <LittleFS.h> // FIXED: Included to read files directly to RAM
 
 namespace ui {
 
@@ -21,49 +23,80 @@ namespace ui {
     static const char* PATH_ICON_SENSOR = "L:/img/icon_sensor_20x20.bin";
     static const char* PATH_ICON_WEB    = "L:/img/icon_web_20x20.bin";
 
+    // --- High-Speed RAM Caching Engine ---
+    static lv_image_dsc_t dsc_sensor = {0};
+    static lv_image_dsc_t dsc_web = {0};
+    static bool icons_in_ram = false;
+
+    static void cache_bin_to_ram(const char* path, lv_image_dsc_t* dsc) {
+        if (dsc->data != nullptr) return; // Already cached
+
+        // Strip "L:" prefix so standard LittleFS can find the path (e.g., L:/img/... -> /img/...)
+        const char* native_path = path;
+        if (strncmp(path, "L:", 2) == 0) native_path += 2;
+
+        File f = LittleFS.open(native_path, "r");
+        if (!f) return;
+
+        size_t sz = f.size();
+        if (sz <= 12) { f.close(); return; }
+
+        // Allocate a permanent block of RAM to hold the icon
+        uint8_t* raw_buf = (uint8_t*)malloc(sz);
+        if (!raw_buf) { f.close(); return; }
+
+        f.read(raw_buf, sz);
+        f.close();
+
+        // Trick LVGL by mapping the binary header directly into the native C-struct
+        memcpy(&dsc->header, raw_buf, 12);
+        dsc->data_size = sz - 12;
+        dsc->data = raw_buf + 12; // Point directly to the payload
+    }
+    // -------------------------------------
+
     static void repaint_widget_metrics() {
         if (!lbl_data) return;
         char buf[128];
 
-        lv_color_t c_active = theme_color(COLOR_ACCENT_PRIMARY);
-        lv_color_t c_inactive = theme_color(COLOR_TEXT_MUTED);
+        // Instantly assign the RAM-backed struct instead of the slow LittleFS path
+        if (dsc_sensor.data && lv_image_get_src(img_sensor) != &dsc_sensor) {
+            lv_image_set_src(img_sensor, &dsc_sensor);
+        }
+        if (dsc_web.data && lv_image_get_src(img_owm) != &dsc_web) {
+            lv_image_set_src(img_owm, &dsc_web);
+        }
 
         if (!use_owm_source) {
-            if (img_sensor) {
-                lv_obj_set_style_image_recolor(img_sensor, c_active, 0);
-                lv_obj_set_style_image_recolor_opa(img_sensor, LV_OPA_COVER, 0); 
-            }
-            if (img_owm) {
-                lv_obj_set_style_image_recolor(img_owm, c_inactive, 0);
-                lv_obj_set_style_image_recolor_opa(img_owm, LV_OPA_COVER, 0); 
-            }
+            if (dsc_sensor.data) lv_obj_set_style_image_opa(img_sensor, LV_OPA_COVER, 0); 
+            if (dsc_web.data)    lv_obj_set_style_image_opa(img_owm, LV_OPA_30, 0); 
 
-            if (sensor_get_pressure() > 200.0f) {
+            float p = sensor_get_pressure();
+            if (p > 200.0f) {
+                float t = sensor_get_temp();
+                float h = sensor_get_humidity();
                 lv_obj_set_style_text_font(lbl_data, &font_jetbrains_14, 0);
-                // FIXED: Removed labels, added "humid" suffix, and centered formatting
-                snprintf(buf, sizeof(buf), "%.1f °C\n%.0f %% humid\n%.0f hPa", 
-                         sensor_get_temp(), sensor_get_humidity(), sensor_get_pressure());
+                snprintf(buf, sizeof(buf), "%.1f °C\n%.0f %%\n%.0f hPa", t, h, p);
             } else {
                 lv_obj_set_style_text_font(lbl_data, &font_atkinson_10, 0);
                 snprintf(buf, sizeof(buf), "SENSOR OFFLINE\n\nNo local environmental\ndata detected.");
             }
         } else {
-            if (img_owm) {
-                lv_obj_set_style_image_recolor(img_owm, c_active, 0);
-                lv_obj_set_style_image_recolor_opa(img_owm, LV_OPA_COVER, 0);
-            }
-            if (img_sensor) {
-                lv_obj_set_style_image_recolor(img_sensor, c_inactive, 0);
-                lv_obj_set_style_image_recolor_opa(img_sensor, LV_OPA_COVER, 0);
-            }
+            if (dsc_web.data)    lv_obj_set_style_image_opa(img_owm, LV_OPA_COVER, 0);
+            if (dsc_sensor.data) lv_obj_set_style_image_opa(img_sensor, LV_OPA_30, 0);
 
             if (strlen(config::get().openweather_api_key) == 0) {
                 lv_obj_set_style_text_font(lbl_data, &font_atkinson_10, 0);
                 snprintf(buf, sizeof(buf), "API KEY MISSING\n\nConfigure OpenWeather\ntoken in Web UI.");
             } else {
                 lv_obj_set_style_text_font(lbl_data, &font_jetbrains_14, 0);
-                // FIXED: Removed labels, added "humid" suffix
-                snprintf(buf, sizeof(buf), "28.1 °C\n52 %% humid\n1010 hPa");
+                
+                const auto& cur = services::weather_manager::get_current();
+                if (cur.valid) {
+                    snprintf(buf, sizeof(buf), "%.1f °C\n%d %%\n%.0f hPa", cur.temp, cur.humidity, cur.pressure);
+                } else {
+                    snprintf(buf, sizeof(buf), "-- °C\n-- %\n-- hPa");
+                }
             }
         }
         lv_label_set_text(lbl_data, buf);
@@ -87,6 +120,13 @@ namespace ui {
     }
 
     lv_obj_t* widget_wx_all_create(lv_obj_t* parent, uint8_t size_type) {
+        // FIXED: Cache the icons immediately to RAM on the very first load
+        if (!icons_in_ram) {
+            cache_bin_to_ram(PATH_ICON_SENSOR, &dsc_sensor);
+            cache_bin_to_ram(PATH_ICON_WEB, &dsc_web);
+            icons_in_ram = true;
+        }
+
         base_card = lv_obj_create(parent);
         
         lv_obj_set_size(base_card, 154, 104); 
@@ -121,7 +161,6 @@ namespace ui {
         lv_obj_add_event_cb(area_s, click_handler, LV_EVENT_CLICKED, nullptr);
 
         img_sensor = lv_image_create(area_s); 
-        lv_image_set_src(img_sensor, PATH_ICON_SENSOR); 
         lv_obj_center(img_sensor);
         lv_obj_add_flag(img_sensor, LV_OBJ_FLAG_EVENT_BUBBLE); 
 
@@ -134,21 +173,22 @@ namespace ui {
         lv_obj_add_event_cb(area_w, click_handler, LV_EVENT_CLICKED, nullptr);
 
         img_owm = lv_image_create(area_w); 
-        lv_image_set_src(img_owm, PATH_ICON_WEB); 
         lv_obj_center(img_owm);
         lv_obj_add_flag(img_owm, LV_OBJ_FLAG_EVENT_BUBBLE); 
 
         lbl_data = lv_label_create(base_card);
         lv_obj_set_style_text_color(lbl_data, theme_color(COLOR_TEXT_MAIN), 0);
-        // FIXED: Center the text inside a 120px width block, aligned vertically and to the right
         lv_obj_set_width(lbl_data, 120);
         lv_obj_set_style_text_align(lbl_data, LV_TEXT_ALIGN_CENTER, 0);
-        lv_obj_set_style_text_line_space(lbl_data, 8, 0); // Breathes better without labels
+        lv_obj_set_style_text_line_space(lbl_data, 8, 0); 
         lv_obj_align(lbl_data, LV_ALIGN_RIGHT_MID, 0, 0); 
 
+        // FIXED: Since everything is safely in RAM, we paint instantly with zero lag!
         repaint_widget_metrics();
 
+        // FIXED: Revert to standard 2-second polling interval. No delay needed.
         lv_timer_t* timer = lv_timer_create(widget_timer_cb, 2000, base_card);
+
         lv_obj_add_event_cb(base_card, [](lv_event_t* e) {
             lv_timer_t* t = (lv_timer_t*)lv_event_get_user_data(e);
             if (t) lv_timer_delete(t);
