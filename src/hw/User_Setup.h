@@ -1,8 +1,8 @@
 #ifndef USER_SETUP_H
 #define USER_SETUP_H
 
-// Identification tag mapping this file layout explicitly to the FoxClock project setup
-#define USER_SETUP_INFO "FoxClock"
+// Identification tag mapping this file layout explicitly to the QRPickle project setup
+#define USER_SETUP_INFO "QRPickle"
 
 // The magical clone driver!
 // Alternate initialization sequence used for specific CYD display panel clone variants

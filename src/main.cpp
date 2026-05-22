@@ -12,7 +12,7 @@
 void setup() {
     Serial.begin(115200);
     delay(500); // Give the serial monitor extra time to stabilize
-    Serial.println("\n--- FoxClock System Initializing (NVS Production Core) ---");
+    Serial.println("\n--- QRPickle System Initializing (NVS Production Core) ---");
     Serial.flush();
 
     config::load();

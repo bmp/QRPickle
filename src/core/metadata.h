@@ -3,7 +3,7 @@
 namespace meta {
 
     // System Branding & Platform Identity
-    constexpr const char* FW_NAME        = "FoxClock";
+    constexpr const char* FW_NAME        = "QRPickle";
     constexpr const char* FW_VERSION     = "v0.1.0";
     constexpr const char* HARDWARE_PLAT  = "ESP32 CYD (2.8\" TFT)";
 

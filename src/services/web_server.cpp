@@ -21,7 +21,7 @@ const char fallback_html[] PROGMEM = R"rawhtml(
 <html lang="en">
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FoxClock Recovery Panel</title>
+    <title>QRPickle Recovery Panel</title>
     <style>
         body { background: #0F0000; color: #FF3333; font-family: Verdana, Geneva, sans-serif; padding: 20px; text-align: center; }
         .box { border: 2px dashed #FF0000; padding: 20px; max-width: 450px; margin: 40px auto; background: #050000; border-radius: 8px; }
@@ -224,7 +224,7 @@ const char fallback_html[] PROGMEM = R"rawhtml(
             if (LittleFS.exists("/about.txt")) {
                 request->send(LittleFS, "/about.txt", "text/plain");
             } else {
-                request->send(200, "text/plain", "FoxClock Tactical Platform.\nNo custom about.txt document found on filesystem.");
+                request->send(200, "text/plain", "QRPickle Tactical Platform.\nNo custom about.txt document found on filesystem.");
             }
         });
 

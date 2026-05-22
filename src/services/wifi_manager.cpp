@@ -5,7 +5,7 @@
 #include <Arduino.h>
 #include <string.h>
 
-#define AP_SSID "FoxClock-Setup"
+#define AP_SSID "QRPickle-Setup"
 
 static wifi_state_t current_state = WIFI_STATE_OFFLINE;
 static unsigned long connection_timeout_mark = 0;
