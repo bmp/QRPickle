@@ -2,6 +2,7 @@
 #include "../config/config.h" 
 #include "web_server.h"
 #include <WiFi.h>
+#include <esp_wifi.h>
 #include <Arduino.h>
 #include <string.h>
 
@@ -9,7 +10,7 @@
 
 static wifi_state_t current_state = WIFI_STATE_OFFLINE;
 static unsigned long connection_timeout_mark = 0;
-static unsigned long last_background_retry_mark = 0; // FIXED: Separate clock tracker
+static unsigned long last_background_retry_mark = 0; 
 static char status_msg[64] = "DISCONNECTED";
 
 void wifi_manager_init() {
@@ -23,6 +24,16 @@ void wifi_manager_init() {
     }
 
     WiFi.mode(WIFI_STA);
+
+    // --- ADVANCED RADIO STABILITY FIXES ---
+    WiFi.setSleep(false);
+    WiFi.setAutoReconnect(false);
+    esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G);
+
+    // NEW: Slash transmission power to 8.5 dBm (reduces peak current draw by ~40%)
+    // This stops the voltage sag from killing the radio during long TCP sockets!
+    esp_wifi_set_max_tx_power(34);
+
     WiFi.begin(cfg.wifi_ssid, cfg.wifi_password);
 
     current_state = WIFI_STATE_CONNECTING;
@@ -31,7 +42,7 @@ void wifi_manager_init() {
 }
 
 void wifi_manager_start_ap() {
-    WiFi.disconnect(true);
+    WiFi.disconnect(false, true); // Clean disconnect without erasing NVS
     delay(100);
     WiFi.mode(WIFI_AP);
     if (WiFi.softAP(AP_SSID)) {
@@ -62,7 +73,6 @@ void wifi_manager_update() {
                 Serial.printf("[Wi-Fi] Association successful! IP: %s\n", status_msg);
             }
             else if (millis() - connection_timeout_mark > 20000) {
-                // FIXED: Only falls back to AP during initial boot verification
                 Serial.println("[Wi-Fi] Boot connection timeout. Dropping back to Fallback Setup AP Mode...");
                 wifi_manager_start_ap();
             }
@@ -70,12 +80,13 @@ void wifi_manager_update() {
 
         case WIFI_STATE_CONNECTED:
             if (WiFi.status() != WL_CONNECTED) {
-                // FIXED: Runtime link drops route to background retry instead of dropping to AP
                 current_state = WIFI_STATE_BACKGROUND_RETRY;
                 snprintf(status_msg, sizeof(status_msg), "LINK LOST. RETRYING...");
-                Serial.println("[Wi-Fi] Connection lost. Initiating background recovery cycles.");
+                Serial.println("[Wi-Fi] Link dropped. Taking manual control of reconnection.");
+                
+                // Immediately break the hardware state to prep for clean recovery
+                WiFi.disconnect(false, true); 
                 last_background_retry_mark = millis();
-                WiFi.begin(cfg.wifi_ssid, cfg.wifi_password);
             }
             break;
 
@@ -84,12 +95,14 @@ void wifi_manager_update() {
                 current_state = WIFI_STATE_CONNECTED;
                 IPAddress ip = WiFi.localIP();
                 snprintf(status_msg, sizeof(status_msg), "CONNECTED | IP: %d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
-                Serial.printf("[Wi-Fi] Background recovery successful! IP: %s\n", status_msg);
+                Serial.printf("[Wi-Fi] Manual background recovery successful! IP: %s\n", status_msg);
             } 
-            else if (millis() - last_background_retry_mark >= 30000) {
-                // FIXED: Issues non-blocking reconnection check command every 30 seconds
+            else if (millis() - last_background_retry_mark >= 5000) {
+                // FIXED: Aggressive 5-second manual retry completely overrides the native OS flaws
                 last_background_retry_mark = millis();
-                Serial.println("[Wi-Fi] Heartbeat retry: reconnecting radio interface...");
+                Serial.println("[Wi-Fi] Executing hard manual reconnect...");
+                WiFi.disconnect(false, true);
+                delay(100);
                 WiFi.begin(cfg.wifi_ssid, cfg.wifi_password);
             }
             break;

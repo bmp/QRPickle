@@ -1,5 +1,6 @@
 #include "pota_manager.h"
 #include <Arduino.h>
+#include <WiFiClientSecure.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <cstring>
@@ -27,7 +28,6 @@ namespace services {
         
         fetching = true;
         
-        // FIXED: Safeguard against FreeRTOS stack starvation
         BaseType_t task_status = xTaskCreate(fetch_task, "pota_task", 8192, NULL, 1, NULL);
         if (task_status != pdPASS) {
             fetching = false;
@@ -60,67 +60,81 @@ namespace services {
 
     void PotaManager::fetch_task(void* param) {
         Serial.println("[POTA] Network stream request initiated...");
-        
+
+        WiFiClientSecure secureClient;
+        secureClient.setInsecure();
+        secureClient.setTimeout(10); 
+
         HTTPClient http;
-        http.useHTTP10(true); 
-        http.begin("https://api.pota.app/spot/activator");
-        http.setTimeout(8000);
-        
+        http.useHTTP10(true);
+        http.begin(secureClient, "https://api.pota.app/spot/activator");
+        http.setTimeout(10000); 
+
         int httpCode = http.GET();
         if (httpCode == HTTP_CODE_OK) {
-            JsonDocument filter;
-            filter[0]["spotTime"] = true;
-            filter[0]["reference"] = true;
-            filter[0]["frequency"] = true;
-            filter[0]["mode"] = true;
-            filter[0]["activator"] = true;
-            filter[0]["comments"] = true;
+            Stream& payloadStream = http.getStream();
+            payloadStream.setTimeout(5000);
 
-            JsonDocument doc;
-            DeserializationError err = deserializeJson(doc, http.getStream(), DeserializationOption::Filter(filter));
-            
-            if (!err) {
-                JsonArray arr = doc.as<JsonArray>();
+            // --- THE MEMORY FIX: ELEMENT-BY-ELEMENT STREAMING ---
+            // Find the opening bracket of the JSON array
+            if (payloadStream.find('[')) {
                 spot_count = 0;
-                for (JsonVariant v : arr) {
-                    if (spot_count >= 30) break;
-                    
-                    PotaSpot s{0};
-                    
-                    const char* t_str = v["spotTime"];
-                    if (t_str && strlen(t_str) >= 16) snprintf(s.time, sizeof(s.time), "%.5s", t_str + 11);
-                    
-                    if (!v["reference"].isNull()) strncpy(s.reference, v["reference"], sizeof(s.reference)-1);
-                    if (!v["activator"].isNull()) strncpy(s.activator, v["activator"], sizeof(s.activator)-1);
-                    if (!v["comments"].isNull())  strncpy(s.comment, v["comments"], sizeof(s.comment)-1);
-                    
-                    if (!v["frequency"].isNull()) {
-                        float f = v["frequency"].as<float>();
-                        s.freq = (f > 1000.0f) ? (f / 1000.0f) : f; 
+
+                // Parse exactly ONE spot object at a time
+                do {
+                    if (spot_count >= 30) {
+                        Serial.println("[POTA] Reached 30 spots. Severing connection early to save RAM/Radio...");
+                        break; 
                     }
-                    
-                    if (!v["mode"].isNull() && strlen(v["mode"]) > 0) {
-                        strncpy(s.mode, v["mode"], sizeof(s.mode)-1);
+
+                    JsonDocument doc; // Only holds a single spot (uses virtually no RAM)
+                    DeserializationError err = deserializeJson(doc, payloadStream);
+
+                    if (err) {
+                        Serial.printf("[POTA] Parsing loop ended: %s\n", err.c_str());
+                        break;
+                    }
+
+                    PotaSpot s{0};
+
+                    const char* t_str = doc["spotTime"];
+                    if (t_str && strlen(t_str) >= 16) snprintf(s.time, sizeof(s.time), "%.5s", t_str + 11);
+
+                    if (!doc["reference"].isNull()) strncpy(s.reference, doc["reference"], sizeof(s.reference)-1);
+                    if (!doc["activator"].isNull()) strncpy(s.activator, doc["activator"], sizeof(s.activator)-1);
+                    if (!doc["comments"].isNull())  strncpy(s.comment, doc["comments"], sizeof(s.comment)-1);
+
+                    if (!doc["frequency"].isNull()) {
+                        float f = doc["frequency"].as<float>();
+                        s.freq = (f > 1000.0f) ? (f / 1000.0f) : f;
+                    }
+
+                    if (!doc["mode"].isNull() && strlen(doc["mode"]) > 0) {
+                        strncpy(s.mode, doc["mode"], sizeof(s.mode)-1);
                         for(char* p = s.mode; *p; ++p) *p = toupper(*p);
                     } else {
                         deduce_mode(s.freq, s.comment, s.mode, sizeof(s.mode));
                     }
-                    
+
                     s.is_qrp = (strcasestr(s.comment, "QRP") != nullptr);
-                    
+
                     spots[spot_count++] = s;
-                }
+
+                // Move the stream cursor to the start of the next element in the array
+                } while (payloadStream.findUntil(",", "]"));
+
                 dirty = true;
                 last_fetch_time = millis();
                 Serial.printf("[POTA] Successfully mapped %u spots to cache.\n", spot_count);
             } else {
-                Serial.printf("[POTA] Deserialization crashed: %s\n", err.c_str());
+                Serial.println("[POTA] Failed to find JSON array start.");
             }
         } else {
             Serial.printf("[POTA] Server rejected HTTP GET: %d\n", httpCode);
         }
-        
-        http.end();
+
+        // Immediately close the TCP socket. Discards the unneeded 40KB of data.
+        http.end(); 
         fetching = false;
         vTaskDelete(NULL);
     }

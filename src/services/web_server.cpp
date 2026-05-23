@@ -118,10 +118,11 @@ void web_server_init() {
         doc["dx_url_s"]  = c.dx_url_secondary;
         doc["dx_port_s"] = c.dx_port_secondary;
         
-        // FIXED: Stream APRS attributes down to web dashboard
         doc["aprs_en"]   = c.aprs_enabled;
         doc["aprs_pass"] = c.aprs_passcode;
         doc["aprs_ssid"] = c.aprs_ssid;
+        doc["aprs_cmt"]  = c.aprs_comment;
+        doc["aprs_icn"]  = c.aprs_icon;
 
         serializeJson(doc, *response);
         request->send(response);
@@ -146,10 +147,11 @@ void web_server_init() {
                 doc["theme_id"] = p_data.theme_id;
                 doc["timeout"] = p_data.screen_timeout_min; 
 
-                // FIXED: Stream profile APRS attributes down to web dashboard
                 doc["aprs_en"]   = p_data.aprs_enabled;
                 doc["aprs_pass"] = p_data.aprs_passcode;
                 doc["aprs_ssid"] = p_data.aprs_ssid;
+                doc["aprs_cmt"]  = p_data.aprs_comment;
+                doc["aprs_icn"]  = p_data.aprs_icon;
 
                 serializeJson(doc, *response);
                 request->send(response);
@@ -183,10 +185,11 @@ void web_server_init() {
                       if (!doc["dx_url_s"].isNull())  strncpy(c.dx_url_secondary, doc["dx_url_s"], sizeof(c.dx_url_secondary)-1);
                       if (!doc["dx_port_s"].isNull()) c.dx_port_secondary = doc["dx_port_s"].as<uint16_t>();
 
-                      // FIXED: Commit APRS Variables from Web Dashboard to Storage
                       if (!doc["aprs_en"].isNull())    c.aprs_enabled = doc["aprs_en"].as<bool>();
                       if (!doc["aprs_pass"].isNull())  strncpy(c.aprs_passcode, doc["aprs_pass"], sizeof(c.aprs_passcode)-1);
                       if (!doc["aprs_ssid"].isNull())  c.aprs_ssid = doc["aprs_ssid"].as<int8_t>();
+                      if (!doc["aprs_cmt"].isNull())   strncpy(c.aprs_comment, doc["aprs_cmt"], sizeof(c.aprs_comment)-1);
+                      if (!doc["aprs_icn"].isNull())   strncpy(c.aprs_icon, doc["aprs_icn"], sizeof(c.aprs_icon)-1);
 
                       config::save();
                       flag_trigger_ui_refresh = true;

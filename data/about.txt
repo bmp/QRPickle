@@ -16,6 +16,9 @@ Features:
 - HamAlert triggers via Telnet
 - APRS-IS, APRS Wx transmit and APRS messaging using Telnet
 - Spotting through AP2SOTA and POTAGW from APRS
+- OTA Updates
+- Turning off screen with a timer
+- Profiles for easier switching in the field
 
 Created by VU3GLJ with LLMs.
 

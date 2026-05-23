@@ -1,5 +1,6 @@
 #include "sota_manager.h"
 #include <Arduino.h>
+#include <WiFiClientSecure.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <cstring>
@@ -27,7 +28,6 @@ namespace services {
         
         fetching = true;
         
-        // FIXED: Safeguard against FreeRTOS stack starvation
         BaseType_t task_status = xTaskCreate(fetch_task, "sota_task", 8192, NULL, 1, NULL);
         if (task_status != pdPASS) {
             fetching = false;
@@ -49,9 +49,14 @@ namespace services {
     void SotaManager::fetch_task(void* param) {
         Serial.println("[SOTA] Network stream request initiated...");
 
+        // --- MEMORY OPTIMIZATION FIX ---
+        WiFiClientSecure secureClient;
+        secureClient.setInsecure(); // Skips loading root certificates into RAM
+        // secureClient.setBufferSizes(4096, 512); // Clamps SSL window chunks to save 15KB+ RAM
+
         HTTPClient http;
         http.useHTTP10(true); 
-        http.begin("https://api2.sota.org.uk/api/spots/30/all"); 
+        http.begin(secureClient, "https://api2.sota.org.uk/api/spots/30/all"); 
         http.setTimeout(8000);
         
         int httpCode = http.GET();

@@ -39,10 +39,11 @@ function loadCurrentConfig() {
         document.getElementById('dx_url_s').value = data.dx_url_s || "";
         document.getElementById('dx_port_s').value = data.dx_port_s || "";
 
-        // Bind APRS Variables
         document.getElementById('cfg-aprs-en').value = (data.aprs_en === true || data.aprs_en === 1) ? "1" : "0";
         document.getElementById('cfg-aprs-pass').value = data.aprs_pass || "";
         document.getElementById('cfg-aprs-ssid').value = data.aprs_ssid || 0;
+        document.getElementById('cfg-aprs-cmt').value = data.aprs_cmt || "";
+        document.getElementById('cfg-aprs-icon').value = data.aprs_icn || "/[";
 
         const mask = data.fc_slots || 0x0F;
         for (let i = 0; i < 8; i++) {
@@ -78,10 +79,11 @@ function saveActiveConfig() {
         dx_url_s: document.getElementById('dx_url_s').value,
         dx_port_s: parseInt(document.getElementById('dx_port_s').value) || 7373,
         
-        // Pack APRS Variables into JSON
         aprs_en: parseInt(document.getElementById('cfg-aprs-en').value) === 1,
         aprs_pass: document.getElementById('cfg-aprs-pass').value,
-        aprs_ssid: parseInt(document.getElementById('cfg-aprs-ssid').value) || 0
+        aprs_ssid: parseInt(document.getElementById('cfg-aprs-ssid').value) || 0,
+        aprs_cmt: document.getElementById('cfg-aprs-cmt').value,
+        aprs_icn: document.getElementById('cfg-aprs-icon').value
     };
 
     fetch('/api/config/save', {
@@ -133,6 +135,8 @@ function handleProfileSelectionChange() {
         
         document.getElementById('prof-edit-aprs-en').value = (data.aprs_en === true || data.aprs_en === 1) ? "1" : "0";
         document.getElementById('prof-edit-aprs-ssid').value = data.aprs_ssid || 0;
+        document.getElementById('prof-edit-aprs-cmt').value = data.aprs_cmt || "";
+        document.getElementById('prof-edit-aprs-icn').value = data.aprs_icn || "/[";
         
         panel.classList.remove('hidden');
     }).catch(() => alert("Error unrolling profile description."));
@@ -154,7 +158,9 @@ function saveProfileChanges() {
             timeout: parseInt(document.getElementById('prof-edit-timeout').value), 
             theme_id: parseInt(document.getElementById('prof-edit-theme').value),
             aprs_en: parseInt(document.getElementById('prof-edit-aprs-en').value) === 1,
-            aprs_ssid: parseInt(document.getElementById('prof-edit-aprs-ssid').value) || 0
+            aprs_ssid: parseInt(document.getElementById('prof-edit-aprs-ssid').value) || 0,
+            aprs_cmt: document.getElementById('prof-edit-aprs-cmt').value,
+            aprs_icn: document.getElementById('prof-edit-aprs-icn').value
         }
     };
 
@@ -189,7 +195,9 @@ function saveProfile() {
             theme_id: parseInt(document.getElementById('cfg-theme').value),
             aprs_en: parseInt(document.getElementById('cfg-aprs-en').value) === 1,
             aprs_pass: document.getElementById('cfg-aprs-pass').value,
-            aprs_ssid: parseInt(document.getElementById('cfg-aprs-ssid').value) || 0
+            aprs_ssid: parseInt(document.getElementById('cfg-aprs-ssid').value) || 0,
+            aprs_cmt: document.getElementById('cfg-aprs-cmt').value,
+            aprs_icn: document.getElementById('cfg-aprs-icon').value
         }
     };
 

@@ -10,7 +10,8 @@
 #include "screens/network.h"
 #include "screens/spots.h"
 #include "screens/xota.h"
-#include "screens/aprs.h"
+#include "screens/aprs_hub.h" 
+#include "screens/aprs_radar.h" 
 #include "../services/aprs_manager.h"
 #include "fonts.h"
 #include "../config/config.h"
@@ -68,10 +69,10 @@ namespace ui {
             open_settings_screen();
         } else if (dest == DEST_SPOTS) { 
             ui_navigate_local(PAGE_SPOTS);
-        } else if (dest == DEST_XOTA) { // FIXED: Route directly to unified xOTA module
+        } else if (dest == DEST_XOTA) { 
             ui_navigate_local(PAGE_XOTA);
         } else if (dest == DEST_APRS) {
-            ui_navigate_local(PAGE_APRS); // Routes to APRS
+            ui_navigate_local(PAGE_APRS); 
         }
     }
 
@@ -151,6 +152,23 @@ namespace ui {
 
         lv_obj_clean(view_container);
 
+        // Handle full-screen tactical radar overlay configuration adjustments
+        if (page == PAGE_APRS_RADAR) {
+            if (status_bar_obj) lv_obj_add_flag(status_bar_obj, LV_OBJ_FLAG_HIDDEN);
+            if (global_home_btn) lv_obj_add_flag(global_home_btn, LV_OBJ_FLAG_HIDDEN);
+            
+            lv_obj_set_size(view_container, 320, 240);
+            lv_obj_align(view_container, LV_ALIGN_TOP_MID, 0, 0);
+            
+            draw_aprs_radar_page(view_container);
+            return;
+        }
+
+        // Restore safe layout footprint specifications for tab-based view modules
+        if (status_bar_obj) lv_obj_clear_flag(status_bar_obj, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_set_size(view_container, 320, 216);
+        lv_obj_align(view_container, LV_ALIGN_BOTTOM_MID, 0, 0);
+
         if (page == PAGE_DASHBOARD) {
             if (global_home_btn) lv_obj_add_flag(global_home_btn, LV_OBJ_FLAG_HIDDEN); 
 
@@ -175,12 +193,11 @@ namespace ui {
             } else if (page == PAGE_SPOTS) { 
                 status_bar_set_title("DX Cluster");
                 draw_spots_page(view_container);
-            } else if (page == PAGE_XOTA) { // FIXED: Route Mount 
+            } else if (page == PAGE_XOTA) { 
                 status_bar_set_title("xOTA");
                 draw_xota_page(view_container);
             } else if (page == PAGE_APRS) {
-                status_bar_set_title("APRS Radar");
-                draw_aprs_page(view_container);
+                draw_aprs_hub_page(view_container);
             }
         }
     }
@@ -195,4 +212,4 @@ namespace ui {
         lv_timer_handler();
     }
 
-}  // namespace ui
+} // namespace ui

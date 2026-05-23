@@ -8,7 +8,8 @@ namespace ui {
         PAGE_SETTINGS,
         PAGE_SPOTS,
         PAGE_XOTA,
-        PAGE_APRS
+        PAGE_APRS,
+        PAGE_APRS_RADAR
     };
 
     void ui_init();

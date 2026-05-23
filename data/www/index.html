@@ -115,8 +115,8 @@
                         <button class="eye-toggle" type="button" onclick="togglePass('cfg-aprs-pass')">👁️</button>
                     </div>
                 </div>
-                <div class="form-group" style="grid-column: span 2;">
-                    <label>Station SSID Suffix (Official APRS Identifiers)</label>
+                <div class="form-group">
+                    <label>Station SSID Suffix</label>
                     <select id="cfg-aprs-ssid">
                         <option value="0">-0 : Primary Home Station / Fixed Base</option>
                         <option value="1">-1 : Generic Digipeater / WX Station</option>
@@ -126,6 +126,22 @@
                         <option value="10">-10 : Internet Gateway (IGate) / Echolink</option>
                         <option value="15">-15 : HF Station</option>
                     </select>
+                </div>
+                <div class="form-group">
+                    <label>Beacon Map Symbol (Official APRS Identifiers)</label>
+                    <select id="cfg-aprs-icon">
+                        <option value="/[">/[ : Human / Runner / Eyeball</option>
+                        <option value="/-">/- : House / QTH</option>
+                        <option value="I&">I& : IGate (Internet Gateway)</option>
+                        <option value="\Y">\Y : RADIOS and APRS DEVICE</option>
+                        <option value="/;">/; : Portable operation (Tent)</option>
+                        <option value="\F">\F : Field Day</option>
+                        <option value="\;">\; : Park or Picnic</option>
+                    </select>
+                </div>
+                <div class="form-group" style="grid-column: span 2;">
+                    <label>Custom Beacon Comment Payload (BME280 Telemetry is auto-appended)</label>
+                    <input type="text" id="cfg-aprs-cmt" maxlength="40" placeholder="ESP32 Dashboard">
                 </div>
             </div>
 
@@ -207,18 +223,34 @@
                         <div class="form-group">
                             <label>APRS SSID Suffix</label>
                             <select id="prof-edit-aprs-ssid">
-                                <option value="0">-0 (Home)</option>
-                                <option value="1">-1 (WX)</option>
-                                <option value="5">-5 (Phone)</option>
-                                <option value="7">-7 (HT)</option>
-                                <option value="9">-9 (Car)</option>
-                                <option value="10">-10 (IGate)</option>
-                                <option value="15">-15 (HF)</option>
+                                <option value="0">-0</option>
+                                <option value="1">-1</option>
+                                <option value="5">-5</option>
+                                <option value="7">-7</option>
+                                <option value="9">-9</option>
+                                <option value="10">-10</option>
+                                <option value="15">-15</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>APRS Icon</label>
+                            <select id="prof-edit-aprs-icn">
+                                <option value="/[">/[ : Runner</option>
+                                <option value="/-">/- : House</option>
+                                <option value="I&">I& : IGate</option>
+                                <option value="\Y">\Y : RADIOS</option>
+                                <option value="/;">/; : Portable</option>
+                                <option value="\F">\F : Field Day</option>
+                                <option value="\;">\; : Park</option>
                             </select>
                         </div>
                         <div class="form-group">
                             <label>Sleep Timeout (Min)</label>
                             <input type="number" id="prof-edit-timeout" min="0" max="120">
+                        </div>
+                        <div class="form-group" style="grid-column: span 2;">
+                            <label>APRS Comment</label>
+                            <input type="text" id="prof-edit-aprs-cmt" maxlength="40">
                         </div>
                     </div>
                     

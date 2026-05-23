@@ -9,7 +9,6 @@ namespace config {
     static Config cfg;
     static const char* NS = "qrpclock"; 
 
-    // Single clean masking definition to protect credentials in serial outputs
     static void mask(const char* s, char* out, size_t out_len) {
         if (!s || out_len == 0) return;
         size_t n = strnlen(s, 64);
@@ -25,7 +24,7 @@ namespace config {
         cfg.theme_id     = 0;
         cfg.tz_offset_hh = 11; 
         cfg.screen_timeout_min = 5;
-        cfg.forecast_slots = 0x0F; // Default to first 4 slots active (+3h, +6h, +9h, +12h)
+        cfg.forecast_slots = 0x0F; 
         cfg.web_enabled  = true;
         cfg.wifi_ssid[0] = '\0';
         cfg.wifi_password[0] = '\0';
@@ -38,10 +37,11 @@ namespace config {
         strncpy(cfg.dx_url_secondary, "dxc.w6bgr.com", sizeof(cfg.dx_url_secondary) - 1);
         cfg.dx_port_secondary = 7373;
 
-        // APRS Defaults
         cfg.aprs_enabled = false;
         cfg.aprs_passcode[0] = '\0';
         cfg.aprs_ssid = 0;
+        strncpy(cfg.aprs_comment, "ESP32 Dashboard", sizeof(cfg.aprs_comment) - 1);
+        strncpy(cfg.aprs_icon, "/[", sizeof(cfg.aprs_icon) - 1);
     }
 
     void load() {
@@ -72,6 +72,8 @@ namespace config {
             cfg.aprs_enabled = p.getBool("aprs_en", cfg.aprs_enabled);
             cfg.aprs_ssid    = p.getChar("aprs_ssid", cfg.aprs_ssid);
             if (p.isKey("aprs_pass")) p.getString("aprs_pass", cfg.aprs_passcode, sizeof(cfg.aprs_passcode));
+            if (p.isKey("aprs_cmt"))  p.getString("aprs_cmt", cfg.aprs_comment, sizeof(cfg.aprs_comment));
+            if (p.isKey("aprs_icn"))  p.getString("aprs_icn", cfg.aprs_icon, sizeof(cfg.aprs_icon));
         }
         p.end();
 
@@ -105,6 +107,8 @@ namespace config {
         p.putBool("aprs_en",     cfg.aprs_enabled);
         p.putChar("aprs_ssid",   cfg.aprs_ssid);
         p.putString("aprs_pass", cfg.aprs_passcode);
+        p.putString("aprs_cmt",  cfg.aprs_comment);
+        p.putString("aprs_icn",  cfg.aprs_icon);
         
         p.end();
         Serial.println("[Storage] Transaction execution successfully committed.");
@@ -128,8 +132,8 @@ namespace config {
                       cfg.wifi_ssid[0] ? cfg.wifi_ssid : "(unset)", pw, key_display);
         Serial.printf("         DX Cluster Primary:   %s:%u\n", cfg.dx_url_primary, cfg.dx_port_primary);
         Serial.printf("         DX Cluster Secondary: %s:%u\n", cfg.dx_url_secondary, cfg.dx_port_secondary);
-        Serial.printf("         APRS-IS: %s | SSID: -%d | Passcode: %s\n", 
-                      cfg.aprs_enabled ? "Enabled" : "Disabled", (int)cfg.aprs_ssid, aprs_pw);
+        Serial.printf("         APRS-IS: %s | SSID: -%d | Passcode: %s | Icon: %s\n", 
+                      cfg.aprs_enabled ? "Enabled" : "Disabled", (int)cfg.aprs_ssid, aprs_pw, cfg.aprs_icon);
     }
 
 } // namespace config
