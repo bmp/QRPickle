@@ -29,6 +29,7 @@ struct Config {
     int8_t  aprs_ssid;        
     char    aprs_comment[48]; 
     char    aprs_icon[4];     
+    char    aprs_macros[5][64];
 };
 
 void load();

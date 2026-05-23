@@ -12,6 +12,7 @@
 #include "screens/xota.h"
 #include "screens/aprs_hub.h" 
 #include "screens/aprs_radar.h" 
+#include "screens/aprs_msg.h"
 #include "../services/aprs_manager.h"
 #include "fonts.h"
 #include "../config/config.h"
@@ -152,19 +153,20 @@ namespace ui {
 
         lv_obj_clean(view_container);
 
-        // Handle full-screen tactical radar overlay configuration adjustments
-        if (page == PAGE_APRS_RADAR) {
+        // --- FIXED: Handle full-screen tactical overlays (Radar & Messaging) ---
+        if (page == PAGE_APRS_RADAR || page == PAGE_APRS_MSG) {
             if (status_bar_obj) lv_obj_add_flag(status_bar_obj, LV_OBJ_FLAG_HIDDEN);
             if (global_home_btn) lv_obj_add_flag(global_home_btn, LV_OBJ_FLAG_HIDDEN);
             
             lv_obj_set_size(view_container, 320, 240);
             lv_obj_align(view_container, LV_ALIGN_TOP_MID, 0, 0);
             
-            draw_aprs_radar_page(view_container);
+            if (page == PAGE_APRS_RADAR) draw_aprs_radar_page(view_container);
+            if (page == PAGE_APRS_MSG) draw_aprs_msg_page(view_container);
             return;
         }
 
-        // Restore safe layout footprint specifications for tab-based view modules
+        // Restore safe layout footprint specifications for standard tab-based view modules
         if (status_bar_obj) lv_obj_clear_flag(status_bar_obj, LV_OBJ_FLAG_HIDDEN);
         lv_obj_set_size(view_container, 320, 216);
         lv_obj_align(view_container, LV_ALIGN_BOTTOM_MID, 0, 0);

@@ -124,6 +124,9 @@ void web_server_init() {
         doc["aprs_cmt"]  = c.aprs_comment;
         doc["aprs_icn"]  = c.aprs_icon;
 
+        JsonArray mac_arr = doc["aprs_macros"].to<JsonArray>();
+        for(int i=0; i<5; i++) mac_arr.add(c.aprs_macros[i]);
+
         serializeJson(doc, *response);
         request->send(response);
     });
@@ -190,6 +193,13 @@ void web_server_init() {
                       if (!doc["aprs_ssid"].isNull())  c.aprs_ssid = doc["aprs_ssid"].as<int8_t>();
                       if (!doc["aprs_cmt"].isNull())   strncpy(c.aprs_comment, doc["aprs_cmt"], sizeof(c.aprs_comment)-1);
                       if (!doc["aprs_icn"].isNull())   strncpy(c.aprs_icon, doc["aprs_icn"], sizeof(c.aprs_icon)-1);
+
+                      if (!doc["aprs_macros"].isNull()) {
+                          JsonArray mac_arr = doc["aprs_macros"].as<JsonArray>();
+                          for(int i=0; i<5 && i<mac_arr.size(); i++) {
+                              strncpy(c.aprs_macros[i], mac_arr[i].as<const char*>(), 63);
+                          }
+                      }
 
                       config::save();
                       flag_trigger_ui_refresh = true;

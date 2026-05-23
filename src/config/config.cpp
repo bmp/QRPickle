@@ -6,7 +6,12 @@
 
 namespace config {
 
-    static Config cfg;
+    // THE FIX: Dynamically allocate the massive config object on the heap
+    static Config* cfg_ptr = nullptr;
+    
+    // Macro ensures the rest of the code works without changing `cfg.` to `cfg->`
+    #define cfg (*cfg_ptr)
+
     static const char* NS = "qrpclock"; 
 
     static void mask(const char* s, char* out, size_t out_len) {
@@ -17,7 +22,9 @@ namespace config {
     }
 
     void reset_to_defaults() {
-        memset(&cfg, 0, sizeof(cfg));
+        if (!cfg_ptr) cfg_ptr = new Config(); // Allocate if it doesn't exist
+        memset(cfg_ptr, 0, sizeof(Config));
+
         strncpy(cfg.callsign, "N0CALL", sizeof(cfg.callsign) - 1);
         strncpy(cfg.grid,     "MK82wb", sizeof(cfg.grid) - 1);
         cfg.brightness   = 180;
@@ -42,12 +49,20 @@ namespace config {
         cfg.aprs_ssid = 0;
         strncpy(cfg.aprs_comment, "ESP32 Dashboard", sizeof(cfg.aprs_comment) - 1);
         strncpy(cfg.aprs_icon, "/[", sizeof(cfg.aprs_icon) - 1);
+
+        // Load Default Macros
+        strncpy(cfg.aprs_macros[0], "QRT. Packing up gear.", 63);
+        strncpy(cfg.aprs_macros[1], "CQ POTA, spotting active now.", 63);
+        strncpy(cfg.aprs_macros[2], "All OK, monitoring frequency.", 63);
+        strncpy(cfg.aprs_macros[3], "Changing bands shortly.", 63);
+        strncpy(cfg.aprs_macros[4], "Testing APRS-IS link.", 63);
     }
 
     void load() {
+        if (!cfg_ptr) reset_to_defaults();
+
         Preferences p;
         p.begin(NS, true);
-        reset_to_defaults();
 
         if (p.isKey("callsign")) {
             p.getString("callsign", cfg.callsign,      sizeof(cfg.callsign));
@@ -74,6 +89,11 @@ namespace config {
             if (p.isKey("aprs_pass")) p.getString("aprs_pass", cfg.aprs_passcode, sizeof(cfg.aprs_passcode));
             if (p.isKey("aprs_cmt"))  p.getString("aprs_cmt", cfg.aprs_comment, sizeof(cfg.aprs_comment));
             if (p.isKey("aprs_icn"))  p.getString("aprs_icn", cfg.aprs_icon, sizeof(cfg.aprs_icon));
+
+            for (int i = 0; i < 5; i++) {
+                char key[8]; snprintf(key, sizeof(key), "mac%d", i);
+                if (p.isKey(key)) p.getString(key, cfg.aprs_macros[i], 64);
+            }
         }
         p.end();
 
@@ -83,6 +103,7 @@ namespace config {
     }
 
     void save() {
+        if (!cfg_ptr) return;
         Preferences p;
         p.begin(NS, false); 
         p.putString("callsign",  cfg.callsign);
@@ -110,20 +131,22 @@ namespace config {
         p.putString("aprs_cmt",  cfg.aprs_comment);
         p.putString("aprs_icn",  cfg.aprs_icon);
         
+        for (int i = 0; i < 5; i++) {
+            char key[8]; snprintf(key, sizeof(key), "mac%d", i);
+            p.putString(key, cfg.aprs_macros[i]);
+        }
+        
         p.end();
         Serial.println("[Storage] Transaction execution successfully committed.");
     }
 
-    const Config& get()         { return cfg; }
-    Config&       mutable_get() { return cfg; }
+    const Config& get()         { return *cfg_ptr; }
+    Config&       mutable_get() { return *cfg_ptr; }
 
     void log_summary() {
-        char pw[16];
-        mask(cfg.wifi_password, pw, sizeof(pw));
-
-        char aprs_pw[16];
-        mask(cfg.aprs_passcode, aprs_pw, sizeof(aprs_pw));
-
+        if (!cfg_ptr) return;
+        char pw[16]; mask(cfg.wifi_password, pw, sizeof(pw));
+        char aprs_pw[16]; mask(cfg.aprs_passcode, aprs_pw, sizeof(aprs_pw));
         const char* key_display = (strlen(cfg.openweather_api_key) > 0) ? "(redacted)" : "(unset)";
 
         Serial.printf("[Config] Callsign: %s | Grid: %s | Brightness: %u | Theme: %u | TZ Half-Hours: %d\n",

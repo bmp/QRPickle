@@ -45,6 +45,10 @@ function loadCurrentConfig() {
         document.getElementById('cfg-aprs-cmt').value = data.aprs_cmt || "";
         document.getElementById('cfg-aprs-icon').value = data.aprs_icn || "/[";
 
+        if(data.aprs_macros) {
+            for(let i=0; i<5; i++) document.getElementById(`cfg-mac${i}`).value = data.aprs_macros[i] || "";
+        }
+
         const mask = data.fc_slots || 0x0F;
         for (let i = 0; i < 8; i++) {
             document.getElementById(`fc-bit${i}`).checked = (mask & (1 << i)) !== 0;
@@ -83,7 +87,15 @@ function saveActiveConfig() {
         aprs_pass: document.getElementById('cfg-aprs-pass').value,
         aprs_ssid: parseInt(document.getElementById('cfg-aprs-ssid').value) || 0,
         aprs_cmt: document.getElementById('cfg-aprs-cmt').value,
-        aprs_icn: document.getElementById('cfg-aprs-icon').value
+        aprs_icn: document.getElementById('cfg-aprs-icon').value,
+
+        aprs_macros: [
+            document.getElementById('cfg-mac0').value,
+            document.getElementById('cfg-mac1').value,
+            document.getElementById('cfg-mac2').value,
+            document.getElementById('cfg-mac3').value,
+            document.getElementById('cfg-mac4').value
+        ]
     };
 
     fetch('/api/config/save', {

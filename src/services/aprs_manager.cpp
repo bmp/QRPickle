@@ -23,17 +23,18 @@ namespace services {
     uint32_t AprsManager::last_tx_time = 0;
     static uint32_t loop_last_beacon_millis = 0;
 
+    // TX queue buffers shifted to the heap
+    static char* tx_msg_queue = nullptr;
+    static bool tx_msg_pending = false;
+
     void AprsManager::start() {
         if (running || !config::get().aprs_enabled) return;
         
-        if (!stations) {
-            stations = (AprsStation*)calloc(30, sizeof(AprsStation));
-            if (!stations) return;
-        }
-        if (!messages) {
-            messages = (AprsMessage*)calloc(10, sizeof(AprsMessage));
-            if (!messages) return;
-        }
+        if (!stations) stations = (AprsStation*)calloc(30, sizeof(AprsStation));
+        if (!messages) messages = (AprsMessage*)calloc(10, sizeof(AprsMessage));
+        if (!tx_msg_queue) tx_msg_queue = (char*)calloc(160, sizeof(char));
+        
+        if (!stations || !messages || !tx_msg_queue) return;
 
         running = true;
         xTaskCreate(task_loop, "aprs_task", 10240, NULL, 1, NULL);
@@ -57,6 +58,56 @@ namespace services {
 
     void AprsManager::trigger_manual_beacon() {
         loop_last_beacon_millis = 0; 
+    }
+
+    // --- ENHANCED MESSAGE DISPATCHER WITH LOGGING ---
+    void AprsManager::send_message(const char* target, const char* message) {
+        Serial.printf("\n[APRS-UI] User requested to send message.\n");
+        Serial.printf("  -> Target: '%s'\n", target);
+        Serial.printf("  -> Payload: '%s'\n", message);
+
+        auto& cfg = config::get();
+        if (!connected) {
+            Serial.println("[APRS-TX] ABORTED: Not connected to APRS-IS.");
+            return;
+        }
+        if (!tx_msg_queue) {
+            Serial.println("[APRS-TX] ABORTED: TX Queue memory not allocated.");
+            return;
+        }
+        if (strlen(target) == 0 || strlen(message) == 0) {
+            Serial.println("[APRS-TX] ABORTED: Target or Message is completely empty.");
+            return;
+        }
+
+        // FIX: Properly format source callsign. APRS servers reject "CALLSIGN-0".
+        char src_call[16];
+        if (cfg.aprs_ssid == 0) {
+            snprintf(src_call, sizeof(src_call), "%s", cfg.callsign);
+        } else {
+            snprintf(src_call, sizeof(src_call), "%s-%d", cfg.callsign, cfg.aprs_ssid);
+        }
+
+        // APRS spec REQUIRES the target callsign to be exactly 9 characters, right-padded with spaces
+        char padded_target[10] = "         ";
+        memcpy(padded_target, target, min(strlen(target), (size_t)9));
+
+        // Format: SOURCE>PATH::TARGET   :MESSAGE
+        snprintf(tx_msg_queue, 160, "%s>APRS,TCPIP*::%s:%s\r\n", src_call, padded_target, message);
+        
+        tx_msg_pending = true;
+        Serial.printf("[APRS-TX] Queued for network stream: %s", tx_msg_queue);
+
+        if (message_count < 10) {
+            strncpy(messages[message_count].from, target, 15);
+            snprintf(messages[message_count].text, 63, "[TX] %s", message);
+            message_count++;
+        } else {
+            for(int i=0; i<9; i++) messages[i] = messages[i+1];
+            strncpy(messages[9].from, target, 15);
+            snprintf(messages[9].text, 63, "[TX] %s", message);
+        }
+        msg_dirty = true;
     }
 
     void AprsManager::sort_stations(bool ascending) {
@@ -181,7 +232,6 @@ namespace services {
         }
     }
 
-    // FIXED: Corrected signature layout parameter from 'const char[256]' to 'const char*'
     void AprsManager::parse_uncompressed_position(const char* call, const char* info) {
         if (strlen(info) < 19) return;
         
@@ -218,7 +268,8 @@ namespace services {
         if (strlen(info) < 11 || info[0] != ':') return;
 
         char target_check[16];
-        snprintf(target_check, sizeof(target_check), "%s-%d", cfg.callsign, cfg.aprs_ssid);
+        if (cfg.aprs_ssid == 0) snprintf(target_check, sizeof(target_check), "%s", cfg.callsign);
+        else snprintf(target_check, sizeof(target_check), "%s-%d", cfg.callsign, cfg.aprs_ssid);
         
         char padded_target[10] = "         ";
         memcpy(padded_target, target_check, min(strlen(target_check), (size_t)9));
@@ -279,9 +330,13 @@ namespace services {
                 connected = false;
                 if (client.connect("rotate.aprs.net", 14580)) {
                     char login[128];
-                    snprintf(login, sizeof(login), "user %s-%d pass %s vers QRPickle 1.0 filter r/%.2f/%.2f/50\r\n", 
-                             cfg.callsign, cfg.aprs_ssid, cfg.aprs_passcode, cfg.lat, cfg.lon);
-                    client.write(login);
+                    char src_call[16];
+                    if (cfg.aprs_ssid == 0) snprintf(src_call, sizeof(src_call), "%s", cfg.callsign);
+                    else snprintf(src_call, sizeof(src_call), "%s-%d", cfg.callsign, cfg.aprs_ssid);
+
+                    snprintf(login, sizeof(login), "user %s pass %s vers QRPickle 1.0 filter r/%.2f/%.2f/50\r\n", 
+                             src_call, cfg.aprs_passcode, cfg.lat, cfg.lon);
+                    client.print(login);
                     connected = true;
                     loop_last_beacon_millis = 0; 
                 } else {
@@ -297,15 +352,27 @@ namespace services {
                 char dynamic_cmt[70];
                 get_current_payload(dynamic_cmt, sizeof(dynamic_cmt));
 
+                char src_call[16];
+                if (cfg.aprs_ssid == 0) snprintf(src_call, sizeof(src_call), "%s", cfg.callsign);
+                else snprintf(src_call, sizeof(src_call), "%s-%d", cfg.callsign, cfg.aprs_ssid);
+
                 char beacon[160];
-                snprintf(beacon, sizeof(beacon), "%s-%d>APRS,TCPIP*:=%s%s\r\n", 
-                         cfg.callsign, cfg.aprs_ssid, coord_str, dynamic_cmt);
+                snprintf(beacon, sizeof(beacon), "%s>APRS,TCPIP*:=%s%s\r\n", 
+                         src_call, coord_str, dynamic_cmt);
                 
-                client.write(beacon);
+                client.print(beacon);
                 tx_count++;
                 last_tx_time = millis();
                 loop_last_beacon_millis = millis();
                 if (loop_last_beacon_millis == 0) loop_last_beacon_millis = 1;
+            }
+
+            // --- THE PHYSICAL NETWORK DISPATCH CHECK ---
+            if (tx_msg_pending && connected) {
+                client.print(tx_msg_queue);
+                client.flush(); // FIX: Forcibly push the TCP packet out immediately
+                Serial.printf("[APRS-TX] Hardware flushed packet to network: %s", tx_msg_queue);
+                tx_msg_pending = false;
             }
 
             while (client.available() && running) {

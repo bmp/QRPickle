@@ -304,15 +304,32 @@ namespace ui {
         }
         lv_obj_clear_flag(list_container, LV_OBJ_FLAG_HIDDEN);
 
+        // --- FIXED: Shrunk message container to fit the compose button ---
         msg_container = lv_obj_create(t2);
-        lv_obj_set_size(msg_container, 312, 156);
-        lv_obj_align(msg_container, LV_ALIGN_CENTER, 0, 0);
+        lv_obj_set_size(msg_container, 312, 124); 
+        lv_obj_align(msg_container, LV_ALIGN_TOP_MID, 0, 0);
         lv_obj_set_style_bg_opa(msg_container, 0, 0);
         lv_obj_set_style_border_width(msg_container, 0, 0);
         lv_obj_set_style_pad_all(msg_container, 2, 0);
         lv_obj_set_flex_flow(msg_container, LV_FLEX_FLOW_COLUMN);
         lv_obj_set_style_pad_row(msg_container, 4, 0);
         lv_obj_add_flag(msg_container, LV_OBJ_FLAG_SCROLLABLE);
+
+        // --- NEW: Inject the Compose Button ---
+        lv_obj_t* btn_compose = lv_button_create(t2);
+        lv_obj_set_size(btn_compose, 312, 24);
+        lv_obj_align(btn_compose, LV_ALIGN_BOTTOM_MID, 0, 0); 
+        lv_obj_set_style_bg_color(btn_compose, theme_color(COLOR_ACCENT_PRIMARY), 0);
+        lv_obj_set_style_radius(btn_compose, 3, 0);
+        lv_obj_add_event_cb(btn_compose, [](lv_event_t*){
+            ui_navigate_local(PAGE_APRS_MSG); 
+        }, LV_EVENT_CLICKED, nullptr);
+
+        lv_obj_t* lbl_compose = lv_label_create(btn_compose);
+        lv_label_set_text(lbl_compose, "COMPOSE NEW MESSAGE");
+        lv_obj_set_style_text_font(lbl_compose, &font_jetbrains_10, 0);
+        lv_obj_set_style_text_color(lbl_compose, lv_color_hex(0x000000), 0);
+        lv_obj_center(lbl_compose);
 
         lv_obj_t* b_card = lv_obj_create(t3);
         lv_obj_set_size(b_card, 312, 130);

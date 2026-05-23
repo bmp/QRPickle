@@ -37,6 +37,9 @@ namespace services {
         static size_t get_message_count();
         static bool is_msg_dirty();
         static void clear_msg_dirty();
+        
+        // Thread-safe injection into the TX socket queue
+        static void send_message(const char* target_callsign, const char* message_body);
 
         // Beacon Stats Endpoints
         static uint32_t get_tx_count() { return tx_count; }
@@ -68,7 +71,7 @@ namespace services {
         static void update_or_add_station(const char* call, float lat, float lon, const char* table_char, const char* symbol_char, const char* cmt);
         
         static void calc_distance_bearing(float lat1, float lon1, float lat2, float lon2, float& out_dist, int& out_bearing);
-        static void get_cardinal(int bearing, char* out_str); // FIXED: Re-added missing private method declaration
+        static void get_cardinal(int bearing, char* out_str);
         static void convert_decimal_to_aprs(float lat, float lon, char* out_str, char& table, char& symbol);
     };
 
