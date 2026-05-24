@@ -65,6 +65,10 @@ namespace ui {
         lv_obj_set_style_bg_color(scr, bg_app, 0);
         lv_obj_set_style_bg_color(form, bg_app, 0);
 
+        // Dynamically map scrollbar tracking colors to active monochrome/color rulesets
+        lv_obj_set_style_bg_color(form, border, LV_PART_SCROLLBAR | 0);
+        lv_obj_set_style_bg_color(form, accent, LV_PART_SCROLLBAR | LV_STATE_PRESSED);
+
         if (ta_call) { lv_obj_set_style_bg_color(ta_call, bg_panel, 0); lv_obj_set_style_text_color(ta_call, txt_main, 0); lv_obj_set_style_border_color(ta_call, border, 0); }
         if (ta_grid) { lv_obj_set_style_bg_color(ta_grid, bg_panel, 0); lv_obj_set_style_text_color(ta_grid, txt_main, 0); lv_obj_set_style_border_color(ta_grid, border, 0); }
         if (ta_ssid) { lv_obj_set_style_bg_color(ta_ssid, bg_panel, 0); lv_obj_set_style_text_color(ta_ssid, txt_main, 0); lv_obj_set_style_border_color(ta_ssid, border, 0); }
@@ -329,6 +333,13 @@ namespace ui {
         lv_obj_set_flex_flow(form, LV_FLEX_FLOW_COLUMN);
         lv_obj_set_scroll_dir(form, LV_DIR_VER);
 
+        // LOCK FOR RESISTIVE TOUCH USE: Thick 12px persistent vertical scroll tracks
+        lv_obj_set_scrollbar_mode(form, LV_SCROLLBAR_MODE_ON);
+        lv_obj_set_style_width(form, 12, LV_PART_SCROLLBAR | 0);
+        lv_obj_set_style_bg_opa(form, LV_OPA_COVER, LV_PART_SCROLLBAR | 0);
+        lv_obj_set_style_radius(form, 6, LV_PART_SCROLLBAR | 0);
+        lv_obj_set_style_pad_right(form, 2, LV_PART_SCROLLBAR | 0);
+
         make_label(form, "Callsign");
         ta_call = lv_textarea_create(form);
         lv_textarea_set_one_line(ta_call, true);
@@ -369,6 +380,7 @@ namespace ui {
             lv_obj_add_event_cb(ta_pw, [](lv_event_t* e){ open_kb_for((lv_obj_t*)lv_event_get_target(e), KB_TEXT); }, LV_EVENT_FOCUSED, NULL);
 
             lbl_pw_masked = lv_label_create(row);
+            lv_obj_set_style_text_font(lbl_pw_masked, &font_jetbrains_14, 0);
             lv_label_set_text(lbl_pw_masked, "********");
             lv_obj_align(lbl_pw_masked, LV_ALIGN_BOTTOM_LEFT, 4, -4);
 
