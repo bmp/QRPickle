@@ -3,14 +3,16 @@
 
 namespace ui {
 
-    // The compiler automatically numbers these 0, 1, 2, 3, 4.
-    // THEME_COUNT automatically becomes 5!
+    // The compiler automatically numbers these 0, 1, 2, 3, 4, 5, 6.
+    // THEME_COUNT automatically becomes 7!
     enum ThemeId : uint8_t {
         THEME_CLASSIC,
         THEME_FIELD_RED,
         THEME_SLATE_DARK,
         THEME_LIGHT,
         THEME_TERMINAL_GREEN,
+        THEME_EINK_LIGHT,
+        THEME_EINK_DARK,
         THEME_COUNT
     };
 

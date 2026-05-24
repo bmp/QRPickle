@@ -14,10 +14,11 @@ namespace ui {
         {"Weather",     DEST_WEATHER},
         {"Network",     DEST_NETWORK},
         {"Settings",    DEST_SETTINGS},
-        {"Spots (DX)",  DEST_SPOTS},
+        {"DX Cluster",  DEST_SPOTS},
         {"xOTA",        DEST_XOTA},
-        {"APRS (Local)",DEST_APRS},// FIXED: Now routes to unified module
-        {"Propagation", DEST_PROP}
+        {"APRS",        DEST_APRS},// FIXED: Now routes to unified module
+        {"Propagation", DEST_PROP},
+        {"HamAlert",    DEST_HAMALERT}
     };
     static constexpr int ITEM_COUNT = sizeof(ITEMS) / sizeof(ITEMS[0]);
 

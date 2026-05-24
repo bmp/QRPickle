@@ -13,7 +13,11 @@
 #include "screens/aprs_hub.h" 
 #include "screens/aprs_radar.h" 
 #include "screens/aprs_msg.h"
+#include "screens/band_cond.h"
+#include "screens/hamalert_view.h"
+#include "../services/hamalert_manager.h"
 #include "../services/aprs_manager.h"
+#include "../services/prop_manager.h"
 #include "fonts.h"
 #include "../config/config.h"
 #include "../hw/sensor.h"
@@ -74,6 +78,10 @@ namespace ui {
             ui_navigate_local(PAGE_XOTA);
         } else if (dest == DEST_APRS) {
             ui_navigate_local(PAGE_APRS); 
+        } else if (dest == DEST_PROP) { // FIXED: Swapped enum target identifier to DEST_PROP
+            ui_navigate_local(PAGE_BAND_COND);
+        } else if (dest == DEST_HAMALERT) {
+            ui_navigate_local(PAGE_HAMALERT);
         }
     }
 
@@ -119,6 +127,8 @@ namespace ui {
         sb_panels.on_select = [](DestScreen dest) { sidebar_selection_cb(dest); };
 
         sidebar_init(main_screen, sb_panels);
+        services::PropagationManager::init();
+        services::HamAlertManager::start();
 
         draw_splash_screen(view_container, []() {
             lv_obj_clean(view_container);
@@ -153,7 +163,7 @@ namespace ui {
 
         lv_obj_clean(view_container);
 
-        // --- FIXED: Handle full-screen tactical overlays (Radar & Messaging) ---
+        // Handle full-screen tactical radar and compose overlay pages (Hides wrapper controls)
         if (page == PAGE_APRS_RADAR || page == PAGE_APRS_MSG) {
             if (status_bar_obj) lv_obj_add_flag(status_bar_obj, LV_OBJ_FLAG_HIDDEN);
             if (global_home_btn) lv_obj_add_flag(global_home_btn, LV_OBJ_FLAG_HIDDEN);
@@ -166,7 +176,7 @@ namespace ui {
             return;
         }
 
-        // Restore safe layout footprint specifications for standard tab-based view modules
+        // Restore standard tab-based workspace layouts safely below
         if (status_bar_obj) lv_obj_clear_flag(status_bar_obj, LV_OBJ_FLAG_HIDDEN);
         lv_obj_set_size(view_container, 320, 216);
         lv_obj_align(view_container, LV_ALIGN_BOTTOM_MID, 0, 0);
@@ -200,6 +210,12 @@ namespace ui {
                 draw_xota_page(view_container);
             } else if (page == PAGE_APRS) {
                 draw_aprs_hub_page(view_container);
+            } else if (page == PAGE_BAND_COND) {
+                status_bar_set_title("Band Conditions");
+                draw_band_cond_page(view_container);
+            } else if (page == PAGE_HAMALERT) {
+                status_bar_set_title("HamAlert Monitor");
+                draw_hamalert_page(view_container);
             }
         }
     }

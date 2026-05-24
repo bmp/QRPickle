@@ -30,6 +30,8 @@ struct Config {
     char    aprs_comment[48]; 
     char    aprs_icon[4];     
     char    aprs_macros[5][64];
+
+    char    hamalert_password[33];
 };
 
 void load();

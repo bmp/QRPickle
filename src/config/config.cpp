@@ -6,10 +6,8 @@
 
 namespace config {
 
-    // THE FIX: Dynamically allocate the massive config object on the heap
     static Config* cfg_ptr = nullptr;
     
-    // Macro ensures the rest of the code works without changing `cfg.` to `cfg->`
     #define cfg (*cfg_ptr)
 
     static const char* NS = "qrpclock"; 
@@ -22,7 +20,7 @@ namespace config {
     }
 
     void reset_to_defaults() {
-        if (!cfg_ptr) cfg_ptr = new Config(); // Allocate if it doesn't exist
+        if (!cfg_ptr) cfg_ptr = new Config(); 
         memset(cfg_ptr, 0, sizeof(Config));
 
         strncpy(cfg.callsign, "N0CALL", sizeof(cfg.callsign) - 1);
@@ -50,12 +48,14 @@ namespace config {
         strncpy(cfg.aprs_comment, "ESP32 Dashboard", sizeof(cfg.aprs_comment) - 1);
         strncpy(cfg.aprs_icon, "/[", sizeof(cfg.aprs_icon) - 1);
 
-        // Load Default Macros
-        strncpy(cfg.aprs_macros[0], "QRT. Packing up gear.", 63);
-        strncpy(cfg.aprs_macros[1], "CQ POTA, spotting active now.", 63);
-        strncpy(cfg.aprs_macros[2], "All OK, monitoring frequency.", 63);
-        strncpy(cfg.aprs_macros[3], "Changing bands shortly.", 63);
-        strncpy(cfg.aprs_macros[4], "Testing APRS-IS link.", 63);
+        // FIXED: Using sizeof() prevents strncpy from zero-padding into adjacent heap memory!
+        strncpy(cfg.aprs_macros[0], "QRT. Packing up gear.", sizeof(cfg.aprs_macros[0]) - 1);
+        strncpy(cfg.aprs_macros[1], "CQ POTA, spotting active now.", sizeof(cfg.aprs_macros[1]) - 1);
+        strncpy(cfg.aprs_macros[2], "All OK, monitoring frequency.", sizeof(cfg.aprs_macros[2]) - 1);
+        strncpy(cfg.aprs_macros[3], "Changing bands shortly.", sizeof(cfg.aprs_macros[3]) - 1);
+        strncpy(cfg.aprs_macros[4], "Testing APRS-IS link.", sizeof(cfg.aprs_macros[4]) - 1);
+
+        cfg.hamalert_password[0] = '\0';
     }
 
     void load() {
@@ -92,8 +92,11 @@ namespace config {
 
             for (int i = 0; i < 5; i++) {
                 char key[8]; snprintf(key, sizeof(key), "mac%d", i);
-                if (p.isKey(key)) p.getString(key, cfg.aprs_macros[i], 64);
+                // FIXED: Explicitly cap the extraction length to the actual array bounds
+                if (p.isKey(key)) p.getString(key, cfg.aprs_macros[i], sizeof(cfg.aprs_macros[i]));
             }
+
+            if (p.isKey("ham_pass")) p.getString("ham_pass", cfg.hamalert_password, sizeof(cfg.hamalert_password));
         }
         p.end();
 
@@ -136,6 +139,8 @@ namespace config {
             p.putString(key, cfg.aprs_macros[i]);
         }
         
+        p.putString("ham_pass", cfg.hamalert_password);
+
         p.end();
         Serial.println("[Storage] Transaction execution successfully committed.");
     }

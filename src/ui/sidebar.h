@@ -11,7 +11,8 @@ namespace ui {
         DEST_XOTA,
         DEST_PROP,
         DEST_WEATHER,
-        DEST_APRS
+        DEST_APRS,
+        DEST_HAMALERT
     };
 
     struct SidebarCallbacks {

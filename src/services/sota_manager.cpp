@@ -28,10 +28,12 @@ namespace services {
         
         fetching = true;
         
+        // RESTORED: 8192 bytes is strictly required for mbedTLS SSL handshakes.
         BaseType_t task_status = xTaskCreate(fetch_task, "sota_task", 8192, NULL, 1, NULL);
         if (task_status != pdPASS) {
             fetching = false;
-            Serial.println("[SOTA] CRITICAL: FreeRTOS failed to allocate 8KB task stack! OOM.");
+            last_fetch_time = millis();
+            Serial.println("[SOTA] CRITICAL: FreeRTOS failed to allocate task stack! OOM.");
         }
     }
 
@@ -49,10 +51,8 @@ namespace services {
     void SotaManager::fetch_task(void* param) {
         Serial.println("[SOTA] Network stream request initiated...");
 
-        // --- MEMORY OPTIMIZATION FIX ---
         WiFiClientSecure secureClient;
-        secureClient.setInsecure(); // Skips loading root certificates into RAM
-        // secureClient.setBufferSizes(4096, 512); // Clamps SSL window chunks to save 15KB+ RAM
+        secureClient.setInsecure(); 
 
         HTTPClient http;
         http.useHTTP10(true); 

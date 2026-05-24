@@ -28,10 +28,12 @@ namespace services {
         
         fetching = true;
         
+        // RESTORED: Back to 8192 bytes.
         BaseType_t task_status = xTaskCreate(fetch_task, "pota_task", 8192, NULL, 1, NULL);
         if (task_status != pdPASS) {
             fetching = false;
-            Serial.println("[POTA] CRITICAL: FreeRTOS failed to allocate 8KB task stack! OOM.");
+            last_fetch_time = millis();
+            Serial.println("[POTA] CRITICAL: FreeRTOS failed to allocate task stack! OOM.");
         }
     }
 
@@ -63,7 +65,6 @@ namespace services {
 
         WiFiClientSecure secureClient;
         secureClient.setInsecure();
-        secureClient.setTimeout(10); 
 
         HTTPClient http;
         http.useHTTP10(true);
@@ -75,19 +76,16 @@ namespace services {
             Stream& payloadStream = http.getStream();
             payloadStream.setTimeout(5000);
 
-            // --- THE MEMORY FIX: ELEMENT-BY-ELEMENT STREAMING ---
-            // Find the opening bracket of the JSON array
             if (payloadStream.find('[')) {
                 spot_count = 0;
 
-                // Parse exactly ONE spot object at a time
                 do {
                     if (spot_count >= 30) {
-                        Serial.println("[POTA] Reached 30 spots. Severing connection early to save RAM/Radio...");
+                        Serial.println("[POTA] Reached 30 spots. Severing connection early...");
                         break; 
                     }
 
-                    JsonDocument doc; // Only holds a single spot (uses virtually no RAM)
+                    JsonDocument doc; 
                     DeserializationError err = deserializeJson(doc, payloadStream);
 
                     if (err) {
@@ -117,10 +115,8 @@ namespace services {
                     }
 
                     s.is_qrp = (strcasestr(s.comment, "QRP") != nullptr);
-
                     spots[spot_count++] = s;
 
-                // Move the stream cursor to the start of the next element in the array
                 } while (payloadStream.findUntil(",", "]"));
 
                 dirty = true;
@@ -133,7 +129,6 @@ namespace services {
             Serial.printf("[POTA] Server rejected HTTP GET: %d\n", httpCode);
         }
 
-        // Immediately close the TCP socket. Discards the unneeded 40KB of data.
         http.end(); 
         fetching = false;
         vTaskDelete(NULL);

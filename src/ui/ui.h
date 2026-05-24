@@ -10,7 +10,9 @@ namespace ui {
         PAGE_XOTA,
         PAGE_APRS,
         PAGE_APRS_RADAR,
-        PAGE_APRS_MSG
+        PAGE_APRS_MSG,
+        PAGE_BAND_COND,
+        PAGE_HAMALERT
     };
 
     void ui_init();

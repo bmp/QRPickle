@@ -25,14 +25,14 @@
             <div class="form-grid">
                 <div class="form-group">
                     <label>Operator Callsign</label>
-                    <input type="text" id="cfg-callsign" maxlength="11">
+                    <input type="text" id="cfg-callsign" maxlength="9">
                 </div>
                 <div class="form-group">
                     <label>Grid Square Target</label>
                     <input type="text" id="cfg-grid" maxlength="6">
                 </div>
                 <div class="form-group">
-                    <label>UTC Offset Matrix (Decimal Hours)</label>
+                    <label>UTC Offset (Hours)</label>
                     <input type="number" id="cfg-offset" step="0.5" min="-12" max="14">
                 </div>
                 <div class="form-group">
@@ -59,7 +59,7 @@
                     <input type="range" id="cfg-brightness" min="10" max="255">
                 </div>
                 <div class="form-group">
-                    <label>Screen Sleep Timeout (Minutes, 0 = Manual Only)</label>
+                    <label>Screen Sleep Timeout (Minutes)</label>
                     <input type="number" id="cfg-timeout" min="0" max="120">
                 </div>
                 <div class="form-group">
@@ -70,6 +70,8 @@
                         <option value="2">GitHub Slate Dark</option>
                         <option value="3">Clean High-Contrast</option>
                         <option value="4">Terminal Green</option>
+                        <option value="5">E-Ink Light</option>
+                        <option value="6">E-Ink Dark</option>
                     </select>
                 </div>
             </div>
@@ -77,15 +79,16 @@
 
         <section id="tab-advanced" class="tab-content">
             <div class="form-grid">
-                <div class="form-group">
+                <div class="form-group" style="grid-column: span 2;">
                     <label>OpenWeatherMap API Token</label>
                     <div class="password-wrapper">
-                        <input type="password" id="cfg-apikey" placeholder="Paste API Key here..." maxlength="64">
+                        <input type="password" id="cfg-apikey" placeholder="Paste API Key here..." maxlength="39">
                         <button class="eye-toggle" type="button" onclick="togglePass('cfg-apikey')">👁️</button>
                     </div>
                 </div>
+                
                 <div class="form-group" style="grid-column: span 2;">
-                    <label>Active Forecast Slots Window (Horizontal Scrolling Sequence Timeline)</label>
+                    <label>Active Forecast Slots Window (Timeline Sequence)</label>
                     <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; background: rgba(0,0,0,0.2); padding: 12px; border: 1px solid var(--border);">
                         <label style="margin:0; font-size:12px;"><input type="checkbox" id="fc-bit0" value="1"> +3 Hours</label>
                         <label style="margin:0; font-size:12px;"><input type="checkbox" id="fc-bit1" value="2"> +6 Hours</label>
@@ -97,10 +100,17 @@
                         <label style="margin:0; font-size:12px;"><input type="checkbox" id="fc-bit7" value="128"> +24 Hours</label>
                     </div>
                 </div>
-            </div>
 
-            <div class="form-grid" style="margin-top: 15px;">
-                <label style="grid-column: span 2; font-weight: bold; border-bottom: 1px solid var(--border); padding-bottom: 5px; color: var(--accent);">APRS-IS Global Network Parameters</label>
+                <div class="form-group" style="grid-column: span 2;">
+                    <label>HamAlert Telnet Password Token (hamalert.org Account Key)</label>
+                    <div class="password-wrapper">
+                        <input type="password" id="cfg-hamalert-pass" placeholder="Enter HamAlert Token..." maxlength="15">
+                        <button class="eye-toggle" type="button" onclick="togglePass('cfg-hamalert-pass')">👁️</button>
+                    </div>
+                </div>
+
+                <label style="grid-column: span 2; font-weight: bold; border-bottom: 1px solid var(--border); padding-bottom: 5px; color: var(--accent); margin-top: 10px;">APRS-IS Global Network Parameters</label>
+                
                 <div class="form-group">
                     <label>APRS Network Connection</label>
                     <select id="cfg-aprs-en">
@@ -128,7 +138,7 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>Beacon Map Symbol (Official APRS Identifiers)</label>
+                    <label>Beacon Map Symbol</label>
                     <select id="cfg-aprs-icon">
                         <option value="/[">/[ : Human / Runner / Eyeball</option>
                         <option value="/-">/- : House / QTH</option>
@@ -140,22 +150,21 @@
                     </select>
                 </div>
                 <div class="form-group" style="grid-column: span 2;">
-                    <label>Custom Beacon Comment Payload (BME280 Telemetry is auto-appended)</label>
-                    <input type="text" id="cfg-aprs-cmt" maxlength="40" placeholder="ESP32 Dashboard">
+                    <label>Custom Beacon Comment Payload</label>
+                    <input type="text" id="cfg-aprs-cmt" maxlength="31" placeholder="ESP32 Dashboard">
                 </div>
+
                 <label style="grid-column: span 2; font-weight: bold; border-bottom: 1px solid var(--border); padding-bottom: 5px; color: var(--accent); margin-top: 10px;">APRS Messaging Quick-Macros</label>
                 <div class="form-group" style="grid-column: span 2;"><label>Macro 1:</label><input type="text" id="cfg-mac0" maxlength="63"></div>
                 <div class="form-group" style="grid-column: span 2;"><label>Macro 2:</label><input type="text" id="cfg-mac1" maxlength="63"></div>
                 <div class="form-group" style="grid-column: span 2;"><label>Macro 3:</label><input type="text" id="cfg-mac2" maxlength="63"></div>
                 <div class="form-group" style="grid-column: span 2;"><label>Macro 4:</label><input type="text" id="cfg-mac3" maxlength="63"></div>
                 <div class="form-group" style="grid-column: span 2;"><label>Macro 5:</label><input type="text" id="cfg-mac4" maxlength="63"></div>
-            </div>
 
-            <div class="form-grid" style="margin-top: 15px;">
-                <label style="grid-column: span 2; font-weight: bold; border-bottom: 1px solid var(--border); padding-bottom: 5px; color: var(--accent);">DX Cluster Endpoints</label>
+                <label style="grid-column: span 2; font-weight: bold; border-bottom: 1px solid var(--border); padding-bottom: 5px; color: var(--accent); margin-top: 10px;">DX Cluster Endpoints</label>
                 <div class="form-group">
                     <label>Primary Node URL:</label>
-                    <input type="text" id="dx_url_p" maxlength="63">
+                    <input type="text" id="dx_url_p" maxlength="47">
                 </div>
                 <div class="form-group">
                     <label>Primary Port:</label>
@@ -163,7 +172,7 @@
                 </div>
                 <div class="form-group">
                     <label>Secondary Node URL:</label>
-                    <input type="text" id="dx_url_s" maxlength="63">
+                    <input type="text" id="dx_url_s" maxlength="47">
                 </div>
                 <div class="form-group">
                     <label>Secondary Port:</label>
@@ -187,7 +196,7 @@
                     <div class="form-grid">
                         <div class="form-group">
                             <label>Profile Callsign</label>
-                            <input type="text" id="prof-edit-callsign" maxlength="11">
+                            <input type="text" id="prof-edit-callsign" maxlength="9">
                         </div>
                         <div class="form-group">
                             <label>Profile Grid Square</label>
@@ -202,7 +211,7 @@
                             <input type="password" id="prof-edit-password" maxlength="63">
                         </div>
                         <div class="form-group">
-                            <label>UTC Offset (Decimal Hours)</label>
+                            <label>UTC Offset (Hours)</label>
                             <input type="number" id="prof-edit-offset" step="0.5" min="-12" max="14">
                         </div>
                         <div class="form-group">
@@ -256,7 +265,7 @@
                         </div>
                         <div class="form-group" style="grid-column: span 2;">
                             <label>APRS Comment</label>
-                            <input type="text" id="prof-edit-aprs-cmt" maxlength="40">
+                            <input type="text" id="prof-edit-aprs-cmt" maxlength="31">
                         </div>
                     </div>
                     
@@ -270,7 +279,7 @@
 
                 <h2>Snapshot Active Settings into New Profile</h2>
                 <div class="profile-controls">
-                    <input type="text" id="new-profile-name" placeholder="Profile name (e.g. Field Ops, Home Shack)" maxlength="20">
+                    <input type="text" id="new-profile-name" placeholder="Profile name (e.g. Field Ops)" maxlength="20">
                     <button class="btn btn-secondary" onclick="saveProfile()">Save New Profile</button>
                 </div>
             </div>
@@ -300,11 +309,11 @@
                 <label>Select Deployment Partition Target</label>
                 <select id="ota-target" style="margin-bottom: 15px; width: 100%;">
                     <option value="firmware">Application Binary Core (.bin Firmware)</option>
-                    <option value="filesystem">LittleFS Storage Image (data.bin / littlefs.bin)</option>
+                    <option value="filesystem">LittleFS Storage Image (data.bin)</option>
                 </select>
                 
                 <label>Upload Target Binary File</label>
-                <input type="file" id="ota-file-input" style="border: 1px dashed var(--border); padding: 10px; background: rgba(0,0,0,0.2);">
+                <input type="file" id="ota-file-input" style="border: 1px dashed var(--border); padding: 10px; background: rgba(0,0,0,0.2); width:100%; box-sizing:border-box;">
                 
                 <div id="ota-progress-container" class="hidden" style="margin-top: 15px;">
                     <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-bottom: 5px;">

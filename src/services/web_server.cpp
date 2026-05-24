@@ -127,6 +127,8 @@ void web_server_init() {
         JsonArray mac_arr = doc["aprs_macros"].to<JsonArray>();
         for(int i=0; i<5; i++) mac_arr.add(c.aprs_macros[i]);
 
+        doc["hamalert_pass"] = c.hamalert_password;
+
         serializeJson(doc, *response);
         request->send(response);
     });
@@ -200,6 +202,8 @@ void web_server_init() {
                               strncpy(c.aprs_macros[i], mac_arr[i].as<const char*>(), 63);
                           }
                       }
+
+                      if (!doc["hamalert_pass"].isNull()) strncpy(c.hamalert_password, doc["hamalert_pass"], sizeof(c.hamalert_password)-1);
 
                       config::save();
                       flag_trigger_ui_refresh = true;
