@@ -23,6 +23,24 @@ function getElementValue(id, isCheckbox = false) {
     return isCheckbox ? el.checked : el.value;
 }
 
+// Helper to extract and mirror tool descriptors dynamically to the footer layout
+function updateDynamicFooter(data) {
+    const nameEl = document.getElementById("foot-name");
+    const verEl = document.getElementById("foot-version");
+    const authcallEl = document.getElementById("foot-authorcall");
+    
+    if (nameEl && (data.app_name || data.tool_name)) {
+        nameEl.innerText = data.app_name || data.tool_name;
+    }
+    if (verEl && (data.version || data.fw_version)) {
+        verEl.innerText = data.version || data.fw_version;
+    }
+
+    if (authcallEl && (data.version || data.author_call)) {
+        verEl.innerText = data.author_call || data.support_email;
+    }
+}
+
 // --- TAB SWITCHER INITIALIZATION VECTOR ---
 function initTabsEngine() {
     const buttons = document.querySelectorAll(".tab-btn");
@@ -51,6 +69,9 @@ function loadCurrentConfig() {
     fetch("/api/config")
         .then(res => res.json())
         .then(data => {
+            // Update tool matching metadata descriptors if supplied by backend
+            updateDynamicFooter(data);
+
             // Basic Panel JSON parameters sync
             setElementValue("cfg-callsign", data.callsign || "");
             setElementValue("cfg-grid", data.grid || "");
@@ -63,8 +84,10 @@ function loadCurrentConfig() {
             setElementValue("cfg-timeout", data.timeout ?? 5);
             setElementValue("cfg-theme", data.theme_id ?? 0);
 
-            // Advanced Panel JSON parameters sync
-            setElementValue("cfg-apikey", data.apikey || "");
+            // FIXED: Fallback parser chains map explicit openweather keys strictly matching C++ fields
+            const extractedApiKey = data.openweather_api_key || data.owm_api_key || data.apikey || data.api_key || "";
+            setElementValue("cfg-apikey", extractedApiKey);
+            
             setElementValue("cfg-hamalert-pass", data.hamalert_pass || "");
             setElementValue("cfg-aprs-en", data.aprs_en ? "1" : "0");
             setElementValue("cfg-aprs-pass", data.aprs_pass || "");
@@ -109,11 +132,18 @@ function saveActiveConfig() {
         macrosArray.push(getElementValue(`cfg-mac${i}`));
     }
 
+    const activeApiKey = getElementValue("cfg-apikey");
+
     const payload = {
         callsign: getElementValue("cfg-callsign"),
         grid: getElementValue("cfg-grid"),
         ssid: getElementValue("cfg-ssid"),
-        apikey: getElementValue("cfg-apikey"),
+        
+        // FIXED: Redundant data descriptors prevent serialization dropouts on backend C++ fields parsing
+        apikey: activeApiKey,
+        openweather_api_key: activeApiKey,
+        owm_api_key: activeApiKey,
+        
         lat: parseFloat(getElementValue("cfg-lat")),
         lon: parseFloat(getElementValue("cfg-lon")),
         offset: parseFloat(getElementValue("cfg-offset")),
@@ -152,20 +182,21 @@ function fetchSystemTelemetry() {
     const sysTab = document.getElementById("tab-system");
     if (!sysTab || !sysTab.classList.contains("active")) return;
 
-    fetch("/api/status") // FIXED: Routes to the correct status endpoint matching web_server.cpp
+    fetch("/api/status") 
         .then(res => res.json())
         .then(data => {
+            updateDynamicFooter(data);
             document.getElementById("sys-uptime").innerText = (data.uptime || 0) + "s";
-            document.getElementById("sys-heap").innerText = (data.heap || 0).toLocaleString() + " B"; // FIXED fields mapping keys
+            document.getElementById("sys-heap").innerText = (data.heap || 0).toLocaleString() + " B"; 
             document.getElementById("sys-rssi").innerText = (data.rssi || 0) + " dBm";
             document.getElementById("sys-temp").innerText = (data.temp ?? "--.-") + " °C";
             document.getElementById("sys-humidity").innerText = (data.humidity ?? "--.-") + " %";
             document.getElementById("sys-pressure").innerText = (data.pressure ?? "----") + " hPa";
 
-            document.getElementById("sys-lib-lvgl").innerText = data.ver_lvgl || "v8.3.x";
+            document.getElementById("sys-lib-lvgl").innerText = data.ver_lvgl || "v9.x";
             document.getElementById("sys-lib-json").innerText = data.ver_json || "v7.x";
             document.getElementById("sys-lib-core").innerText = data.ver_core || "v6.x";
-            document.getElementById("sys-lib-idf").innerText = data.ver_idf || "v4.4.x";
+            document.getElementById("sys-lib-idf").innerText = data.ver_idf || "v5.x";
         })
         .catch(err => console.warn("Polling dropped telemetry. Re-syncing line link...", err));
 }
@@ -174,13 +205,18 @@ function fetchAboutDetails() {
     fetch("/api/about")
         .then(res => res.ok ? res.text() : "No details recorded on disk flash.")
         .then(text => {
-            document.getElementById("about-bin").innerText = text;
+            try {
+                // If endpoint returns structured payload layout, parse variables cleanly
+                const data = JSON.parse(text);
+                updateDynamicFooter(data);
+                document.getElementById("about-bin").innerText = data.description || text;
+            } catch (e) {
+                document.getElementById("about-bin").innerText = text;
+            }
             
-            // Mirror background info elements to footer tags safely
-            document.getElementById("foot-name").innerText = "QRPickle";
-            document.getElementById("foot-version").innerText = "v1.0.0";
+            // FIXED: Retains raw hardcoded link targets definitions and parameters securely
             const link = document.getElementById("foot-link");
-            if (link) { link.innerText = "Operator Console Portal"; link.href = "https://ham.bharathpalavalli.com/"; }
+            if (link) { link.href = "https://ham.bharathpalavalli.com/"; }
         });
 }
 
@@ -207,7 +243,6 @@ function executeWirelessOTA() {
     statusLabel.innerText = "Uploading payload packages to file server...";
 
     const xhr = new XMLHttpRequest();
-    // FIXED: Formats query parameters strictly expected by the backend update hook architecture
     xhr.open("POST", `/api/system/update?target=${target}`, true); 
 
     xhr.upload.addEventListener("progress", (e) => {
@@ -249,7 +284,7 @@ function triggerReboot() {
 
 // --- PROFILE LAYOUT MANAGER STORAGE PIPELINE ---
 function fetchProfilesList() {
-    fetch("/api/profiles") // FIXED: Maps directly to the profile array extraction handler endpoint
+    fetch("/api/profiles") 
         .then(res => res.json())
         .then(data => {
             const dropdown = document.getElementById("profile-select");
@@ -286,8 +321,12 @@ function handleProfileSelectionChange() {
             setElementValue("prof-edit-aprs-en", data.aprs_en ? "1" : "0");
             setElementValue("prof-edit-aprs-ssid", data.aprs_ssid ?? 0);
             setElementValue("prof-edit-aprs-icn", data.aprs_icn || "/[");
-            setElementValue("prof-edit-timeout", data.timeout ?? 5); // Fallback evaluation alignment helper
+            setElementValue("prof-edit-timeout", data.timeout ?? 5); 
             setElementValue("prof-edit-aprs-cmt", data.aprs_cmt || "");
+            
+            // FIXED: Populate the separate profile key edit field securely
+            const profileKey = data.openweather_api_key || data.owm_api_key || data.apikey || data.api_key || "";
+            setElementValue("prof-edit-apikey", profileKey);
         });
 }
 
@@ -295,19 +334,25 @@ function saveProfile() {
     const pName = document.getElementById("new-profile-name").value.trim();
     if (!pName) { alert("Please specify a filename identification moniker for the layout template configuration."); return; }
     
-    // Packages local state profiles using layout mappings expected by save_profile_from_json
+    const activeApiKey = getElementValue("cfg-apikey");
+
     const configPayload = {
         callsign: getElementValue("cfg-callsign"),
         grid: getElementValue("cfg-grid"),
         ssid: getElementValue("cfg-ssid"),
         password: getElementValue("cfg-password") || "unset",
-        apikey: getElementValue("cfg-apikey"),
+        
+        // FIXED: Unified profile mapping variations
+        apikey: activeApiKey,
+        openweather_api_key: activeApiKey,
+        owm_api_key: activeApiKey,
+        
         lat: parseFloat(getElementValue("cfg-lat")),
         lon: parseFloat(getElementValue("cfg-lon")),
         offset: parseFloat(getElementValue("cfg-offset")),
         brightness: parseInt(getElementValue("cfg-brightness")),
         theme_id: parseInt(getElementValue("cfg-theme")),
-        scr_to: parseInt(getElementValue("cfg-timeout")), // Maps to p_data structure bounds expectations
+        scr_to: parseInt(getElementValue("cfg-timeout")), 
         aprs_en: getElementValue("cfg-aprs-en") === "1",
         aprs_ssid: parseInt(getElementValue("cfg-aprs-ssid")),
         aprs_pass: getElementValue("cfg-aprs-pass"),
@@ -322,7 +367,7 @@ function saveProfile() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(containerPayload)
     })
-    .then(res => res.ok ? alert("System operational snapshot profile successfully written to disk flash memory layout.") : alert("Server rejected the profile snapshot operation."))
+    .then(res => res.ok ? alert("System operational snapshot profile successfully written to disk flash.") : alert("Server rejected profile snapshot operation."))
     .then(() => {
         document.getElementById("new-profile-name").value = "";
         fetchProfilesList();
@@ -343,13 +388,19 @@ function saveProfileChanges() {
     const pName = document.getElementById("profile-select").value;
     if (!pName) return;
 
-    // Compiles mutations into the expected structure format required by the backend
+    const modifiedProfileKey = getElementValue("prof-edit-apikey");
+
     const configPayload = {
         callsign: getElementValue("prof-edit-callsign"),
         grid: getElementValue("prof-edit-grid"),
         ssid: getElementValue("prof-edit-ssid"),
         password: getElementValue("prof-edit-password"),
-        apikey: getElementValue("prof-edit-apikey"),
+        
+        // FIXED: Sync profile changes strictly matching layout variants
+        apikey: modifiedProfileKey,
+        openweather_api_key: modifiedProfileKey,
+        owm_api_key: modifiedProfileKey,
+        
         lat: parseFloat(getElementValue("prof-edit-lat")),
         lon: parseFloat(getElementValue("prof-edit-lon")),
         offset: parseFloat(getElementValue("prof-edit-offset")),
@@ -365,7 +416,7 @@ function saveProfileChanges() {
 
     const containerPayload = { name: pName, config: configPayload };
 
-    fetch("/api/profiles/save", { // Standardizes profile mutations across unified backend destination route
+    fetch("/api/profiles/save", { 
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(containerPayload)

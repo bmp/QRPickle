@@ -33,7 +33,7 @@ namespace ui {
     static lv_obj_t* btn_minus = nullptr;
     static lv_obj_t* btn_plus = nullptr;
     
-    // FIXED: Layout bindings for timeout modifier row
+    // Layout bindings for timeout modifier row
     static lv_obj_t* btn_timeout_minus = nullptr;
     static lv_obj_t* btn_timeout_plus = nullptr;
     static lv_obj_t* lbl_timeout = nullptr;
@@ -49,7 +49,7 @@ namespace ui {
 
     static int8_t pending_tz_offset_hh = 0;
     static uint8_t pending_theme_id = 0;
-    static uint8_t pending_timeout_min = 5; // FIXED: Added active state tracker
+    static uint8_t pending_timeout_min = 5; 
     static char pending_owm_api_key[41] = "";
 
     static void settings_refresh_theme() {
@@ -65,9 +65,10 @@ namespace ui {
         lv_obj_set_style_bg_color(scr, bg_app, 0);
         lv_obj_set_style_bg_color(form, bg_app, 0);
 
-        // Dynamically map scrollbar tracking colors to active monochrome/color rulesets
-        lv_obj_set_style_bg_color(form, border, LV_PART_SCROLLBAR | 0);
+        // Safely map scrollbar tracking colors using valid standard selectors
+        lv_obj_set_style_bg_color(form, border, LV_PART_SCROLLBAR);
         lv_obj_set_style_bg_color(form, accent, LV_PART_SCROLLBAR | LV_STATE_PRESSED);
+        lv_obj_set_style_bg_opa(form, LV_OPA_COVER, LV_PART_SCROLLBAR);
 
         if (ta_call) { lv_obj_set_style_bg_color(ta_call, bg_panel, 0); lv_obj_set_style_text_color(ta_call, txt_main, 0); lv_obj_set_style_border_color(ta_call, border, 0); }
         if (ta_grid) { lv_obj_set_style_bg_color(ta_grid, bg_panel, 0); lv_obj_set_style_text_color(ta_grid, txt_main, 0); lv_obj_set_style_border_color(ta_grid, border, 0); }
@@ -91,7 +92,6 @@ namespace ui {
             lv_obj_set_style_bg_color(slider_bright, txt_main, LV_PART_KNOB);
         }
 
-        // Sub-routine styling mapping for control rows
         auto style_btn_row = [&](lv_obj_t* b) {
             if (!b) return;
             lv_obj_set_style_bg_color(b, bg_panel, 0);
@@ -138,7 +138,6 @@ namespace ui {
         if (lbl_tz) lv_label_set_text(lbl_tz, buf);
     }
 
-    // FIXED: Dynamic string formatting logic for timeout
     static void render_timeout() {
         if (!lbl_timeout) return;
         if (pending_timeout_min == 0) {
@@ -223,7 +222,6 @@ namespace ui {
         render_tz(pending_tz_offset_hh);
     }
 
-    // FIXED: Handlers for new timeout modifier bounds (0 min to 120 max)
     static void timeout_minus(lv_event_t*) {
         if (pending_timeout_min > 0) pending_timeout_min--;
         render_timeout();
@@ -258,7 +256,7 @@ namespace ui {
             c.tz_offset_hh != pending_tz_offset_hh ||
             c.brightness != new_bright ||
             c.theme_id != pending_theme_id ||
-            c.screen_timeout_min != pending_timeout_min) // FIXED: Add verification parameter
+            c.screen_timeout_min != pending_timeout_min) 
         {
             modified = true;
         }
@@ -281,7 +279,7 @@ namespace ui {
             mc.tz_offset_hh = pending_tz_offset_hh;
             mc.brightness = new_bright;
             mc.theme_id = pending_theme_id;
-            mc.screen_timeout_min = pending_timeout_min; // FIXED: Save explicit active timeout
+            mc.screen_timeout_min = pending_timeout_min; 
 
             config::save();
 
@@ -333,19 +331,18 @@ namespace ui {
         lv_obj_set_flex_flow(form, LV_FLEX_FLOW_COLUMN);
         lv_obj_set_scroll_dir(form, LV_DIR_VER);
 
-        // LOCK FOR RESISTIVE TOUCH USE: Thick 12px persistent vertical scroll tracks
+        // FIXED: Standard, stable LVGL 9 scrollbar thickness configuration
         lv_obj_set_scrollbar_mode(form, LV_SCROLLBAR_MODE_ON);
-        lv_obj_set_style_width(form, 12, LV_PART_SCROLLBAR | 0);
-        lv_obj_set_style_bg_opa(form, LV_OPA_COVER, LV_PART_SCROLLBAR | 0);
-        lv_obj_set_style_radius(form, 6, LV_PART_SCROLLBAR | 0);
-        lv_obj_set_style_pad_right(form, 2, LV_PART_SCROLLBAR | 0);
+        lv_obj_set_style_width(form, 6, LV_PART_SCROLLBAR); 
+        lv_obj_set_style_radius(form, 3, LV_PART_SCROLLBAR);
+        lv_obj_set_style_pad_right(form, 2, LV_PART_SCROLLBAR);
 
         make_label(form, "Callsign");
         ta_call = lv_textarea_create(form);
         lv_textarea_set_one_line(ta_call, true);
         lv_textarea_set_max_length(ta_call, 11);
         lv_textarea_set_text(ta_call, c.callsign);
-        lv_obj_set_width(ta_call, lv_pct(100));
+        lv_obj_set_width(ta_call, 250); // FIXED: Trimmed to open a 50px vertical swipe-to-scroll lane
         lv_obj_add_event_cb(ta_call, [](lv_event_t* e){ open_kb_for((lv_obj_t*)lv_event_get_target(e), KB_CALLSIGN); }, LV_EVENT_FOCUSED, NULL);
 
         make_label(form, "Grid Square");
@@ -353,19 +350,19 @@ namespace ui {
         lv_textarea_set_one_line(ta_grid, true);
         lv_textarea_set_max_length(ta_grid, 6);
         lv_textarea_set_text(ta_grid, c.grid);
-        lv_obj_set_width(ta_grid, lv_pct(100));
+        lv_obj_set_width(ta_grid, 250); // FIXED: Swipe lane clearance
         lv_obj_add_event_cb(ta_grid, [](lv_event_t* e){ open_kb_for((lv_obj_t*)lv_event_get_target(e), KB_GRID); }, LV_EVENT_FOCUSED, NULL);
 
         make_label(form, "WiFi SSID");
         ta_ssid = lv_textarea_create(form);
         lv_textarea_set_one_line(ta_ssid, true);
         lv_textarea_set_text(ta_ssid, c.wifi_ssid);
-        lv_obj_set_width(ta_ssid, lv_pct(100));
+        lv_obj_set_width(ta_ssid, 250); // FIXED: Swipe lane clearance
         lv_obj_add_event_cb(ta_ssid, [](lv_event_t* e){ open_kb_for((lv_obj_t*)lv_event_get_target(e), KB_TEXT); }, LV_EVENT_FOCUSED, NULL);
 
         {
             lv_obj_t* row = lv_obj_create(form);
-            lv_obj_set_size(row, lv_pct(100), 44);
+            lv_obj_set_size(row, 250, 44); // FIXED: Contained row width to support swipe track
             lv_obj_set_style_bg_opa(row, LV_OPA_TRANSP, 0);
             lv_obj_set_style_border_width(row, 0, 0);
             lv_obj_set_style_pad_all(row, 0, 0);
@@ -374,7 +371,7 @@ namespace ui {
             ta_pw = lv_textarea_create(row);
             lv_textarea_set_one_line(ta_pw, true);
             lv_textarea_set_text(ta_pw, c.wifi_password);
-            lv_obj_set_size(ta_pw, 240, 26);
+            lv_obj_set_size(ta_pw, 210, 26); 
             lv_obj_align(ta_pw, LV_ALIGN_BOTTOM_LEFT, 0, 0);
             lv_obj_add_flag(ta_pw, LV_OBJ_FLAG_HIDDEN);
             lv_obj_add_event_cb(ta_pw, [](lv_event_t* e){ open_kb_for((lv_obj_t*)lv_event_get_target(e), KB_TEXT); }, LV_EVENT_FOCUSED, NULL);
@@ -393,7 +390,7 @@ namespace ui {
 
         {
             lv_obj_t* row = lv_obj_create(form);
-            lv_obj_set_size(row, lv_pct(100), 44);
+            lv_obj_set_size(row, 270, 44); // FIXED: Truncated to safe width limits
             lv_obj_set_style_bg_opa(row, LV_OPA_TRANSP, 0);
             lv_obj_set_style_border_width(row, 0, 0);
             lv_obj_set_style_pad_all(row, 0, 0);
@@ -419,10 +416,9 @@ namespace ui {
             lv_obj_set_style_text_font(plbl, &font_atkinson_14, 0);
         }
 
-        // FIXED: New layout block for adjusting the physical sleep timeout variable
         {
             lv_obj_t* row = lv_obj_create(form);
-            lv_obj_set_size(row, lv_pct(100), 44);
+            lv_obj_set_size(row, 270, 44); // FIXED: Truncated to safe width limits
             lv_obj_set_style_bg_opa(row, LV_OPA_TRANSP, 0);
             lv_obj_set_style_border_width(row, 0, 0);
             lv_obj_set_style_pad_all(row, 0, 0);
@@ -452,12 +448,12 @@ namespace ui {
         slider_bright = lv_slider_create(form);
         lv_slider_set_range(slider_bright, 10, 255);
         lv_slider_set_value(slider_bright, c.brightness, LV_ANIM_OFF);
-        lv_obj_set_width(slider_bright, lv_pct(100));
+        lv_obj_set_width(slider_bright, 250); // FIXED: Unified element tracking lane width
         lv_obj_add_event_cb(slider_bright, bright_changed, LV_EVENT_VALUE_CHANGED, NULL);
 
         make_label(form, "UI Theme");
         btn_theme = lv_btn_create(form);
-        lv_obj_set_width(btn_theme, lv_pct(100));
+        lv_obj_set_width(btn_theme, 250); // FIXED: Unified width
         lv_obj_set_height(btn_theme, 30);
         lv_obj_set_style_border_width(btn_theme, 1, 0);
         lv_obj_set_style_radius(btn_theme, 4, 0);
@@ -470,7 +466,7 @@ namespace ui {
 
         make_label(form, "Staged Deployment Profile");
         btn_profile = lv_btn_create(form);
-        lv_obj_set_width(btn_profile, lv_pct(100));
+        lv_obj_set_width(btn_profile, 250); // FIXED: Unified width
         lv_obj_set_height(btn_profile, 30);
         lv_obj_set_style_border_width(btn_profile, 1, 0);
         lv_obj_set_style_radius(btn_profile, 4, 0);
@@ -482,33 +478,33 @@ namespace ui {
         lv_obj_center(lbl_profile);
 
         lv_obj_t* spacer = lv_obj_create(form);
-        lv_obj_set_size(spacer, lv_pct(100), 10);
+        lv_obj_set_size(spacer, 250, 10);
         lv_obj_set_style_bg_opa(spacer, LV_OPA_TRANSP, 0);
         lv_obj_set_style_border_width(spacer, 0, 0);
 
         {
             lv_obj_t* row = lv_obj_create(form);
-            lv_obj_set_size(row, lv_pct(100), 44);
+            lv_obj_set_size(row, 280, 44); // FIXED: Leaves clear 40px right swipe space for bottom row
             lv_obj_set_style_bg_opa(row, LV_OPA_TRANSP, 0);
             lv_obj_set_style_border_width(row, 0, 0);
             lv_obj_set_style_pad_all(row, 0, 0);
 
             btn_save = lv_button_create(row);
-            lv_obj_set_size(btn_save, 90, 34);
+            lv_obj_set_size(btn_save, 85, 34); // Scaled slightly to safely fit inside the 280px boundary
             lv_obj_align(btn_save, LV_ALIGN_LEFT_MID, 0, 0);
             lv_obj_add_event_cb(btn_save, save_clicked, LV_EVENT_CLICKED, NULL);
             lv_obj_t* slbl = lv_label_create(btn_save); lv_label_set_text(slbl, "SAVE"); lv_obj_center(slbl);
             lv_obj_set_style_text_font(slbl, &font_atkinson_14, 0);
 
             btn_exit = lv_button_create(row);
-            lv_obj_set_size(btn_exit, 90, 34);
+            lv_obj_set_size(btn_exit, 85, 34);
             lv_obj_align(btn_exit, LV_ALIGN_CENTER, 0, 0);
             lv_obj_add_event_cb(btn_exit, exit_clicked, LV_EVENT_CLICKED, NULL);
             lv_obj_t* elbl = lv_label_create(btn_exit); lv_label_set_text(elbl, "EXIT"); lv_obj_center(elbl);
             lv_obj_set_style_text_font(elbl, &font_atkinson_14, 0);
 
             btn_reboot = lv_button_create(row);
-            lv_obj_set_size(btn_reboot, 90, 34);
+            lv_obj_set_size(btn_reboot, 85, 34);
             lv_obj_align(btn_reboot, LV_ALIGN_RIGHT_MID, 0, 0);
             lv_obj_add_event_cb(btn_reboot, reboot_clicked, LV_EVENT_CLICKED, NULL);
             lv_obj_t* rlbl = lv_label_create(btn_reboot); lv_label_set_text(rlbl, "REBOOT"); lv_obj_center(rlbl);

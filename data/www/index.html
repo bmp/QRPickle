@@ -226,6 +226,8 @@
                                 <option value="2">GitHub Slate Dark</option>
                                 <option value="3">Clean High-Contrast</option>
                                 <option value="4">Terminal Green</option>
+                                <option value="5">E-Ink Light</option>
+                                <option value="6">E-Ink Dark</option>
                             </select>
                         </div>
                         <div class="form-group">
@@ -262,6 +264,10 @@
                         <div class="form-group">
                             <label>Sleep Timeout (Min)</label>
                             <input type="number" id="prof-edit-timeout" min="0" max="120">
+                        </div>
+                        <div class="form-group" style="grid-column: span 2;">
+                            <label>Profile OpenWeatherMap API Token</label>
+                            <input type="password" id="prof-edit-apikey" placeholder="Profile API Key...">
                         </div>
                         <div class="form-group" style="grid-column: span 2;">
                             <label>APRS Comment</label>
@@ -341,7 +347,7 @@
     </div>
 
     <footer>
-        <span id="foot-name">--</span> | <span id="foot-version">--</span> | <a id="foot-link" href="https://ham.bharathpalavalli.com/" target="_blank">--</a>
+        <span id="foot-name">QRPickle</span> | <span id="foot-version">v1.0.0</span> | <a id="foot-link" href="https://ham.bharathpalavalli.com/" target="_blank">VU3GLJ</a>
     </footer>
 
     <script src="app.js"></script>
