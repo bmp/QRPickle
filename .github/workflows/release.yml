@@ -1,0 +1,59 @@
+name: Auto-Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*' # Triggers the workflow only when you push a tag starting with 'v' (e.g., v1.0.0)
+
+permissions:
+  contents: write # Allows GitHub to create a release page and upload files
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. Pull down your code
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    # 2. Set up Python for PlatformIO
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+
+    # 3. Install PlatformIO and compile the project
+    - name: Install PlatformIO & Build Binaries
+      run: |
+        pip install platformio
+        pio run
+        pio run -t buildfs
+
+    # 4. Install Pandoc to handle the Word conversion
+    - name: Install Pandoc
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y pandoc
+
+    # 5. Gather all files into a staging directory
+    - name: Package Assets
+      run: |
+        mkdir -p staging_release
+
+        # Convert README.md to DOCX directly into the folder
+        pandoc README.md -o staging_release/QRPickle_Documentation.docx
+
+        # Automatically find and copy all generated .bin files
+        find .pio/build/ -name "*.bin" -exec cp {} staging_release/ \;
+
+        # Compress the folder into a single ZIP file
+        zip -j QRPickle_Release.zip staging_release/*
+
+    # 6. Create the GitHub Release and upload the ZIP
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: QRPickle_Release.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
