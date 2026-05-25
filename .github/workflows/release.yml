@@ -2,11 +2,11 @@ name: Auto-Build and Release
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches:
+      - main # Trigger automatically on every push to the main branch
 
 permissions:
-  contents: write
+  contents: write # Allows pushing tags and creating releases
 
 jobs:
   build-and-release:
@@ -15,6 +15,25 @@ jobs:
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0 # Ensures all history and tags are visible
+
+    # 1. Automatically extract the FW_VERSION string from your C++ header file
+    - name: Extract Version from Source
+      run: |
+        VERSION=$(grep 'FW_VERSION' src/core/metadata.h | cut -d'"' -f2)
+        echo "Extracted Version: $VERSION"
+        # Save it to the GitHub environment variable runner for subsequent steps
+        echo "FW_VERSION=$VERSION" >> $GITHUB_ENV
+
+    # 2. Automatically generate/update the Git Tag on GitHub
+    - name: Push Git Tag
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        # Force apply the tag to the current commit and push it
+        git tag -f ${{ env.FW_VERSION }}
+        git push -f origin ${{ env.FW_VERSION }}
 
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -40,20 +59,18 @@ jobs:
       run: |
         mkdir -p staging_release
         
-        # Fetch environment context variables completely dynamically
-        VERSION="${{ github.ref_name }}"
         CURRENT_DATE=$(date +'%Y-%m-%d')
         REPO_NAME="${{ github.repository }}"
         REPO_URL="${{ github.server_url }}/${{ github.repository }}"
         
-        # 1. Dynamically generate the top metadata table layout (Zero hardcoding)
+        # Dynamically generate the top metadata table layout using our extracted variable
         cat << EOF > metadata_header.md
         # QRPickle Field Manual & System Documentation
         
         | Project Property | System Specification |
         | :--- | :--- |
         | **Firmware Package** | QRPickle Tracker Dashboard |
-        | **Software Version** | ${VERSION} |
+        | **Software Version** | ${{ env.FW_VERSION }} |
         | **Compilation Date** | ${CURRENT_DATE} |
         | **Target Hardware** | ESP32 Cheap Yellow Display (CYD) |
         | **Source Repository** | [${REPO_NAME}](${REPO_URL}) |
@@ -63,29 +80,20 @@ jobs:
         
         EOF
         
-        # 2. Concat header and README into a temporary compilation file
         cat metadata_header.md README.md > temp_doc.md
-        
-        # 3. Convert Markdown to a Typst structural markup file
         pandoc temp_doc.md -o temp_doc.typ
-        
-        # 4. FIX: Map the Pandoc rule token to a native Typst line element
         sed -i 's/#horizontalrule/#line(length: 100%, stroke: 0.5pt)/g' temp_doc.typ
+        typst compile temp_doc.typ "staging_release/QRPickle_Documentation_${{ env.FW_VERSION }}.pdf"
         
-        # 5. Compile the flawless, native PDF with appended version
-        typst compile temp_doc.typ "staging_release/QRPickle_Documentation_${VERSION}.pdf"
-        
-        # 6. Copy over the generated system binaries
         find .pio/build/ -name "*.bin" -exec cp {} staging_release/ \;
-        
-        # 7. Compress everything cleanly into a version-appended ZIP file
-        zip -j "QRPickle_Release_${VERSION}.zip" staging_release/*
+        zip -j "QRPickle_Release_${{ env.FW_VERSION }}.zip" staging_release/*
 
-    # 3. Create the Release Page and attach the versioned ZIP file
+    # 3. Create or update the Release Page matching the extracted version tag
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
       with:
-        files: QRPickle_Release_${{ github.ref_name }}.zip
+        tag_name: ${{ env.FW_VERSION }}
+        files: QRPickle_Release_${{ env.FW_VERSION }}.zip
         generate_release_notes: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
