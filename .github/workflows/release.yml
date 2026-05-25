@@ -32,25 +32,24 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y pandoc
 
-    # 1. Seamlessly install Typst into the GitHub Actions runner
     - name: Setup Typst
       uses: typst-community/setup-typst@v5
 
-    # 2. Convert and package assets
+    # Convert, name, and package assets dynamically
     - name: Package Assets
       run: |
         mkdir -p staging_release
-
+        
         # Fetch environment context variables completely dynamically
         VERSION="${{ github.ref_name }}"
         CURRENT_DATE=$(date +'%Y-%m-%d')
         REPO_NAME="${{ github.repository }}"
         REPO_URL="${{ github.server_url }}/${{ github.repository }}"
-
+        
         # 1. Dynamically generate the top metadata table layout (Zero hardcoding)
         cat << EOF > metadata_header.md
         # QRPickle Field Manual & System Documentation
-
+        
         | Project Property | System Specification |
         | :--- | :--- |
         | **Firmware Package** | QRPickle Tracker Dashboard |
@@ -59,28 +58,29 @@ jobs:
         | **Target Hardware** | ESP32 Cheap Yellow Display (CYD) |
         | **Source Repository** | [${REPO_NAME}](${REPO_URL}) |
         | **Primary License** | MIT License |
-
+        
         ---
-
+        
         EOF
-
+        
         # 2. Concat header and README into a temporary compilation file
         cat metadata_header.md README.md > temp_doc.md
-
-        # 3. Compile to PDF using Typst backend with the version explicitly appended
-        pandoc temp_doc.md -o "staging_release/QRPickle_Documentation_${VERSION}.pdf" --pdf-engine=typst
-
+        
+        # 3. Decouple Pandoc and Typst to fix the template font-fallback error completely
+        pandoc temp_doc.md -o temp_doc.typ
+        typst compile temp_doc.typ "staging_release/QRPickle_Documentation_${VERSION}.pdf"
+        
         # 4. Copy over the generated system binaries
         find .pio/build/ -name "*.bin" -exec cp {} staging_release/ \;
+        
+        # 5. Compress everything cleanly into a version-appended ZIP file
+        zip -j "QRPickle_Release_${VERSION}.zip" staging_release/*
 
-        # 5. Compress everything cleanly into the final distribution asset
-        zip -j QRPickle_Release.zip staging_release/*
-
-    # 3. Create the Release Page
+    # 3. Create the Release Page and attach the versioned ZIP file
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
       with:
-        files: QRPickle_Release.zip
+        files: QRPickle_Release_${{ github.ref_name }}.zip
         generate_release_notes: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
