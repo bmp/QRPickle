@@ -3,57 +3,84 @@ name: Auto-Build and Release
 on:
   push:
     tags:
-      - 'v*' # Triggers the workflow only when you push a tag starting with 'v' (e.g., v1.0.0)
+      - 'v*'
 
 permissions:
-  contents: write # Allows GitHub to create a release page and upload files
+  contents: write
 
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
 
     steps:
-    # 1. Pull down your code
     - name: Checkout Code
       uses: actions/checkout@v4
 
-    # 2. Set up Python for PlatformIO
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.x'
 
-    # 3. Install PlatformIO and compile the project
     - name: Install PlatformIO & Build Binaries
       run: |
         pip install platformio
         pio run
         pio run -t buildfs
 
-    # 4. Install Pandoc to handle the Word conversion
     - name: Install Pandoc
       run: |
         sudo apt-get update
         sudo apt-get install -y pandoc
 
-    # 5. Gather all files into a staging directory
+    # 1. Seamlessly install Typst into the GitHub Actions runner
+    - name: Setup Typst
+      uses: typst-community/setup-typst@v5
+
+    # 2. Convert and package assets
     - name: Package Assets
       run: |
         mkdir -p staging_release
 
-        # Convert README.md to DOCX directly into the folder
-        pandoc README.md -o staging_release/QRPickle_Documentation.docx
+        # Fetch environment context variables completely dynamically
+        VERSION="${{ github.ref_name }}"
+        CURRENT_DATE=$(date +'%Y-%m-%d')
+        REPO_NAME="${{ github.repository }}"
+        REPO_URL="${{ github.server_url }}/${{ github.repository }}"
 
-        # Automatically find and copy all generated .bin files
+        # 1. Dynamically generate the top metadata table layout (Zero hardcoding)
+        cat << EOF > metadata_header.md
+        # QRPickle Field Manual & System Documentation
+
+        | Project Property | System Specification |
+        | :--- | :--- |
+        | **Firmware Package** | QRPickle Tracker Dashboard |
+        | **Software Version** | ${VERSION} |
+        | **Compilation Date** | ${CURRENT_DATE} |
+        | **Target Hardware** | ESP32 Cheap Yellow Display (CYD) |
+        | **Source Repository** | [${REPO_NAME}](${REPO_URL}) |
+        | **Primary License** | MIT License |
+
+        ---
+
+        EOF
+
+        # 2. Concat header and README into a temporary compilation file
+        cat metadata_header.md README.md > temp_doc.md
+
+        # 3. Compile to PDF using Typst backend with the version explicitly appended
+        pandoc temp_doc.md -o "staging_release/QRPickle_Documentation_${VERSION}.pdf" --pdf-engine=typst
+
+        # 4. Copy over the generated system binaries
         find .pio/build/ -name "*.bin" -exec cp {} staging_release/ \;
 
-        # Compress the folder into a single ZIP file
+        # 5. Compress everything cleanly into the final distribution asset
         zip -j QRPickle_Release.zip staging_release/*
 
-    # 6. Create the GitHub Release and upload the ZIP
+    # 3. Create the Release Page
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
       with:
         files: QRPickle_Release.zip
+        generate_release_notes: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
