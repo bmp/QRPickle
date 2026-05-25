@@ -66,14 +66,19 @@ jobs:
         # 2. Concat header and README into a temporary compilation file
         cat metadata_header.md README.md > temp_doc.md
         
-        # 3. Decouple Pandoc and Typst to fix the template font-fallback error completely
+        # 3. Convert Markdown to a Typst structural markup file
         pandoc temp_doc.md -o temp_doc.typ
+        
+        # 4. FIX: Map the Pandoc rule token to a native Typst line element
+        sed -i 's/#horizontalrule/#line(length: 100%, stroke: 0.5pt)/g' temp_doc.typ
+        
+        # 5. Compile the flawless, native PDF with appended version
         typst compile temp_doc.typ "staging_release/QRPickle_Documentation_${VERSION}.pdf"
         
-        # 4. Copy over the generated system binaries
+        # 6. Copy over the generated system binaries
         find .pio/build/ -name "*.bin" -exec cp {} staging_release/ \;
         
-        # 5. Compress everything cleanly into a version-appended ZIP file
+        # 7. Compress everything cleanly into a version-appended ZIP file
         zip -j "QRPickle_Release_${VERSION}.zip" staging_release/*
 
     # 3. Create the Release Page and attach the versioned ZIP file
