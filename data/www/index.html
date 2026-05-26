@@ -337,7 +337,10 @@
         </section>
 
         <section id="tab-cloudota" class="tab-content">
-            <div class="sys-section-title">Automated Cloud Maintenance</div>
+            <div class="sys-section-title" style="display: flex; justify-content: space-between; align-items: center;">
+                Automated Cloud Maintenance
+                <button class="btn btn-primary" style="padding: 4px 10px; font-size: 12px; margin-left: 10px;" onclick="fetchCloudOTADetails(true)">Check for Updates</button>
+            </div>
             <div class="sys-grid">
                 <div class="sys-card"><label>Local Firmware Version</label><div id="ota-local-ver" class="val">--</div></div>
                 <div class="sys-card"><label>Latest Remote Release</label><div id="ota-remote-ver" class="val">--</div></div>

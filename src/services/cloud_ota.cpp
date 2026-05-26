@@ -4,6 +4,9 @@
 #include <WiFiClientSecure.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
+#include <esp_task_wdt.h>
+
+extern void web_server_stop(); // Forward declaration for memory reclamation
 
 namespace services {
     namespace cloud_ota {
@@ -12,7 +15,6 @@ namespace services {
         static bool check_complete = false;
 
         static void fetch_github_metadata() {
-
             int attempts = 0;
             while (WiFi.status() != WL_CONNECTED && attempts < 30) {
                 vTaskDelay(1000 / portTICK_PERIOD_MS);
@@ -82,6 +84,12 @@ namespace services {
             }
         }
 
+        void force_update_check() {
+            if (WiFi.status() == WL_CONNECTED) {
+                fetch_github_metadata();
+            }
+        }
+
         bool is_update_available() {
             return cached_info.update_available;
         }
@@ -93,23 +101,37 @@ namespace services {
         bool execute_firmware_flash() {
             if (strlen(cached_info.firmware_url) == 0) return false;
 
+            // BRUTAL MEMORY RECLAMATION for TLS Handshake
+            web_server_stop();
+            vTaskSuspendAll();
+            delay(100); 
+
             WiFiClientSecure client;
             client.setInsecure();
             HTTPClient http;
 
             http.begin(client, cached_info.firmware_url);
             http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+            http.setRedirectLimit(3); 
+            http.setTimeout(15000); 
             
             int httpCode = http.GET();
             if (httpCode != HTTP_CODE_OK) {
                 http.end();
+                xTaskResumeAll();
                 return false;
             }
 
             int total_len = http.getSize();
-            if (total_len <= 0) return false;
+            if (total_len <= 0) {
+                xTaskResumeAll();
+                return false;
+            }
 
-            if (!ota_manager::begin(ota_manager::UPDATE_TYPE_FIRMWARE)) return false;
+            if (!ota_manager::begin(ota_manager::UPDATE_TYPE_FIRMWARE)) {
+                xTaskResumeAll();
+                return false;
+            }
 
             WiFiClient* stream = http.getStreamPtr();
             uint8_t buffer[1024];
@@ -122,15 +144,17 @@ namespace services {
                     if (!ota_manager::write_chunk(buffer, c)) {
                         ota_manager::abort();
                         http.end();
+                        xTaskResumeAll();
                         return false;
                     }
                     if (total_len > 0) total_len -= c;
                 }
-                delay(1); // Feed WDT
+                esp_task_wdt_reset(); 
             }
 
             bool success = ota_manager::end();
             http.end();
+            xTaskResumeAll();
             return success;
         }
     }

@@ -426,8 +426,15 @@ function saveProfileChanges() {
     .catch(err => alert("Error sending profile save changes configuration: " + err));
 }
 
-function fetchCloudOTADetails() {
-    fetch("/api/cloud_ota/check")
+function fetchCloudOTADetails(forceCheck = false) {
+    if (forceCheck) {
+        document.getElementById("ota-remote-ver").innerText = "Checking...";
+        document.getElementById("ota-release-notes").innerText = "Pinging GitHub API...";
+    }
+
+    const url = forceCheck ? "/api/cloud_ota/check?force=true" : "/api/cloud_ota/check";
+
+    fetch(url)
     .then(res => res.json())
     .then(data => {
         document.getElementById("ota-local-ver").innerText = data.local_ver;

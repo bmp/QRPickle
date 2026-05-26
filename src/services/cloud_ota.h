@@ -13,6 +13,9 @@ namespace services {
 
         // Kicks off a FreeRTOS task to silently check GitHub on boot
         void start_background_check();
+
+        // Forces an immediate blocking check against the GitHub API
+        void force_update_check();
         
         // Returns true if a newer version was found during the background check
         bool is_update_available();

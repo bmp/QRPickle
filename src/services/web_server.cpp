@@ -110,6 +110,7 @@ void web_server_init() {
         doc["lon"] = c.lon;
         doc["offset"] = (float)c.tz_offset_hh / 2.0f;
         doc["brightness"] = c.brightness;
+        doc["auto_bright"] = c.auto_brightness;
         doc["theme_id"] = c.theme_id;
         doc["timeout"] = c.screen_timeout_min;
         doc["fc_slots"] = c.forecast_slots; 
@@ -317,6 +318,10 @@ void web_server_init() {
     );
 
     server.on("/api/cloud_ota/check", HTTP_GET, [](AsyncWebServerRequest *request) {
+        if (request->hasParam("force") && request->getParam("force")->value() == "true") {
+            services::cloud_ota::force_update_check();
+        }
+
         AsyncResponseStream *response = request->beginResponseStream("application/json");
         JsonDocument doc;
 
@@ -332,7 +337,6 @@ void web_server_init() {
 
     server.on("/api/cloud_ota/flash", HTTP_POST, [](AsyncWebServerRequest *request) {
         request->send(200, "application/json", "{\"status\":\"flashing\"}");
-        // Execute heavy flashing routine immediately after responding to prevent browser timeout
         if (services::cloud_ota::execute_firmware_flash()) {
             flag_trigger_reboot = true;
             reboot_timer_mark = millis();

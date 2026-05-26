@@ -19,7 +19,6 @@ namespace ui {
         lv_obj_t* btn_ok = lv_msgbox_add_footer_button(mbox, "Flash");
         lv_obj_t* btn_cancel = lv_msgbox_add_footer_button(mbox, "Cancel");
 
-        // Theme-aware modal styling
         lv_obj_set_style_bg_color(mbox, theme_color(COLOR_BG_PANEL), 0);
         lv_obj_set_style_text_color(mbox, theme_color(COLOR_TEXT_MAIN), 0);
         lv_obj_set_style_border_color(mbox, theme_color(COLOR_BORDER), 0);
@@ -29,7 +28,6 @@ namespace ui {
             lv_obj_t* m = (lv_obj_t*)lv_event_get_user_data(e);
             lv_msgbox_close(m);
             
-            // Trigger the background flash routine
             if (services::cloud_ota::execute_firmware_flash()) {
                 ESP.restart();
             }
@@ -64,6 +62,26 @@ namespace ui {
         lv_obj_set_style_text_font(local_lbl, &font_jetbrains_10, 0);
         lv_obj_set_style_text_color(local_lbl, theme_color(COLOR_TEXT_MUTED), 0);
         lv_obj_align(local_lbl, LV_ALIGN_LEFT_MID, 10, 0);
+
+        // NEW: Manual Check Button
+        lv_obj_t* btn_check = lv_button_create(header);
+        lv_obj_set_size(btn_check, 60, 30);
+        lv_obj_align(btn_check, LV_ALIGN_CENTER, 0, 0);
+        lv_obj_set_style_bg_color(btn_check, theme_color(COLOR_BG_APP), 0);
+        lv_obj_set_style_border_color(btn_check, theme_color(COLOR_BORDER), 0);
+        lv_obj_set_style_border_width(btn_check, 1, 0);
+
+        lv_obj_t* btn_check_lbl = lv_label_create(btn_check);
+        lv_label_set_text(btn_check_lbl, LV_SYMBOL_REFRESH);
+        lv_obj_set_style_text_color(btn_check_lbl, theme_color(COLOR_TEXT_MAIN), 0);
+        lv_obj_center(btn_check_lbl);
+
+        lv_obj_add_event_cb(btn_check, [](lv_event_t* e) {
+            services::cloud_ota::force_update_check();
+            lv_obj_t* parent = lv_obj_get_parent(page_container);
+            lv_obj_delete(page_container);
+            draw_cloud_ota_page(parent);
+        }, LV_EVENT_CLICKED, NULL);
 
         lv_obj_t* remote_lbl = lv_label_create(header);
         lv_label_set_text_fmt(remote_lbl, "GitHub: %s", info.latest_version);
