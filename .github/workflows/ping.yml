@@ -1,5 +1,6 @@
 name: System Ping
-on: [push]
+on:
+  workflow_dispatch:
 jobs:
   test:
     runs-on: ubuntu-latest
