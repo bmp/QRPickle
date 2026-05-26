@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main # Trigger automatically on every push to the main branch
+  workflow_dispatch:
 
 permissions:
   contents: write # Allows pushing tags and creating releases
