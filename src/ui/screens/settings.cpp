@@ -32,6 +32,9 @@ namespace ui {
 
     static lv_obj_t* btn_minus = nullptr;
     static lv_obj_t* btn_plus = nullptr;
+
+    static lv_obj_t* cb_auto_bright = nullptr;
+    static bool pending_auto_brightness = false;
     
     // Layout bindings for timeout modifier row
     static lv_obj_t* btn_timeout_minus = nullptr;
@@ -51,6 +54,20 @@ namespace ui {
     static uint8_t pending_theme_id = 0;
     static uint8_t pending_timeout_min = 5; 
     static char pending_owm_api_key[41] = "";
+
+    static void auto_bright_changed(lv_event_t* e) {
+        lv_obj_t* cb = (lv_obj_t*)lv_event_get_target(e);
+        pending_auto_brightness = lv_obj_has_state(cb, LV_STATE_CHECKED);
+
+        if (pending_auto_brightness) {
+            lv_obj_add_state(slider_bright, LV_STATE_DISABLED);
+            services::display_manager::force_ldr_sample(); // Kickstart the sensor right away
+        } else {
+            lv_obj_remove_state(slider_bright, LV_STATE_DISABLED);
+            // Snap back to slider position when reverting to manual
+            services::display_manager::set_brightness((uint8_t)lv_slider_get_value(slider_bright));
+        }
+    }
 
     static void settings_refresh_theme() {
         if (!scr || !form) return;
@@ -86,10 +103,18 @@ namespace ui {
         if (btn_profile)   { lv_obj_set_style_bg_color(btn_profile, bg_panel, 0); lv_obj_set_style_border_color(btn_profile, border, 0); }
         if (lbl_profile)   lv_obj_set_style_text_color(lbl_profile, txt_main, 0);
 
+        if (cb_auto_bright) {
+            lv_obj_set_style_text_color(cb_auto_bright, txt_main, 0);
+            lv_obj_set_style_bg_color(cb_auto_bright, bg_panel, LV_PART_INDICATOR);
+            lv_obj_set_style_bg_color(cb_auto_bright, accent, LV_PART_INDICATOR | LV_STATE_CHECKED);
+        }
+
         if (slider_bright) {
             lv_obj_set_style_bg_color(slider_bright, bg_panel, LV_PART_MAIN);
             lv_obj_set_style_bg_color(slider_bright, accent, LV_PART_INDICATOR);
+            lv_obj_set_style_bg_color(slider_bright, txt_muted, LV_PART_INDICATOR | LV_STATE_DISABLED);
             lv_obj_set_style_bg_color(slider_bright, txt_main, LV_PART_KNOB);
+            lv_obj_set_style_bg_color(slider_bright, txt_muted, LV_PART_KNOB | LV_STATE_DISABLED);
         }
 
         auto style_btn_row = [&](lv_obj_t* b) {
@@ -241,6 +266,7 @@ namespace ui {
     static void save_clicked(lv_event_t*) {
         const auto& c = config::get();
         bool modified = false;
+        bool new_auto_bright = lv_obj_has_state(cb_auto_bright, LV_STATE_CHECKED);
 
         const char* new_call = lv_textarea_get_text(ta_call);
         const char* new_grid = lv_textarea_get_text(ta_grid);
@@ -255,6 +281,7 @@ namespace ui {
             strcmp(c.openweather_api_key, pending_owm_api_key) != 0 ||
             c.tz_offset_hh != pending_tz_offset_hh ||
             c.brightness != new_bright ||
+            c.auto_brightness != new_auto_bright ||
             c.theme_id != pending_theme_id ||
             c.screen_timeout_min != pending_timeout_min) 
         {
@@ -278,6 +305,7 @@ namespace ui {
 
             mc.tz_offset_hh = pending_tz_offset_hh;
             mc.brightness = new_bright;
+            mc.auto_brightness = new_auto_bright;
             mc.theme_id = pending_theme_id;
             mc.screen_timeout_min = pending_timeout_min; 
 
@@ -444,11 +472,29 @@ namespace ui {
             lv_obj_set_style_text_font(plbl, &font_atkinson_14, 0);
         }
 
-        make_label(form, "Brightness");
+        pending_auto_brightness = c.auto_brightness;
+
+        // Container row for label and checkbox
+        lv_obj_t* br_row = lv_obj_create(form);
+        lv_obj_set_size(br_row, 250, 24);
+        lv_obj_set_style_bg_opa(br_row, LV_OPA_TRANSP, 0);
+        lv_obj_set_style_border_width(br_row, 0, 0);
+        lv_obj_set_style_pad_all(br_row, 0, 0);
+
+        make_label(br_row, "Brightness");
+
+        cb_auto_bright = lv_checkbox_create(br_row);
+        lv_checkbox_set_text(cb_auto_bright, " Auto");
+        lv_obj_set_style_text_font(cb_auto_bright, &font_atkinson_14, 0);
+        lv_obj_align(cb_auto_bright, LV_ALIGN_RIGHT_MID, 0, 0);
+        if (pending_auto_brightness) lv_obj_add_state(cb_auto_bright, LV_STATE_CHECKED);
+        lv_obj_add_event_cb(cb_auto_bright, auto_bright_changed, LV_EVENT_VALUE_CHANGED, NULL);
+
         slider_bright = lv_slider_create(form);
         lv_slider_set_range(slider_bright, 10, 255);
         lv_slider_set_value(slider_bright, c.brightness, LV_ANIM_OFF);
-        lv_obj_set_width(slider_bright, 250); // FIXED: Unified element tracking lane width
+        lv_obj_set_width(slider_bright, 250);
+        if (pending_auto_brightness) lv_obj_add_state(slider_bright, LV_STATE_DISABLED);
         lv_obj_add_event_cb(slider_bright, bright_changed, LV_EVENT_VALUE_CHANGED, NULL);
 
         make_label(form, "UI Theme");

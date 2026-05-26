@@ -26,6 +26,7 @@ namespace config {
         strncpy(cfg.callsign, "N0CALL", sizeof(cfg.callsign) - 1);
         strncpy(cfg.grid,     "MK82wb", sizeof(cfg.grid) - 1);
         cfg.brightness   = 180;
+        cfg.auto_brightness = false;
         cfg.theme_id     = 0;
         cfg.tz_offset_hh = 11; 
         cfg.screen_timeout_min = 5;
@@ -68,6 +69,7 @@ namespace config {
             p.getString("callsign", cfg.callsign,      sizeof(cfg.callsign));
             p.getString("grid",     cfg.grid,          sizeof(cfg.grid));
             cfg.brightness   = p.getUChar("brightness", cfg.brightness);
+            cfg.auto_brightness = p.getBool("auto_bl", cfg.auto_brightness);
             cfg.theme_id     = p.getUChar("theme_id",   cfg.theme_id);
             cfg.tz_offset_hh = p.getChar("tz_hh",       cfg.tz_offset_hh);
             cfg.screen_timeout_min = p.getUChar("scr_to", cfg.screen_timeout_min);
@@ -112,6 +114,7 @@ namespace config {
         p.putString("callsign",  cfg.callsign);
         p.putString("grid",      cfg.grid);
         p.putUChar("brightness", cfg.brightness);
+        p.putBool("auto_bl",     cfg.auto_brightness);
         p.putUChar("theme_id",   cfg.theme_id);
         p.putChar("tz_hh",       cfg.tz_offset_hh);
         p.putUChar("scr_to",     cfg.screen_timeout_min); 
@@ -154,8 +157,8 @@ namespace config {
         char aprs_pw[16]; mask(cfg.aprs_passcode, aprs_pw, sizeof(aprs_pw));
         const char* key_display = (strlen(cfg.openweather_api_key) > 0) ? "(redacted)" : "(unset)";
 
-        Serial.printf("[Config] Callsign: %s | Grid: %s | Brightness: %u | Theme: %u | TZ Half-Hours: %d\n",
-                      cfg.callsign, cfg.grid, cfg.brightness, cfg.theme_id, (int)cfg.tz_offset_hh);
+        Serial.printf("[Config] Callsign: %s | Grid: %s | Brightness: %u (Auto: %s) | Theme: %u | TZ Half-Hours: %d\n",
+                      cfg.callsign, cfg.grid, cfg.brightness, cfg.auto_brightness ? "ON" : "OFF", cfg.theme_id, (int)cfg.tz_offset_hh);
         Serial.printf("         SSID: %s | Password: %s | API Key: %s\n",
                       cfg.wifi_ssid[0] ? cfg.wifi_ssid : "(unset)", pw, key_display);
         Serial.printf("         DX Cluster Primary:   %s:%u\n", cfg.dx_url_primary, cfg.dx_port_primary);

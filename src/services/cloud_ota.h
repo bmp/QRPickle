@@ -7,8 +7,8 @@ namespace services {
         struct ReleaseInfo {
             bool update_available;
             char latest_version[16];
-            char release_notes[256];
-            char firmware_url[128];
+            char release_notes[128];
+            char firmware_url[96];
         };
 
         // Kicks off a FreeRTOS task to silently check GitHub on boot

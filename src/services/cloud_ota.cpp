@@ -12,6 +12,13 @@ namespace services {
         static bool check_complete = false;
 
         static void fetch_github_metadata() {
+
+            int attempts = 0;
+            while (WiFi.status() != WL_CONNECTED && attempts < 30) {
+                vTaskDelay(1000 / portTICK_PERIOD_MS);
+                attempts++;
+            }
+
             if (WiFi.status() != WL_CONNECTED) return;
 
             WiFiClientSecure client;

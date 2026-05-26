@@ -24,5 +24,9 @@ namespace services {
 
         // Expose a dynamic hook to change the backlight PWM at runtime
         void set_brightness(uint8_t level);
+
+        // Trigger to immediately force an LDR sample
+        // (Used so the screen doesn't take 15 seconds to update when you first click the checkbox)
+        void force_ldr_sample();
     }
 }

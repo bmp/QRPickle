@@ -150,6 +150,7 @@ void web_server_init() {
                 doc["lon"] = p_data.lon;
                 doc["offset"] = (float)p_data.tz_offset_hh / 2.0f;
                 doc["brightness"] = p_data.brightness;
+                doc["auto_bright"] = config::get().auto_brightness;
                 doc["theme_id"] = p_data.theme_id;
                 doc["timeout"] = p_data.screen_timeout_min; 
 
@@ -181,6 +182,9 @@ void web_server_init() {
                       if (!doc["lat"].isNull())        c.lat = doc["lat"].as<float>(); 
                       if (!doc["lon"].isNull())        c.lon = doc["lon"].as<float>(); 
                       if (!doc["brightness"].isNull()) c.brightness = doc["brightness"].as<uint8_t>();
+                      if (!doc["auto_bright"].isNull()) {
+                          config::mutable_get().auto_brightness = doc["auto_bright"].as<bool>();
+                      }
                       if (!doc["theme_id"].isNull())   c.theme_id = doc["theme_id"].as<uint8_t>();
                       if (!doc["offset"].isNull())     c.tz_offset_hh = (int8_t)(doc["offset"].as<float>() * 2.0f);
                       if (!doc["timeout"].isNull())    c.screen_timeout_min = doc["timeout"].as<uint8_t>(); 

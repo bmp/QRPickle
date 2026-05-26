@@ -7,6 +7,7 @@ struct Config {
     char    callsign[12];
     char    grid[8];
     uint8_t brightness;
+    bool    auto_brightness;
     uint8_t theme_id;
     int8_t  tz_offset_hh;     
     uint8_t screen_timeout_min; 

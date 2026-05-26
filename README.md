@@ -1,6 +1,6 @@
-# QRPickle Core Operations Dashboard
+# QRPickle
 
-## A Lightweight Live Tracking Dashboard for field Ham Radio operations
+## A lightweight opinioned field friendly HAM Clock
 
 **QRPickle** is a simple, lightweight dashboard designed for portable, QRP, and field-day amateur radio operations. Built to run on a standard ESP32 Cheap Yellow Display (CYD) with no external PSRAM, it consolidates real-time tracking data and tools into a clean, easy-to-use touchscreen interface.
 
@@ -49,6 +49,7 @@ When on the same network, navigate to the device's IP address to access the inte
 * **Adaptive Power & Wi-Fi Management:** Enforces hardware-level radio power caps (`esp_wifi_set_max_tx_power(52)`) to prevent LDO voltage brownouts on the CYD board. Falls back to an integrated Setup AP (`192.168.4.1`) if routing fails.
 * **Dynamic Staged Profiles:** Save and hot-swap complete configuration layouts (Callsign, Grid, Network, Theme, Settings) via LittleFS for quick transitions between Home, Mobile, and Field ops.
 * **Monochrome & Tactical Themes:** Driven by **LVGL 9**, featuring high-contrast modes including Tactical Field Red, GitHub Slate Dark, Terminal Phosphor Green, and pure-binary E-Ink simulations.
+* **OTA:** Manual firmware update through the web dashboard and ability to pull from Github.
 
 
 ## Partition System & Memory Map
@@ -137,3 +138,4 @@ You can flash QRPickle directly from your Chrome or Edge web browser using the E
    * **`0x10000`** ➔ `firmware.bin`
    * **`0x350000`** ➔ `littlefs.bin`
 5. Click **Program** and wait for the process to finish. The device will automatically reboot into QRPickle!
+6. And the device should boot up, and create a WiFi access-point called `QRPickle-Setup` which does not require authentication. 
