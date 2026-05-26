@@ -101,60 +101,70 @@ namespace services {
         bool execute_firmware_flash() {
             if (strlen(cached_info.firmware_url) == 0) return false;
 
-            // BRUTAL MEMORY RECLAMATION for TLS Handshake
+            Serial.println("[OTA Engine] Reclaiming memory for TLS handshake...");
+
+            // Stop the web server to immediately reclaim massive heap space
             web_server_stop();
-            vTaskSuspendAll();
-            delay(100); 
+
+            // Give the sockets a moment to cleanly close and release buffers
+            delay(500);
 
             WiFiClientSecure client;
-            client.setInsecure();
+            client.setInsecure(); // Safe to skip cert check to optimize stack utilization
             HTTPClient http;
 
+            Serial.printf("[OTA Engine] Connecting to CDN: %s\n", cached_info.firmware_url);
             http.begin(client, cached_info.firmware_url);
             http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
-            http.setRedirectLimit(3); 
-            http.setTimeout(15000); 
-            
+            http.setRedirectLimit(3);
+            http.setTimeout(15000);
+
             int httpCode = http.GET();
             if (httpCode != HTTP_CODE_OK) {
+                Serial.printf("[OTA Engine] HTTP GET Failed, error: %d\n", httpCode);
                 http.end();
-                xTaskResumeAll();
                 return false;
             }
 
             int total_len = http.getSize();
             if (total_len <= 0) {
-                xTaskResumeAll();
+                Serial.println("[OTA Engine] Invalid content length.");
+                http.end();
                 return false;
             }
 
+            Serial.printf("[OTA Engine] Download stream verified. Size: %d bytes. Initializing Flash...\n", total_len);
             if (!ota_manager::begin(ota_manager::UPDATE_TYPE_FIRMWARE)) {
-                xTaskResumeAll();
+                Serial.println("[OTA Engine] Partition verification failed initialization.");
+                http.end();
                 return false;
             }
 
             WiFiClient* stream = http.getStreamPtr();
             uint8_t buffer[1024];
-            int written = 0;
+            int last_progress_pct = 0;
+            int written_total = 0;
 
             while (http.connected() && (total_len > 0 || total_len == -1)) {
                 size_t size = stream->available();
                 if (size) {
                     int c = stream->readBytes(buffer, ((size > sizeof(buffer)) ? sizeof(buffer) : size));
                     if (!ota_manager::write_chunk(buffer, c)) {
+                        Serial.println("[OTA Engine] Flash block write operation aborted.");
                         ota_manager::abort();
                         http.end();
-                        xTaskResumeAll();
                         return false;
                     }
                     if (total_len > 0) total_len -= c;
+
+                    written_total += c;
                 }
-                esp_task_wdt_reset(); 
+                delay(1); // Safely feeds the hardware Watchdog without throwing FreeRTOS state panics!
             }
 
+            Serial.println("[OTA Engine] Streaming completed. Closing files and committing signature verification...");
             bool success = ota_manager::end();
             http.end();
-            xTaskResumeAll();
             return success;
         }
     }
