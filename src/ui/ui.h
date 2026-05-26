@@ -12,7 +12,8 @@ namespace ui {
         PAGE_APRS_RADAR,
         PAGE_APRS_MSG,
         PAGE_BAND_COND,
-        PAGE_HAMALERT
+        PAGE_HAMALERT,
+        PAGE_CLOUD_OTA
     };
 
     void ui_init();

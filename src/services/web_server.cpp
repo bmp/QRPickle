@@ -2,6 +2,7 @@
 #include "profile_manager.h" 
 #include "ota_manager.h" 
 #include "display_manager.h"
+#include "cloud_ota.h"
 #include "../config/config.h"
 #include "../core/metadata.h"
 #include "../hw/sensor.h"
@@ -310,6 +311,29 @@ void web_server_init() {
             }
         }
     );
+
+    server.on("/api/cloud_ota/check", HTTP_GET, [](AsyncWebServerRequest *request) {
+        AsyncResponseStream *response = request->beginResponseStream("application/json");
+        JsonDocument doc;
+
+        auto info = services::cloud_ota::get_release_info();
+        doc["available"] = info.update_available;
+        doc["latest_ver"] = info.latest_version;
+        doc["notes"] = info.release_notes;
+        doc["local_ver"] = meta::FW_VERSION;
+
+        serializeJson(doc, *response);
+        request->send(response);
+    });
+
+    server.on("/api/cloud_ota/flash", HTTP_POST, [](AsyncWebServerRequest *request) {
+        request->send(200, "application/json", "{\"status\":\"flashing\"}");
+        // Execute heavy flashing routine immediately after responding to prevent browser timeout
+        if (services::cloud_ota::execute_firmware_flash()) {
+            flag_trigger_reboot = true;
+            reboot_timer_mark = millis();
+        }
+    });
 
     server.begin();
 }

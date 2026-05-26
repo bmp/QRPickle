@@ -16,6 +16,7 @@ namespace ui {
     static lv_obj_t* lbl_sleep = nullptr; 
     static lv_obj_t* btn_settings = nullptr;
     static lv_obj_t* lbl_clock = nullptr;
+    static lv_obj_t* lbl_update = nullptr;
     static StatusBarCallbacks callbacks;
 
     static void show_sleep_modal() {
@@ -128,6 +129,12 @@ namespace ui {
         lv_label_set_text(lbl_sleep, LV_SYMBOL_EYE_CLOSE);
         lv_obj_center(lbl_sleep);
 
+        lbl_update = lv_label_create(bg_panel);
+        lv_label_set_text(lbl_update, LV_SYMBOL_UPLOAD); // Visual up-arrow indicator
+        lv_obj_set_style_text_color(lbl_update, theme_color(COLOR_ACCENT_PRIMARY), 0);
+        lv_obj_align(lbl_update, LV_ALIGN_RIGHT_MID, -107, 0);
+        lv_obj_add_flag(lbl_update, LV_OBJ_FLAG_HIDDEN); // Hidden by default
+
         status_bar_refresh_theme();
         return bg_panel;
     }
@@ -145,6 +152,13 @@ namespace ui {
 
     void status_bar_set_clock(const char* time_str) {
         if (lbl_clock) lv_label_set_text(lbl_clock, time_str);
+    }
+
+    void status_bar_set_update_available(bool available) {
+        if (lbl_update) {
+            if (available) lv_obj_clear_flag(lbl_update, LV_OBJ_FLAG_HIDDEN);
+            else lv_obj_add_flag(lbl_update, LV_OBJ_FLAG_HIDDEN);
+        }
     }
 
     void status_bar_refresh_theme() {

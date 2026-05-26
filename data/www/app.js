@@ -60,6 +60,7 @@ function initTabsEngine() {
             
             if (targetTab === "system") fetchSystemTelemetry();
             if (targetTab === "about") fetchAboutDetails();
+            if (targetTab === "cloudota") fetchCloudOTADetails();
         });
     });
 }
@@ -423,4 +424,34 @@ function saveProfileChanges() {
     })
     .then(res => res.ok ? alert("Profile changes committed to storage disk file successfully!") : alert("Modifications transaction rejected by target hardware."))
     .catch(err => alert("Error sending profile save changes configuration: " + err));
+}
+
+function fetchCloudOTADetails() {
+    fetch("/api/cloud_ota/check")
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById("ota-local-ver").innerText = data.local_ver;
+        document.getElementById("ota-remote-ver").innerText = data.latest_ver;
+        document.getElementById("ota-release-notes").innerText = data.notes;
+
+        const btn = document.getElementById("btn-cloud-flash");
+        if (data.available) {
+            btn.style.display = "block";
+        } else {
+            btn.style.display = "none";
+            document.getElementById("ota-release-notes").innerText = "You are currently running the latest firmware version.";
+        }
+    })
+    .catch(err => console.warn("Could not reach OTA endpoint:", err));
+}
+
+function triggerCloudFlash() {
+    if(!confirm("WARNING: This will halt all active background telemetry while the flash memory is rewritten. Proceed?")) return;
+
+    document.getElementById("ota-release-notes").innerText = "Streaming firmware directly from GitHub servers... DO NOT TURN OFF.";
+    document.getElementById("btn-cloud-flash").style.display = "none";
+
+    fetch("/api/cloud_ota/flash", { method: "POST" })
+    .then(() => alert("Cloud update initiated. Device will reboot automatically upon completion."))
+    .catch(err => alert("Transmission failed."));
 }

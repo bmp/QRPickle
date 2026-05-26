@@ -18,7 +18,8 @@ namespace ui {
         {"xOTA",        DEST_XOTA},
         {"APRS",        DEST_APRS},// FIXED: Now routes to unified module
         {"Propagation", DEST_PROP},
-        {"HamAlert",    DEST_HAMALERT}
+        {"HamAlert",    DEST_HAMALERT},
+        {"Cloud OTA",   DEST_CLOUD_OTA}
     };
     static constexpr int ITEM_COUNT = sizeof(ITEMS) / sizeof(ITEMS[0]);
 

@@ -18,6 +18,7 @@
             <button class="tab-btn" data-tab="advanced">Advanced</button>
             <button class="tab-btn" data-tab="profiles">Profiles</button>
             <button class="tab-btn" data-tab="system">System Info</button>
+            <button class="tab-btn" data-tab="cloudota">Cloud OTA</button>
             <button class="tab-btn" data-tab="about">About</button>
         </nav>
 
@@ -332,6 +333,21 @@
                 </div>
                 
                 <button class="btn btn-danger" style="margin-top: 15px; width: 100%;" onclick="executeWirelessOTA()">Flash Wireless Upgrade</button>
+            </div>
+        </section>
+
+        <section id="tab-cloudota" class="tab-content">
+            <div class="sys-section-title">Automated Cloud Maintenance</div>
+            <div class="sys-grid">
+                <div class="sys-card"><label>Local Firmware Version</label><div id="ota-local-ver" class="val">--</div></div>
+                <div class="sys-card"><label>Latest Remote Release</label><div id="ota-remote-ver" class="val">--</div></div>
+            </div>
+
+            <div class="sys-section-title" style="margin-top: 20px;">GitHub Release Notes</div>
+            <div class="sys-card" style="max-width: 100%; box-sizing: border-box;">
+                <pre id="ota-release-notes" style="white-space: pre-wrap; font-family: monospace; color: var(--text-muted); font-size: 12px;">Querying repository metadata...</pre>
+
+                <button class="btn btn-danger" id="btn-cloud-flash" style="margin-top: 15px; width: 100%; display: none;" onclick="triggerCloudFlash()">Execute Remote Repository Flash Upgrade</button>
             </div>
         </section>
 

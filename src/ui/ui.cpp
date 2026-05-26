@@ -15,9 +15,11 @@
 #include "screens/aprs_msg.h"
 #include "screens/band_cond.h"
 #include "screens/hamalert_view.h"
+#include "screens/cloud_ota.h"
 #include "../services/hamalert_manager.h"
 #include "../services/aprs_manager.h"
 #include "../services/prop_manager.h"
+#include "../services/cloud_ota.h"
 #include "fonts.h"
 #include "../config/config.h"
 #include "../hw/sensor.h"
@@ -82,6 +84,8 @@ namespace ui {
             ui_navigate_local(PAGE_BAND_COND);
         } else if (dest == DEST_HAMALERT) {
             ui_navigate_local(PAGE_HAMALERT);
+        } else if (dest == DEST_CLOUD_OTA) {
+            ui_navigate_local(PAGE_CLOUD_OTA);
         }
     }
 
@@ -147,6 +151,8 @@ namespace ui {
             if (config::get().aprs_enabled) {
                 services::AprsManager::start();
             }
+
+            services::cloud_ota::start_background_check();
 
             ui_navigate_local(PAGE_DASHBOARD);
         });
@@ -216,6 +222,9 @@ namespace ui {
             } else if (page == PAGE_HAMALERT) {
                 status_bar_set_title("HamAlert Monitor");
                 draw_hamalert_page(view_container);
+            } else if (page == PAGE_CLOUD_OTA) {
+                status_bar_set_title("Cloud Updates");
+                draw_cloud_ota_page(view_container);
             }
         }
     }

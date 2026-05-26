@@ -16,6 +16,7 @@ namespace ui {
     void status_bar_set_title(const char* title);
     void status_bar_set_clock(const char* hhmm);
     void status_bar_set_wifi(bool connected);
+    void status_bar_set_update_available(bool available);
     void status_bar_refresh_theme();
 
 }  // namespace ui
