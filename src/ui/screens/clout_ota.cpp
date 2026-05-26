@@ -28,9 +28,7 @@ namespace ui {
             lv_obj_t* m = (lv_obj_t*)lv_event_get_user_data(e);
             lv_msgbox_close(m);
             
-            if (services::cloud_ota::execute_firmware_flash()) {
-                ESP.restart();
-            }
+            services::cloud_ota::execute_firmware_flash();
         }, LV_EVENT_CLICKED, mbox);
 
         lv_obj_add_event_cb(btn_cancel, [](lv_event_t* e) {

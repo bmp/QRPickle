@@ -337,10 +337,7 @@ void web_server_init() {
 
     server.on("/api/cloud_ota/flash", HTTP_POST, [](AsyncWebServerRequest *request) {
         request->send(200, "application/json", "{\"status\":\"flashing\"}");
-        if (services::cloud_ota::execute_firmware_flash()) {
-            flag_trigger_reboot = true;
-            reboot_timer_mark = millis();
-        }
+        services::cloud_ota::execute_firmware_flash();
     });
 
     server.begin();
