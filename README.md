@@ -1,6 +1,6 @@
 # QRPickle
 
-## A lightweight opinioned field friendly HAM Clock
+## A lightweight opinionated field friendly HAM Clock
 
 **QRPickle** is a simple, lightweight dashboard designed for portable, QRP, and field-day amateur radio operations. Built to run on a standard ESP32 Cheap Yellow Display (CYD) with no external PSRAM, it consolidates real-time tracking data and tools into a clean, easy-to-use touchscreen interface.
 
@@ -50,7 +50,8 @@ When on the same network, navigate to the device's IP address to access the inte
 * **Dynamic Staged Profiles:** Save and hot-swap complete configuration layouts (Callsign, Grid, Network, Theme, Settings) via LittleFS for quick transitions between Home, Mobile, and Field ops.
 * **Monochrome & Tactical Themes:** Driven by **LVGL 9**, featuring high-contrast modes including Tactical Field Red, GitHub Slate Dark, Terminal Phosphor Green, and pure-binary E-Ink simulations.
 * **OTA:** Manual firmware update through the web dashboard and ability to pull from Github.
-
+* **Adaptive brightness:** Option to enable adaptive brightness or set it manually.
+* **LED Status:** A ver elementary notificaiton system is implemented through the LED lights on the backside of the ESP32-CYD. Details are documented in the [LED Colours](docs/LEDColours.md) file in the docs folder.
 
 ## Partition System & Memory Map
 
