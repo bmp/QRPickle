@@ -3,109 +3,98 @@ name: Auto-Build and Release
 on:
   push:
     branches:
-      - main # Trigger automatically on every push to the main branch
+      - main
   workflow_dispatch:
 
 permissions:
-  contents: write # Allows pushing tags and creating releases
+  contents: write
 
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0 # Ensures all history and tags are visible
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    # 1. Automatically extract the FW_VERSION string from your C++ header file
-    - name: Extract Version from Source
-      run: |
-        VERSION=$(grep 'FW_VERSION' src/core/metadata.h | cut -d'"' -f2)
-        echo "Extracted Version: $VERSION"
-        echo "FW_VERSION=$VERSION" >> $GITHUB_ENV
+      - name: Extract Version from Source
+        run: |
+          VERSION=$(grep 'FW_VERSION' src/core/metadata.h | cut -d'"' -f2)
+          echo "Extracted Version: $VERSION"
+          echo "FW_VERSION=$VERSION" >> $GITHUB_ENV
 
-    # 2. Automatically generate/update the Git Tag on GitHub
-    - name: Push Git Tag
-      run: |
-        git config --global user.name "github-actions[bot]"
-        git config --global user.email "github-actions[bot]@users.noreply.github.com"
-        git tag -f ${{ env.FW_VERSION }}
-        git push -f origin ${{ env.FW_VERSION }}
+      - name: Push Git Tag
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -f ${{ env.FW_VERSION }}
+          git push -f origin ${{ env.FW_VERSION }}
 
-    # MODIFICATION 1: Dynamically capture your commit message as the text changelog
-    - name: Capture Commit Message for Release Notes
-      run: |
-        echo "CHANGELOG<<EOF" >> $GITHUB_ENV
-        git log -1 --pretty=%B >> $GITHUB_ENV
-        echo "EOF" >> $GITHUB_ENV
+      - name: Capture Commit Message for Release Notes
+        run: |
+          EOF_DELIM=$(openssl rand -hex 8)
+          echo "CHANGELOG<<$EOF_DELIM" >> $GITHUB_ENV
+          git log -1 --pretty=%B >> $GITHUB_ENV
+          echo "$EOF_DELIM" >> $GITHUB_ENV
 
-    # Set up compilation environment
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.x'
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
 
-    - name: Install PlatformIO & Build Binaries
-      run: |
-        pip install platformio
-        pio run
-        pio run -t buildfs
+      - name: Install PlatformIO & Build Binaries
+        run: |
+          pip install platformio
+          pio run
+          pio run -t buildfs
 
-    - name: Install Pandoc
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y pandoc
+      - name: Install Pandoc
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pandoc
 
-    - name: Setup Typst
-      uses: typst-community/setup-typst@v5
+      - name: Setup Typst
+        uses: typst-community/setup-typst@v5
 
-    # Convert, name, and package assets dynamically
-    - name: Package Assets
-      run: |
-        mkdir -p staging_release
+      - name: Package Assets
+        run: |
+          mkdir -p staging_release
+          CURRENT_DATE=$(date +'%Y-%m-%d')
+          REPO_NAME="${{ github.repository }}"
+          REPO_URL="${{ github.server_url }}/${{ github.repository }}"
 
-        CURRENT_DATE=$(date +'%Y-%m-%d')
-        REPO_NAME="${{ github.repository }}"
-        REPO_URL="${{ github.server_url }}/${{ github.repository }}"
+          echo "# QRPickle Field Manual & System Documentation" > metadata_header.md
+          echo "" >> metadata_header.md
+          echo "| Project Property | System Specification |" >> metadata_header.md
+          echo "| :--- | :--- |" >> metadata_header.md
+          echo "| **Firmware Package** | QRPickle Tracker Dashboard |" >> metadata_header.md
+          echo "| **Software Version** | ${{ env.FW_VERSION }} |" >> metadata_header.md
+          echo "| **Compilation Date** | ${CURRENT_DATE} |" >> metadata_header.md
+          echo "| **Target Hardware** | ESP32 Cheap Yellow Display (CYD) |" >> metadata_header.md
+          echo "| **Source Repository** | [${REPO_NAME}](${REPO_URL}) |" >> metadata_header.md
+          echo "| **Primary License** | MIT License |" >> metadata_header.md
+          echo "" >> metadata_header.md
+          echo "---" >> metadata_header.md
+          echo "" >> metadata_header.md
 
-        cat << EOF > metadata_header.md
-        # QRPickle Field Manual & System Documentation
+          cat metadata_header.md README.md > temp_doc.md
+          pandoc temp_doc.md -o temp_doc.typ
+          sed -i 's/#horizontalrule/#line(length: 100%, stroke: 0.5pt)/g' temp_doc.typ
+          typst compile temp_doc.typ "staging_release/QRPickle_Documentation_${{ env.FW_VERSION }}.pdf"
+          
+          find .pio/build/ -name "*.bin" -exec cp {} staging_release/ \;
+          zip -j "QRPickle_Release_${{ env.FW_VERSION }}.zip" staging_release/*
 
-        | Project Property | System Specification |
-        | :--- | :--- |
-        | **Firmware Package** | QRPickle Tracker Dashboard |
-        | **Software Version** | ${{ env.FW_VERSION }} |
-        | **Compilation Date** | ${CURRENT_DATE} |
-        | **Target Hardware** | ESP32 Cheap Yellow Display (CYD) |
-        | **Source Repository** | [${REPO_NAME}](${REPO_URL}) |
-        | **Primary License** | MIT License |
-
-        ---
-
-        EOF
-
-        cat metadata_header.md README.md > temp_doc.md
-        pandoc temp_doc.md -o temp_doc.typ
-        sed -i 's/#horizontalrule/#line(length: 100%, stroke: 0.5pt)/g' temp_doc.typ
-        typst compile temp_doc.typ "staging_release/QRPickle_Documentation_${{ env.FW_VERSION }}.pdf"
-
-        find .pio/build/ -name "*.bin" -exec cp {} staging_release/ \;
-        zip -j "QRPickle_Release_${{ env.FW_VERSION }}.zip" staging_release/*
-
-    # 3. Create or update the Release Page matching the extracted version tag
-    # MODIFICATION 2 & 3: Inject the text changelog and expose raw binaries for OTA
-    - name: Create GitHub Release
-      uses: softprops/action-gh-release@v2
-      with:
-        tag_name: ${{ env.FW_VERSION }}
-        body: |
-          ### 📝 Latest Changes in this Build:
-          ${{ env.CHANGELOG }}
-        files: |
-          QRPickle_Release_${{ env.FW_VERSION }}.zip
-          staging_release/firmware.bin
-          staging_release/littlefs.bin
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.FW_VERSION }}
+          body: |
+            ### 📝 Latest Changes in this Build:
+            ${{ env.CHANGELOG }}
+          files: |
+            QRPickle_Release_${{ env.FW_VERSION }}.zip
+            staging_release/firmware.bin
+            staging_release/littlefs.bin
