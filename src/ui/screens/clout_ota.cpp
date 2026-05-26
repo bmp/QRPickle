@@ -10,6 +10,7 @@ namespace ui {
     static lv_obj_t* page_container = nullptr;
     static lv_obj_t* notes_label = nullptr;
     static lv_obj_t* flash_btn = nullptr;
+    static lv_obj_t* btn_lbl = nullptr;
 
     static void flash_confirm_cb(lv_event_t* e) {
         lv_obj_t* mbox = lv_msgbox_create(NULL);
@@ -28,6 +29,13 @@ namespace ui {
             lv_obj_t* m = (lv_obj_t*)lv_event_get_user_data(e);
             lv_msgbox_close(m);
             
+            // 1. Give interactive feedback on screen right away
+            lv_label_set_text(notes_label, "[UPGRADING] Deallocating processes and opening secure connection pipeline to GitHub CDN channels. Please observe console monitor telemetry. Do NOT remove input power lines.");
+            lv_label_set_text(btn_lbl, "FLASHING SUB-SYSTEM ACTIVE...");
+            lv_obj_add_state(flash_btn, LV_STATE_DISABLED);
+            lv_obj_set_style_bg_color(flash_btn, lv_color_hex(0xD4A373), 0); // Warning Amber Feedback color
+
+            // 2. Safely launch background execution thread
             services::cloud_ota::execute_firmware_flash();
         }, LV_EVENT_CLICKED, mbox);
 
@@ -55,16 +63,17 @@ namespace ui {
         lv_obj_set_style_border_width(header, 1, 0);
         lv_obj_align(header, LV_ALIGN_TOP_MID, 0, 0);
 
+        // FIXED: Balanced fonts to font_jetbrains_14 for both targets layout symmetry
         lv_obj_t* local_lbl = lv_label_create(header);
         lv_label_set_text_fmt(local_lbl, "Local: %s", meta::FW_VERSION);
-        lv_obj_set_style_text_font(local_lbl, &font_jetbrains_10, 0);
+        lv_obj_set_style_text_font(local_lbl, &font_jetbrains_14, 0); 
         lv_obj_set_style_text_color(local_lbl, theme_color(COLOR_TEXT_MUTED), 0);
         lv_obj_align(local_lbl, LV_ALIGN_LEFT_MID, 10, 0);
 
-        // NEW: Manual Check Button
+        // Manual Refresh Check Button
         lv_obj_t* btn_check = lv_button_create(header);
-        lv_obj_set_size(btn_check, 60, 30);
-        lv_obj_align(btn_check, LV_ALIGN_CENTER, 0, 0);
+        lv_obj_set_size(btn_check, 45, 30);
+        lv_obj_align(btn_check, LV_ALIGN_CENTER, -5, 0);
         lv_obj_set_style_bg_color(btn_check, theme_color(COLOR_BG_APP), 0);
         lv_obj_set_style_border_color(btn_check, theme_color(COLOR_BORDER), 0);
         lv_obj_set_style_border_width(btn_check, 1, 0);
@@ -76,14 +85,15 @@ namespace ui {
 
         lv_obj_add_event_cb(btn_check, [](lv_event_t* e) {
             services::cloud_ota::force_update_check();
-            lv_obj_t* parent = lv_obj_get_parent(page_container);
+            lv_obj_t* p = lv_obj_get_parent(page_container);
             lv_obj_delete(page_container);
-            draw_cloud_ota_page(parent);
+            draw_cloud_ota_page(p);
         }, LV_EVENT_CLICKED, NULL);
 
+        // FIXED: Balanced fonts to font_jetbrains_14 layout symmetry
         lv_obj_t* remote_lbl = lv_label_create(header);
-        lv_label_set_text_fmt(remote_lbl, "GitHub: %s", info.latest_version);
-        lv_obj_set_style_text_font(remote_lbl, &font_jetbrains_14, 0);
+        lv_label_set_text_fmt(remote_lbl, "GH: %s", info.latest_version);
+        lv_obj_set_style_text_font(remote_lbl, &font_jetbrains_14, 0); 
         lv_obj_set_style_text_color(remote_lbl, info.update_available ? theme_color(COLOR_BAND_POOR) : theme_color(COLOR_BAND_GOOD), 0);
         lv_obj_align(remote_lbl, LV_ALIGN_RIGHT_MID, -10, 0);
 
@@ -94,6 +104,9 @@ namespace ui {
         lv_obj_set_style_bg_color(notes_area, lv_color_hex(0x0a0a0a), 0);
         lv_obj_set_style_border_color(notes_area, theme_color(COLOR_BORDER), 0);
         lv_obj_set_style_border_width(notes_area, 1, 0);
+        
+        // FIXED: Explicitly hidden scrollbar trackers
+        lv_obj_set_scrollbar_mode(notes_area, LV_SCROLLBAR_MODE_OFF); 
 
         notes_label = lv_label_create(notes_area);
         lv_obj_set_width(notes_label, 280);
@@ -108,16 +121,16 @@ namespace ui {
         lv_obj_align(flash_btn, LV_ALIGN_BOTTOM_MID, 0, -5);
         lv_obj_set_style_bg_color(flash_btn, theme_color(COLOR_ACCENT_PRIMARY), 0);
         
-        if (!info.update_available) {
-            lv_obj_add_state(flash_btn, LV_STATE_DISABLED);
-            lv_obj_set_style_bg_color(flash_btn, theme_color(COLOR_TEXT_MUTED), 0);
-        }
-
-        lv_obj_t* btn_lbl = lv_label_create(flash_btn);
+        btn_lbl = lv_label_create(flash_btn);
         lv_label_set_text(btn_lbl, "INITIATE FIRMWARE FLASH");
         lv_obj_set_style_text_font(btn_lbl, &font_atkinson_14, 0);
         lv_obj_set_style_text_color(btn_lbl, lv_color_hex(0x000000), 0);
         lv_obj_center(btn_lbl);
+
+        if (!info.update_available) {
+            lv_obj_add_state(flash_btn, LV_STATE_DISABLED);
+            lv_obj_set_style_bg_color(flash_btn, theme_color(COLOR_TEXT_MUTED), 0);
+        }
 
         lv_obj_add_event_cb(flash_btn, flash_confirm_cb, LV_EVENT_CLICKED, NULL);
     }

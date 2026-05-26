@@ -7,8 +7,6 @@
 #include <esp_task_wdt.h>
 #include <Update.h>
 
-extern void web_server_stop(); // Forward declaration to reclaim server memory
-
 namespace services {
     namespace cloud_ota {
 
@@ -97,12 +95,10 @@ namespace services {
         }
 
         static void ota_worker_task(void* pvParameters) {
-            Serial.println("[OTA Worker] Halting web server to reclaim heap space...");
-            web_server_stop();
-            vTaskDelay(500 / portTICK_PERIOD_MS); 
+            vTaskDelay(200 / portTICK_PERIOD_MS); 
 
             WiFiClientSecure client;
-            client.setInsecure(); // No manual buffer resizing, letting Core v3 handle TLS mapping natively
+            client.setInsecure(); 
 
             HTTPClient http;
             Serial.printf("[OTA Worker] Activating secure stream to CDN: %s\n", cached_info.firmware_url);
@@ -123,19 +119,16 @@ namespace services {
 
             int total_len = http.getSize();
             if (total_len <= 0) {
-                Serial.println("[OTA Worker] Invalid payload dimension signature returned.");
+                Serial.println("[OTA Worker] Invalid payload signature dimension.");
                 http.end();
                 is_flashing_active = false;
                 vTaskDelete(NULL);
                 return;
             }
 
-            // OPTIMIZATION: We pass UPDATE_SIZE_UNKNOWN down to the framework layer.
-            // This prevents the framework from making a large upfront allocation pass in RAM,
-            // entirely neutralizing the "begin(): malloc failed" constraint!
-            Serial.println("[OTA Worker] Initializing flash allocation streams...");
+            Serial.println("[OTA Worker] Initializing flash streams...");
             if (!Update.begin(UPDATE_SIZE_UNKNOWN, U_FLASH)) {
-                Serial.printf("[OTA Worker] CRITICAL: Flash allocation failed. Error code: %s\n", Update.errorString());
+                Serial.printf("[OTA Worker] CRITICAL: Flash allocation failed. Error: %s\n", Update.errorString());
                 http.end();
                 is_flashing_active = false;
                 vTaskDelete(NULL);
@@ -152,7 +145,7 @@ namespace services {
                 if (size) {
                     int c = stream->readBytes(buffer, ((size > sizeof(buffer)) ? sizeof(buffer) : size));
                     if (Update.write(buffer, c) != c) {
-                        Serial.printf("[OTA Worker] Write transaction aborted. Error: %s\n", Update.errorString());
+                        Serial.printf("[OTA Worker] Write aborted. Error: %s\n", Update.errorString());
                         Update.abort();
                         http.end();
                         is_flashing_active = false;
@@ -165,8 +158,8 @@ namespace services {
                 vTaskDelay(1); 
             }
 
-            Serial.println("[OTA Worker] Stream finished. Verifying MD5 checksum patterns...");
-            if (Update.end(true)) { // Pass true to assert that we are finishing the data write
+            Serial.println("[OTA Worker] Stream finished. Verifying checksum patterns...");
+            if (Update.end(true)) { 
                 Serial.println("[OTA Worker] Success! Core restart sequence authorized.");
                 vTaskDelay(500 / portTICK_PERIOD_MS);
                 ESP.restart();
