@@ -23,7 +23,6 @@ jobs:
       run: |
         VERSION=$(grep 'FW_VERSION' src/core/metadata.h | cut -d'"' -f2)
         echo "Extracted Version: $VERSION"
-        # Save it to the GitHub environment variable runner for subsequent steps
         echo "FW_VERSION=$VERSION" >> $GITHUB_ENV
 
     # 2. Automatically generate/update the Git Tag on GitHub
@@ -31,10 +30,17 @@ jobs:
       run: |
         git config --global user.name "github-actions[bot]"
         git config --global user.email "github-actions[bot]@users.noreply.github.com"
-        # Force apply the tag to the current commit and push it
         git tag -f ${{ env.FW_VERSION }}
         git push -f origin ${{ env.FW_VERSION }}
 
+    # MODIFICATION 1: Dynamically capture your commit message as the text changelog
+    - name: Capture Commit Message for Release Notes
+      run: |
+        echo "CHANGELOG<<EOF" >> $GITHUB_ENV
+        git log -1 --pretty=%B >> $GITHUB_ENV
+        echo "EOF" >> $GITHUB_ENV
+
+    # Set up compilation environment
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
@@ -58,15 +64,14 @@ jobs:
     - name: Package Assets
       run: |
         mkdir -p staging_release
-        
+
         CURRENT_DATE=$(date +'%Y-%m-%d')
         REPO_NAME="${{ github.repository }}"
         REPO_URL="${{ github.server_url }}/${{ github.repository }}"
-        
-        # Dynamically generate the top metadata table layout using our extracted variable
+
         cat << EOF > metadata_header.md
         # QRPickle Field Manual & System Documentation
-        
+
         | Project Property | System Specification |
         | :--- | :--- |
         | **Firmware Package** | QRPickle Tracker Dashboard |
@@ -75,25 +80,31 @@ jobs:
         | **Target Hardware** | ESP32 Cheap Yellow Display (CYD) |
         | **Source Repository** | [${REPO_NAME}](${REPO_URL}) |
         | **Primary License** | MIT License |
-        
+
         ---
-        
+
         EOF
-        
+
         cat metadata_header.md README.md > temp_doc.md
         pandoc temp_doc.md -o temp_doc.typ
         sed -i 's/#horizontalrule/#line(length: 100%, stroke: 0.5pt)/g' temp_doc.typ
         typst compile temp_doc.typ "staging_release/QRPickle_Documentation_${{ env.FW_VERSION }}.pdf"
-        
+
         find .pio/build/ -name "*.bin" -exec cp {} staging_release/ \;
         zip -j "QRPickle_Release_${{ env.FW_VERSION }}.zip" staging_release/*
 
     # 3. Create or update the Release Page matching the extracted version tag
+    # MODIFICATION 2 & 3: Inject the text changelog and expose raw binaries for OTA
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
       with:
         tag_name: ${{ env.FW_VERSION }}
-        files: QRPickle_Release_${{ env.FW_VERSION }}.zip
-        generate_release_notes: true
+        body: |
+          ### 📝 Latest Changes in this Build:
+          ${{ env.CHANGELOG }}
+        files: |
+          QRPickle_Release_${{ env.FW_VERSION }}.zip
+          staging_release/firmware.bin
+          staging_release/littlefs.bin
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
