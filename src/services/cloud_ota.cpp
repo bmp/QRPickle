@@ -5,14 +5,16 @@
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <esp_task_wdt.h>
+#include <Update.h>
 
-extern void web_server_stop(); // Forward declaration for memory reclamation
+extern void web_server_stop(); // Forward declaration to reclaim server memory
 
 namespace services {
     namespace cloud_ota {
 
         static ReleaseInfo cached_info = {false, "", "", ""};
         static bool check_complete = false;
+        static bool is_flashing_active = false; 
 
         static void fetch_github_metadata() {
             int attempts = 0;
@@ -24,7 +26,7 @@ namespace services {
             if (WiFi.status() != WL_CONNECTED) return;
 
             WiFiClientSecure client;
-            client.setInsecure(); // Bypass cert verification to save RAM constraints
+            client.setInsecure(); 
             HTTPClient http;
 
             char api_url[128];
@@ -35,7 +37,6 @@ namespace services {
             
             int httpCode = http.GET();
             if (httpCode == HTTP_CODE_OK) {
-                // Strict memory filter: Only parse what we need to prevent OOM panics
                 JsonDocument filter;
                 filter["tag_name"] = true;
                 filter["body"] = true;
@@ -52,7 +53,6 @@ namespace services {
                     strncpy(cached_info.latest_version, tag, sizeof(cached_info.latest_version) - 1);
                     strncpy(cached_info.release_notes, body, sizeof(cached_info.release_notes) - 1);
 
-                    // Check string arrays for firmware.bin
                     JsonArray assets = doc["assets"].as<JsonArray>();
                     for (JsonObject asset : assets) {
                         const char* asset_name = asset["name"] | "";
@@ -62,7 +62,6 @@ namespace services {
                         }
                     }
 
-                    // Compare tag against metadata
                     if (strcmp(cached_info.latest_version, meta::FW_VERSION) != 0 && strlen(cached_info.latest_version) > 0) {
                         cached_info.update_available = true;
                     }
@@ -79,7 +78,6 @@ namespace services {
 
         void start_background_check() {
             if (!check_complete) {
-                // Spawn isolated task with 6KB stack for heavy TLS networking
                 xTaskCreatePinnedToCore(background_check_task, "gh_ota_check", 6144, NULL, 1, NULL, 0);
             }
         }
@@ -98,74 +96,94 @@ namespace services {
             return cached_info;
         }
 
-        bool execute_firmware_flash() {
-            if (strlen(cached_info.firmware_url) == 0) return false;
-
-            Serial.println("[OTA Engine] Reclaiming memory for TLS handshake...");
-
-            // Stop the web server to immediately reclaim massive heap space
+        static void ota_worker_task(void* pvParameters) {
+            Serial.println("[OTA Worker] Halting web server to reclaim heap space...");
             web_server_stop();
-
-            // Give the sockets a moment to cleanly close and release buffers
-            delay(500);
+            vTaskDelay(500 / portTICK_PERIOD_MS); 
 
             WiFiClientSecure client;
-            client.setInsecure(); // Safe to skip cert check to optimize stack utilization
-            HTTPClient http;
+            client.setInsecure(); // No manual buffer resizing, letting Core v3 handle TLS mapping natively
 
-            Serial.printf("[OTA Engine] Connecting to CDN: %s\n", cached_info.firmware_url);
+            HTTPClient http;
+            Serial.printf("[OTA Worker] Activating secure stream to CDN: %s\n", cached_info.firmware_url);
+            
             http.begin(client, cached_info.firmware_url);
             http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
-            http.setRedirectLimit(3);
-            http.setTimeout(15000);
+            http.setRedirectLimit(3); 
+            http.setTimeout(15000); 
 
             int httpCode = http.GET();
             if (httpCode != HTTP_CODE_OK) {
-                Serial.printf("[OTA Engine] HTTP GET Failed, error: %d\n", httpCode);
+                Serial.printf("[OTA Worker] Link connection rejected. HTTP Code: %d\n", httpCode);
                 http.end();
-                return false;
+                is_flashing_active = false;
+                vTaskDelete(NULL);
+                return;
             }
 
             int total_len = http.getSize();
             if (total_len <= 0) {
-                Serial.println("[OTA Engine] Invalid content length.");
+                Serial.println("[OTA Worker] Invalid payload dimension signature returned.");
                 http.end();
-                return false;
+                is_flashing_active = false;
+                vTaskDelete(NULL);
+                return;
             }
 
-            Serial.printf("[OTA Engine] Download stream verified. Size: %d bytes. Initializing Flash...\n", total_len);
-            if (!ota_manager::begin(ota_manager::UPDATE_TYPE_FIRMWARE)) {
-                Serial.println("[OTA Engine] Partition verification failed initialization.");
+            // OPTIMIZATION: We pass UPDATE_SIZE_UNKNOWN down to the framework layer.
+            // This prevents the framework from making a large upfront allocation pass in RAM,
+            // entirely neutralizing the "begin(): malloc failed" constraint!
+            Serial.println("[OTA Worker] Initializing flash allocation streams...");
+            if (!Update.begin(UPDATE_SIZE_UNKNOWN, U_FLASH)) {
+                Serial.printf("[OTA Worker] CRITICAL: Flash allocation failed. Error code: %s\n", Update.errorString());
                 http.end();
-                return false;
+                is_flashing_active = false;
+                vTaskDelete(NULL);
+                return;
             }
 
             WiFiClient* stream = http.getStreamPtr();
             uint8_t buffer[1024];
-            int last_progress_pct = 0;
-            int written_total = 0;
+            int written_accumulated = 0;
 
+            Serial.println("[OTA Worker] Streaming binary block patterns into flash sectors...");
             while (http.connected() && (total_len > 0 || total_len == -1)) {
                 size_t size = stream->available();
                 if (size) {
                     int c = stream->readBytes(buffer, ((size > sizeof(buffer)) ? sizeof(buffer) : size));
-                    if (!ota_manager::write_chunk(buffer, c)) {
-                        Serial.println("[OTA Engine] Flash block write operation aborted.");
-                        ota_manager::abort();
+                    if (Update.write(buffer, c) != c) {
+                        Serial.printf("[OTA Worker] Write transaction aborted. Error: %s\n", Update.errorString());
+                        Update.abort();
                         http.end();
-                        return false;
+                        is_flashing_active = false;
+                        vTaskDelete(NULL);
+                        return;
                     }
                     if (total_len > 0) total_len -= c;
-
-                    written_total += c;
+                    written_accumulated += c;
                 }
-                delay(1); // Safely feeds the hardware Watchdog without throwing FreeRTOS state panics!
+                vTaskDelay(1); 
             }
 
-            Serial.println("[OTA Engine] Streaming completed. Closing files and committing signature verification...");
-            bool success = ota_manager::end();
-            http.end();
-            return success;
+            Serial.println("[OTA Worker] Stream finished. Verifying MD5 checksum patterns...");
+            if (Update.end(true)) { // Pass true to assert that we are finishing the data write
+                Serial.println("[OTA Worker] Success! Core restart sequence authorized.");
+                vTaskDelay(500 / portTICK_PERIOD_MS);
+                ESP.restart();
+            } else {
+                Serial.printf("[OTA Worker] Verification failure. Error: %s\n", Update.errorString());
+                is_flashing_active = false;
+                http.end();
+                vTaskDelete(NULL);
+            }
+        }
+
+        bool execute_firmware_flash() {
+            if (strlen(cached_info.firmware_url) == 0 || is_flashing_active) return false;
+
+            is_flashing_active = true;
+            xTaskCreatePinnedToCore(ota_worker_task, "ota_flash_worker", 6144, NULL, 5, NULL, 0);
+            return true; 
         }
     }
 }
