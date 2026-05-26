@@ -20,6 +20,7 @@
 #include "../services/aprs_manager.h"
 #include "../services/prop_manager.h"
 #include "../services/cloud_ota.h"
+#include "../hw/led_rgb.h" // NEW: RGB LED controller inclusion
 #include "fonts.h"
 #include "../config/config.h"
 #include "../hw/sensor.h"
@@ -80,7 +81,7 @@ namespace ui {
             ui_navigate_local(PAGE_XOTA);
         } else if (dest == DEST_APRS) {
             ui_navigate_local(PAGE_APRS); 
-        } else if (dest == DEST_PROP) { // FIXED: Swapped enum target identifier to DEST_PROP
+        } else if (dest == DEST_PROP) {
             ui_navigate_local(PAGE_BAND_COND);
         } else if (dest == DEST_HAMALERT) {
             ui_navigate_local(PAGE_HAMALERT);
@@ -154,6 +155,9 @@ namespace ui {
 
             services::cloud_ota::start_background_check();
 
+            // NEW: Set Stage 4 -> Turn LED faint green to indicate operational readiness
+            hw::led_rgb::set_state(hw::led_rgb::STATE_BOOT_READY);
+
             ui_navigate_local(PAGE_DASHBOARD);
         });
     }
@@ -169,7 +173,6 @@ namespace ui {
 
         lv_obj_clean(view_container);
 
-        // Handle full-screen tactical radar and compose overlay pages (Hides wrapper controls)
         if (page == PAGE_APRS_RADAR || page == PAGE_APRS_MSG) {
             if (status_bar_obj) lv_obj_add_flag(status_bar_obj, LV_OBJ_FLAG_HIDDEN);
             if (global_home_btn) lv_obj_add_flag(global_home_btn, LV_OBJ_FLAG_HIDDEN);
@@ -182,7 +185,6 @@ namespace ui {
             return;
         }
 
-        // Restore standard tab-based workspace layouts safely below
         if (status_bar_obj) lv_obj_clear_flag(status_bar_obj, LV_OBJ_FLAG_HIDDEN);
         lv_obj_set_size(view_container, 320, 216);
         lv_obj_align(view_container, LV_ALIGN_BOTTOM_MID, 0, 0);

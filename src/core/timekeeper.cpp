@@ -1,5 +1,6 @@
 #include "timekeeper.h"
 #include "../config/config.h" // Wire directly into our new NVS storage system
+#include "../hw/led_rgb.h"     // NEW: RGB LED controller inclusion
 #include <WiFi.h>
 #include <Arduino.h>
 #include <time.h>
@@ -30,6 +31,9 @@ void timekeeper_update() {
     if (!ntp_synchronized && now > 1577836800) {
         ntp_synchronized = true;
         Serial.println("[Timekeeper] NTP Synchronization Successful! System clock is accurate.");
+        
+        // NEW: Set Stage 3 -> Breathing Cyan to indicate active internet services sync active
+        hw::led_rgb::set_state(hw::led_rgb::STATE_BOOT_SYNC);
     }
 
     if (ntp_synchronized) {

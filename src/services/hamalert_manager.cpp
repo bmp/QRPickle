@@ -1,5 +1,6 @@
 #include "hamalert_manager.h"
 #include "../config/config.h"
+#include "../hw/led_rgb.h" // NEW: RGB LED controller inclusion
 #include <Arduino.h>
 #include <WiFi.h>
 #include <WiFiClient.h>
@@ -109,6 +110,9 @@ namespace services {
             messages[9] = m;
         }
         dirty = true;
+
+        // NEW: Critical target spot tracking match triggered! Flash the high-intensity White/Magenta Strobe 
+        hw::led_rgb::trigger_priority_strobe();
     }
 
     void HamAlertManager::task_loop(void* param) {
@@ -147,9 +151,8 @@ namespace services {
                         if (client.available()) {
                             char c = client.read();
                             buffer[buf_idx++] = c;
-                            buffer[buf_idx] = '\0'; // Always keep it null-terminated for strstr
+                            buffer[buf_idx] = '\0'; 
 
-                            // FIXED: Live-scanning the buffer without waiting for \n
                             if (strstr(buffer, "login:") || strstr(buffer, "callsign:") || strstr(buffer, "Callsign:")) {
                                 Serial.println("[HamAlert-Socket] Detected login prompt. Sending callsign...");
                                 client.printf("%s\r\n", cfg.callsign);
@@ -187,7 +190,6 @@ namespace services {
                 }
             }
 
-            // Normal Data Processing Loop
             while (client.available() && running) {
                 char c = client.read();
                 if (c == '\n') {
@@ -217,4 +219,4 @@ namespace services {
         connected = false;
         vTaskDelete(NULL);
     }
-}
+} // namespace services

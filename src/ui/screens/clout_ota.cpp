@@ -66,7 +66,7 @@ namespace ui {
         // FIXED: Balanced fonts to font_jetbrains_14 for both targets layout symmetry
         lv_obj_t* local_lbl = lv_label_create(header);
         lv_label_set_text_fmt(local_lbl, "Local: %s", meta::FW_VERSION);
-        lv_obj_set_style_text_font(local_lbl, &font_jetbrains_14, 0); 
+        lv_obj_set_style_text_font(local_lbl, &font_jetbrains_10, 0);
         lv_obj_set_style_text_color(local_lbl, theme_color(COLOR_TEXT_MUTED), 0);
         lv_obj_align(local_lbl, LV_ALIGN_LEFT_MID, 10, 0);
 
@@ -92,8 +92,8 @@ namespace ui {
 
         // FIXED: Balanced fonts to font_jetbrains_14 layout symmetry
         lv_obj_t* remote_lbl = lv_label_create(header);
-        lv_label_set_text_fmt(remote_lbl, "GH: %s", info.latest_version);
-        lv_obj_set_style_text_font(remote_lbl, &font_jetbrains_14, 0); 
+        lv_label_set_text_fmt(remote_lbl, "GitHub: %s", info.latest_version);
+        lv_obj_set_style_text_font(remote_lbl, &font_jetbrains_10, 0);
         lv_obj_set_style_text_color(remote_lbl, info.update_available ? theme_color(COLOR_BAND_POOR) : theme_color(COLOR_BAND_GOOD), 0);
         lv_obj_align(remote_lbl, LV_ALIGN_RIGHT_MID, -10, 0);
 

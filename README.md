@@ -102,13 +102,13 @@ This project utilizes a heavily customized partition table (`partitions.csv`) to
 
 Here is the exact memory map breakdown:
 
-| Name | Type | SubType | Offset | Size (Bytes) | Size (Human) | Purpose |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **`nvs`** | `data` | `nvs` | `0x9000` | `0x5000` | **20 KB** | **Non-Volatile Storage:** Stores atomic user configurations (Wi-Fi, callsign, grid, API keys). |
-| **`otadata`** | `data` | `ota` | `0xe000` | `0x2000` | **8 KB** | **OTA Register:** Tells the bootloader whether to boot from `app0` or `app1`. |
-| **`app0`** | `app` | `ota_0` | `0x10000` | `0x1A0000` | **1.625 MB** | **Primary Firmware:** Factory execution slot for the main C++ application binary. |
-| **`app1`** | `app` | `ota_1` | `0x1B0000` | `0x1A0000` | **1.625 MB** | **Secondary Firmware:** The staging slot for wireless Over-The-Air (OTA) upgrades. |
-| **`spiffs`** | `data` | `spiffs` | `0x350000` | `0xB0000` | **704 KB** | **LittleFS File System:** Stores the Web UI (`index.html`, `app.js`, `style.css`) and JSON profiles. |
+| Partition Name | Address Offset | Hexadecimal Size | Human-Readable Size | Operational Assignment |
+| :--- | :--- | :--- | :--- | :--- |
+| **`nvs`** | `0x009000` | `0x005000` | 20 KB | Core hardware flags, automated network authorization pairs, calibration registers, and ambient settings profiles. |
+| **`otadata`** | `0x00E000` | `0x002000` | 8 KB | Real-time execution targeting registers managed by the ESP32 bootloader tracking loops to determine current stable application selection flags (`app0` vs `app1`). |
+| **`app0`** | `0x010000` | `0x1C0000` | 1.75 MB (1,792 KB) | Primary system firmware image block storage. Expanded to resolve memory boundary overhead limitations from growing graphics frameworks. |
+| **`app1`** | `0x1D0000` | `0x1C0000` | 1.75 MB (1,792 KB) | Mirror staging architecture slot dedicated to downloading incoming firmware packages directly from the GitHub API CDN pipelines without colliding with current live executions. |
+| **`spiffs`** | `0x390000` | `0x070000` | 448 KB | Dedicated LittleFS structural loop containing web console visual layouts (`index.html`, `style.css`, `app.js`), local operator descriptions, and raw static binary user definitions. |
 
 ***
 

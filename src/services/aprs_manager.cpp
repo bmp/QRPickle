@@ -1,6 +1,7 @@
 #include "aprs_manager.h"
 #include "../config/config.h"
 #include "../hw/sensor.h"
+#include "../hw/led_rgb.h" // NEW: RGB LED controller inclusion
 #include <Arduino.h>
 #include <WiFi.h>
 #include <WiFiClient.h>
@@ -61,7 +62,6 @@ namespace services {
         loop_last_beacon_millis = 0; 
     }
 
-    // --- ENHANCED MESSAGE DISPATCHER WITH LOGGING ---
     void AprsManager::send_message(const char* target, const char* message) {
         Serial.printf("\n[APRS-UI] User requested to send message.\n");
         Serial.printf("  -> Target: '%s'\n", target);
@@ -81,7 +81,6 @@ namespace services {
             return;
         }
 
-        // FIX: Properly format source callsign. APRS servers reject "CALLSIGN-0".
         char src_call[16];
         if (cfg.aprs_ssid == 0) {
             snprintf(src_call, sizeof(src_call), "%s", cfg.callsign);
@@ -89,11 +88,9 @@ namespace services {
             snprintf(src_call, sizeof(src_call), "%s-%d", cfg.callsign, cfg.aprs_ssid);
         }
 
-        // APRS spec REQUIRES the target callsign to be exactly 9 characters, right-padded with spaces
         char padded_target[10] = "         ";
         memcpy(padded_target, target, min(strlen(target), (size_t)9));
 
-        // Format: SOURCE>PATH::TARGET   :MESSAGE
         snprintf(tx_msg_queue, 160, "%s>APRS,TCPIP*::%s:%s\r\n", src_call, padded_target, message);
         
         tx_msg_pending = true;
@@ -262,6 +259,9 @@ namespace services {
 
         const char* cmt = (strlen(info) > 19) ? (info + 19) : "";
         update_or_add_station(call, dec_lat, dec_lon, table_char, symbol_char, cmt);
+
+        // NEW: Trigger a 30ms Cyan pulse to confirm standard background data ingress
+        hw::led_rgb::trigger_traffic_pulse();
     }
 
     void AprsManager::parse_incoming_message(const char* call, const char* info) {
@@ -288,6 +288,9 @@ namespace services {
                 strncpy(messages[9].text, msg_body, 63);
             }
             msg_dirty = true;
+
+            // NEW: Inbound directed radio transmission alert! Trigger 3s intense White/Magenta Strobe
+            hw::led_rgb::trigger_priority_strobe();
         }
     }
 
@@ -370,10 +373,9 @@ namespace services {
                 if (loop_last_beacon_millis == 0) loop_last_beacon_millis = 1;
             }
 
-            // --- THE PHYSICAL NETWORK DISPATCH CHECK ---
             if (tx_msg_pending && connected) {
                 client.print(tx_msg_queue);
-                client.flush(); // FIX: Forcibly push the TCP packet out immediately
+                client.flush(); 
                 Serial.printf("[APRS-TX] Hardware flushed packet to network: %s", tx_msg_queue);
                 tx_msg_pending = false;
             }

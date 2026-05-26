@@ -2,6 +2,7 @@
 #include "hw/display.h"
 #include "hw/touch.h"
 #include "hw/sensor.h"
+#include "hw/led_rgb.h"
 #include "config/config.h"
 #include "core/timekeeper.h"
 #include "core/lvgl_fs.h" // FIXED: Include the new bridge
@@ -13,6 +14,8 @@
 #include "ui/fonts.h"
 
 void setup() {
+    hw::led_rgb::init();
+    hw::led_rgb::set_state(hw::led_rgb::STATE_BOOT_HW);
     Serial.begin(115200);
     delay(500);
     Serial.println("\n--- QRPickle System Initializing (NVS Production Core) ---");
