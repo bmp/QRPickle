@@ -19,6 +19,8 @@ Features:
 - OTA Updates
 - Turning off screen with a timer
 - Profiles for easier switching in the field
+- LED colour status blinking
+- Ambient brightness control
 
 Created by VU3GLJ with LLMs.
 

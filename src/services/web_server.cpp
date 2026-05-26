@@ -101,6 +101,10 @@ void web_server_init() {
         AsyncResponseStream *response = request->beginResponseStream("application/json");
         JsonDocument doc;
         const auto& c = config::get();
+        doc["fw_name"] = meta::FW_NAME;
+        doc["fw_version"] = meta::FW_VERSION;
+        doc["author_call"] = meta::AUTHOR_CALL;
+
         doc["callsign"] = c.callsign;
         doc["grid"] = c.grid;
         doc["ssid"] = c.wifi_ssid;

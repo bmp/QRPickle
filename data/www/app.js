@@ -27,17 +27,19 @@ function getElementValue(id, isCheckbox = false) {
 function updateDynamicFooter(data) {
     const nameEl = document.getElementById("foot-name");
     const verEl = document.getElementById("foot-version");
-    const authcallEl = document.getElementById("foot-authorcall");
-    
-    if (nameEl && (data.app_name || data.tool_name)) {
-        nameEl.innerText = data.app_name || data.tool_name;
+    const authcallEl = document.getElementById("foot-authorcall"); // FIXED: Target the correct element ID
+
+    if (nameEl && (data.app_name || data.fw_name)) {
+        nameEl.innerText = data.app_name || data.fw_name;
     }
+
     if (verEl && (data.version || data.fw_version)) {
         verEl.innerText = data.version || data.fw_version;
     }
 
-    if (authcallEl && (data.version || data.author_call)) {
-        verEl.innerText = data.author_call || data.support_email;
+    // FIXED: Write the callsign to the correct element, falling back to the configured station callsign if author_call isn't present
+    if (authcallEl && (data.author_call || data.callsign)) {
+        authcallEl.innerText = data.author_call || data.callsign;
     }
 }
 
