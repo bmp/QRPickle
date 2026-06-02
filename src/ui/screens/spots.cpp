@@ -85,19 +85,17 @@ namespace ui {
         services::DxManager::update();
 
         // 2. Refresh top system status connection indicators
+        auto current_status = services::DxManager::get_status();
         if (status_dot) {
-            auto current_status = services::DxManager::get_status();
             if (current_status == services::DX_STATUS_CONNECTED) {
-                lv_obj_set_style_bg_color(status_dot, lv_color_hex(0x00FF00), 0); 
+                lv_obj_set_style_bg_color(status_dot, lv_color_hex(0x00FF00), 0);
             } else if (current_status == services::DX_STATUS_DISCONNECTED) {
-                lv_obj_set_style_bg_color(status_dot, lv_color_hex(0xFF0000), 0); 
+                lv_obj_set_style_bg_color(status_dot, lv_color_hex(0xFF0000), 0);
             } else {
-                lv_obj_set_style_bg_color(status_dot, lv_color_hex(0xFFFF00), 0); 
+                lv_obj_set_style_bg_color(status_dot, lv_color_hex(0xFFFF00), 0);
             }
         }
 
-        // OPTION B FIXED: Evaluate dirty status flags. Bypass execution completely 
-        // if zero modifications occurred in memory to completely save screen CPU load.
         if (!services::DxManager::is_dirty()) return;
 
         const services::DxSpot* raw_spots = services::DxManager::get_spots();
@@ -110,6 +108,7 @@ namespace ui {
             for (size_t i = 0; i < 20; i++) {
                 if (row_pool[i].base_row) lv_obj_add_flag(row_pool[i].base_row, LV_OBJ_FLAG_HIDDEN);
             }
+            if (lbl_comment) lv_label_set_text(lbl_comment, "STATUS: DX Cluster buffer empty.");
             return;
         }
 
@@ -119,15 +118,15 @@ namespace ui {
         for (size_t i = 0; i < total_raw && match_count < 20; i++) {
             if (match_band(raw_spots[i].freq, active_band_idx) && match_mode(raw_spots[i].mode, active_mode_idx)) {
                 displayed_spots[match_count] = &raw_spots[i];
-                
+
                 RowWidgets& rw = row_pool[match_count];
                 char buf[16];
 
                 lv_label_set_text(rw.lbl_call, raw_spots[i].dx_call);
-                
+
                 snprintf(buf, sizeof(buf), "%.3f", raw_spots[i].freq);
                 lv_label_set_text(rw.lbl_freq, buf);
-                
+
                 lv_label_set_text(rw.lbl_mode, raw_spots[i].mode);
                 lv_label_set_text(rw.lbl_spotter, raw_spots[i].spotter);
                 lv_label_set_text(rw.lbl_cmt, raw_spots[i].comment);
@@ -143,10 +142,21 @@ namespace ui {
             }
         }
 
-        // Restore scannable view containers post layout execution
         lv_obj_clear_flag(list_container, LV_OBJ_FLAG_HIDDEN);
 
-        // Acknowledge cache updates completed successfully
+        // --- NEW UX LOGIC: Dynamic Loading Status ---
+        if (lbl_comment) {
+            if (current_status == services::DX_STATUS_DISCONNECTED) {
+                lv_label_set_text(lbl_comment, "OFFLINE: Lost connection to DX Cluster node.");
+            } else if (current_status == services::DX_STATUS_CONNECTING) {
+                lv_label_set_text(lbl_comment, "SYNCING: Negotiating Telnet link with cluster...");
+            } else if (match_count == 0) {
+                lv_label_set_text(lbl_comment, "WAITING: No spots received yet. Listening...");
+            } else {
+                lv_label_set_text(lbl_comment, "COMMENT: Tap any row to read full string.");
+            }
+        }
+
         services::DxManager::clear_dirty();
     }
 

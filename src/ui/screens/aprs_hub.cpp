@@ -77,7 +77,7 @@ namespace ui {
             force_ui_refresh = false;
             const auto* st = services::AprsManager::get_stations();
             size_t c = services::AprsManager::get_station_count();
-            
+
             if (list_container && !lv_obj_has_flag(list_container, LV_OBJ_FLAG_HIDDEN)) {
                 lv_obj_add_flag(list_container, LV_OBJ_FLAG_HIDDEN);
                 int vis = 0;
@@ -89,16 +89,16 @@ namespace ui {
 
                     lv_label_set_text(rows[vis].l_call, st[i].callsign);
                     lv_label_set_text(rows[vis].l_type, st[i].type);
-                    
+
                     char dbuf[16]; snprintf(dbuf, sizeof(dbuf), "%.1f km", st[i].distance_km);
                     lv_label_set_text(rows[vis].l_dist, dbuf);
-                    
+
                     int brg_val = st[i].bearing_deg;
                     if (brg_val < 0 || brg_val >= 360) brg_val = 0;
                     const char* dirs[] = {"N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"};
                     int dir_idx = ((brg_val + 11) % 360) / 22;
                     if (dir_idx < 0 || dir_idx >= 16) dir_idx = 0;
-                    
+
                     char bbuf[16]; snprintf(bbuf, sizeof(bbuf), "%d\xC2\xB0 %s", brg_val, dirs[dir_idx]);
                     lv_label_set_text(rows[vis].l_brg, bbuf);
 
@@ -107,6 +107,17 @@ namespace ui {
                 }
                 for(int i = vis; i < 15; i++) lv_obj_add_flag(rows[i].base, LV_OBJ_FLAG_HIDDEN);
                 lv_obj_clear_flag(list_container, LV_OBJ_FLAG_HIDDEN);
+
+                // --- NEW UX LOGIC: Dynamic Loading Status ---
+                if (lbl_comment && lv_tabview_get_tab_active(tabview) == 0) {
+                    if (!services::AprsManager::is_connected()) {
+                        lv_label_set_text(lbl_comment, "OFFLINE: Establishing APRS-IS TCP/IP socket...");
+                    } else if (vis == 0) {
+                        lv_label_set_text(lbl_comment, "WAITING: No stations tracked. Awaiting beacons.");
+                    } else {
+                        lv_label_set_text(lbl_comment, "COMMENT: Touch any station row to inspect details.");
+                    }
+                }
             }
             services::AprsManager::clear_dirty();
         }
@@ -115,21 +126,29 @@ namespace ui {
             lv_obj_clean(msg_container);
             const auto* msgs = services::AprsManager::get_messages();
             size_t m_count = services::AprsManager::get_message_count();
-            
-            for(size_t i=0; i<m_count; i++) {
-                lv_obj_t* m_row = lv_obj_create(msg_container);
-                lv_obj_set_size(m_row, 310, 24);
-                lv_obj_set_style_bg_color(m_row, theme_color(COLOR_BG_PANEL), 0);
-                lv_obj_set_style_border_width(m_row, 0, 0);
-                lv_obj_set_style_pad_all(m_row, 2, 0);
-                
-                lv_obj_t* lbl = lv_label_create(m_row);
-                lv_label_set_long_mode(lbl, LV_LABEL_LONG_SCROLL_CIRCULAR);
-                lv_obj_set_width(lbl, 300);
-                lv_obj_set_style_text_font(lbl, &font_jetbrains_10, 0);
-                
-                char m_buf[96]; snprintf(m_buf, sizeof(m_buf), "%s: %s", msgs[i].from, msgs[i].text);
-                lv_label_set_text(lbl, m_buf);
+
+            if (m_count == 0) {
+                // --- NEW UX LOGIC ---
+                lv_obj_t* m_empty = lv_label_create(msg_container);
+                lv_label_set_text(m_empty, "Inbox empty. Listening for incoming messages...");
+                lv_obj_set_style_text_font(m_empty, &font_jetbrains_10, 0);
+                lv_obj_set_style_text_color(m_empty, theme_color(COLOR_TEXT_MUTED), 0);
+            } else {
+                for(size_t i=0; i<m_count; i++) {
+                    lv_obj_t* m_row = lv_obj_create(msg_container);
+                    lv_obj_set_size(m_row, 310, 24);
+                    lv_obj_set_style_bg_color(m_row, theme_color(COLOR_BG_PANEL), 0);
+                    lv_obj_set_style_border_width(m_row, 0, 0);
+                    lv_obj_set_style_pad_all(m_row, 2, 0);
+
+                    lv_obj_t* lbl = lv_label_create(m_row);
+                    lv_label_set_long_mode(lbl, LV_LABEL_LONG_SCROLL_CIRCULAR);
+                    lv_obj_set_width(lbl, 300);
+                    lv_obj_set_style_text_font(lbl, &font_jetbrains_10, 0);
+
+                    char m_buf[96]; snprintf(m_buf, sizeof(m_buf), "%s: %s", msgs[i].from, msgs[i].text);
+                    lv_label_set_text(lbl, m_buf);
+                }
             }
             services::AprsManager::clear_msg_dirty();
         }
@@ -139,11 +158,11 @@ namespace ui {
             bool is_conn = services::AprsManager::is_connected();
             lv_label_set_text(lbl_b_status, is_conn ? "STATUS: ACTIVE (APRS-IS Secure Link)" : "STATUS: OFFLINE (Reconnecting)");
             lv_obj_set_style_text_color(lbl_b_status, is_conn ? lv_color_hex(0x00FF00) : lv_color_hex(0xFF0000), 0);
-            
+
             char s_buf[64];
             snprintf(s_buf, sizeof(s_buf), "TX COUNT: %u times", services::AprsManager::get_tx_count());
             lv_label_set_text(lbl_b_txcount, s_buf);
-            
+
             uint32_t last = services::AprsManager::get_last_tx_time();
             if (last == 0) {
                 lv_label_set_text(lbl_b_last, "LAST TX: Never transmitted yet.");
@@ -152,15 +171,15 @@ namespace ui {
                 uint32_t elapsed_sec = (millis() - last) / 1000;
                 snprintf(s_buf, sizeof(s_buf), "LAST TX: %u mins %u secs ago", elapsed_sec / 60, elapsed_sec % 60);
                 lv_label_set_text(lbl_b_last, s_buf);
-                
+
                 int remaining = (30 * 60) - elapsed_sec; if(remaining < 0) remaining = 0;
                 snprintf(s_buf, sizeof(s_buf), "NEXT TX: scheduled in %u mins %u secs", remaining / 60, remaining % 60);
                 lv_label_set_text(lbl_b_next, s_buf);
             }
-            
+
             snprintf(s_buf, sizeof(s_buf), "LOCATION: %.4f N / %.4f E [Grid: %s]", cfg.lat, cfg.lon, cfg.grid);
             lv_label_set_text(lbl_b_loc, s_buf);
-            
+
             const char* human_sym = "Observer";
             if (strcmp(cfg.aprs_icon, "/[") == 0) human_sym = "Runner / Tactical Observer";
             else if (strcmp(cfg.aprs_icon, "/-") == 0) human_sym = "House / Fixed Base Station";
@@ -294,6 +313,9 @@ namespace ui {
             lv_obj_set_style_pad_all(r, 0, 0);
             lv_obj_clear_flag(r, LV_OBJ_FLAG_SCROLLABLE);
             lv_obj_add_flag(r, LV_OBJ_FLAG_CLICKABLE);
+
+            lv_obj_add_flag(r, LV_OBJ_FLAG_HIDDEN);
+
             lv_obj_add_event_cb(r, row_click, LV_EVENT_CLICKED, (void*)(intptr_t)i);
             
             rows[i].base = r;

@@ -135,9 +135,9 @@ namespace ui {
                 const auto* spots = services::PotaManager::get_spots();
                 size_t c = services::PotaManager::get_spot_count();
                 for(size_t i=0; i<c && vis < MAX_UI_ROWS; i++) {
-                    bool show = match_b(spots[i].freq, active_band) && 
-                                (active_mode == 0 || strcasecmp(spots[i].mode, MODES[active_mode])==0) &&
-                                (active_qrp == 0 || (active_qrp==1 && spots[i].is_qrp) || (active_qrp==2 && !spots[i].is_qrp));
+                    bool show = match_b(spots[i].freq, active_band) &&
+                    (active_mode == 0 || strcasecmp(spots[i].mode, MODES[active_mode])==0) &&
+                    (active_qrp == 0 || (active_qrp==1 && spots[i].is_qrp) || (active_qrp==2 && !spots[i].is_qrp));
                     if(show) {
                         lv_label_set_text(rows[vis].l_time, spots[i].time);
                         lv_label_set_text(rows[vis].l_ref, spots[i].reference);
@@ -145,10 +145,10 @@ namespace ui {
                         lv_label_set_text(rows[vis].l_freq, fb);
                         lv_label_set_text(rows[vis].l_mode, spots[i].mode);
                         lv_label_set_text(rows[vis].l_act, spots[i].activator);
-                        
+
                         lv_label_set_text(rows[vis].l_q, spots[i].is_qrp ? "•" : "-");
                         lv_obj_set_style_text_color(rows[vis].l_q, spots[i].is_qrp ? theme_color(COLOR_ACCENT_PRIMARY) : theme_color(COLOR_TEXT_MAIN), 0);
-                        
+
                         lv_obj_clear_flag(rows[vis].base, LV_OBJ_FLAG_HIDDEN);
                         vis++;
                     }
@@ -158,9 +158,9 @@ namespace ui {
                 const auto* spots = services::SotaManager::get_spots();
                 size_t c = services::SotaManager::get_spot_count();
                 for(size_t i=0; i<c && vis < MAX_UI_ROWS; i++) {
-                    bool show = match_b(spots[i].freq, active_band) && 
-                                (active_mode == 0 || strcasecmp(spots[i].mode, MODES[active_mode])==0) &&
-                                (active_qrp == 0 || (active_qrp==1 && spots[i].is_qrp) || (active_qrp==2 && !spots[i].is_qrp));
+                    bool show = match_b(spots[i].freq, active_band) &&
+                    (active_mode == 0 || strcasecmp(spots[i].mode, MODES[active_mode])==0) &&
+                    (active_qrp == 0 || (active_qrp==1 && spots[i].is_qrp) || (active_qrp==2 && !spots[i].is_qrp));
                     if(show) {
                         lv_label_set_text(rows[vis].l_time, spots[i].time);
                         lv_label_set_text(rows[vis].l_ref, spots[i].summit);
@@ -168,10 +168,10 @@ namespace ui {
                         lv_label_set_text(rows[vis].l_freq, fb);
                         lv_label_set_text(rows[vis].l_mode, spots[i].mode);
                         lv_label_set_text(rows[vis].l_act, spots[i].activator);
-                        
+
                         lv_label_set_text(rows[vis].l_q, spots[i].is_qrp ? "•" : "-");
                         lv_obj_set_style_text_color(rows[vis].l_q, spots[i].is_qrp ? theme_color(COLOR_ACCENT_PRIMARY) : theme_color(COLOR_TEXT_MAIN), 0);
-                        
+
                         lv_obj_clear_flag(rows[vis].base, LV_OBJ_FLAG_HIDDEN);
                         vis++;
                     }
@@ -181,6 +181,17 @@ namespace ui {
 
             for(int i=vis; i<MAX_UI_ROWS; i++) lv_obj_add_flag(rows[i].base, LV_OBJ_FLAG_HIDDEN);
             lv_obj_clear_flag(list_container, LV_OBJ_FLAG_HIDDEN);
+
+            // --- NEW UX LOGIC: Dynamic Loading Status ---
+            if (lbl_comment) {
+                if (fetching) {
+                    lv_label_set_text(lbl_comment, "SYNCING: Downloading spots from cloud API...");
+                } else if (vis == 0) {
+                    lv_label_set_text(lbl_comment, "No spots match current filters. Try changing bands.");
+                } else {
+                    lv_label_set_text(lbl_comment, "COMMENT: Tap a row to read.");
+                }
+            }
         }
     }
 
@@ -305,6 +316,9 @@ namespace ui {
             lv_obj_set_style_pad_all(r, 0, 0);
             lv_obj_clear_flag(r, LV_OBJ_FLAG_SCROLLABLE);
             lv_obj_add_flag(r, LV_OBJ_FLAG_CLICKABLE);
+
+            lv_obj_add_flag(r, LV_OBJ_FLAG_HIDDEN);
+
             lv_obj_add_event_cb(r, row_click, LV_EVENT_CLICKED, (void*)(intptr_t)i);
             
             rows[i].base = r;
