@@ -4,7 +4,7 @@ namespace meta {
 
     // System Branding & Platform Identity
     constexpr const char* FW_NAME        = "QRPickle";
-    constexpr const char* FW_VERSION     = "v0.1.9";
+    constexpr const char* FW_VERSION     = "v0.1.10-dev";
     constexpr const char* HARDWARE_PLAT  = "ESP32 CYD (2.8\" TFT)";
 
     // Project Ownership & Operational Credits
