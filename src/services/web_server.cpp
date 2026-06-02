@@ -3,6 +3,7 @@
 #include "ota_manager.h" 
 #include "display_manager.h"
 #include "cloud_ota.h"
+#include "aprs_manager.h"
 #include "../config/config.h"
 #include "../core/metadata.h"
 #include "../hw/sensor.h"
@@ -257,6 +258,43 @@ void web_server_init() {
             }
         }
         request->send(404, "application/json", "{\"status\":\"not_found\"}");
+    });
+
+    server.on("/api/aprs/send", HTTP_POST, [](AsyncWebServerRequest *request) {}, nullptr,
+              [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
+                  JsonDocument doc;
+                  DeserializationError err = deserializeJson(doc, data, len);
+
+                  if (!err && !doc["target"].isNull() && !doc["message"].isNull()) {
+                      String target = doc["target"].as<String>();
+                      String message = doc["message"].as<String>();
+
+                      // Route directly to the backend engine (false = not a silent ACK, so it shows on UI)
+                      services::AprsManager::send_message(target.c_str(), message.c_str(), false);
+
+                      request->send(200, "application/json", "{\"status\":\"success\"}");
+                  } else {
+                      request->send(400, "application/json", "{\"status\":\"failed\",\"error\":\"Invalid JSON payload\"}");
+                  }
+              }
+    );
+
+    server.on("/api/aprs/messages", HTTP_GET, [](AsyncWebServerRequest *request) {
+        AsyncResponseStream *response = request->beginResponseStream("application/json");
+        JsonDocument doc;
+        JsonArray arr = doc.to<JsonArray>();
+
+        const auto* msgs = services::AprsManager::get_messages();
+        size_t count = services::AprsManager::get_message_count();
+
+        for(size_t i = 0; i < count; i++) {
+            JsonObject obj = arr.add<JsonObject>();
+            obj["from"] = msgs[i].from;
+            obj["text"] = msgs[i].text;
+        }
+
+        serializeJson(doc, *response);
+        request->send(response);
     });
 
     server.on("/api/about", HTTP_GET, [](AsyncWebServerRequest *request) {

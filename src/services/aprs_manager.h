@@ -39,7 +39,7 @@ namespace services {
         static void clear_msg_dirty();
         
         // Thread-safe injection into the TX socket queue
-        static void send_message(const char* target_callsign, const char* message_body);
+        static void send_message(const char* target_callsign, const char* message_body, bool silent = false);
 
         // Beacon Stats Endpoints
         static uint32_t get_tx_count() { return tx_count; }

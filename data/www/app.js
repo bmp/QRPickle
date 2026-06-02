@@ -3,7 +3,10 @@ document.addEventListener("DOMContentLoaded", () => {
     loadCurrentConfig();
     
     // Core Background Telemetry Thread Poller Loop
-    setInterval(fetchSystemTelemetry, 3000);
+    setInterval(() => {
+        fetchSystemTelemetry();
+        fetchAprsMessages();
+    }, 3000);
 });
 
 // Defensive Value Mappers to safeguard against thread stalls
@@ -515,3 +518,59 @@ document.addEventListener("DOMContentLoaded", () => {
     attachGridAutoCalc("cfg-lat", "cfg-lon", "cfg-grid");           // Basic Settings Tab
     attachGridAutoCalc("prof-edit-lat", "prof-edit-lon", "prof-edit-grid"); // Profiles Tab
 });
+
+// --- APRS MESSAGING WEB CLIENT ---
+function sendAprsMessage() {
+    const target = getElementValue("aprs-msg-target").trim();
+    const body = getElementValue("aprs-msg-body").trim();
+    const statusBox = document.getElementById("aprs-msg-status");
+
+    if (!target || !body) {
+        alert("Both Target Callsign and Message Payload are required.");
+        return;
+    }
+
+    statusBox.innerText = `Queuing message to ${target} via TCP/IP...`;
+
+    fetch("/api/aprs/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ target: target, message: body })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === "success") {
+            statusBox.innerText = `[SUCCESS] Payload injected into TX queue for ${target}:\n${body}`;
+            document.getElementById("aprs-msg-body").value = ""; // Clear text body on success
+        } else {
+            statusBox.innerText = `[FAILED] ${data.error || "Unknown backend error."}`;
+        }
+    })
+    .catch(err => {
+        statusBox.innerText = `[NETWORK ERROR] Could not reach device: ${err}`;
+    });
+}
+
+function fetchAprsMessages() {
+    const tab = document.getElementById("tab-aprsmsg");
+    if (!tab || !tab.classList.contains("active")) return;
+
+    fetch("/api/aprs/messages")
+    .then(res => res.json())
+    .then(data => {
+        const inbox = document.getElementById("aprs-msg-inbox");
+        if (data.length === 0) {
+            inbox.innerHTML = '<span style="color: var(--text-muted)">Inbox empty. Listening for incoming messages...</span>';
+            return;
+        }
+
+        let html = "";
+        data.forEach(msg => {
+            html += `<div style="padding: 6px; border-bottom: 1px solid var(--border); margin-bottom: 4px;">
+            <strong style="color: var(--accent);">${msg.from}</strong>: ${msg.text}
+            </div>`;
+        });
+        inbox.innerHTML = html;
+    })
+    .catch(err => console.warn("Failed to fetch APRS messages", err));
+}

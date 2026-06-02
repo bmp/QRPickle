@@ -62,50 +62,39 @@ namespace services {
         loop_last_beacon_millis = 0; 
     }
 
-    void AprsManager::send_message(const char* target, const char* message) {
-        Serial.printf("\n[APRS-UI] User requested to send message.\n");
-        Serial.printf("  -> Target: '%s'\n", target);
-        Serial.printf("  -> Payload: '%s'\n", message);
-
+    void AprsManager::send_message(const char* target, const char* message, bool silent) {
         auto& cfg = config::get();
-        if (!connected) {
-            Serial.println("[APRS-TX] ABORTED: Not connected to APRS-IS.");
-            return;
-        }
-        if (!tx_msg_queue) {
-            Serial.println("[APRS-TX] ABORTED: TX Queue memory not allocated.");
-            return;
-        }
-        if (strlen(target) == 0 || strlen(message) == 0) {
-            Serial.println("[APRS-TX] ABORTED: Target or Message is completely empty.");
-            return;
-        }
+        if (!connected || !tx_msg_queue) return;
+        if (strlen(target) == 0 || strlen(message) == 0) return;
 
+        // Force Sender to Uppercase
         char src_call[16];
-        if (cfg.aprs_ssid == 0) {
-            snprintf(src_call, sizeof(src_call), "%s", cfg.callsign);
-        } else {
-            snprintf(src_call, sizeof(src_call), "%s-%d", cfg.callsign, cfg.aprs_ssid);
-        }
+        if (cfg.aprs_ssid == 0) snprintf(src_call, sizeof(src_call), "%s", cfg.callsign);
+        else snprintf(src_call, sizeof(src_call), "%s-%d", cfg.callsign, cfg.aprs_ssid);
+        for (int i = 0; src_call[i]; i++) src_call[i] = toupper(src_call[i]);
 
+        // Force Target to Uppercase & strict 9-character padding
         char padded_target[10] = "         ";
-        memcpy(padded_target, target, min(strlen(target), (size_t)9));
+        for (size_t i = 0; i < 9 && target[i] != '\0'; i++) {
+            padded_target[i] = toupper(target[i]);
+        }
 
         snprintf(tx_msg_queue, 160, "%s>APRS,TCPIP*::%s:%s\r\n", src_call, padded_target, message);
-        
         tx_msg_pending = true;
         Serial.printf("[APRS-TX] Queued for network stream: %s", tx_msg_queue);
 
-        if (message_count < 10) {
-            strncpy(messages[message_count].from, target, 15);
-            snprintf(messages[message_count].text, 63, "[TX] %s", message);
-            message_count++;
-        } else {
-            for(int i=0; i<9; i++) messages[i] = messages[i+1];
-            strncpy(messages[9].from, target, 15);
-            snprintf(messages[9].text, 63, "[TX] %s", message);
+        if (!silent) {
+            if (message_count < 10) {
+                strncpy(messages[message_count].from, target, 15);
+                snprintf(messages[message_count].text, 63, "[TX] %s", message);
+                message_count++;
+            } else {
+                for(int i=0; i<9; i++) messages[i] = messages[i+1];
+                strncpy(messages[9].from, target, 15);
+                snprintf(messages[9].text, 63, "[TX] %s", message);
+            }
+            msg_dirty = true;
         }
-        msg_dirty = true;
     }
 
     void AprsManager::sort_stations(bool ascending) {
@@ -268,16 +257,40 @@ namespace services {
         auto& cfg = config::get();
         if (strlen(info) < 11 || info[0] != ':') return;
 
-        char target_check[16];
-        if (cfg.aprs_ssid == 0) snprintf(target_check, sizeof(target_check), "%s", cfg.callsign);
-        else snprintf(target_check, sizeof(target_check), "%s-%d", cfg.callsign, cfg.aprs_ssid);
-        
-        char padded_target[10] = "         ";
-        memcpy(padded_target, target_check, min(strlen(target_check), (size_t)9));
+        // Extract the 9-character destination from the packet and trim it
+        char rx_target[10];
+        memcpy(rx_target, info + 1, 9);
+        rx_target[9] = '\0';
+        for (int i = 8; i >= 0; i--) {
+            if (rx_target[i] == ' ') rx_target[i] = '\0';
+            else break;
+        }
 
-        if (memcmp(info + 1, padded_target, 9) == 0 && info[10] == ':') {
-            const char* msg_body = info + 11;
-            
+        // Must match our base callsign (case-insensitive) to catch any SSID variant
+        if (strncasecmp(rx_target, cfg.callsign, strlen(cfg.callsign)) != 0) return;
+
+        if (info[10] == ':') {
+            char msg_body[64];
+            strncpy(msg_body, info + 11, 63);
+            msg_body[63] = '\0';
+
+            // Check for Message ID requiring an ACK
+            char* ack_start = strrchr(msg_body, '{');
+            if (ack_start) {
+                *ack_start = '\0'; // Strip the '{ID' from the display string
+                char ack_id[10];
+                strncpy(ack_id, ack_start + 1, 9);
+                ack_id[9] = '\0';
+
+                // Send silent Auto-ACK directly back to the sender
+                char ack_payload[16];
+                snprintf(ack_payload, sizeof(ack_payload), "ack%s", ack_id);
+                send_message(call, ack_payload, true);
+            }
+
+            // Hide incoming network ACKs so they don't clutter the user's chat screen
+            if (strncasecmp(msg_body, "ack", 3) == 0) return;
+
             if (message_count < 10) {
                 strncpy(messages[message_count].from, call, 15);
                 strncpy(messages[message_count].text, msg_body, 63);
@@ -289,7 +302,7 @@ namespace services {
             }
             msg_dirty = true;
 
-            // NEW: Inbound directed radio transmission alert! Trigger 3s intense White/Magenta Strobe
+            // Inbound directed radio transmission alert! Trigger 3s intense White/Magenta Strobe
             hw::led_rgb::trigger_priority_strobe();
         }
     }
@@ -340,8 +353,8 @@ namespace services {
                     if (cfg.aprs_ssid == 0) snprintf(src_call, sizeof(src_call), "%s", cfg.callsign);
                     else snprintf(src_call, sizeof(src_call), "%s-%d", cfg.callsign, cfg.aprs_ssid);
 
-                    snprintf(login, sizeof(login), "user %s pass %s vers QRPickle 1.0 filter r/%.2f/%.2f/50\r\n", 
-                             src_call, cfg.aprs_passcode, cfg.lat, cfg.lon);
+                    snprintf(login, sizeof(login), "user %s pass %s vers QRPickle 1.0 filter r/%.2f/%.2f/50 p/%s\r\n",
+                             src_call, cfg.aprs_passcode, cfg.lat, cfg.lon, cfg.callsign);
                     client.print(login);
                     connected = true;
                     loop_last_beacon_millis = 0; 

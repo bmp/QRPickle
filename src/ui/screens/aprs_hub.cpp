@@ -19,7 +19,8 @@ namespace ui {
     static int active_type_idx = 0; 
     static const char* FILTER_TYPES[] = {"TYPE: ALL", "PORTABLE", "RUNNER", "RADIOS", "FIXED"};
     static bool sort_ascending = true;
-    static bool force_ui_refresh = false; 
+    static bool force_ui_refresh = false;
+    static bool force_msg_refresh = false;
 
     static lv_obj_t* lbl_b_status = nullptr;
     static lv_obj_t* lbl_b_txcount = nullptr;
@@ -108,7 +109,6 @@ namespace ui {
                 for(int i = vis; i < 15; i++) lv_obj_add_flag(rows[i].base, LV_OBJ_FLAG_HIDDEN);
                 lv_obj_clear_flag(list_container, LV_OBJ_FLAG_HIDDEN);
 
-                // --- NEW UX LOGIC: Dynamic Loading Status ---
                 if (lbl_comment && lv_tabview_get_tab_active(tabview) == 0) {
                     if (!services::AprsManager::is_connected()) {
                         lv_label_set_text(lbl_comment, "OFFLINE: Establishing APRS-IS TCP/IP socket...");
@@ -122,32 +122,35 @@ namespace ui {
             services::AprsManager::clear_dirty();
         }
 
-        if (services::AprsManager::is_msg_dirty() && msg_container) {
-            lv_obj_clean(msg_container);
-            const auto* msgs = services::AprsManager::get_messages();
-            size_t m_count = services::AprsManager::get_message_count();
+        if (services::AprsManager::is_msg_dirty() || force_msg_refresh) {
+            force_msg_refresh = false;
 
-            if (m_count == 0) {
-                // --- NEW UX LOGIC ---
-                lv_obj_t* m_empty = lv_label_create(msg_container);
-                lv_label_set_text(m_empty, "Inbox empty. Listening for incoming messages...");
-                lv_obj_set_style_text_font(m_empty, &font_jetbrains_10, 0);
-                lv_obj_set_style_text_color(m_empty, theme_color(COLOR_TEXT_MUTED), 0);
-            } else {
-                for(size_t i=0; i<m_count; i++) {
-                    lv_obj_t* m_row = lv_obj_create(msg_container);
-                    lv_obj_set_size(m_row, 310, 24);
-                    lv_obj_set_style_bg_color(m_row, theme_color(COLOR_BG_PANEL), 0);
-                    lv_obj_set_style_border_width(m_row, 0, 0);
-                    lv_obj_set_style_pad_all(m_row, 2, 0);
+            if (msg_container) {
+                lv_obj_clean(msg_container);
+                const auto* msgs = services::AprsManager::get_messages();
+                size_t m_count = services::AprsManager::get_message_count();
 
-                    lv_obj_t* lbl = lv_label_create(m_row);
-                    lv_label_set_long_mode(lbl, LV_LABEL_LONG_SCROLL_CIRCULAR);
-                    lv_obj_set_width(lbl, 300);
-                    lv_obj_set_style_text_font(lbl, &font_jetbrains_10, 0);
+                if (m_count == 0) {
+                    lv_obj_t* m_empty = lv_label_create(msg_container);
+                    lv_label_set_text(m_empty, "Inbox empty. Listening for incoming messages...");
+                    lv_obj_set_style_text_font(m_empty, &font_jetbrains_10, 0);
+                    lv_obj_set_style_text_color(m_empty, theme_color(COLOR_TEXT_MUTED), 0);
+                } else {
+                    for(size_t i=0; i<m_count; i++) {
+                        lv_obj_t* m_row = lv_obj_create(msg_container);
+                        lv_obj_set_size(m_row, 310, 24);
+                        lv_obj_set_style_bg_color(m_row, theme_color(COLOR_BG_PANEL), 0);
+                        lv_obj_set_style_border_width(m_row, 0, 0);
+                        lv_obj_set_style_pad_all(m_row, 2, 0);
 
-                    char m_buf[96]; snprintf(m_buf, sizeof(m_buf), "%s: %s", msgs[i].from, msgs[i].text);
-                    lv_label_set_text(lbl, m_buf);
+                        lv_obj_t* lbl = lv_label_create(m_row);
+                        lv_label_set_long_mode(lbl, LV_LABEL_LONG_SCROLL_CIRCULAR);
+                        lv_obj_set_width(lbl, 300);
+                        lv_obj_set_style_text_font(lbl, &font_jetbrains_10, 0);
+
+                        char m_buf[96]; snprintf(m_buf, sizeof(m_buf), "%s: %s", msgs[i].from, msgs[i].text);
+                        lv_label_set_text(lbl, m_buf);
+                    }
                 }
             }
             services::AprsManager::clear_msg_dirty();
@@ -313,9 +316,7 @@ namespace ui {
             lv_obj_set_style_pad_all(r, 0, 0);
             lv_obj_clear_flag(r, LV_OBJ_FLAG_SCROLLABLE);
             lv_obj_add_flag(r, LV_OBJ_FLAG_CLICKABLE);
-
             lv_obj_add_flag(r, LV_OBJ_FLAG_HIDDEN);
-
             lv_obj_add_event_cb(r, row_click, LV_EVENT_CLICKED, (void*)(intptr_t)i);
             
             rows[i].base = r;
@@ -326,7 +327,6 @@ namespace ui {
         }
         lv_obj_clear_flag(list_container, LV_OBJ_FLAG_HIDDEN);
 
-        // --- FIXED: Shrunk message container to fit the compose button ---
         msg_container = lv_obj_create(t2);
         lv_obj_set_size(msg_container, 312, 124); 
         lv_obj_align(msg_container, LV_ALIGN_TOP_MID, 0, 0);
@@ -337,7 +337,6 @@ namespace ui {
         lv_obj_set_style_pad_row(msg_container, 4, 0);
         lv_obj_add_flag(msg_container, LV_OBJ_FLAG_SCROLLABLE);
 
-        // --- NEW: Inject the Compose Button ---
         lv_obj_t* btn_compose = lv_button_create(t2);
         lv_obj_set_size(btn_compose, 312, 24);
         lv_obj_align(btn_compose, LV_ALIGN_BOTTOM_MID, 0, 0); 
@@ -364,10 +363,10 @@ namespace ui {
 
         lbl_b_status = lv_label_create(b_card);  lv_obj_set_style_text_font(lbl_b_status, &font_jetbrains_10, 0); lv_obj_align(lbl_b_status, LV_ALIGN_TOP_LEFT, 2, 2);
         lbl_b_txcount = lv_label_create(b_card); lv_obj_set_style_text_font(lbl_b_txcount, &font_jetbrains_10, 0); lv_obj_set_style_text_color(lbl_b_txcount, theme_color(COLOR_TEXT_MAIN), 0); lv_obj_align(lbl_b_txcount, LV_ALIGN_TOP_RIGHT, -2, 2);
-        lbl_b_last = lv_label_create(b_card);    lv_obj_set_style_text_font(lbl_b_last, &font_jetbrains_10, 0); lv_obj_set_style_text_color(lbl_b_last, theme_color(COLOR_TEXT_MAIN), 0); lv_obj_align(lbl_b_last, LV_ALIGN_TOP_LEFT, 2, 16);
-        lbl_b_next = lv_label_create(b_card);    lv_obj_set_style_text_font(lbl_b_next, &font_jetbrains_10, 0); lv_obj_set_style_text_color(lbl_b_next, theme_color(COLOR_TEXT_MUTED), 0); lv_obj_align(lbl_b_next, LV_ALIGN_TOP_LEFT, 2, 30);
-        lbl_b_loc = lv_label_create(b_card);     lv_obj_set_style_text_font(lbl_b_loc, &font_jetbrains_10, 0); lv_obj_set_style_text_color(lbl_b_loc, theme_color(COLOR_TEXT_MAIN), 0); lv_obj_align(lbl_b_loc, LV_ALIGN_TOP_LEFT, 2, 48);
-        lbl_b_sym = lv_label_create(b_card);     lv_obj_set_style_text_font(lbl_b_sym, &font_jetbrains_10, 0); lv_obj_set_style_text_color(lbl_b_sym, theme_color(COLOR_TEXT_MAIN), 0); lv_obj_align(lbl_b_sym, LV_ALIGN_TOP_LEFT, 2, 62);
+        lbl_b_last = lv_label_create(b_card);   lv_obj_set_style_text_font(lbl_b_last, &font_jetbrains_10, 0); lv_obj_set_style_text_color(lbl_b_last, theme_color(COLOR_TEXT_MAIN), 0); lv_obj_align(lbl_b_last, LV_ALIGN_TOP_LEFT, 2, 16);
+        lbl_b_next = lv_label_create(b_card);   lv_obj_set_style_text_font(lbl_b_next, &font_jetbrains_10, 0); lv_obj_set_style_text_color(lbl_b_next, theme_color(COLOR_TEXT_MUTED), 0); lv_obj_align(lbl_b_next, LV_ALIGN_TOP_LEFT, 2, 30);
+        lbl_b_loc = lv_label_create(b_card);    lv_obj_set_style_text_font(lbl_b_loc, &font_jetbrains_10, 0); lv_obj_set_style_text_color(lbl_b_loc, theme_color(COLOR_TEXT_MAIN), 0); lv_obj_align(lbl_b_loc, LV_ALIGN_TOP_LEFT, 2, 48);
+        lbl_b_sym = lv_label_create(b_card);    lv_obj_set_style_text_font(lbl_b_sym, &font_jetbrains_10, 0); lv_obj_set_style_text_color(lbl_b_sym, theme_color(COLOR_TEXT_MAIN), 0); lv_obj_align(lbl_b_sym, LV_ALIGN_TOP_LEFT, 2, 62);
         
         lbl_b_payload = lv_label_create(b_card);
         lv_label_set_long_mode(lbl_b_payload, LV_LABEL_LONG_SCROLL_CIRCULAR);
@@ -397,8 +396,8 @@ namespace ui {
             if (rows) { free(rows); rows = nullptr; }
         }, LV_EVENT_DELETE, NULL);
 
-        services::AprsManager::clear_dirty();
-        services::AprsManager::clear_msg_dirty();
+        force_ui_refresh = true;
+        force_msg_refresh = true;
         services::AprsManager::sort_stations(sort_ascending);
         
         ui_timer = lv_timer_create(update_hub_ui, 300, NULL);

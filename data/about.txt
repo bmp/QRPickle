@@ -1,26 +1,19 @@
-QRPPickle
+QRPickle
 
-This is a custom-built, open-source dashboard and environmental monitor for mateur radio operators, utilizing the ESP32 platform.
+This is a custom-built, open-source dashboard and environmental monitor for amateur radio operators, utilizing the ESP32 platform.
 
 It is a highly opinionated take on a HAM Clock, with QRP field operations being the first-class citizen use-case.
 
-Features:
-- Live Local and UTC Time tracking
-- Native Web Configuration Portal
-- Live Wi-Fi & NTP Synchronization
-- Live Wx data (BME280 I2C Sensor & OpenWeatherMap API)
-- Forecast Wx data from OpenWeatherMap API
-- DX Clusters using Telnet
-- xOTA spots (currently has POTA and SOTA) using HTTP
-- Band conditions and Solar propogation
-- HamAlert triggers via Telnet
-- APRS-IS, APRS Wx transmit and APRS messaging using Telnet
-- Spotting through AP2SOTA and POTAGW from APRS
-- OTA Updates
-- Turning off screen with a timer
-- Profiles for easier switching in the field
-- LED colour status blinking
-- Ambient brightness control
+Core Features:
+- APRS-IS Hub: Live station tracking, tactical Radar view, custom macros, and direct bidirectional messaging with Auto-ACK via Telnet.
+- xOTA Spotting: Heap-protected HTTP fetching for live POTA & SOTA spots, plus reverse spotting via AP2SOTA and POTAGW.
+- DX Cluster & HamAlert: Stream-buffered asynchronous TCP Telnet sockets for background spot listening and trigger alerts.
+- Solar & Propagation: Live K-Index, A-Index, and SFI evaluation using standard propagation models for HF band conditions.
+- Weather Telemetry: Live local environment data (BME280 sensor) combined with OpenWeatherMap API for bitmask-driven 24-hour forecasting.
+- Dynamic Staged Profiles: Quick hot-swapping of configurations (Callsign, Grid, Lat/Lon, Wi-Fi, Themes) via LittleFS for Home, Mobile, or Field ops.
+- Tactical Themes: Driven by LVGL 9, featuring high-contrast modes including Tactical Field Red, Slate Dark, Terminal Green, and E-Ink simulations.
+- Hardware Management: Adaptive LDR brightness control, configurable screen-sleep timers, and background RGB LED telemetry status pulses.
+- Resilient Connectivity: Setup AP fallback (192.168.4.1), automated UTC NTP sync, and dual-mode OTA updates (Manual Web & Automated Cloud GitHub flashing).
 
 Created by VU3GLJ with LLMs.
 

@@ -36,7 +36,7 @@ When on the same network, navigate to the device's IP address to access the inte
 | **Staged Profile Management** | **Live Hardware Telemetry** |
 | <img src="docs/screenshots/Profiles.png" alt="Profiles" width="400"> | <img src="docs/screenshots/SysInfo.png" alt="System Info" width="400"> |
 | **Over-The-Air (OTA) Firmware Flashing** | |
-| <img src="docs/screenshots/OTA.png" alt="OTA Updates" width="400"> | |
+| <img src="docs/screenshots/OTA.png" alt="OTA Updates" width="400"> | <img src="docs/screenshots/APRS_Msg.png" alt="APRS Messaging" width="400"> |
 
 
 
