@@ -79,7 +79,7 @@ function loadCurrentConfig() {
             setElementValue("cfg-callsign", data.callsign || "");
             setElementValue("cfg-grid", data.grid || "");
             setElementValue("cfg-ssid", data.ssid || "");
-            setElementValue("cfg-password", ""); 
+            setElementValue("cfg-password", data.password || "");
             setElementValue("cfg-lat", data.lat ?? 12.97);
             setElementValue("cfg-lon", data.lon ?? 77.59);
             setElementValue("cfg-offset", (data.offset ?? 5.5) * 2.0 / 2.0); 
@@ -316,6 +316,8 @@ function handleProfileSelectionChange() {
             if (inspectPanel) inspectPanel.classList.remove("hidden");
             setElementValue("prof-edit-callsign", data.callsign || "");
             setElementValue("prof-edit-grid", data.grid || "");
+            setElementValue("prof-edit-lat", data.lat ?? 12.97);
+            setElementValue("prof-edit-lon", data.lon ?? 77.59);
             setElementValue("prof-edit-ssid", data.ssid || "");
             setElementValue("prof-edit-password", data.password || "");
             setElementValue("prof-edit-offset", data.offset ?? 0);
@@ -464,3 +466,52 @@ function triggerCloudFlash() {
     .then(() => alert("Cloud update initiated. Device will reboot automatically upon completion."))
     .catch(err => alert("Transmission failed."));
 }
+
+// --- AUTO GRID SQUARE CALCULATOR ---
+function calcGridSquare(lat, lon) {
+    if (isNaN(lat) || isNaN(lon)) return "";
+
+    lon += 180;
+    lat += 90;
+
+    const A = String.fromCharCode(65 + Math.floor(lon / 20));
+    const B = String.fromCharCode(65 + Math.floor(lat / 10));
+
+    lon = lon % 20;
+    lat = lat % 10;
+
+    const C = Math.floor(lon / 2).toString();
+    const D = Math.floor(lat / 1).toString();
+
+    lon = (lon % 2) * 60;
+    lat = (lat % 1) * 60;
+
+    const E = String.fromCharCode(97 + Math.floor(lon / 5)); // lowercase
+    const F = String.fromCharCode(97 + Math.floor(lat / 2.5)); // lowercase
+
+    return `${A}${B}${C}${D}${E}${F}`;
+}
+
+function attachGridAutoCalc(latId, lonId, gridId) {
+    const latEl = document.getElementById(latId);
+    const lonEl = document.getElementById(lonId);
+    const gridEl = document.getElementById(gridId);
+
+    if (!latEl || !lonEl || !gridEl) return;
+
+    const updateGrid = () => {
+        const lat = parseFloat(latEl.value);
+        const lon = parseFloat(lonEl.value);
+        const grid = calcGridSquare(lat, lon);
+        if (grid) gridEl.value = grid;
+    };
+
+        latEl.addEventListener("input", updateGrid);
+        lonEl.addEventListener("input", updateGrid);
+}
+
+// Attach the auto-calculators after the DOM loads
+document.addEventListener("DOMContentLoaded", () => {
+    attachGridAutoCalc("cfg-lat", "cfg-lon", "cfg-grid");           // Basic Settings Tab
+    attachGridAutoCalc("prof-edit-lat", "prof-edit-lon", "prof-edit-grid"); // Profiles Tab
+});

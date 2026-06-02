@@ -204,12 +204,23 @@
                             <input type="text" id="prof-edit-grid" maxlength="6">
                         </div>
                         <div class="form-group">
+                            <label>Profile Latitude</label>
+                            <input type="number" id="prof-edit-lat" step="0.00001" min="-90" max="90">
+                        </div>
+                        <div class="form-group">
+                            <label>Profile Longitude</label>
+                            <input type="number" id="prof-edit-lon" step="0.00001" min="-180" max="180">
+                        </div>
+                        <div class="form-group">
                             <label>Profile Network SSID</label>
                             <input type="text" id="prof-edit-ssid" maxlength="32">
                         </div>
                         <div class="form-group">
                             <label>Profile Network Password</label>
-                            <input type="password" id="prof-edit-password" maxlength="63">
+                            <div class="password-wrapper">
+                                <input type="password" id="prof-edit-password" maxlength="63">
+                                <button class="eye-toggle" type="button" onclick="togglePass('prof-edit-password')">👁</button>
+                            </div>
                         </div>
                         <div class="form-group">
                             <label>UTC Offset (Hours)</label>
@@ -268,7 +279,10 @@
                         </div>
                         <div class="form-group" style="grid-column: span 2;">
                             <label>Profile OpenWeatherMap API Token</label>
-                            <input type="password" id="prof-edit-apikey" placeholder="Profile API Key...">
+                            <div class="password-wrapper">
+                                <input type="password" id="prof-edit-apikey" placeholder="Profile API Key...">
+                                <button class="eye-toggle" type="button" onclick="togglePass('prof-edit-apikey')">👁</button>
+                            </div>
                         </div>
                         <div class="form-group" style="grid-column: span 2;">
                             <label>APRS Comment</label>
