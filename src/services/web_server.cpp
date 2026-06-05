@@ -4,8 +4,8 @@
 #include "display_manager.h"
 #include "cloud_ota.h"
 #include "aprs_manager.h"
-#include "dx_manager.h"        // NEW: Explicit inclusion to stop background hooks
-#include "hamalert_manager.h"  // NEW: Explicit inclusion to dismantle task stack
+#include "dx_manager.h"        
+#include "hamalert_manager.h"  
 #include "../config/config.h"
 #include "../core/metadata.h"
 #include "../hw/sensor.h"
@@ -22,6 +22,7 @@
 static AsyncWebServer server(80);
 static bool flag_trigger_reboot = false;
 static bool flag_trigger_ui_refresh = false;
+static bool flag_trigger_ota_flash = false; // NEW: Safe main-loop execution flag
 static unsigned long reboot_timer_mark = 0;
 
 const char fallback_html[] PROGMEM = R"rawhtml(
@@ -377,34 +378,56 @@ void web_server_init() {
     });
 
     server.on("/api/cloud_ota/flash", HTTP_POST, [](AsyncWebServerRequest *request) {
+        // Just send success back to the browser and flip the execution flag.
+        // We MUST exit this async callback context before trying to kill the server!
         request->send(200, "application/json", "{\"status\":\"flashing\"}");
-        
-        // TOTAL SYSTEM LOCKDOWN: Stop background daemons to destroy RTOS task stacks
-        Serial.println("[SYSTEM-LOCKDOWN] Purging background background managers to recover contiguous heap segments...");
-        services::DxManager::stop();
-        services::HamAlertManager::stop();
-        services::AprsManager::stop();
-        delay(500); // Give background task monitors time to safely yield and destroy task handles
-        
-        // Stop Async Web Server
-        Serial.println("[SYSTEM-LOCKDOWN] Terminating async listener sockets...");
-        web_server_stop(); 
-        delay(1000); // Allow active context buffers to dissolve
-        
-        services::cloud_ota::execute_firmware_flash();
+        flag_trigger_ota_flash = true; 
     });
 
     server.begin();
 }
 
 void web_server_stop() { server.end(); }
+
 void web_server_update() {
     if (flag_trigger_ui_refresh) {
         flag_trigger_ui_refresh = false;
         ui::status_bar_refresh_theme();
         services::display_manager::set_brightness(config::get().brightness);  
     }
+    
     if (flag_trigger_reboot && (millis() - reboot_timer_mark > 1500)) {
         ESP.restart();
+    }
+
+    // THE INFINITE STASIS TRAP
+    // This executes safely inside the main core loop.
+    if (flag_trigger_ota_flash) {
+        flag_trigger_ota_flash = false;
+        
+        Serial.println("[SYSTEM-LOCKDOWN] Main loop intercepted! Securing network state...");
+        
+        // 1. Destroy the background task stacks (recovers ~15KB RAM)
+        services::DxManager::stop();
+        services::HamAlertManager::stop();
+        services::AprsManager::stop();
+        delay(1000); 
+
+        // 2. Shut down the web server safely from the main thread
+        Serial.println("[SYSTEM-LOCKDOWN] Terminating asynchronous web server listener...");
+        web_server_stop(); 
+        delay(1500); // Allow LwIP to finalize socket closure
+        
+        // 3. Dispatch the OTA worker
+        Serial.println("[SYSTEM-LOCKDOWN] All background activity halted. Commencing OTA flash...");
+        services::cloud_ota::execute_firmware_flash();
+        
+        // 4. Trap the main loop forever!
+        // This physically prevents weather_manager, timekeeper, or UI from waking up
+        // and opening new HTTPS streams while the OTA worker finishes.
+        Serial.println("[SYSTEM-LOCKDOWN] Device entering Stasis. Awaiting auto-reboot...");
+        while (true) {
+            delay(100); // Feed the watchdog timer safely
+        }
     }
 }
