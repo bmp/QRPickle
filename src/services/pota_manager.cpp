@@ -1,5 +1,5 @@
 #include "pota_manager.h"
-#include "../core/metadata.h" // NEW: Pulls dynamic version
+#include "../core/metadata.h" 
 #include <Arduino.h>
 #include <WiFiClientSecure.h>
 #include <HTTPClient.h>
@@ -101,10 +101,12 @@ namespace services {
         http.useHTTP10(true); 
         http.begin(secureClient, "https://api.pota.app/spot/activator");
         
-        // DYNAMIC USER AGENT
         char user_agent[64];
         snprintf(user_agent, sizeof(user_agent), "%s/%s", meta::FW_NAME, meta::FW_VERSION);
         http.addHeader("User-Agent", user_agent); 
+        
+        // FIXED: Hard-closes the link instantly to clear lingering cache sockets
+        http.addHeader("Connection", "close"); 
         
         http.setTimeout(8000); 
 

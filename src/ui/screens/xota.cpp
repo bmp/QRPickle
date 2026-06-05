@@ -6,6 +6,7 @@
 #include "../../services/sota_manager.h"
 #include "../../services/dx_manager.h"       
 #include "../../services/hamalert_manager.h" 
+#include "../../services/aprs_manager.h"    // NEW: Include to reclaim the 10KB stack
 #include <cstdio>
 #include <cstring>
 #include <strings.h>
@@ -27,7 +28,7 @@ namespace ui {
     static lv_obj_t* btn_qrp = nullptr;
     static lv_obj_t* list_container = nullptr;
     static lv_obj_t* lbl_comment = nullptr;
-    static lv_obj_t* lbl_loading = nullptr; // NEW: The big centered loading text
+    static lv_obj_t* lbl_loading = nullptr; 
     static lv_obj_t* status_dot = nullptr;
     static lv_timer_t* ui_timer = nullptr;
     static lv_timer_t* delayed_fetch_timer = nullptr;
@@ -121,7 +122,6 @@ namespace ui {
         }
 
         if (needs_fetch) {
-            // Hide the table and show the big centered text
             if (list_container) lv_obj_add_flag(list_container, LV_OBJ_FLAG_HIDDEN);
             if (lbl_loading) lv_obj_clear_flag(lbl_loading, LV_OBJ_FLAG_HIDDEN);
             
@@ -175,7 +175,6 @@ namespace ui {
         }
 
         if (dirty || t == nullptr) { 
-            // Fetch finished, hide the big text
             if (lbl_loading) lv_obj_add_flag(lbl_loading, LV_OBJ_FLAG_HIDDEN);
             
             lv_obj_add_flag(list_container, LV_OBJ_FLAG_HIDDEN);
@@ -235,6 +234,7 @@ namespace ui {
         Serial.println("[xOTA] Quiet period ended. Re-establishing core TCP sockets...");
         services::DxManager::start();
         services::HamAlertManager::start();
+        services::AprsManager::start(); // RESTORED: APRS monitoring loop resumes cleanly
         vTaskDelete(NULL);
     }
 
@@ -242,6 +242,7 @@ namespace ui {
         Serial.println("[xOTA] Entry. Suspending core monitoring sockets to free RAM...");
         services::DxManager::stop();
         services::HamAlertManager::stop();
+        services::AprsManager::stop(); // NEW: Halts 10KB APRS task loop immediately on entry
 
         if (!rows) {
             rows = (RowX*)calloc(MAX_UI_ROWS, sizeof(RowX));
@@ -367,12 +368,11 @@ namespace ui {
         
         lv_obj_add_flag(list_container, LV_OBJ_FLAG_HIDDEN);
 
-        // NEW: Big centralized Loading Text
         lbl_loading = lv_label_create(scr);
-        lv_obj_set_style_text_font(lbl_loading, &font_jetbrains_10, 0);
-        lv_obj_set_style_text_color(lbl_loading, theme_color(COLOR_TEXT_MAIN), 0);
+        lv_obj_set_style_text_font(lbl_loading, &font_atkinson_14, 0); // Crisp 14px text element
+        lv_obj_set_style_text_color(lbl_loading, theme_color(COLOR_ACCENT_PRIMARY), 0);
         lv_obj_set_style_text_align(lbl_loading, LV_TEXT_ALIGN_CENTER, 0);
-        lv_label_set_text(lbl_loading, "SYNCING...\nSecuring Connection.");
+        lv_label_set_text(lbl_loading, "SYNCING...\nSecuring network stream connection.");
         lv_obj_align(lbl_loading, LV_ALIGN_CENTER, 0, 10);
         lv_obj_add_flag(lbl_loading, LV_OBJ_FLAG_HIDDEN);
 
@@ -439,7 +439,12 @@ namespace ui {
             
         }, LV_EVENT_DELETE, NULL);
 
-        set_tab(TAB_POTA); 
+        // Force LVGL to physically draw the initial canvas and the big loading label
+        lv_timer_handler();
+
+        // Queue the initial dynamic fetch sequence
+        delayed_fetch_timer = lv_timer_create(execute_delayed_fetch, 100, NULL);
+
         ui_timer = lv_timer_create(update_ui, 300, NULL);
     }
 }
