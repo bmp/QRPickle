@@ -1,6 +1,6 @@
 #include "web_server.h"
-#include "profile_manager.h" 
-#include "ota_manager.h" 
+#include "profile_manager.h"  
+#include "ota_manager.h"  
 #include "display_manager.h"
 #include "cloud_ota.h"
 #include "aprs_manager.h"
@@ -14,7 +14,7 @@
 #include <ArduinoJson.h>
 #include <WiFi.h>
 #include <Arduino.h>
-#include <Update.h> 
+#include <Update.h>  
 #include <esp_arduino_version.h>
 
 static AsyncWebServer server(80);
@@ -118,7 +118,7 @@ void web_server_init() {
         doc["auto_bright"] = c.auto_brightness;
         doc["theme_id"] = c.theme_id;
         doc["timeout"] = c.screen_timeout_min;
-        doc["fc_slots"] = c.forecast_slots; 
+        doc["fc_slots"] = c.forecast_slots;  
         
         doc["dx_url_p"]  = c.dx_url_primary;
         doc["dx_port_p"] = c.dx_port_primary;
@@ -175,54 +175,54 @@ void web_server_init() {
     });
 
     server.on("/api/config/save", HTTP_POST, [](AsyncWebServerRequest *request) {}, nullptr,
-              [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
-                  JsonDocument doc;
-                  DeserializationError err = deserializeJson(doc, data, len);
-                  if (!err) {
-                      auto& c = config::mutable_get(); 
-                      if (!doc["callsign"].isNull())   strncpy(c.callsign, doc["callsign"], sizeof(c.callsign)-1);
-                      if (!doc["grid"].isNull())       strncpy(c.grid, doc["grid"], sizeof(c.grid)-1);
-                      if (!doc["ssid"].isNull())       strncpy(c.wifi_ssid, doc["ssid"], sizeof(c.wifi_ssid)-1);
-                      if (!doc["password"].isNull())   strncpy(c.wifi_password, doc["password"], sizeof(c.wifi_password)-1);
-                      if (!doc["apikey"].isNull())     strncpy(c.openweather_api_key, doc["apikey"], sizeof(c.openweather_api_key)-1);
-                      if (!doc["lat"].isNull())        c.lat = doc["lat"].as<float>(); 
-                      if (!doc["lon"].isNull())        c.lon = doc["lon"].as<float>(); 
-                      if (!doc["brightness"].isNull()) c.brightness = doc["brightness"].as<uint8_t>();
-                      if (!doc["auto_bright"].isNull()) {
-                          config::mutable_get().auto_brightness = doc["auto_bright"].as<bool>();
-                      }
-                      if (!doc["theme_id"].isNull())   c.theme_id = doc["theme_id"].as<uint8_t>();
-                      if (!doc["offset"].isNull())     c.tz_offset_hh = (int8_t)(doc["offset"].as<float>() * 2.0f);
-                      if (!doc["timeout"].isNull())    c.screen_timeout_min = doc["timeout"].as<uint8_t>(); 
-                      if (!doc["fc_slots"].isNull())   c.forecast_slots = doc["fc_slots"].as<uint8_t>(); 
+             [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
+                 JsonDocument doc;
+                 DeserializationError err = deserializeJson(doc, data, len);
+                 if (!err) {
+                     auto& c = config::mutable_get();  
+                     if (!doc["callsign"].isNull())  strncpy(c.callsign, doc["callsign"], sizeof(c.callsign)-1);
+                     if (!doc["grid"].isNull())       strncpy(c.grid, doc["grid"], sizeof(c.grid)-1);
+                     if (!doc["ssid"].isNull())       strncpy(c.wifi_ssid, doc["ssid"], sizeof(c.wifi_ssid)-1);
+                     if (!doc["password"].isNull())  strncpy(c.wifi_password, doc["password"], sizeof(c.wifi_password)-1);
+                     if (!doc["apikey"].isNull())    strncpy(c.openweather_api_key, doc["apikey"], sizeof(c.openweather_api_key)-1);
+                     if (!doc["lat"].isNull())        c.lat = doc["lat"].as<float>();  
+                     if (!doc["lon"].isNull())        c.lon = doc["lon"].as<float>();  
+                     if (!doc["brightness"].isNull()) c.brightness = doc["brightness"].as<uint8_t>();
+                     if (!doc["auto_bright"].isNull()) {
+                         config::mutable_get().auto_brightness = doc["auto_bright"].as<bool>();
+                     }
+                     if (!doc["theme_id"].isNull())   c.theme_id = doc["theme_id"].as<uint8_t>();
+                     if (!doc["offset"].isNull())     c.tz_offset_hh = (int8_t)(doc["offset"].as<float>() * 2.0f);
+                     if (!doc["timeout"].isNull())    c.screen_timeout_min = doc["timeout"].as<uint8_t>();  
+                     if (!doc["fc_slots"].isNull())   c.forecast_slots = doc["fc_slots"].as<uint8_t>();  
                       
-                      if (!doc["dx_url_p"].isNull())  strncpy(c.dx_url_primary, doc["dx_url_p"], sizeof(c.dx_url_primary)-1);
-                      if (!doc["dx_port_p"].isNull()) c.dx_port_primary = doc["dx_port_p"].as<uint16_t>();
-                      if (!doc["dx_url_s"].isNull())  strncpy(c.dx_url_secondary, doc["dx_url_s"], sizeof(c.dx_url_secondary)-1);
-                      if (!doc["dx_port_s"].isNull()) c.dx_port_secondary = doc["dx_port_s"].as<uint16_t>();
+                     if (!doc["dx_url_p"].isNull())  strncpy(c.dx_url_primary, doc["dx_url_p"], sizeof(c.dx_url_primary)-1);
+                     if (!doc["dx_port_p"].isNull()) c.dx_port_primary = doc["dx_port_p"].as<uint16_t>();
+                     if (!doc["dx_url_s"].isNull())  strncpy(c.dx_url_secondary, doc["dx_url_s"], sizeof(c.dx_url_secondary)-1);
+                     if (!doc["dx_port_s"].isNull()) c.dx_port_secondary = doc["dx_port_s"].as<uint16_t>();
 
-                      if (!doc["aprs_en"].isNull())    c.aprs_enabled = doc["aprs_en"].as<bool>();
-                      if (!doc["aprs_pass"].isNull())  strncpy(c.aprs_passcode, doc["aprs_pass"], sizeof(c.aprs_passcode)-1);
-                      if (!doc["aprs_ssid"].isNull())  c.aprs_ssid = doc["aprs_ssid"].as<int8_t>();
-                      if (!doc["aprs_cmt"].isNull())   strncpy(c.aprs_comment, doc["aprs_cmt"], sizeof(c.aprs_comment)-1);
-                      if (!doc["aprs_icn"].isNull())   strncpy(c.aprs_icon, doc["aprs_icn"], sizeof(c.aprs_icon)-1);
+                     if (!doc["aprs_en"].isNull())    c.aprs_enabled = doc["aprs_en"].as<bool>();
+                     if (!doc["aprs_pass"].isNull())  strncpy(c.aprs_passcode, doc["aprs_pass"], sizeof(c.aprs_passcode)-1);
+                     if (!doc["aprs_ssid"].isNull())  c.aprs_ssid = doc["aprs_ssid"].as<int8_t>();
+                     if (!doc["aprs_cmt"].isNull())   strncpy(c.aprs_comment, doc["aprs_cmt"], sizeof(c.aprs_comment)-1);
+                     if (!doc["aprs_icn"].isNull())   strncpy(c.aprs_icon, doc["aprs_icn"], sizeof(c.aprs_icon)-1);
 
-                      if (!doc["aprs_macros"].isNull()) {
-                          JsonArray mac_arr = doc["aprs_macros"].as<JsonArray>();
-                          for(int i=0; i<5 && i<mac_arr.size(); i++) {
-                              strncpy(c.aprs_macros[i], mac_arr[i].as<const char*>(), 63);
-                          }
-                      }
+                     if (!doc["aprs_macros"].isNull()) {
+                         JsonArray mac_arr = doc["aprs_macros"].as<JsonArray>();
+                         for(int i=0; i<5 && i<mac_arr.size(); i++) {
+                             strncpy(c.aprs_macros[i], mac_arr[i].as<const char*>(), 63);
+                         }
+                     }
 
-                      if (!doc["hamalert_pass"].isNull()) strncpy(c.hamalert_password, doc["hamalert_pass"], sizeof(c.hamalert_password)-1);
+                     if (!doc["hamalert_pass"].isNull()) strncpy(c.hamalert_password, doc["hamalert_pass"], sizeof(c.hamalert_password)-1);
 
-                      config::save();
-                      flag_trigger_ui_refresh = true;
-                      request->send(200, "application/json", "{\"status\":\"success\"}");
-                  } else {
-                      request->send(400, "application/json", "{\"status\":\"malformed\"}");
-                  }
-              });
+                     config::save();
+                     flag_trigger_ui_refresh = true;
+                     request->send(200, "application/json", "{\"status\":\"success\"}");
+                 } else {
+                     request->send(400, "application/json", "{\"status\":\"malformed\"}");
+                 }
+             });
 
     server.on("/api/profiles", HTTP_GET, [](AsyncWebServerRequest *request) {
         AsyncResponseStream *response = request->beginResponseStream("application/json");
@@ -235,24 +235,24 @@ void web_server_init() {
     });
 
     server.on("/api/profiles/save", HTTP_POST, [](AsyncWebServerRequest *request) {}, nullptr,
-              [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
-                  JsonDocument doc;
-                  DeserializationError err = deserializeJson(doc, data, len);
-                  if (!err && !doc["name"].isNull() && !doc["config"].isNull()) {
-                      String p_name = doc["name"].as<String>();
-                      if (services::profile_manager::save_profile_from_json(p_name.c_str(), doc["config"])) {
-                          request->send(200, "application/json", "{\"status\":\"success\"}");
-                          return;
-                      }
-                  }
-                  request->send(400, "application/json", "{\"status\":\"failed\"}");
-              });
+             [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
+                 JsonDocument doc;
+                 DeserializationError err = deserializeJson(doc, data, len);
+                 if (!err && !doc["name"].isNull() && !doc["config"].isNull()) {
+                     String p_name = doc["name"].as<String>();
+                     if (services::profile_manager::save_profile_from_json(p_name.c_str(), doc["config"])) {
+                         request->send(200, "application/json", "{\"status\":\"success\"}");
+                         return;
+                     }
+                 }
+                 request->send(400, "application/json", "{\"status\":\"failed\"}");
+             });
 
     server.on("/api/profiles/load", HTTP_POST, [](AsyncWebServerRequest *request) {
         if (request->hasParam("name")) {
             String name = request->getParam("name")->value();
             if (services::profile_manager::apply_profile_to_live(name.c_str())) {
-                flag_trigger_ui_refresh = true; 
+                flag_trigger_ui_refresh = true;  
                 request->send(200, "application/json", "{\"status\":\"success\"}");
                 return;
             }
@@ -261,22 +261,19 @@ void web_server_init() {
     });
 
     server.on("/api/aprs/send", HTTP_POST, [](AsyncWebServerRequest *request) {}, nullptr,
-              [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
-                  JsonDocument doc;
-                  DeserializationError err = deserializeJson(doc, data, len);
+             [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
+                 JsonDocument doc;
+                 DeserializationError err = deserializeJson(doc, data, len);
 
-                  if (!err && !doc["target"].isNull() && !doc["message"].isNull()) {
-                      String target = doc["target"].as<String>();
-                      String message = doc["message"].as<String>();
-
-                      // Route directly to the backend engine (false = not a silent ACK, so it shows on UI)
-                      services::AprsManager::send_message(target.c_str(), message.c_str(), false);
-
-                      request->send(200, "application/json", "{\"status\":\"success\"}");
-                  } else {
-                      request->send(400, "application/json", "{\"status\":\"failed\",\"error\":\"Invalid JSON payload\"}");
-                  }
-              }
+                 if (!err && !doc["target"].isNull() && !doc["message"].isNull()) {
+                     String target = doc["target"].as<String>();
+                     String message = doc["message"].as<String>();
+                     services::AprsManager::send_message(target.c_str(), message.c_str(), false);
+                     request->send(200, "application/json", "{\"status\":\"success\"}");
+                 } else {
+                     request->send(400, "application/json", "{\"status\":\"failed\",\"error\":\"Invalid JSON payload\"}");
+                 }
+             }
     );
 
     server.on("/api/aprs/messages", HTTP_GET, [](AsyncWebServerRequest *request) {
@@ -321,7 +318,7 @@ void web_server_init() {
         reboot_timer_mark = millis();
     });
 
-    server.on("/api/system/update", HTTP_POST, 
+    server.on("/api/system/update", HTTP_POST,  
         [](AsyncWebServerRequest *request) {
             bool failed = Update.hasError();
             if (!failed) {
@@ -379,6 +376,13 @@ void web_server_init() {
 
     server.on("/api/cloud_ota/flash", HTTP_POST, [](AsyncWebServerRequest *request) {
         request->send(200, "application/json", "{\"status\":\"flashing\"}");
+        
+        // FIXED: Force the execution thread to explicitly kill the server daemon 
+        // to prevent background network fragmentation right before making the SSL call!
+        Serial.println("[WEB-SERVER] Terminating async listener sockets to clear heap context for TLS...");
+        web_server_stop(); 
+        delay(500); // Allow LwIP network context buffers to cleanly release and consolidate
+        
         services::cloud_ota::execute_firmware_flash();
     });
 
@@ -390,7 +394,7 @@ void web_server_update() {
     if (flag_trigger_ui_refresh) {
         flag_trigger_ui_refresh = false;
         ui::status_bar_refresh_theme();
-        services::display_manager::set_brightness(config::get().brightness); 
+        services::display_manager::set_brightness(config::get().brightness);  
     }
     if (flag_trigger_reboot && (millis() - reboot_timer_mark > 1500)) {
         ESP.restart();
