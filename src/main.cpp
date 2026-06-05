@@ -5,7 +5,7 @@
 #include "hw/led_rgb.h"
 #include "config/config.h"
 #include "core/timekeeper.h"
-#include "core/lvgl_fs.h" // FIXED: Include the new bridge
+#include "core/lvgl_fs.h"
 #include "services/wifi_manager.h"
 #include "services/web_server.h"
 #include "services/display_manager.h"
@@ -38,7 +38,6 @@ void setup() {
     Serial.flush();
     display_init();
 
-    // FIXED: Register the filesystem bridge directly to the core
     core::lvgl_fs_init();
 
     Serial.println("[Boot Check] Display Driver OK.");
@@ -60,6 +59,10 @@ void setup() {
 
     Serial.println("--- All operational tasks successfully scheduled ---");
     Serial.flush();
+
+    // FIXED: Force the LED state to OFF after the boot sequence is complete
+    // This instantly kills the stuck "breathing cyan" timekeeper loop
+    hw::led_rgb::set_state(hw::led_rgb::STATE_OFF);
 }
 
 void loop() {

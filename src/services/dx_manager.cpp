@@ -22,13 +22,14 @@ namespace services {
     void DxManager::start() {
         if (status != DX_STATUS_DISCONNECTED) return;
         
-        spots = (DxSpot*)calloc(50, sizeof(DxSpot));
         if (!spots) {
-            Serial.println("[DX Engine] CRITICAL: Heap memory full!");
-            return;
+            spots = (DxSpot*)calloc(50, sizeof(DxSpot));
+            if (!spots) {
+                Serial.println("[DX Engine] CRITICAL: Heap memory full!");
+                return;
+            }
         }
         
-        spot_count = 0;
         line_idx = 0;
         using_secondary = false;
         buffer_dirty = true; 
@@ -48,7 +49,6 @@ namespace services {
             } else {
                 Serial.println("[DX Engine] Secondary connection failed completely.");
                 status = DX_STATUS_DISCONNECTED;
-                if (spots) { free(spots); spots = nullptr; }
             }
         }
     }
@@ -59,13 +59,10 @@ namespace services {
             client.stop();
         }
         status = DX_STATUS_DISCONNECTED;
-        
-        if (spots) {
-            free(spots);
-            spots = nullptr;
-        }
         buffer_dirty = false;
-        Serial.println("[DX Engine] Socket closed and dynamic memory safely recycled.");
+        // FIXED: We intentionally DO NOT free the spots array here anymore. 
+        // This prevents Use-After-Free race conditions during time-slicing pauses!
+        Serial.println("[DX Engine] Socket safely suspended for Time-Slicing.");
     }
 
     void DxManager::clear_spots() {

@@ -1,8 +1,8 @@
 #include "pota_manager.h"
+#include "../core/metadata.h" // NEW: Pulls dynamic version
 #include <Arduino.h>
 #include <WiFiClientSecure.h>
 #include <HTTPClient.h>
-#include <ArduinoJson.h>
 #include <cstring>
 #include <ctype.h>
 #include <strings.h>
@@ -15,122 +15,146 @@ namespace services {
     bool PotaManager::dirty = false;
     uint32_t PotaManager::last_fetch_time = 0;
 
-    void PotaManager::fetch_async() {
-        if (!spots) {
-            spots = (PotaSpot*)calloc(30, sizeof(PotaSpot));
-            if (!spots) {
-                Serial.println("[POTA] Heap allocation failed for spots cache!");
-                return; 
-            }
-        }
-
-        if (fetching || (millis() - last_fetch_time < 45000 && last_fetch_time != 0)) return;
-        
-        fetching = true;
-        
-        // RESTORED: Back to 8192 bytes.
-        BaseType_t task_status = xTaskCreate(fetch_task, "pota_task", 8192, NULL, 1, NULL);
-        if (task_status != pdPASS) {
-            fetching = false;
-            last_fetch_time = millis();
-            Serial.println("[POTA] CRITICAL: FreeRTOS failed to allocate task stack! OOM.");
-        }
-    }
-
     void PotaManager::deduce_mode(float freq, const char* comment, char* out_mode, size_t max_len) {
         if (strcasestr(comment, "FT8"))   { strncpy(out_mode, "FT8", max_len); return; }
-        if (strcasestr(comment, "FT4"))   { strncpy(out_mode, "FT4", max_len); return; }
         if (strcasestr(comment, "CW"))    { strncpy(out_mode, "CW", max_len); return; }
-        if (strcasestr(comment, "RTTY"))  { strncpy(out_mode, "RTTY", max_len); return; }
-        if (strcasestr(comment, "SSB") || strcasestr(comment, "LSB") || strcasestr(comment, "USB")) { 
-            strncpy(out_mode, "SSB", max_len); return; 
-        }
-
+        if (strcasestr(comment, "SSB"))   { strncpy(out_mode, "SSB", max_len); return; }
         if (freq > 0.0f) {
-            float mhz = (freq > 1000.0f) ? (freq / 1000.0f) : freq;
-            if (abs(mhz - 14.074f) < 0.003f || abs(mhz - 7.074f) < 0.003f || abs(mhz - 21.074f) < 0.003f) {
-                strncpy(out_mode, "FT8", max_len); return;
-            }
-            if (mhz >= 14.000f && mhz < 14.070f) { strncpy(out_mode, "CW", max_len); return; }
-            if (mhz >= 14.150f && mhz <= 14.350f) { strncpy(out_mode, "SSB", max_len); return; }
-            if (mhz >= 7.000f && mhz < 7.040f) { strncpy(out_mode, "CW", max_len); return; }
-            if (mhz >= 7.100f && mhz <= 7.300f) { strncpy(out_mode, "SSB", max_len); return; }
-            if (mhz >= 28.300f && mhz <= 29.300f) { strncpy(out_mode, "SSB", max_len); return; }
+            if (freq >= 14.000f && freq < 14.070f) { strncpy(out_mode, "CW", max_len); return; }
+            if (freq >= 14.150f && freq <= 14.350f) { strncpy(out_mode, "SSB", max_len); return; }
         }
         strncpy(out_mode, "OTHER", max_len);
     }
 
-    void PotaManager::fetch_task(void* param) {
-        Serial.println("[POTA] Network stream request initiated...");
+    static void extract_json_value(const char* json, const char* key, char* out, size_t max_len) {
+        out[0] = '\0';
+        char search[64];
+        snprintf(search, sizeof(search), "\"%s\"", key);
+        const char* ptr = strstr(json, search);
+        if (!ptr) return;
+        
+        ptr += strlen(search);
+        while (*ptr && (*ptr == ' ' || *ptr == ':' || *ptr == '"')) ptr++;
+        
+        size_t idx = 0;
+        while (*ptr && *ptr != '"' && *ptr != ',' && *ptr != '}' && idx < max_len - 1) {
+            out[idx++] = *ptr++;
+        }
+        out[idx] = '\0';
+        
+        while (idx > 0 && (out[idx - 1] == ' ' || out[idx - 1] == '\r' || out[idx - 1] == '\n')) {
+            out[--idx] = '\0';
+        }
+    }
 
+    static bool read_next_json_object(Stream& stream, char* buffer, size_t max_len) {
+        int brace_depth = 0;
+        size_t idx = 0;
+        unsigned long start_ms = millis();
+        
+        while (millis() - start_ms < 4000) {
+            if (!stream.available()) {
+                delay(2); 
+                continue;
+            }
+            char c = stream.read();
+            
+            if (brace_depth == 0) {
+                if (c == '{') {
+                    brace_depth = 1;
+                    buffer[idx++] = c;
+                } else if (c == ']') {
+                    return false; 
+                }
+            } else {
+                if (idx < max_len - 1) {
+                    buffer[idx++] = c;
+                }
+                if (c == '{') brace_depth++;
+                else if (c == '}') {
+                    brace_depth--;
+                    if (brace_depth == 0) {
+                        buffer[idx] = '\0';
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    void PotaManager::fetch_async() {
+        if (!spots) {
+            spots = (PotaSpot*)calloc(30, sizeof(PotaSpot));
+            if (!spots) return;
+        }
+
+        if (fetching || (millis() - last_fetch_time < 30000 && last_fetch_time != 0)) return;
+        fetching = true;
+
+        Serial.println("[POTA] Synchronous main-thread fetch started.");
+        
         WiFiClientSecure secureClient;
-        secureClient.setInsecure();
+        secureClient.setInsecure(); 
 
         HTTPClient http;
-        http.useHTTP10(true);
+        http.useHTTP10(true); 
         http.begin(secureClient, "https://api.pota.app/spot/activator");
-        http.setTimeout(10000); 
+        
+        // DYNAMIC USER AGENT
+        char user_agent[64];
+        snprintf(user_agent, sizeof(user_agent), "%s/%s", meta::FW_NAME, meta::FW_VERSION);
+        http.addHeader("User-Agent", user_agent); 
+        
+        http.setTimeout(8000); 
 
         int httpCode = http.GET();
         if (httpCode == HTTP_CODE_OK) {
-            Stream& payloadStream = http.getStream();
-            payloadStream.setTimeout(5000);
+            Stream& stream = http.getStream();
+            stream.setTimeout(3000);
 
-            if (payloadStream.find('[')) {
+            if (stream.find('[')) {
                 spot_count = 0;
+                char chunk[512]; 
 
-                do {
-                    if (spot_count >= 30) {
-                        Serial.println("[POTA] Reached 30 spots. Severing connection early...");
-                        break; 
-                    }
-
-                    JsonDocument doc; 
-                    DeserializationError err = deserializeJson(doc, payloadStream);
-
-                    if (err) {
-                        Serial.printf("[POTA] Parsing loop ended: %s\n", err.c_str());
-                        break;
-                    }
+                while (spot_count < 30) {
+                    if (!read_next_json_object(stream, chunk, sizeof(chunk))) break;
 
                     PotaSpot s{0};
+                    char time_buf[24] = {0};
+                    extract_json_value(chunk, "spotTime", time_buf, sizeof(time_buf));
+                    if (strlen(time_buf) >= 16) snprintf(s.time, sizeof(s.time), "%.5s", time_buf + 11);
 
-                    const char* t_str = doc["spotTime"];
-                    if (t_str && strlen(t_str) >= 16) snprintf(s.time, sizeof(s.time), "%.5s", t_str + 11);
+                    extract_json_value(chunk, "reference", s.reference, sizeof(s.reference));
+                    extract_json_value(chunk, "activator", s.activator, sizeof(s.activator));
+                    extract_json_value(chunk, "comments", s.comment, sizeof(s.comment));
 
-                    if (!doc["reference"].isNull()) strncpy(s.reference, doc["reference"], sizeof(s.reference)-1);
-                    if (!doc["activator"].isNull()) strncpy(s.activator, doc["activator"], sizeof(s.activator)-1);
-                    if (!doc["comments"].isNull())  strncpy(s.comment, doc["comments"], sizeof(s.comment)-1);
+                    char freq_buf[16] = {0};
+                    extract_json_value(chunk, "frequency", freq_buf, sizeof(freq_buf));
+                    float f = atof(freq_buf);
+                    if (f > 0) s.freq = (f > 1000.0f) ? (f / 1000.0f) : f;
 
-                    if (!doc["frequency"].isNull()) {
-                        float f = doc["frequency"].as<float>();
-                        s.freq = (f > 1000.0f) ? (f / 1000.0f) : f;
-                    }
-
-                    if (!doc["mode"].isNull() && strlen(doc["mode"]) > 0) {
-                        strncpy(s.mode, doc["mode"], sizeof(s.mode)-1);
+                    extract_json_value(chunk, "mode", s.mode, sizeof(s.mode));
+                    if (strlen(s.mode) > 0) {
                         for(char* p = s.mode; *p; ++p) *p = toupper(*p);
                     } else {
                         deduce_mode(s.freq, s.comment, s.mode, sizeof(s.mode));
                     }
-
+                    
                     s.is_qrp = (strcasestr(s.comment, "QRP") != nullptr);
                     spots[spot_count++] = s;
-
-                } while (payloadStream.findUntil(",", "]"));
-
+                }
                 dirty = true;
-                last_fetch_time = millis();
-                Serial.printf("[POTA] Successfully mapped %u spots to cache.\n", spot_count);
-            } else {
-                Serial.println("[POTA] Failed to find JSON array start.");
+                Serial.printf("[POTA] Success. Mapped %u spots.\n", spot_count);
             }
         } else {
-            Serial.printf("[POTA] Server rejected HTTP GET: %d\n", httpCode);
+            Serial.printf("[POTA] Failed. HTTP Code: %d\n", httpCode);
         }
 
-        http.end(); 
+        http.end();
+        secureClient.stop();
+        
+        last_fetch_time = millis();
         fetching = false;
-        vTaskDelete(NULL);
     }
 }

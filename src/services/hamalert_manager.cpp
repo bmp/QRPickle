@@ -1,6 +1,6 @@
 #include "hamalert_manager.h"
 #include "../config/config.h"
-#include "../hw/led_rgb.h" // NEW: RGB LED controller inclusion
+#include "../hw/led_rgb.h" // RESTORED: Needed for LED telemetry
 #include <Arduino.h>
 #include <WiFi.h>
 #include <WiFiClient.h>
@@ -53,10 +53,7 @@ namespace services {
         int parsed = sscanf(line, "DX de %15[^:]: %15s %15s %79[^\r\n]", 
                             de_call, freq_str, spotted, remainder);
         
-        if (parsed < 3) {
-            Serial.printf("[HamAlert-Parser] Rejected. Only parsed %d arguments.\n", parsed);
-            return;
-        }
+        if (parsed < 3) return;
 
         HamAlertMessage m{};
         strncpy(m.freq, freq_str, sizeof(m.freq)-1);
@@ -100,9 +97,6 @@ namespace services {
         else if (strcasestr(comment, "SSB")) strncpy(m.mode, "SSB", sizeof(m.mode)-1);
         else strncpy(m.mode, "DATA", sizeof(m.mode)-1);
 
-        Serial.printf("[HamAlert-Engine] PARSED -> Spot: %s | Freq: %s | Mode: %s | Time: %s | Info: %s\n", 
-                      m.callsign, m.freq, m.mode, m.time, m.info);
-
         if (message_count < 10) {
             messages[message_count++] = m;
         } else {
@@ -110,8 +104,8 @@ namespace services {
             messages[9] = m;
         }
         dirty = true;
-
-        // NEW: Critical target spot tracking match triggered! Flash the high-intensity White/Magenta Strobe 
+        
+        // RESTORED: Fire the visual LED alert for the user
         hw::led_rgb::trigger_priority_strobe();
     }
 
@@ -132,7 +126,7 @@ namespace services {
                     client.stop();
                     connected = false;
                 }
-                vTaskDelay(pdMS_TO_TICKS(3000)); 
+                for(int i=0; i<30 && running; i++) vTaskDelay(pdMS_TO_TICKS(100)); 
                 continue; 
             }
 
@@ -147,24 +141,21 @@ namespace services {
                     buf_idx = 0;
                     buffer[0] = '\0';
 
-                    while (client.connected() && (millis() - timeout_mark < 15000) && !authenticated) {
+                    while (client.connected() && (millis() - timeout_mark < 15000) && !authenticated && running) {
                         if (client.available()) {
                             char c = client.read();
                             buffer[buf_idx++] = c;
                             buffer[buf_idx] = '\0'; 
 
                             if (strstr(buffer, "login:") || strstr(buffer, "callsign:") || strstr(buffer, "Callsign:")) {
-                                Serial.println("[HamAlert-Socket] Detected login prompt. Sending callsign...");
                                 client.printf("%s\r\n", cfg.callsign);
                                 buf_idx = 0; 
                                 buffer[0] = '\0';
                             } 
                             else if (strstr(buffer, "password:")) {
-                                Serial.println("[HamAlert-Socket] Detected password prompt. Sending token...");
                                 client.printf("%s\r\n", cfg.hamalert_password);
                                 connected = true;
                                 authenticated = true;
-                                Serial.println("[HamAlert-Socket] Secure Authentication Handshake Completed.");
                                 buf_idx = 0;
                                 buffer[0] = '\0';
                             }
@@ -176,16 +167,14 @@ namespace services {
                         vTaskDelay(pdMS_TO_TICKS(10));
                     }
                     
-                    if (!authenticated) {
-                        Serial.println("[HamAlert-Socket] Handshake timed out. Backing off for 30 seconds...");
+                    if (!authenticated && running) {
                         client.stop();
-                        vTaskDelay(pdMS_TO_TICKS(30000));
+                        for(int i=0; i<300 && running; i++) vTaskDelay(pdMS_TO_TICKS(100));
                         continue;
                     }
                 } else {
-                    Serial.println("[HamAlert-Socket] Connection failed. Backing off for 30 seconds...");
                     client.stop();
-                    vTaskDelay(pdMS_TO_TICKS(30000));
+                    for(int i=0; i<300 && running; i++) vTaskDelay(pdMS_TO_TICKS(100));
                     continue;
                 }
             }
@@ -206,10 +195,9 @@ namespace services {
             }
             
             if (!client.connected() && connected) {
-                Serial.println("[HamAlert-Socket] Server closed connection. Reconnecting in 30s...");
                 client.stop();
                 connected = false;
-                vTaskDelay(pdMS_TO_TICKS(30000));
+                for(int i=0; i<300 && running; i++) vTaskDelay(pdMS_TO_TICKS(100));
             }
 
             vTaskDelay(pdMS_TO_TICKS(50));
@@ -217,6 +205,7 @@ namespace services {
         
         client.stop();
         connected = false;
+        Serial.println("[HamAlert-Socket] Safely suspended for Time-Slicing.");
         vTaskDelete(NULL);
     }
 } // namespace services

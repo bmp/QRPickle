@@ -1,41 +1,19 @@
 #include "sota_manager.h"
+#include "../core/metadata.h" // NEW: Pulls dynamic version
 #include <Arduino.h>
 #include <WiFiClientSecure.h>
 #include <HTTPClient.h>
-#include <ArduinoJson.h>
 #include <cstring>
 #include <ctype.h>
 #include <strings.h>
 
 namespace services {
 
-    SotaSpot* SotaManager::spots = nullptr; 
+    SotaSpot* SotaManager::spots = nullptr;
     size_t SotaManager::spot_count = 0;
     bool SotaManager::fetching = false;
     bool SotaManager::dirty = false;
     uint32_t SotaManager::last_fetch_time = 0;
-
-    void SotaManager::fetch_async() {
-        if (!spots) {
-            spots = (SotaSpot*)calloc(30, sizeof(SotaSpot));
-            if (!spots) {
-                Serial.println("[SOTA] Heap allocation failed for spots cache!");
-                return;
-            }
-        }
-
-        if (fetching || (millis() - last_fetch_time < 45000 && last_fetch_time != 0)) return;
-        
-        fetching = true;
-        
-        // RESTORED: 8192 bytes is strictly required for mbedTLS SSL handshakes.
-        BaseType_t task_status = xTaskCreate(fetch_task, "sota_task", 8192, NULL, 1, NULL);
-        if (task_status != pdPASS) {
-            fetching = false;
-            last_fetch_time = millis();
-            Serial.println("[SOTA] CRITICAL: FreeRTOS failed to allocate task stack! OOM.");
-        }
-    }
 
     void SotaManager::deduce_mode(float freq, const char* comment, char* out_mode, size_t max_len) {
         if (strcasestr(comment, "FT8"))   { strncpy(out_mode, "FT8", max_len); return; }
@@ -48,8 +26,70 @@ namespace services {
         strncpy(out_mode, "OTHER", max_len);
     }
 
-    void SotaManager::fetch_task(void* param) {
-        Serial.println("[SOTA] Network stream request initiated...");
+    static void extract_json_value(const char* json, const char* key, char* out, size_t max_len) {
+        out[0] = '\0';
+        char search[64];
+        snprintf(search, sizeof(search), "\"%s\"", key);
+        const char* ptr = strstr(json, search);
+        if (!ptr) return;
+        ptr += strlen(search);
+        while (*ptr && (*ptr == ' ' || *ptr == ':' || *ptr == '"')) ptr++;
+        size_t idx = 0;
+        while (*ptr && *ptr != '"' && *ptr != ',' && *ptr != '}' && idx < max_len - 1) {
+            out[idx++] = *ptr++;
+        }
+        out[idx] = '\0';
+        while (idx > 0 && (out[idx - 1] == ' ' || out[idx - 1] == '\r' || out[idx - 1] == '\n')) {
+            out[--idx] = '\0';
+        }
+    }
+
+    static bool read_next_json_object(Stream& stream, char* buffer, size_t max_len) {
+        int brace_depth = 0;
+        size_t idx = 0;
+        unsigned long start_ms = millis();
+        
+        while (millis() - start_ms < 4000) {
+            if (!stream.available()) {
+                delay(2);
+                continue;
+            }
+            char c = stream.read();
+            
+            if (brace_depth == 0) {
+                if (c == '{') {
+                    brace_depth = 1;
+                    buffer[idx++] = c;
+                } else if (c == ']') {
+                    return false; 
+                }
+            } else {
+                if (idx < max_len - 1) {
+                    buffer[idx++] = c;
+                }
+                if (c == '{') brace_depth++;
+                else if (c == '}') {
+                    brace_depth--;
+                    if (brace_depth == 0) {
+                        buffer[idx] = '\0';
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    void SotaManager::fetch_async() {
+        if (!spots) {
+            spots = (SotaSpot*)calloc(30, sizeof(SotaSpot));
+            if (!spots) return;
+        }
+
+        if (fetching || (millis() - last_fetch_time < 30000 && last_fetch_time != 0)) return;
+        fetching = true;
+
+        Serial.println("[SOTA] Synchronous main-thread fetch started.");
 
         WiFiClientSecure secureClient;
         secureClient.setInsecure(); 
@@ -57,46 +97,47 @@ namespace services {
         HTTPClient http;
         http.useHTTP10(true); 
         http.begin(secureClient, "https://api2.sota.org.uk/api/spots/30/all"); 
-        http.setTimeout(8000);
         
+        // DYNAMIC USER AGENT
+        char user_agent[64];
+        snprintf(user_agent, sizeof(user_agent), "%s/%s", meta::FW_NAME, meta::FW_VERSION);
+        http.addHeader("User-Agent", user_agent); 
+        
+        http.setTimeout(8000); 
+
         int httpCode = http.GET();
         if (httpCode == HTTP_CODE_OK) {
-            JsonDocument filter;
-            filter[0]["timeStamp"] = true;
-            filter[0]["associationCode"] = true;
-            filter[0]["summitCode"] = true;
-            filter[0]["frequency"] = true;
-            filter[0]["mode"] = true;
-            filter[0]["callsign"] = true;
-            filter[0]["comments"] = true;
+            Stream& stream = http.getStream();
+            stream.setTimeout(3000);
 
-            JsonDocument doc;
-            DeserializationError err = deserializeJson(doc, http.getStream(), DeserializationOption::Filter(filter));
-            
-            if (!err) {
-                JsonArray arr = doc.as<JsonArray>();
+            if (stream.find('[')) {
                 spot_count = 0;
-                for (JsonVariant v : arr) {
-                    if (spot_count >= 30) break;
-                    
+                char chunk[512]; 
+
+                while (spot_count < 30) {
+                    if (!read_next_json_object(stream, chunk, sizeof(chunk))) break;
+
                     SotaSpot s{0};
+                    char time_buf[24] = {0};
+                    extract_json_value(chunk, "timeStamp", time_buf, sizeof(time_buf));
+                    if (strlen(time_buf) >= 16) snprintf(s.time, sizeof(s.time), "%.5s", time_buf + 11);
                     
-                    const char* t_str = v["timeStamp"];
-                    if (t_str && strlen(t_str) >= 16) snprintf(s.time, sizeof(s.time), "%.5s", t_str + 11);
-                    
-                    if (!v["associationCode"].isNull() && !v["summitCode"].isNull()) {
-                        snprintf(s.summit, sizeof(s.summit), "%s/%s", v["associationCode"].as<const char*>(), v["summitCode"].as<const char*>());
+                    char assoc[8] = {0}, summit[8] = {0};
+                    extract_json_value(chunk, "associationCode", assoc, sizeof(assoc));
+                    extract_json_value(chunk, "summitCode", summit, sizeof(summit));
+                    if (strlen(assoc) > 0 && strlen(summit) > 0) {
+                        snprintf(s.summit, sizeof(s.summit), "%s/%s", assoc, summit);
                     }
-                    
-                    if (!v["callsign"].isNull()) strncpy(s.activator, v["callsign"], sizeof(s.activator)-1);
-                    if (!v["comments"].isNull()) strncpy(s.comment, v["comments"], sizeof(s.comment)-1);
-                    
-                    if (!v["frequency"].isNull()) {
-                        s.freq = v["frequency"].as<float>();
-                    }
-                    
-                    if (!v["mode"].isNull() && strlen(v["mode"]) > 0) {
-                        strncpy(s.mode, v["mode"], sizeof(s.mode)-1);
+
+                    extract_json_value(chunk, "callsign", s.activator, sizeof(s.activator));
+                    extract_json_value(chunk, "comments", s.comment, sizeof(s.comment));
+
+                    char freq_buf[16] = {0};
+                    extract_json_value(chunk, "frequency", freq_buf, sizeof(freq_buf));
+                    s.freq = atof(freq_buf);
+
+                    extract_json_value(chunk, "mode", s.mode, sizeof(s.mode));
+                    if (strlen(s.mode) > 0) {
                         for(char* p = s.mode; *p; ++p) *p = toupper(*p);
                     } else {
                         deduce_mode(s.freq, s.comment, s.mode, sizeof(s.mode));
@@ -106,17 +147,16 @@ namespace services {
                     spots[spot_count++] = s;
                 }
                 dirty = true;
-                last_fetch_time = millis();
-                Serial.printf("[SOTA] Successfully mapped %u spots to cache.\n", spot_count);
-            } else {
-                Serial.printf("[SOTA] Deserialization crashed: %s\n", err.c_str());
+                Serial.printf("[SOTA] Success. Mapped %u spots.\n", spot_count);
             }
         } else {
-            Serial.printf("[SOTA] Server rejected HTTP GET: %d\n", httpCode);
+            Serial.printf("[SOTA] Failed. HTTP Code: %d\n", httpCode);
         }
-        
+
         http.end();
+        secureClient.stop();
+
+        last_fetch_time = millis();
         fetching = false;
-        vTaskDelete(NULL);
     }
 }

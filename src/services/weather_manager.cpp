@@ -13,7 +13,7 @@ namespace services {
         
         static unsigned long last_fetch_ms = 0;
         static bool initial_fetch_done = false;
-        static uint32_t active_interval_ms = 7200000; 
+        static uint32_t active_interval_ms = 7200000;  
 
         static void fetch_current(const config::Config& cfg) {
             if (strlen(cfg.openweather_api_key) == 0) return;
@@ -23,8 +23,23 @@ namespace services {
             HTTPClient http;
             http.begin(url);
             if (http.GET() == 200) {
+                // NEW: Strict Memory Filter
+                JsonDocument filter;
+                filter["main"]["temp"] = true;
+                filter["main"]["humidity"] = true;
+                filter["main"]["pressure"] = true;
+                filter["wind"]["speed"] = true;
+                filter["wind"]["deg"] = true;
+                filter["clouds"]["all"] = true;
+                filter["visibility"] = true;
+                filter["sys"]["sunrise"] = true;
+                filter["sys"]["sunset"] = true;
+                filter["weather"][0]["description"] = true;
+                filter["weather"][0]["icon"] = true;
+                filter["name"] = true;
+
                 JsonDocument doc;
-                if (!deserializeJson(doc, http.getStream())) {
+                if (!deserializeJson(doc, http.getStream(), DeserializationOption::Filter(filter))) {
                     current_wx.temp = doc["main"]["temp"] | 0.0f;
                     current_wx.humidity = doc["main"]["humidity"] | 0;
                     current_wx.pressure = doc["main"]["pressure"] | 0.0f;
@@ -32,7 +47,7 @@ namespace services {
                     current_wx.wind_deg = doc["wind"]["deg"] | 0;
                     current_wx.clouds = doc["clouds"]["all"] | 0;
                     current_wx.visibility = doc["visibility"] | 0;
-                    current_wx.sunrise = doc["sys"]["sunrise"] | 0; 
+                    current_wx.sunrise = doc["sys"]["sunrise"] | 0;  
                     current_wx.sunset = doc["sys"]["sunset"] | 0;   
                     strlcpy(current_wx.description, doc["weather"][0]["description"] | "Unknown", sizeof(current_wx.description));
                     strlcpy(current_wx.icon, doc["weather"][0]["icon"] | "01d", sizeof(current_wx.icon));
@@ -51,8 +66,16 @@ namespace services {
             HTTPClient http;
             http.begin(url);
             if (http.GET() == 200) {
+                // NEW: Strict Memory Filter
+                JsonDocument filter;
+                filter["list"][0]["dt"] = true;
+                filter["list"][0]["main"]["temp"] = true;
+                filter["list"][0]["pop"] = true;
+                filter["list"][0]["wind"]["speed"] = true;
+                filter["list"][0]["weather"][0]["icon"] = true;
+
                 JsonDocument doc;
-                if (!deserializeJson(doc, http.getStream())) {
+                if (!deserializeJson(doc, http.getStream(), DeserializationOption::Filter(filter))) {
                     JsonArray list = doc["list"].as<JsonArray>();
                     int idx = 0;
                     for (JsonObject item : list) {
@@ -60,7 +83,7 @@ namespace services {
                         forecast_wx.blocks[idx].dt = item["dt"] | 0;
                         forecast_wx.blocks[idx].temp = item["main"]["temp"] | 0.0f;
                         forecast_wx.blocks[idx].pop = (uint8_t)((item["pop"] | 0.0f) * 100.0f);
-                        forecast_wx.blocks[idx].wind_speed = item["wind"]["speed"] | 0.0f; // FIXED: Extracted wind
+                        forecast_wx.blocks[idx].wind_speed = item["wind"]["speed"] | 0.0f;
                         strlcpy(forecast_wx.blocks[idx].icon, item["weather"][0]["icon"] | "01d", sizeof(forecast_wx.blocks[idx].icon));
                         idx++;
                     }
@@ -81,10 +104,10 @@ namespace services {
                 long dist_sunrise = labs((long)(sys_now - current_wx.sunrise));
                 long dist_sunset  = labs((long)(sys_now - current_wx.sunset));
                 
-                if (dist_sunrise <= 2700 || dist_sunset <= 2700) { 
-                    active_interval_ms = 180000; 
+                if (dist_sunrise <= 2700 || dist_sunset <= 2700) {  
+                    active_interval_ms = 180000;  
                 } else {
-                    active_interval_ms = 7200000; 
+                    active_interval_ms = 7200000;  
                 }
             }
 

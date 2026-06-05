@@ -1,7 +1,8 @@
 #include "aprs_manager.h"
 #include "../config/config.h"
+#include "../core/metadata.h" // NEW: Pulls dynamic version
 #include "../hw/sensor.h"
-#include "../hw/led_rgb.h" // NEW: RGB LED controller inclusion
+#include "../hw/led_rgb.h" 
 #include <Arduino.h>
 #include <WiFi.h>
 #include <WiFiClient.h>
@@ -25,7 +26,6 @@ namespace services {
     uint32_t AprsManager::last_tx_time = 0;
     static uint32_t loop_last_beacon_millis = 0;
 
-    // TX queue buffers shifted to the heap
     static char* tx_msg_queue = nullptr;
     static bool tx_msg_pending = false;
 
@@ -59,7 +59,7 @@ namespace services {
     void AprsManager::clear_msg_dirty() { msg_dirty = false; }
 
     void AprsManager::trigger_manual_beacon() {
-        loop_last_beacon_millis = 0; 
+        loop_last_beacon_millis = 0;  
     }
 
     void AprsManager::send_message(const char* target, const char* message, bool silent) {
@@ -67,13 +67,11 @@ namespace services {
         if (!connected || !tx_msg_queue) return;
         if (strlen(target) == 0 || strlen(message) == 0) return;
 
-        // Force Sender to Uppercase
         char src_call[16];
         if (cfg.aprs_ssid == 0) snprintf(src_call, sizeof(src_call), "%s", cfg.callsign);
         else snprintf(src_call, sizeof(src_call), "%s-%d", cfg.callsign, cfg.aprs_ssid);
         for (int i = 0; src_call[i]; i++) src_call[i] = toupper(src_call[i]);
 
-        // Force Target to Uppercase & strict 9-character padding
         char padded_target[10] = "         ";
         for (size_t i = 0; i < 9 && target[i] != '\0'; i++) {
             padded_target[i] = toupper(target[i]);
@@ -102,8 +100,8 @@ namespace services {
         
         for (size_t i = 0; i < station_count - 1; i++) {
             for (size_t j = 0; j < station_count - i - 1; j++) {
-                bool swap_needed = ascending ? 
-                    (stations[j].distance_km > stations[j+1].distance_km) : 
+                bool swap_needed = ascending ?  
+                    (stations[j].distance_km > stations[j+1].distance_km) :  
                     (stations[j].distance_km < stations[j+1].distance_km);
                 
                 if (swap_needed) {
@@ -117,7 +115,7 @@ namespace services {
     }
 
     void AprsManager::calc_distance_bearing(float lat1, float lon1, float lat2, float lon2, float& out_dist, int& out_bearing) {
-        float R = 6371.0f; 
+        float R = 6371.0f;  
         float dLat = (lat2 - lat1) * PI / 180.0f;
         float dLon = (lon2 - lon1) * PI / 180.0f;
         float rLat1 = lat1 * PI / 180.0f;
@@ -152,7 +150,7 @@ namespace services {
         int lon_deg = (int)lon;
         float lon_min = (lon - lon_deg) * 60.0f;
         
-        snprintf(out_str, 24, "%02d%05.2f%c%c%03d%05.2f%c%c", 
+        snprintf(out_str, 24, "%02d%05.2f%c%c%03d%05.2f%c%c",  
                  lat_deg, lat_min, lat_dir, table, lon_deg, lon_min, lon_dir, symbol);
     }
 
@@ -200,7 +198,7 @@ namespace services {
             stations[target_idx].bearing_deg = brg;
             stations[target_idx].last_seen_millis = millis();
             
-            if (symbol_char[0] == '[' && table_char[0] == '/')      strncpy(stations[target_idx].type, "Runner", 15);
+            if (symbol_char[0] == '[' && table_char[0] == '/')     strncpy(stations[target_idx].type, "Runner", 15);
             else if (symbol_char[0] == '-' && table_char[0] == '/') strncpy(stations[target_idx].type, "Fixed Base", 15);
             else if (symbol_char[0] == '&' && table_char[0] == 'I') strncpy(stations[target_idx].type, "Gateway", 15);
             else if (symbol_char[0] == 'Y' && table_char[0] == '\\') strncpy(stations[target_idx].type, "Radios/APRS", 15);
@@ -225,8 +223,8 @@ namespace services {
         char lat_str[9] = {0};
         char lon_str[10] = {0};
         
-        strncpy(lat_str, info + 1, 8); 
-        strncpy(lon_str, info + 10, 9); 
+        strncpy(lat_str, info + 1, 8);  
+        strncpy(lon_str, info + 10, 9);  
         
         char table_char[2] = { info[9], '\0' };
         char symbol_char[2] = { info[18], '\0' };
@@ -248,16 +246,12 @@ namespace services {
 
         const char* cmt = (strlen(info) > 19) ? (info + 19) : "";
         update_or_add_station(call, dec_lat, dec_lon, table_char, symbol_char, cmt);
-
-        // NEW: Trigger a 30ms Cyan pulse to confirm standard background data ingress
-        hw::led_rgb::trigger_traffic_pulse();
     }
 
     void AprsManager::parse_incoming_message(const char* call, const char* info) {
         auto& cfg = config::get();
         if (strlen(info) < 11 || info[0] != ':') return;
 
-        // Extract the 9-character destination from the packet and trim it
         char rx_target[10];
         memcpy(rx_target, info + 1, 9);
         rx_target[9] = '\0';
@@ -266,7 +260,6 @@ namespace services {
             else break;
         }
 
-        // Must match our base callsign (case-insensitive) to catch any SSID variant
         if (strncasecmp(rx_target, cfg.callsign, strlen(cfg.callsign)) != 0) return;
 
         if (info[10] == ':') {
@@ -274,21 +267,18 @@ namespace services {
             strncpy(msg_body, info + 11, 63);
             msg_body[63] = '\0';
 
-            // Check for Message ID requiring an ACK
             char* ack_start = strrchr(msg_body, '{');
             if (ack_start) {
-                *ack_start = '\0'; // Strip the '{ID' from the display string
+                *ack_start = '\0'; 
                 char ack_id[10];
                 strncpy(ack_id, ack_start + 1, 9);
                 ack_id[9] = '\0';
 
-                // Send silent Auto-ACK directly back to the sender
                 char ack_payload[16];
                 snprintf(ack_payload, sizeof(ack_payload), "ack%s", ack_id);
                 send_message(call, ack_payload, true);
             }
 
-            // Hide incoming network ACKs so they don't clutter the user's chat screen
             if (strncasecmp(msg_body, "ack", 3) == 0) return;
 
             if (message_count < 10) {
@@ -302,7 +292,6 @@ namespace services {
             }
             msg_dirty = true;
 
-            // Inbound directed radio transmission alert! Trigger 3s intense White/Magenta Strobe
             hw::led_rgb::trigger_priority_strobe();
         }
     }
@@ -313,7 +302,7 @@ namespace services {
         char* colon = strchr(line, ':');
         if (!colon) return;
         
-        *colon = '\0'; 
+        *colon = '\0';  
         char* header = line;
         char* info = colon + 1;
         
@@ -327,7 +316,7 @@ namespace services {
         } else if (info[0] == '!' || info[0] == '=' || info[0] == '@' || info[0] == '/') {
             const char* coord_start = info;
             if (info[0] == '@' || info[0] == '/') {
-                if (strlen(info) > 8) coord_start = info + 7; 
+                if (strlen(info) > 8) coord_start = info + 7;  
             }
             parse_uncompressed_position(callsign, coord_start);
         }
@@ -353,11 +342,13 @@ namespace services {
                     if (cfg.aprs_ssid == 0) snprintf(src_call, sizeof(src_call), "%s", cfg.callsign);
                     else snprintf(src_call, sizeof(src_call), "%s-%d", cfg.callsign, cfg.aprs_ssid);
 
-                    snprintf(login, sizeof(login), "user %s pass %s vers QRPickle 1.0 filter r/%.2f/%.2f/50 p/%s\r\n",
-                             src_call, cfg.aprs_passcode, cfg.lat, cfg.lon, cfg.callsign);
+                    // DYNAMIC VERSION INSERTION
+                    snprintf(login, sizeof(login), "user %s pass %s vers %s %s filter r/%.2f/%.2f/50 p/%s\r\n",
+                             src_call, cfg.aprs_passcode, meta::FW_NAME, meta::FW_VERSION, cfg.lat, cfg.lon, cfg.callsign);
+                             
                     client.print(login);
                     connected = true;
-                    loop_last_beacon_millis = 0; 
+                    loop_last_beacon_millis = 0;  
                 } else {
                     vTaskDelay(pdMS_TO_TICKS(5000));
                     continue;
@@ -376,7 +367,7 @@ namespace services {
                 else snprintf(src_call, sizeof(src_call), "%s-%d", cfg.callsign, cfg.aprs_ssid);
 
                 char beacon[160];
-                snprintf(beacon, sizeof(beacon), "%s>APRS,TCPIP*:=%s%s\r\n", 
+                snprintf(beacon, sizeof(beacon), "%s>APRS,TCPIP*:=%s%s\r\n",  
                          src_call, coord_str, dynamic_cmt);
                 
                 client.print(beacon);
@@ -388,7 +379,7 @@ namespace services {
 
             if (tx_msg_pending && connected) {
                 client.print(tx_msg_queue);
-                client.flush(); 
+                client.flush();  
                 Serial.printf("[APRS-TX] Hardware flushed packet to network: %s", tx_msg_queue);
                 tx_msg_pending = false;
             }
