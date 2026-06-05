@@ -4,6 +4,8 @@
 #include "display_manager.h"
 #include "cloud_ota.h"
 #include "aprs_manager.h"
+#include "dx_manager.h"        // NEW: Explicit inclusion to stop background hooks
+#include "hamalert_manager.h"  // NEW: Explicit inclusion to dismantle task stack
 #include "../config/config.h"
 #include "../core/metadata.h"
 #include "../hw/sensor.h"
@@ -377,11 +379,17 @@ void web_server_init() {
     server.on("/api/cloud_ota/flash", HTTP_POST, [](AsyncWebServerRequest *request) {
         request->send(200, "application/json", "{\"status\":\"flashing\"}");
         
-        // FIXED: Force the execution thread to explicitly kill the server daemon 
-        // to prevent background network fragmentation right before making the SSL call!
-        Serial.println("[WEB-SERVER] Terminating async listener sockets to clear heap context for TLS...");
+        // TOTAL SYSTEM LOCKDOWN: Stop background daemons to destroy RTOS task stacks
+        Serial.println("[SYSTEM-LOCKDOWN] Purging background background managers to recover contiguous heap segments...");
+        services::DxManager::stop();
+        services::HamAlertManager::stop();
+        services::AprsManager::stop();
+        delay(500); // Give background task monitors time to safely yield and destroy task handles
+        
+        // Stop Async Web Server
+        Serial.println("[SYSTEM-LOCKDOWN] Terminating async listener sockets...");
         web_server_stop(); 
-        delay(500); // Allow LwIP network context buffers to cleanly release and consolidate
+        delay(1000); // Allow active context buffers to dissolve
         
         services::cloud_ota::execute_firmware_flash();
     });
