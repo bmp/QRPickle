@@ -30,9 +30,15 @@ Ordered by priority.
 - [ ] **1.7 Medium**: whitelist profile names (`[A-Za-z0-9_-]{1,24}`).
 - [ ] **1.8 Low**: keep secrets out of profile files; document that NVS is unencrypted.
 
+## OTA fixes (from the code review, area 2)
+- [ ] **2.1/2.2 High**: manual OTA size limits are wrong; use `UPDATE_SIZE_UNKNOWN` (`ota_manager.cpp:15,20`). Firmware and filesystem uploads are broken today.
+- [ ] **2.3 High**: on a Cloud OTA failure, `ESP.restart()` instead of hanging forever.
+- [ ] **2.4 High**: verify Cloud OTA firmware with SHA-256. CI publishes the hash; the device checks it while streaming.
+- [ ] **2.5 Medium**: move the forced update check out of the AsyncTCP callback.
+- [ ] **2.6 Medium**: make rollback work: override `verifyOta()`, mark the app valid after a stable boot.
+- [ ] **2.7/2.8 Low**: compare versions numerically; send a single response on OTA errors.
+
 ## Refactors (from the code review)
 - [ ] **1.9**: replace the ~9 hand-maintained copies of the config field list with a single field table. This also covers 1.3–1.5.
 - [ ] **1.10–1.13**: drop the `#define cfg` macro; rewrite the `FIXED:`/`NEW:` comments; document units (`tz_offset_hh` is half-hours, the `forecast_slots` bitmask); reassemble chunked request bodies.
 
-## Still to investigate
-- [ ] POTA/SOTA use `WiFiClientSecure::setInsecure()`. Check whether Cloud OTA does too (area 2 of the review).
