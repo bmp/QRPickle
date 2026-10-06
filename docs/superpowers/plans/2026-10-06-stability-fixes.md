@@ -49,7 +49,7 @@ Build command for every task: `pio run`. Expected: `[SUCCESS]`, with Flash still
 
 **Why:** `wifi_manager_start_ap()` calls `web_server_init()`, and `setup()` calls it again afterwards. Every route is registered twice and `server.begin()` runs twice.
 
-- [ ] **Step 1: Add the guard**
+- [x] **Step 1: Add the guard**
 
 Replace:
 ```cpp
@@ -67,11 +67,11 @@ void web_server_init() {
     WiFi.setSleep(false);
 ```
 
-- [ ] **Step 2: Build**
+- [x] **Step 2: Build**
 
 Run: `pio run`. Expected: `[SUCCESS]`.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 ```bash
 git add src/services/web_server.cpp
 git commit -m "fix: register web routes once even when setup AP starts"
@@ -85,7 +85,7 @@ git commit -m "fix: register web routes once even when setup AP starts"
 - Modify: `src/services/wifi_manager.h` (the `wifi_state_t` enum)
 - Modify: `src/services/wifi_manager.cpp` (lines 10–15, 46–63, 65–108)
 
-- [ ] **Step 1: Add the state to the enum** in `wifi_manager.h`:
+- [x] **Step 1: Add the state to the enum** in `wifi_manager.h`:
 ```cpp
 enum wifi_state_t {
     WIFI_STATE_OFFLINE,
@@ -98,14 +98,14 @@ enum wifi_state_t {
 };
 ```
 
-- [ ] **Step 2: Add the retry constants** in `wifi_manager.cpp`, after `static char status_msg[64] = "DISCONNECTED";`:
+- [x] **Step 2: Add the retry constants** in `wifi_manager.cpp`, after `static char status_msg[64] = "DISCONNECTED";`:
 ```cpp
 // While the fallback setup AP is up, retry the saved network this often.
 static const unsigned long STA_RETRY_INTERVAL_MS = 60000;
 static unsigned long last_sta_retry_mark = 0;
 ```
 
-- [ ] **Step 3: Replace `wifi_manager_start_ap()`** (lines 46–63) with a shared helper, the AP-only entry point and the fallback entry point:
+- [x] **Step 3: Replace `wifi_manager_start_ap()`** (lines 46–63) with a shared helper, the AP-only entry point and the fallback entry point:
 ```cpp
 static bool bring_up_ap(wifi_mode_t mode) {
     WiFi.mode(mode);
@@ -139,7 +139,7 @@ static void start_fallback_ap() {
 }
 ```
 
-- [ ] **Step 4: Handle the fallback state in `wifi_manager_update()`.** Directly after `if (current_state == WIFI_STATE_AP_MODE) return;` (line 70), insert:
+- [x] **Step 4: Handle the fallback state in `wifi_manager_update()`.** Directly after `if (current_state == WIFI_STATE_AP_MODE) return;` (line 70), insert:
 ```cpp
     if (current_state == WIFI_STATE_AP_FALLBACK) {
         if (WiFi.status() != WL_CONNECTED) {
@@ -157,7 +157,7 @@ static void start_fallback_ap() {
     }
 ```
 
-- [ ] **Step 5: Use the fallback on the boot timeout.** Replace (lines 103–106):
+- [x] **Step 5: Use the fallback on the boot timeout.** Replace (lines 103–106):
 ```cpp
         if (current_state == WIFI_STATE_CONNECTING && (millis() - connection_timeout_mark > 20000)) {
             Serial.println("[Wi-Fi] Boot connection timeout. Dropping back to Fallback Setup AP Mode...");
@@ -172,16 +172,16 @@ with:
         }
 ```
 
-- [ ] **Step 6: Build.** Run: `pio run`. Expected: `[SUCCESS]`.
+- [x] **Step 6: Build.** Run: `pio run`. Expected: `[SUCCESS]`.
 
-- [ ] **Step 7: On-device test** (this is the scenario the owner observed)
+- [x] **Step 7: On-device test** (this is the scenario the owner observed)
   1. Power off the router. Power-cycle the CYD.
   2. After about 20 seconds, the serial log shows `Starting fallback setup AP; will keep retrying saved network...`, and the `QRPickle-Setup` network is visible.
   3. Power the router back on. Within about 60 seconds of the router being ready, the log shows `Fallback AP up. Retrying saved network...`, then `Saved network reachable again. Shutting down fallback AP...`, then `Network Link Stable!`.
   4. `QRPickle-Setup` disappears. The dashboard, weather and spots work.
   5. Regression check: erase the saved SSID (or test on a fresh device). It must go to AP-only mode with no retry messages.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 ```bash
 git add src/services/wifi_manager.h src/services/wifi_manager.cpp
 git commit -m "fix: keep retrying saved WiFi while fallback setup AP is up"
@@ -195,19 +195,19 @@ git commit -m "fix: keep retrying saved WiFi while fallback setup AP is up"
 - Modify: `src/services/hamalert_manager.h` (the public section of the class)
 - Modify: `src/services/hamalert_manager.cpp` (the includes, `start()` at lines 18–33, the end of `task_loop()` at line 209)
 
-- [ ] **Step 1: Declare `is_stopped()`** in the `public:` section of `HamAlertManager`, after `static void stop();`:
+- [x] **Step 1: Declare `is_stopped()`** in the `public:` section of `HamAlertManager`, after `static void stop();`:
 ```cpp
         // True once the background task has fully exited (stop() only requests the exit).
         static bool is_stopped();
 ```
 
-- [ ] **Step 2: Add the alive flag.** In `hamalert_manager.cpp`, add `#include <atomic>` with the other includes. After `bool HamAlertManager::running = false;`, add:
+- [x] **Step 2: Add the alive flag.** In `hamalert_manager.cpp`, add `#include <atomic>` with the other includes. After `bool HamAlertManager::running = false;`, add:
 ```cpp
     // Set before the task is created, cleared by the task as its last action.
     static std::atomic<bool> task_alive{false};
 ```
 
-- [ ] **Step 3: Guard `start()` and check the task creation result.** Change the first line of `start()` from:
+- [x] **Step 3: Guard `start()` and check the task creation result.** Change the first line of `start()` from:
 ```cpp
         if (running) return;
 ```
@@ -231,12 +231,12 @@ with:
         }
 ```
 
-- [ ] **Step 4: Add `is_stopped()`** after `stop()`:
+- [x] **Step 4: Add `is_stopped()`** after `stop()`:
 ```cpp
     bool HamAlertManager::is_stopped() { return !task_alive; }
 ```
 
-- [ ] **Step 5: Clear the flag on exit.** At the end of `task_loop()`, replace:
+- [x] **Step 5: Clear the flag on exit.** At the end of `task_loop()`, replace:
 ```cpp
         Serial.println("[HamAlert-Socket] Safely suspended for Time-Slicing.");
         vTaskDelete(NULL);
@@ -248,9 +248,9 @@ with:
         vTaskDelete(NULL);
 ```
 
-- [ ] **Step 6: Build.** Run: `pio run`. Expected: `[SUCCESS]`.
+- [x] **Step 6: Build.** Run: `pio run`. Expected: `[SUCCESS]`.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 ```bash
 git add src/services/hamalert_manager.h src/services/hamalert_manager.cpp
 git commit -m "fix: prevent duplicate HamAlert tasks on fast stop/start"
@@ -264,19 +264,19 @@ git commit -m "fix: prevent duplicate HamAlert tasks on fast stop/start"
 - Modify: `src/services/aprs_manager.h` (the public section of the class)
 - Modify: `src/services/aprs_manager.cpp` (the includes, `start()` at lines 32–43, the end of `task_loop()` at lines 400–402)
 
-- [ ] **Step 1: Declare `is_stopped()`** in the `public:` section of `AprsManager`, after `static void stop();`:
+- [x] **Step 1: Declare `is_stopped()`** in the `public:` section of `AprsManager`, after `static void stop();`:
 ```cpp
         // True once the background task has fully exited (stop() only requests the exit).
         static bool is_stopped();
 ```
 
-- [ ] **Step 2: Add the alive flag.** In `aprs_manager.cpp`, add `#include <atomic>` with the other includes. After `bool AprsManager::running = false;`, add:
+- [x] **Step 2: Add the alive flag.** In `aprs_manager.cpp`, add `#include <atomic>` with the other includes. After `bool AprsManager::running = false;`, add:
 ```cpp
     // Set before the task is created, cleared by the task as its last action.
     static std::atomic<bool> task_alive{false};
 ```
 
-- [ ] **Step 3: Guard `start()` and check the task creation result.** Change:
+- [x] **Step 3: Guard `start()` and check the task creation result.** Change:
 ```cpp
         if (running || !config::get().aprs_enabled) return;
 ```
@@ -300,12 +300,12 @@ with:
         }
 ```
 
-- [ ] **Step 4: Add `is_stopped()`** after `stop()`:
+- [x] **Step 4: Add `is_stopped()`** after `stop()`:
 ```cpp
     bool AprsManager::is_stopped() { return !task_alive; }
 ```
 
-- [ ] **Step 5: Clear the flag on exit.** At the end of `task_loop()`, replace:
+- [x] **Step 5: Clear the flag on exit.** At the end of `task_loop()`, replace:
 ```cpp
         client.stop();
         connected = false;
@@ -319,9 +319,9 @@ with:
         vTaskDelete(NULL);
 ```
 
-- [ ] **Step 6: Build.** Run: `pio run`. Expected: `[SUCCESS]`.
+- [x] **Step 6: Build.** Run: `pio run`. Expected: `[SUCCESS]`.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 ```bash
 git add src/services/aprs_manager.h src/services/aprs_manager.cpp
 git commit -m "fix: prevent duplicate APRS tasks on fast stop/start"
@@ -336,13 +336,13 @@ git commit -m "fix: prevent duplicate APRS tasks on fast stop/start"
 
 **Depends on:** Tasks 3 and 4 (`is_stopped()`).
 
-- [ ] **Step 1: Add the timer handle.** After `static lv_timer_t* delayed_fetch_timer = nullptr;` (line 34), add:
+- [x] **Step 1: Add the timer handle.** After `static lv_timer_t* delayed_fetch_timer = nullptr;` (line 34), add:
 ```cpp
     // Lives outside the screen's lifetime: restarts the socket services after leaving xOTA.
     static lv_timer_t* resume_timer = nullptr;
 ```
 
-- [ ] **Step 2: Make the fetch wait for the old tasks to exit.** At the very top of `execute_delayed_fetch()`, before `if (active_tab == TAB_POTA) {`, insert:
+- [x] **Step 2: Make the fetch wait for the old tasks to exit.** At the very top of `execute_delayed_fetch()`, before `if (active_tab == TAB_POTA) {`, insert:
 ```cpp
         // Don't open a TLS session while the old APRS/HamAlert tasks still hold their stacks
         // and sockets; stop() only requests the exit. Retry on the next tick (100 ms).
@@ -351,7 +351,7 @@ git commit -m "fix: prevent duplicate APRS tasks on fast stop/start"
         }
 ```
 
-- [ ] **Step 3: Replace `async_resume_task`** (lines 232–239) with a timer callback:
+- [x] **Step 3: Replace `async_resume_task`** (lines 232–239) with a timer callback:
 ```cpp
     static void resume_services_cb(lv_timer_t* t) {
         // Wait until the previous task instances have fully exited, then restart once.
@@ -367,13 +367,13 @@ git commit -m "fix: prevent duplicate APRS tasks on fast stop/start"
     }
 ```
 
-- [ ] **Step 4: Cancel a pending resume on re-entry.** At the top of `draw_xota_page()`, before `Serial.println("[xOTA] Entry. ...`, insert:
+- [x] **Step 4: Cancel a pending resume on re-entry.** At the top of `draw_xota_page()`, before `Serial.println("[xOTA] Entry. ...`, insert:
 ```cpp
         // Re-entered within the quiet period: the services must stay stopped.
         if (resume_timer) { lv_timer_delete(resume_timer); resume_timer = nullptr; }
 ```
 
-- [ ] **Step 5: Schedule the timer instead of creating a task.** In the `LV_EVENT_DELETE` handler, replace:
+- [x] **Step 5: Schedule the timer instead of creating a task.** In the `LV_EVENT_DELETE` handler, replace:
 ```cpp
             xTaskCreate(async_resume_task, "resume_task", 2048, NULL, 1, NULL);
 ```
@@ -382,7 +382,7 @@ with:
             if (!resume_timer) resume_timer = lv_timer_create(resume_services_cb, 2000, NULL);
 ```
 
-- [ ] **Step 6: Remove the dead nested handler call** (review 4.2). Replace:
+- [x] **Step 6: Remove the dead nested handler call** (review 4.2). Replace:
 ```cpp
         // Force LVGL to physically draw the initial canvas and the big loading label
         lv_timer_handler();
@@ -395,15 +395,15 @@ with:
         // (a nested lv_timer_handler() call here would be ignored by LVGL's re-entrancy guard).
 ```
 
-- [ ] **Step 7: Build.** Run: `pio run`. Expected: `[SUCCESS]`, with no reference to `async_resume_task` remaining (`grep -n async_resume_task src/ui/screens/xota.cpp` prints nothing).
+- [x] **Step 7: Build.** Run: `pio run`. Expected: `[SUCCESS]`, with no reference to `async_resume_task` remaining (`grep -n async_resume_task src/ui/screens/xota.cpp` prints nothing).
 
-- [ ] **Step 8: On-device test** (this is the crash scenario the owner observed). Enable APRS and HamAlert so their tasks run.
+- [x] **Step 8: On-device test** (this is the crash scenario the owner observed). Enable APRS and HamAlert so their tasks run.
   1. Open xOTA, wait for the spots to load, then leave. After about 2 seconds the log shows `[xOTA] Quiet period ended...` exactly **once**.
   2. Repeat 10 times **quickly**: enter xOTA and leave within 1 second. There must be no reboot, no `Guru Meditation`, no `Stack canary`, and no repeated `Quiet period ended` lines within the same 2 seconds.
   3. Enter xOTA, leave, and re-enter within 1 second. The log must **not** show `Quiet period ended` while you're on xOTA; the POTA fetch must complete.
   4. Stay on the dashboard for 5 minutes. APRS and HamAlert reconnect (each shows its own connected log line once, with no duplicates).
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 ```bash
 git add src/ui/screens/xota.cpp
 git commit -m "fix: resume services from main-loop timer after xOTA (no 2KB task, no re-entry race)"
@@ -416,9 +416,9 @@ git commit -m "fix: resume services from main-loop timer after xOTA (no 2KB task
 **Files:**
 - Modify: `docs/reviews/2026-10-code-review.md`
 
-- [ ] **Step 1:** Under items 3.1, 3.2 and 4.1, add a line `**Fixed:** <commit sha> (on-device verified YYYY-MM-DD)`, or `**Fixed, awaiting device test:** <sha>` if Steps 7–8 above haven't been done yet.
+- [x] **Step 1:** Under items 3.1, 3.2 and 4.1, add a line `**Fixed:** <commit sha> (on-device verified YYYY-MM-DD)`, or `**Fixed, awaiting device test:** <sha>` if Steps 7–8 above haven't been done yet.
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 ```bash
 git add docs/reviews/2026-10-code-review.md
 git commit -m "docs: mark stability findings fixed"
