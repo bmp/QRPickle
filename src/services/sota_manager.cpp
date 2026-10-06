@@ -1,164 +1,134 @@
 #include "sota_manager.h"
-#include "../core/metadata.h" 
+#include "../config/config.h"
 #include <Arduino.h>
-#include <WiFiClientSecure.h>
-#include <HTTPClient.h>
+#include <WiFi.h>
+#include <atomic>
 #include <cstring>
-#include <ctype.h>
 #include <strings.h>
 
 namespace services {
+
+    static const char* CLUSTER_HOST = "cluster.sota.org.uk";
+    static const uint16_t CLUSTER_PORT = 7300;
+    static const size_t MAX_SPOTS = 30;
 
     SotaSpot* SotaManager::spots = nullptr;
     size_t SotaManager::spot_count = 0;
     bool SotaManager::fetching = false;
     bool SotaManager::dirty = false;
+    bool SotaManager::running = false;
     uint32_t SotaManager::last_fetch_time = 0;
 
-    void SotaManager::deduce_mode(float freq, const char* comment, char* out_mode, size_t max_len) {
-        if (strcasestr(comment, "FT8"))   { strncpy(out_mode, "FT8", max_len); return; }
-        if (strcasestr(comment, "CW"))    { strncpy(out_mode, "CW", max_len); return; }
-        if (strcasestr(comment, "SSB"))   { strncpy(out_mode, "SSB", max_len); return; }
-        if (freq > 0.0f) {
-            if (freq >= 14.000f && freq < 14.070f) { strncpy(out_mode, "CW", max_len); return; }
-            if (freq >= 14.150f && freq <= 14.350f) { strncpy(out_mode, "SSB", max_len); return; }
-        }
-        strncpy(out_mode, "OTHER", max_len);
-    }
+    // Set before the task is created, cleared by the task as its last action.
+    static std::atomic<bool> task_alive{false};
+    // Guards the spot list while the task reorders it; the UI reads it from loop().
+    static portMUX_TYPE spots_mux = portMUX_INITIALIZER_UNLOCKED;
 
-    static void extract_json_value(const char* json, const char* key, char* out, size_t max_len) {
-        out[0] = '\0';
-        char search[64];
-        snprintf(search, sizeof(search), "\"%s\"", key);
-        const char* ptr = strstr(json, search);
-        if (!ptr) return;
-        ptr += strlen(search);
-        while (*ptr && (*ptr == ' ' || *ptr == ':' || *ptr == '"')) ptr++;
-        size_t idx = 0;
-        while (*ptr && *ptr != '"' && *ptr != ',' && *ptr != '}' && idx < max_len - 1) {
-            out[idx++] = *ptr++;
-        }
-        out[idx] = '\0';
-        while (idx > 0 && (out[idx - 1] == ' ' || out[idx - 1] == '\r' || out[idx - 1] == '\n')) {
-            out[--idx] = '\0';
-        }
-    }
+    void SotaManager::start() {
+        if (running || task_alive) return;  // previous task may still be exiting
 
-    static bool read_next_json_object(Stream& stream, char* buffer, size_t max_len) {
-        int brace_depth = 0;
-        size_t idx = 0;
-        unsigned long start_ms = millis();
-        
-        while (millis() - start_ms < 4000) {
-            if (!stream.available()) {
-                delay(2);
-                continue;
-            }
-            char c = stream.read();
-            
-            if (brace_depth == 0) {
-                if (c == '{') {
-                    brace_depth = 1;
-                    buffer[idx++] = c;
-                } else if (c == ']') {
-                    return false; 
-                }
-            } else {
-                if (idx < max_len - 1) {
-                    buffer[idx++] = c;
-                }
-                if (c == '{') brace_depth++;
-                else if (c == '}') {
-                    brace_depth--;
-                    if (brace_depth == 0) {
-                        buffer[idx] = '\0';
-                        return true;
-                    }
-                }
-            }
+        const char* call = config::get().callsign;
+        if (strlen(call) < 3 || strcmp(call, "N0CALL") == 0) {
+            Serial.println("[SOTA] Callsign not set; cluster login skipped.");
+            return;
         }
-        return false;
-    }
-
-    void SotaManager::fetch_async() {
         if (!spots) {
-            spots = (SotaSpot*)calloc(30, sizeof(SotaSpot));
+            spots = (SotaSpot*)calloc(MAX_SPOTS, sizeof(SotaSpot));
             if (!spots) return;
         }
 
-        if (fetching || (millis() - last_fetch_time < 30000 && last_fetch_time != 0)) return;
+        running = true;
+        task_alive = true;
         fetching = true;
+        if (xTaskCreate(task_loop, "sota_cluster", 4096, NULL, 1, NULL) != pdPASS) {
+            running = false;
+            task_alive = false;
+            fetching = false;
+            Serial.println("[SOTA] Task creation failed (heap).");
+        }
+    }
 
-        Serial.println("[SOTA] Synchronous main-thread fetch started.");
+    void SotaManager::stop() { running = false; }
 
-        WiFiClientSecure secureClient;
-        secureClient.setInsecure(); 
+    bool SotaManager::is_stopped() { return !task_alive; }
 
-        HTTPClient http;
-        http.useHTTP10(true); 
-        http.begin(secureClient, "https://api2.sota.org.uk/api/spots/30/all"); 
-        
-        char user_agent[64];
-        snprintf(user_agent, sizeof(user_agent), "%s/%s", meta::FW_NAME, meta::FW_VERSION);
-        http.addHeader("User-Agent", user_agent); 
-        
-        // FIXED: Hard-closes the link instantly to clear lingering cache sockets
-        http.addHeader("Connection", "close"); 
+    // Newest first; a new spot for an activator replaces that activator's older entry.
+    void SotaManager::store_spot(const sota_cluster::ParsedSpot& p) {
+        SotaSpot s{};
+        strncpy(s.time, p.time, sizeof(s.time) - 1);
+        strncpy(s.summit, p.summit, sizeof(s.summit) - 1);
+        strncpy(s.mode, p.mode, sizeof(s.mode) - 1);
+        strncpy(s.activator, p.activator, sizeof(s.activator) - 1);
+        s.freq = p.freq_mhz;
+        if (p.comment[0]) {
+            strncpy(s.comment, p.comment, sizeof(s.comment) - 1);
+            strncat(s.comment, " | ", sizeof(s.comment) - strlen(s.comment) - 1);
+        }
+        strncat(s.comment, "de ", sizeof(s.comment) - strlen(s.comment) - 1);
+        strncat(s.comment, p.spotter, sizeof(s.comment) - strlen(s.comment) - 1);
+        s.is_qrp = (strcasestr(s.comment, "QRP") != nullptr);
 
-        http.setTimeout(8000); 
+        portENTER_CRITICAL(&spots_mux);
+        size_t i = 0;
+        while (i < spot_count && strcmp(spots[i].activator, s.activator) != 0) i++;
+        if (i == spot_count) {
+            if (spot_count < MAX_SPOTS) spot_count++;  // use the free slot
+            else i = MAX_SPOTS - 1;                    // drop the oldest
+        }
+        memmove(&spots[1], &spots[0], i * sizeof(SotaSpot));
+        spots[0] = s;
+        dirty = true;
+        portEXIT_CRITICAL(&spots_mux);
+    }
 
-        int httpCode = http.GET();
-        if (httpCode == HTTP_CODE_OK) {
-            Stream& stream = http.getStream();
-            stream.setTimeout(3000);
+    void SotaManager::task_loop(void* param) {
+        WiFiClient client;
+        char line[192];
+        size_t idx = 0;
 
-            if (stream.find('[')) {
-                spot_count = 0;
-                char chunk[512]; 
-
-                while (spot_count < 30) {
-                    if (!read_next_json_object(stream, chunk, sizeof(chunk))) break;
-
-                    SotaSpot s{0};
-                    char time_buf[24] = {0};
-                    extract_json_value(chunk, "timeStamp", time_buf, sizeof(time_buf));
-                    if (strlen(time_buf) >= 16) snprintf(s.time, sizeof(s.time), "%.5s", time_buf + 11);
-                    
-                    char assoc[8] = {0}, summit[8] = {0};
-                    extract_json_value(chunk, "associationCode", assoc, sizeof(assoc));
-                    extract_json_value(chunk, "summitCode", summit, sizeof(summit));
-                    if (strlen(assoc) > 0 && strlen(summit) > 0) {
-                        snprintf(s.summit, sizeof(s.summit), "%s/%s", assoc, summit);
-                    }
-
-                    extract_json_value(chunk, "callsign", s.activator, sizeof(s.activator));
-                    extract_json_value(chunk, "comments", s.comment, sizeof(s.comment));
-
-                    char freq_buf[16] = {0};
-                    extract_json_value(chunk, "frequency", freq_buf, sizeof(freq_buf));
-                    s.freq = atof(freq_buf);
-
-                    extract_json_value(chunk, "mode", s.mode, sizeof(s.mode));
-                    if (strlen(s.mode) > 0) {
-                        for(char* p = s.mode; *p; ++p) *p = toupper(*p);
-                    } else {
-                        deduce_mode(s.freq, s.comment, s.mode, sizeof(s.mode));
-                    }
-                    
-                    s.is_qrp = (strcasestr(s.comment, "QRP") != nullptr);
-                    spots[spot_count++] = s;
-                }
-                dirty = true;
-                Serial.printf("[SOTA] Success. Mapped %u spots.\n", spot_count);
+        while (running) {
+            if (!WiFi.isConnected()) {
+                client.stop();
+                for (int i = 0; i < 30 && running; i++) vTaskDelay(pdMS_TO_TICKS(100));
+                continue;
             }
-        } else {
-            Serial.printf("[SOTA] Failed. HTTP Code: %d\n", httpCode);
+
+            if (!client.connected()) {
+                Serial.printf("[SOTA] Connecting to %s:%u...\n", CLUSTER_HOST, CLUSTER_PORT);
+                client.setTimeout(10);  // seconds; bounds the wait for the login prompt
+                if (!client.connect(CLUSTER_HOST, CLUSTER_PORT, 5000) || !client.find("login:")) {
+                    client.stop();
+                    Serial.println("[SOTA] Cluster unreachable; retrying in 30 s.");
+                    for (int i = 0; i < 300 && running; i++) vTaskDelay(pdMS_TO_TICKS(100));
+                    continue;
+                }
+                client.printf("%s\r\n", config::get().callsign);
+                idx = 0;
+                fetching = false;
+                Serial.println("[SOTA] Logged in to SOTA cluster.");
+            }
+
+            while (client.available() && running) {
+                char c = client.read();
+                if (c == '\n') {
+                    line[idx] = '\0';
+                    sota_cluster::ParsedSpot p;
+                    if (sota_cluster::parse_line(line, p)) store_spot(p);
+                    idx = 0;
+                } else if (c != '\r' && idx < sizeof(line) - 1) {
+                    line[idx++] = c;
+                }
+            }
+
+            last_fetch_time = millis();  // live feed: never stale while connected
+            vTaskDelay(pdMS_TO_TICKS(50));
         }
 
-        http.end();
-        secureClient.stop();
-
-        last_fetch_time = millis();
+        client.stop();
         fetching = false;
+        Serial.println("[SOTA] Cluster session closed.");
+        task_alive = false;
+        vTaskDelete(NULL);
     }
-}
+
+} // namespace services

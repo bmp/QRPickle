@@ -75,16 +75,16 @@ namespace ui {
     static void update_ui(lv_timer_t* t);
 
     static void execute_delayed_fetch(lv_timer_t* t) {
-        // Don't open a TLS session while the old APRS/HamAlert tasks still hold their stacks
-        // and sockets; stop() only requests the exit. Retry on the next tick (100 ms).
-        if (!services::HamAlertManager::is_stopped() || !services::AprsManager::is_stopped()) {
-            return;
-        }
-
         if (active_tab == TAB_POTA) {
-            services::PotaManager::fetch_async(); 
+            // POTA uses TLS: wait until the socket tasks (APRS, HamAlert, SOTA cluster) have
+            // exited and released their stacks; stop() only requests the exit. Retry in 100 ms.
+            if (!services::HamAlertManager::is_stopped() || !services::AprsManager::is_stopped() ||
+                !services::SotaManager::is_stopped()) {
+                return;
+            }
+            services::PotaManager::fetch_async();
         } else {
-            services::SotaManager::fetch_async();
+            services::SotaManager::fetch_async();  // starts the cluster client; spots arrive asynchronously
         }
 
         if (lbl_comment) {
@@ -103,6 +103,7 @@ namespace ui {
 
         active_tab = t;
         last_auto_refresh_millis = millis(); 
+        if (t == TAB_POTA) services::SotaManager::stop();  // free the socket before POTA's TLS fetch
 
         if (t == TAB_POTA) {
             lv_obj_set_style_text_color(lbl_tab_pota, theme_color(COLOR_ACCENT_PRIMARY), 0);
@@ -442,6 +443,7 @@ namespace ui {
         lv_obj_add_event_cb(scr, [](lv_event_t*){
             if(ui_timer) { lv_timer_delete(ui_timer); ui_timer = nullptr; }
             if(delayed_fetch_timer) { lv_timer_delete(delayed_fetch_timer); delayed_fetch_timer = nullptr; }
+            services::SotaManager::stop();
             if(status_dot) { lv_obj_delete(status_dot); status_dot = nullptr; }
             scr = list_container = lbl_comment = lbl_loading = btn_freq = btn_mode = btn_qrp = lbl_tab_pota = lbl_tab_sota = lbl_hdr_ref = btn_tab_pota = btn_tab_sota = nullptr;
             
