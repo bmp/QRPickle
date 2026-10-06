@@ -58,6 +58,11 @@ const char fallback_html[] PROGMEM = R"rawhtml(
 )rawhtml";
 
 void web_server_init() {
+    // Called from setup() and again whenever the setup AP comes up; register routes only once.
+    static bool initialized = false;
+    if (initialized) return;
+    initialized = true;
+
     WiFi.setSleep(false);
     if (LittleFS.begin()) {
         if (!LittleFS.exists("/profiles")) LittleFS.mkdir("/profiles");
