@@ -15,22 +15,26 @@ Run every step that applies and report each result.
    `pio run 2>&1 | tail -30`
    It must end in `SUCCESS`. Record the `Flash: ... %` and `RAM: ... %` lines.
 
-2. **Size budget.** The app slot is 1,835,008 bytes (`0x1C0000`).
+2. **Static analysis** (any change in `src/`):
+   `pio check -e cyd --severity=high --severity=medium`
+   The expected output is `No defects found`. **Any finding in `src/` blocks the commit.** Fix it; don't suppress it without asking.
+
+3. **Size budget.** The app slot is 1,835,008 bytes (`0x1C0000`).
    - Flash ≥ 95%: **warn**. OTA will fail once the image no longer fits the slot.
    - Compare against the last known value (86.9% at v0.1.11). Flag any jump of more than 2 points and name the likely cause.
 
-3. **Filesystem** (only if `data/` changed):
+4. **Filesystem** (only if `data/` changed):
    `pio run -t buildfs`. LittleFS is 448KB.
 
-4. **Native tests:** `pio test -e native`
+5. **Native tests:** `pio test -e native`
    - Read the summary line. **`0 test cases` means nothing was tested. Report "no tests exist", not "tests pass."**
    - If tests were collected, every one must succeed.
 
-5. **Secret scan of the diff.** `scripts/check_secrets.py` is empty, so do this by hand:
+6. **Secret scan of the diff.** `scripts/check_secrets.py` is empty, so do this by hand:
    `git diff HEAD | grep -nEi '(api[_-]?key|passw\w*|secret\w*|token\w*|passcode)\s*[:=]\s*"[^"]{6,}"'`
    Any hit blocks the commit. Show it with the value masked.
 
-6. **Restore build artifacts.** Builds overwrite the tracked `release/*.bin` files.
+7. **Restore build artifacts.** Builds overwrite the tracked `release/*.bin` files.
    `git checkout -- release/`
    Only skip this when the user is deliberately cutting a release.
 
@@ -47,6 +51,7 @@ Never flash the board yourself (`pio run -t upload` asks for permission); ask th
 
 ```
 Build:   SUCCESS  (Flash 86.9% | RAM 38.0%)
+Static:  no defects (cppcheck)
 FS:      skipped (data/ unchanged)
 Tests:   none exist (0 test cases)
 Secrets: clean
