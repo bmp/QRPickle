@@ -34,6 +34,11 @@ namespace ui {
     static lv_timer_t* delayed_fetch_timer = nullptr;
     // Lives outside the screen's lifetime: restarts the socket services after leaving xOTA.
     static lv_timer_t* resume_timer = nullptr;
+
+    // Layout (pixels): tabs 0-24, header 24-50, list, 24 px footer, inside a 216 px content area.
+    static constexpr int CONTENT_H = 216;
+    static constexpr int LIST_TOP = 50;
+    static constexpr int FOOT_H = 24;
     
     static uint32_t last_auto_refresh_millis = 0;
 
@@ -48,6 +53,7 @@ namespace ui {
 
     struct RowX {
         lv_obj_t* base;
+        size_t spot;  // index of the spot shown in this row (filters hide spots, so row N is not spot N)
         lv_obj_t* l_time;
         lv_obj_t* l_ref;
         lv_obj_t* l_freq;
@@ -163,12 +169,14 @@ namespace ui {
         int idx = (intptr_t)lv_event_get_user_data(e);
         char b[64] = "COMMENT: ";
         
+        if (idx < 0 || idx >= MAX_UI_ROWS || !rows) return;
+        size_t si = rows[idx].spot;
         if (active_tab == TAB_POTA) {
             const auto* sp = services::PotaManager::get_spots();
-            if(idx < services::PotaManager::get_spot_count()) strncat(b, sp[idx].comment, sizeof(b)-10);
+            if(si < services::PotaManager::get_spot_count()) strncat(b, sp[si].comment, sizeof(b)-10);
         } else {
             const auto* sp = services::SotaManager::get_spots();
-            if(idx < services::SotaManager::get_spot_count()) strncat(b, sp[idx].comment, sizeof(b)-10);
+            if(si < services::SotaManager::get_spot_count()) strncat(b, sp[si].comment, sizeof(b)-10);
         }
         if(lbl_comment) lv_label_set_text(lbl_comment, b);
     }
@@ -205,6 +213,7 @@ namespace ui {
                         lv_label_set_text(rows[vis].l_act, spots[i].activator);
                         lv_label_set_text(rows[vis].l_q, spots[i].is_qrp ? "•" : "-");
                         lv_obj_set_style_text_color(rows[vis].l_q, spots[i].is_qrp ? theme_color(COLOR_ACCENT_PRIMARY) : theme_color(COLOR_TEXT_MAIN), 0);
+                        rows[vis].spot = i;
                         lv_obj_clear_flag(rows[vis].base, LV_OBJ_FLAG_HIDDEN);
                         vis++;
                     }
@@ -226,6 +235,7 @@ namespace ui {
                         lv_label_set_text(rows[vis].l_act, spots[i].activator);
                         lv_label_set_text(rows[vis].l_q, spots[i].is_qrp ? "•" : "-");
                         lv_obj_set_style_text_color(rows[vis].l_q, spots[i].is_qrp ? theme_color(COLOR_ACCENT_PRIMARY) : theme_color(COLOR_TEXT_MAIN), 0);
+                        rows[vis].spot = i;
                         lv_obj_clear_flag(rows[vis].base, LV_OBJ_FLAG_HIDDEN);
                         vis++;
                     }
@@ -266,7 +276,8 @@ namespace ui {
         }
 
         scr = lv_obj_create(parent);
-        lv_obj_set_size(scr, 320, 240);
+        // Drawn inside the content area below the status bar (320x216), not the full screen.
+        lv_obj_set_size(scr, 320, CONTENT_H);
         lv_obj_set_style_bg_color(scr, theme_color(COLOR_BG_APP), 0);
         lv_obj_set_style_border_width(scr, 0, 0);
         lv_obj_set_style_pad_all(scr, 0, 0);
@@ -339,7 +350,7 @@ namespace ui {
         lv_obj_t* l6 = lv_label_create(btn_qrp); lv_label_set_text(l6, QRPS[active_qrp]); lv_obj_set_style_text_font(l6, &font_jetbrains_10, 0); lv_obj_set_style_text_color(l6, theme_color(COLOR_TEXT_MAIN), 0); lv_obj_center(l6);
 
         lv_obj_t* foot = lv_obj_create(scr);
-        lv_obj_set_size(foot, 320, 24);
+        lv_obj_set_size(foot, 320, FOOT_H);
         lv_obj_align(foot, LV_ALIGN_BOTTOM_MID, 0, 0);
         lv_obj_set_style_bg_color(foot, theme_color(COLOR_BG_PANEL), 0);
         lv_obj_set_style_border_side(foot, LV_BORDER_SIDE_TOP, 0);
@@ -352,10 +363,12 @@ namespace ui {
         lv_obj_set_style_text_font(lbl_comment, &font_jetbrains_10, 0);
         lv_obj_set_style_text_color(lbl_comment, theme_color(COLOR_TEXT_MUTED), 0);
         lv_obj_align(lbl_comment, LV_ALIGN_LEFT_MID, 8, 0);
+        lv_obj_set_width(lbl_comment, 240);  // stop before the refresh button
+        lv_label_set_long_mode(lbl_comment, LV_LABEL_LONG_DOT);
 
         lv_obj_t* btn_refresh = lv_button_create(foot);
         lv_obj_set_size(btn_refresh, 24, 20);
-        lv_obj_align(btn_refresh, LV_ALIGN_RIGHT_MID, -2, 0);
+        lv_obj_align(btn_refresh, LV_ALIGN_RIGHT_MID, -40, 0);  // clear of the global home button (bottom-right)
         lv_obj_set_style_bg_color(btn_refresh, theme_color(COLOR_BG_APP), 0);
         lv_obj_set_style_border_color(btn_refresh, theme_color(COLOR_BORDER), 0);
         lv_obj_set_style_border_width(btn_refresh, 1, 0);
@@ -375,8 +388,8 @@ namespace ui {
         lv_obj_center(lbl_ref);
 
         list_container = lv_obj_create(scr);
-        lv_obj_set_size(list_container, 320, 166); 
-        lv_obj_align(list_container, LV_ALIGN_TOP_MID, 0, 50);
+        lv_obj_set_size(list_container, 320, CONTENT_H - LIST_TOP - FOOT_H);  // between header and footer
+        lv_obj_align(list_container, LV_ALIGN_TOP_MID, 0, LIST_TOP);
         lv_obj_set_style_bg_opa(list_container, 0, 0);
         lv_obj_set_style_border_width(list_container, 0, 0);
         lv_obj_set_style_pad_all(list_container, 0, 0);
