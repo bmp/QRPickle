@@ -21,10 +21,17 @@ pio test -e native -f test_parsers   # run a single test folder
 Every build runs `extra_scripts` from `platformio.ini`. `scripts/release_copy.py` copies the built `firmware.bin`, `littlefs.bin`, `bootloader.bin` and `partitions.bin` into `release/`, which is **tracked in git**, so any build changes tracked files.
 
 Current gaps (don't assume these work):
-- `scripts/check_secrets.py`, `scripts/gzip_data.py` and `scripts/check_size.py` are empty (0 bytes), so they do nothing.
-- `test/test_parsers`, `test_scheduler` and `test_config` are empty, so `pio test -e native` has nothing to run.
-- `test/test_hw_led.cpp` is a standalone on-device LED/TFT sketch, not a Unity test.
+- `scripts/check_secrets.py` and `scripts/gzip_data.py` are empty (0 bytes), so they do nothing. `scripts/check_size.py` fails the build if static DRAM headroom is under 4KB or the image is over 95% of the OTA slot.
+- Native unit tests live in `test/test_parsers` (SOTA cluster parser). The native env compiles only the host-safe sources listed in its `build_src_filter`. `test_filter` takes one pattern per line.
+- `test/test_hw_led/` is a standalone on-device LED/TFT sketch, not a Unity test.
 - There is no linter or formatter config.
+
+## Device checks and memory budgets
+
+- `python3 -I tools/device_check.py --cycles 5` (run with PlatformIO's Python: `~/.platformio/penv/bin/python`) resets the CYD over USB N times and reports per boot: WiFi, NTP, watchdog resets and panics. It exits 0 on PASS. About 1 boot in 4 currently hits a pre-existing watchdog reset (review 3.14).
+- `tools/dram_report.py <map>` lists the largest static DRAM users. Static DRAM (`dram0_0_seg`, 124,580 B) is separate from heap; PlatformIO's "RAM %" does not show it. Build a map with `PLATFORMIO_BUILD_FLAGS='-Wl,-Map,${BUILD_DIR}/firmware.map' pio run`.
+- **Changes to `include/lv_conf.h` need `pio run -t clean`.** The `LV_CONF_PATH` include isn't dependency-tracked, so LVGL won't rebuild otherwise.
+- LVGL's 64KB pool is heap-allocated at `lv_init()` (`LV_MEM_POOL_ALLOC`). Don't add large static buffers; allocate them at init.
 
 ## Release process (important)
 

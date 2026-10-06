@@ -4,6 +4,12 @@
 /* CYD ILI9341 Color depth: 16-bit (RGB565) */
 #define LV_COLOR_DEPTH 16
 
+/* LVGL's 64 KB memory pool is allocated from the heap once at lv_init() instead of
+ * living in static DRAM (.bss). Static DRAM (dram0_0_seg) had only 64 B headroom; the
+ * heap grows by the same 64 KB, so total free RAM is unchanged. (Review finding 6.5) */
+#define LV_MEM_POOL_INCLUDE <stdlib.h>
+#define LV_MEM_POOL_ALLOC   malloc
+
 /* Route LVGL memory allocation directly to standard C malloc/free */
 #define LV_USE_BUILTIN_MALLOC 1
 
