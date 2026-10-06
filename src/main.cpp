@@ -1,3 +1,4 @@
+#include "core/crashlog.h"
 #include <Arduino.h>
 #include "hw/display.h"
 #include "hw/touch.h"
@@ -18,6 +19,7 @@ void setup() {
     hw::led_rgb::set_state(hw::led_rgb::STATE_BOOT_HW);
     Serial.begin(115200);
     delay(500);
+    crashlog::report_previous();
     Serial.println("\n--- QRPickle System Initializing (NVS Production Core) ---");
     Serial.printf("[Memory] Total Internal RAM: %u bytes\n", ESP.getHeapSize());
     Serial.printf("[Memory] Total PSRAM: %u bytes\n", ESP.getPsramSize());
@@ -66,11 +68,11 @@ void setup() {
 }
 
 void loop() {
-    wifi_manager_update();
-    timekeeper_update();
-    ui::display_update();
-    web_server_update();
-    services::display_manager::update();
-    services::weather_manager::update();
-    delay(5);
+    crashlog::mark(crashlog::SLOT_LOOP, 1); wifi_manager_update();
+    crashlog::mark(crashlog::SLOT_LOOP, 2); timekeeper_update();
+    crashlog::mark(crashlog::SLOT_LOOP, 3); ui::display_update();
+    crashlog::mark(crashlog::SLOT_LOOP, 4); web_server_update();
+    crashlog::mark(crashlog::SLOT_LOOP, 5); services::display_manager::update();
+    crashlog::mark(crashlog::SLOT_LOOP, 6); services::weather_manager::update();
+    crashlog::mark(crashlog::SLOT_LOOP, 7); delay(5);
 }

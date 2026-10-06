@@ -1,3 +1,4 @@
+#include "../core/crashlog.h"
 #include "led_rgb.h"
 #include "../services/display_manager.h" 
 
@@ -23,6 +24,7 @@ namespace hw {
 
         static void led_engine_task(void* pvParameters) {
             while (true) {
+                crashlog::mark(crashlog::SLOT_LED, 1);
                 unsigned long now = millis();
 
                 // Priority Inbound Strobe (APRS / HamAlert) - PRESERVED

@@ -1,3 +1,5 @@
+#include "net_connect.h"
+#include "../core/crashlog.h"
 #include "sota_manager.h"
 #include "../config/config.h"
 #include <Arduino.h>
@@ -95,8 +97,9 @@ namespace services {
 
             if (!client.connected()) {
                 Serial.printf("[SOTA] Connecting to %s:%u...\n", CLUSTER_HOST, CLUSTER_PORT);
+                crashlog::mark(crashlog::SLOT_SOTA, 1); 
                 client.setTimeout(10);  // seconds; bounds the wait for the login prompt
-                if (!client.connect(CLUSTER_HOST, CLUSTER_PORT, 5000) || !client.find("login:")) {
+                if (!connect_host(client, CLUSTER_HOST, CLUSTER_PORT, 5000, crashlog::SLOT_SOTA) || !client.find("login:")) {
                     client.stop();
                     Serial.println("[SOTA] Cluster unreachable; retrying in 30 s.");
                     for (int i = 0; i < 300 && running; i++) vTaskDelay(pdMS_TO_TICKS(100));
@@ -113,7 +116,7 @@ namespace services {
                 if (c == '\n') {
                     line[idx] = '\0';
                     sota_cluster::ParsedSpot p;
-                    if (sota_cluster::parse_line(line, p)) store_spot(p);
+                    crashlog::mark(crashlog::SLOT_SOTA, 2); if (sota_cluster::parse_line(line, p)) store_spot(p);
                     idx = 0;
                 } else if (c != '\r' && idx < sizeof(line) - 1) {
                     line[idx++] = c;

@@ -1,3 +1,5 @@
+#include "net_connect.h"
+#include "../core/crashlog.h"
 #include "aprs_manager.h"
 #include "../config/config.h"
 #include <atomic>
@@ -347,7 +349,8 @@ namespace services {
 
             if (!client.connected()) {
                 connected = false;
-                if (client.connect("rotate.aprs.net", 14580)) {
+                crashlog::mark(crashlog::SLOT_APRS, 2);
+                if (connect_host(client, "rotate.aprs.net", 14580, 3000, crashlog::SLOT_APRS)) {
                     char login[128];
                     char src_call[16];
                     if (cfg.aprs_ssid == 0) snprintf(src_call, sizeof(src_call), "%s", cfg.callsign);
@@ -357,7 +360,7 @@ namespace services {
                     snprintf(login, sizeof(login), "user %s pass %s vers %s %s filter r/%.2f/%.2f/50 p/%s\r\n",
                              src_call, cfg.aprs_passcode, meta::FW_NAME, meta::FW_VERSION, cfg.lat, cfg.lon, cfg.callsign);
                              
-                    client.print(login);
+                    crashlog::mark(crashlog::SLOT_APRS, 3); client.print(login);
                     connected = true;
                     loop_last_beacon_millis = 0;  
                 } else {
@@ -381,7 +384,7 @@ namespace services {
                 snprintf(beacon, sizeof(beacon), "%s>APRS,TCPIP*:=%s%s\r\n",  
                          src_call, coord_str, dynamic_cmt);
                 
-                client.print(beacon);
+                crashlog::mark(crashlog::SLOT_APRS, 4); client.print(beacon);
                 tx_count++;
                 last_tx_time = millis();
                 loop_last_beacon_millis = millis();
@@ -400,13 +403,13 @@ namespace services {
                 if (c == '\n') {
                     buffer[buf_idx] = '\0';
                     if (buf_idx > 0 && buffer[buf_idx - 1] == '\r') buffer[buf_idx - 1] = '\0';
-                    if (buffer[0] != '#') process_line(buffer);
+                    if (buffer[0] != '#') { crashlog::mark(crashlog::SLOT_APRS, 7); process_line(buffer); }
                     buf_idx = 0;
                 } else if (buf_idx < sizeof(buffer) - 1) {
                     buffer[buf_idx++] = c;
                 }
             }
-            vTaskDelay(pdMS_TO_TICKS(30));
+            crashlog::mark(crashlog::SLOT_APRS, 8); vTaskDelay(pdMS_TO_TICKS(30));
         }
         client.stop();
         connected = false;

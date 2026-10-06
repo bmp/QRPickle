@@ -1,3 +1,4 @@
+#include "../core/crashlog.h"
 #include "cloud_ota.h"
 #include "ota_manager.h"
 #include "../core/metadata.h"
@@ -30,11 +31,12 @@ namespace services {
             char api_url[128];
             snprintf(api_url, sizeof(api_url), "https://api.github.com/repos/%s/releases/latest", meta::GITHUB_REPO);
 
-            http.begin(client, api_url);
+            crashlog::mark(crashlog::SLOT_GH_OTA, 2); http.begin(client, api_url);
             http.addHeader("User-Agent", "QRPickle-ESP32");
             
-            int httpCode = http.GET();
+            crashlog::mark(crashlog::SLOT_GH_OTA, 3); int httpCode = http.GET();
             if (httpCode == HTTP_CODE_OK) {
+                crashlog::mark(crashlog::SLOT_GH_OTA, 4); 
                 JsonDocument filter;
                 filter["tag_name"] = true;
                 filter["body"] = true;
@@ -65,8 +67,8 @@ namespace services {
                     }
                 }
             }
-            http.end();
-            check_complete = true;
+            crashlog::mark(crashlog::SLOT_GH_OTA, 5); http.end();
+            crashlog::mark(crashlog::SLOT_GH_OTA, 6); check_complete = true;
         }
 
         static void background_check_task(void* pvParameters) {

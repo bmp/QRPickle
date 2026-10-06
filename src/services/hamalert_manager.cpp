@@ -1,3 +1,5 @@
+#include "net_connect.h"
+#include "../core/crashlog.h"
 #include "hamalert_manager.h"
 #include "../config/config.h"
 #include "../hw/led_rgb.h" // RESTORED: Needed for LED telemetry
@@ -144,7 +146,8 @@ namespace services {
                 client.stop();
                 Serial.println("[HamAlert-Socket] Directing link to hamalert.org:7300...");
                 
-                if (client.connect("hamalert.org", 7300, 5000)) {
+                crashlog::mark(crashlog::SLOT_HAMALERT, 2); 
+                if (connect_host(client, "hamalert.org", 7300, 5000, crashlog::SLOT_HAMALERT)) {
                     unsigned long timeout_mark = millis();
                     bool authenticated = false;
                     
@@ -196,7 +199,7 @@ namespace services {
                     if (buf_idx > 0 && buffer[buf_idx - 1] == '\r') buffer[buf_idx - 1] = '\0';
                     
                     if (buffer[0] != '#' && strlen(buffer) > 10) {
-                        process_line(buffer);
+                        crashlog::mark(crashlog::SLOT_HAMALERT, 5); process_line(buffer);
                     }
                     buf_idx = 0;
                 } else if (buf_idx < sizeof(buffer) - 1) {
@@ -210,7 +213,7 @@ namespace services {
                 for(int i=0; i<300 && running; i++) vTaskDelay(pdMS_TO_TICKS(100));
             }
 
-            vTaskDelay(pdMS_TO_TICKS(50));
+            crashlog::mark(crashlog::SLOT_HAMALERT, 6); vTaskDelay(pdMS_TO_TICKS(50));
         }
         
         client.stop();

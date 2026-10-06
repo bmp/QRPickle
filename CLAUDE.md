@@ -28,7 +28,7 @@ Current gaps (don't assume these work):
 
 ## Device checks and memory budgets
 
-- `python3 -I tools/device_check.py --cycles 5` (run with PlatformIO's Python: `~/.platformio/penv/bin/python`) resets the CYD over USB N times and reports per boot: WiFi, NTP, watchdog resets and panics. It exits 0 on PASS. About 1 boot in 4 currently hits a pre-existing watchdog reset (review 3.14).
+- `python3 -I tools/device_check.py --cycles 5` (run with PlatformIO's Python: `~/.platformio/penv/bin/python`) resets the CYD over USB N times and reports per boot: WiFi, NTP, watchdog resets and panics. It exits 0 on PASS. Expected result: 0 watchdog resets (30/30 boots after the 3.14 fix).
 - `tools/dram_report.py <map>` lists the largest static DRAM users. Static DRAM (`dram0_0_seg`, 124,580 B) is separate from heap; PlatformIO's "RAM %" does not show it. Build a map with `PLATFORMIO_BUILD_FLAGS='-Wl,-Map,${BUILD_DIR}/firmware.map' pio run`.
 - **Changes to `include/lv_conf.h` need `pio run -t clean`.** The `LV_CONF_PATH` include isn't dependency-tracked, so LVGL won't rebuild otherwise.
 - LVGL's 64KB pool is heap-allocated at `lv_init()` (`LV_MEM_POOL_ALLOC`). Don't add large static buffers; allocate them at init.
@@ -55,7 +55,9 @@ The device's Cloud OTA (`src/services/cloud_ota.cpp`) pulls releases from `meta:
 - stream-parse JSON element by element with ArduinoJson,
 - are staggered so that two TLS sessions never overlap.
 
-Out-of-memory panics during HTTPS fetches and OTA are a recurring bug class (see git log). When adding a network feature, check the free and max-alloc heap. Don't start a TLS request while another is in flight.
+Out-of-memory panics during HTTPS fetches and OTA are a recurring bug class (see git log).
+
+**DNS:** never call `WiFi.hostByName()` or `WiFiClient::connect(hostname, …)` from tasks. The Arduino 2.0.17 implementation isn't thread-safe and caused boot-time watchdog resets (review 3.14). Use `services::connect_host()` (`src/services/net_connect.h`), which uses `getaddrinfo()`. After an abnormal reset, `[CRASHLOG]` lines at boot show each task's last breadcrumb (`src/core/crashlog.h`). When adding a network feature, check the free and max-alloc heap. Don't start a TLS request while another is in flight.
 
 **Layers:**
 - `src/hw/`: board drivers (display, touch, BME280 sensor, RGB status LED). `User_Setup.h` holds the TFT_eSPI pin config, force-included via `build_flags`. LED state meanings are documented in `docs/LEDColours.md`.

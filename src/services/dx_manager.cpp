@@ -1,3 +1,5 @@
+#include "../core/crashlog.h"
+#include "net_connect.h"
 #include "dx_manager.h"
 #include "../config/config.h"
 #include <WiFi.h>
@@ -37,13 +39,13 @@ namespace services {
         const auto& cfg = config::get();
         Serial.printf("[DX Engine] Connecting to Primary Node: %s:%u\n", cfg.dx_url_primary, cfg.dx_port_primary);
         
-        if (client.connect(cfg.dx_url_primary, cfg.dx_port_primary)) {
+        if (connect_host(client, cfg.dx_url_primary, cfg.dx_port_primary, 3000, crashlog::SLOT_NET)) {
             status = DX_STATUS_CONNECTING;
             state_timer = millis();
         } else {
             Serial.println("[DX Engine] Primary connection failed, attempting Secondary...");
             using_secondary = true;
-            if (client.connect(cfg.dx_url_secondary, cfg.dx_port_secondary)) {
+            if (connect_host(client, cfg.dx_url_secondary, cfg.dx_port_secondary, 3000, crashlog::SLOT_NET)) {
                 status = DX_STATUS_CONNECTING;
                 state_timer = millis();
             } else {
