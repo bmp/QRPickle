@@ -17,6 +17,8 @@ namespace services {
     public:
         static void start();
         static void stop();
+        // True once the background task has fully exited (stop() only requests the exit).
+        static bool is_stopped();
         static bool is_connected();
         static bool is_dirty();
         static void clear_dirty();

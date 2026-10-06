@@ -6,6 +6,7 @@
 #include <WiFiClient.h>
 #include <cstring>
 #include <cstdio>
+#include <atomic>
 
 namespace services {
 
@@ -15,8 +16,11 @@ namespace services {
     bool HamAlertManager::dirty = false;
     bool HamAlertManager::running = false;
 
+    // Set before the task is created, cleared by the task as its last action.
+    static std::atomic<bool> task_alive{false};
+
     void HamAlertManager::start() {
-        if (running) return;
+        if (running || task_alive) return;  // previous task may still be exiting
         if (strlen(config::get().hamalert_password) == 0) {
             Serial.println("[HamAlert-Engine] Token password missing. Aborting start.");
             return;
@@ -29,13 +33,19 @@ namespace services {
 
         Serial.println("[HamAlert-Engine] Initializing background monitoring task...");
         running = true;
-        xTaskCreate(task_loop, "hamalert_task", 3072, NULL, 1, NULL);
+        task_alive = true;
+        if (xTaskCreate(task_loop, "hamalert_task", 3072, NULL, 1, NULL) != pdPASS) {
+            running = false;
+            task_alive = false;
+            Serial.println("[HamAlert-Engine] Task creation failed (heap).");
+        }
     }
 
     void HamAlertManager::stop() { 
         running = false; 
         connected = false; 
     }
+    bool HamAlertManager::is_stopped() { return !task_alive; }
     bool HamAlertManager::is_connected() { return connected; }
     bool HamAlertManager::is_dirty() { return dirty; }
     void HamAlertManager::clear_dirty() { dirty = false; }
@@ -206,6 +216,7 @@ namespace services {
         client.stop();
         connected = false;
         Serial.println("[HamAlert-Socket] Safely suspended for Time-Slicing.");
+        task_alive = false;
         vTaskDelete(NULL);
     }
 } // namespace services
