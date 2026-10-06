@@ -1,5 +1,6 @@
 #include <unity.h>
 #include "../../src/services/sota_cluster_parse.h"
+#include "version_tests.h"
 
 using services::sota_cluster::ParsedSpot;
 using services::sota_cluster::parse_line;
@@ -101,5 +102,6 @@ int main(int, char**) {
     RUN_TEST(test_rejects_non_spot_lines);
     RUN_TEST(test_summit_ref_shapes);
     RUN_TEST(test_mode_for_freq_band_plan);
+    RUN_TEST(test_version_compare);
     return UNITY_END();
 }

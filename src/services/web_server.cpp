@@ -366,8 +366,11 @@ void web_server_init() {
     server.on("/api/system/update", HTTP_POST,  
         [](AsyncWebServerRequest *request) {
             REQUIRE_AUTH(request);
-            bool failed = Update.hasError();
+            bool failed = Update.hasError() || !Update.isFinished();  // also catches "no file sent"
             if (!failed) {
+                if (request->hasParam("target") && request->getParam("target")->value() == "firmware") {
+                    services::ota_manager::arm_rollback_guard();
+                }
                 request->send(200, "application/json", "{\"status\":\"success\"}");
                 flag_trigger_reboot = true;
                 reboot_timer_mark = millis();
@@ -386,10 +389,7 @@ void web_server_init() {
                     if (target == "firmware") type = services::ota_manager::UPDATE_TYPE_FIRMWARE;
                     else if (target == "filesystem") type = services::ota_manager::UPDATE_TYPE_FILESYSTEM;
                 }
-                if (!services::ota_manager::begin(type)) {
-                    request->send(400, "application/json", "{\"status\":\"failed\",\"error\":\"INIT_FAILED\"}");
-                    return;
-                }
+                if (!services::ota_manager::begin(type)) return;  // completion handler reports the error (2.8)
             }
             if (len > 0) {
                 if (!services::ota_manager::write_chunk(data, len)) {
@@ -479,14 +479,20 @@ void web_server_update() {
         
         // 3. Dispatch the OTA worker
         Serial.println("[SYSTEM-LOCKDOWN] All background activity halted. Commencing OTA flash...");
-        services::cloud_ota::execute_firmware_flash();
-        
-        // 4. Trap the main loop forever!
-        // This physically prevents weather_manager, timekeeper, or UI from waking up
-        // and opening new HTTPS streams while the OTA worker finishes.
-        Serial.println("[SYSTEM-LOCKDOWN] Device entering Stasis. Awaiting auto-reboot...");
-        while (true) {
-            delay(100); // Feed the watchdog timer safely
+        if (!services::cloud_ota::execute_firmware_flash()) {
+            Serial.println("[SYSTEM-LOCKDOWN] Flash could not start; restarting (review 2.3).");
+            delay(1000);
+            ESP.restart();
         }
+
+        // 4. Park the main loop so nothing else opens TLS sessions while the worker runs.
+        // The worker restarts the device on success and on failure; the timeout is a backstop.
+        Serial.println("[SYSTEM-LOCKDOWN] Device entering Stasis. Awaiting auto-reboot...");
+        const uint32_t parked_at = millis();
+        while (millis() - parked_at < 5UL * 60UL * 1000UL) {
+            delay(100);
+        }
+        Serial.println("[SYSTEM-LOCKDOWN] OTA worker timed out; restarting.");
+        ESP.restart();
     }
 }

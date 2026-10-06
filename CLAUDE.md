@@ -33,6 +33,13 @@ Current gaps (don't assume these work):
 - **Changes to `include/lv_conf.h` need `pio run -t clean`.** The `LV_CONF_PATH` include isn't dependency-tracked, so LVGL won't rebuild otherwise.
 - LVGL's 64KB pool is heap-allocated at `lv_init()` (`LV_MEM_POOL_ALLOC`). Don't add large static buffers; allocate them at init.
 
+## OTA
+
+- Web uploads (`/api/system/update?target=firmware|filesystem`) and Cloud OTA both use the partition sizes.
+- After a firmware update the **trial-boot guard** keeps the previous slot. A new image that doesn't reach 60s with WiFi within 3 boots is rolled back (`ota_manager.h`).
+- Test builds can use `-DQRP_TEST_CRASH_AT_BOOT` (never release these).
+- Cloud OTA verifies `firmware.bin.sha256` when the release publishes it.
+
 ## Release process (important)
 
 `.github/workflows/release.yml` runs on **every push to `main`**:

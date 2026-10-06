@@ -10,19 +10,21 @@ namespace services {
             UPDATE_TYPE_UNKNOWN
         };
 
-        // Prepares partition locks and initializes verification vectors
+        // Starts an update into the inactive app slot (firmware) or the LittleFS partition.
+        // The size is taken from the partition table (review 2.1/2.2).
         bool begin(UpdateType type);
-
-        // Writes a sequential data chunk straight into the target flash block
         bool write_chunk(uint8_t* data, size_t len);
-
-        // Validates flash checksum signatures and flips the passive boot flag
+        // Checks the image is complete and switches the boot partition (firmware).
+        // Note: this is not a signature check.
         bool end();
-
-        // Aborts any stale or corrupted transfer sessions to clear memory
         void abort();
-
-        // Thread-safe query to read native error string descriptions
         const char* get_error_string();
+
+        // Trial-boot rollback (review 2.6). After a firmware update, the previous app slot is
+        // remembered with 3 boot attempts. Each boot spends one; reaching 0 before the new
+        // image is marked healthy boots the previous slot again.
+        void arm_rollback_guard();     // call right before restarting into a new image
+        void rollback_boot_check();    // call early in setup()
+        void mark_healthy_if_ready(bool wifi_connected);  // call from loop()
     }
 }

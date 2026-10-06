@@ -1,3 +1,4 @@
+#include "services/ota_manager.h"
 #include "core/crashlog.h"
 #include <Arduino.h>
 #include "hw/display.h"
@@ -20,6 +21,13 @@ void setup() {
     Serial.begin(115200);
     delay(500);
     crashlog::report_previous();
+    services::ota_manager::rollback_boot_check();  // may reboot into the previous image
+#ifdef QRP_TEST_CRASH_AT_BOOT
+    // Test-only build (never released): proves the OTA rollback guard. See docs/superpowers/plans/*plan-d*.
+    Serial.println("[TEST] QRP_TEST_CRASH_AT_BOOT: crashing in 3 s");
+    delay(3000);
+    abort();
+#endif
     Serial.println("\n--- QRPickle System Initializing (NVS Production Core) ---");
     Serial.printf("[Memory] Total Internal RAM: %u bytes\n", ESP.getHeapSize());
     Serial.printf("[Memory] Total PSRAM: %u bytes\n", ESP.getPsramSize());
@@ -74,5 +82,6 @@ void loop() {
     crashlog::mark(crashlog::SLOT_LOOP, 4); web_server_update();
     crashlog::mark(crashlog::SLOT_LOOP, 5); services::display_manager::update();
     crashlog::mark(crashlog::SLOT_LOOP, 6); services::weather_manager::update();
+    services::ota_manager::mark_healthy_if_ready(wifi_manager_is_connected());
     crashlog::mark(crashlog::SLOT_LOOP, 7); delay(5);
 }
