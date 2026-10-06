@@ -32,6 +32,8 @@ namespace ui {
     static lv_obj_t* status_dot = nullptr;
     static lv_timer_t* ui_timer = nullptr;
     static lv_timer_t* delayed_fetch_timer = nullptr;
+    // Lives outside the screen's lifetime: restarts the socket services after leaving xOTA.
+    static lv_timer_t* resume_timer = nullptr;
     
     static uint32_t last_auto_refresh_millis = 0;
 
@@ -73,6 +75,12 @@ namespace ui {
     static void update_ui(lv_timer_t* t);
 
     static void execute_delayed_fetch(lv_timer_t* t) {
+        // Don't open a TLS session while the old APRS/HamAlert tasks still hold their stacks
+        // and sockets; stop() only requests the exit. Retry on the next tick (100 ms).
+        if (!services::HamAlertManager::is_stopped() || !services::AprsManager::is_stopped()) {
+            return;
+        }
+
         if (active_tab == TAB_POTA) {
             services::PotaManager::fetch_async(); 
         } else {
@@ -229,16 +237,23 @@ namespace ui {
         }
     }
 
-    static void async_resume_task(void* param) {
-        vTaskDelay(pdMS_TO_TICKS(2000)); 
+    static void resume_services_cb(lv_timer_t* t) {
+        // Wait until the previous task instances have fully exited, then restart once.
+        if (!services::HamAlertManager::is_stopped() || !services::AprsManager::is_stopped()) {
+            return;  // try again on the next tick
+        }
         Serial.println("[xOTA] Quiet period ended. Re-establishing core TCP sockets...");
         services::DxManager::start();
         services::HamAlertManager::start();
-        services::AprsManager::start(); // RESTORED: APRS monitoring loop resumes cleanly
-        vTaskDelete(NULL);
+        services::AprsManager::start();
+        lv_timer_delete(t);
+        resume_timer = nullptr;
     }
 
     void draw_xota_page(lv_obj_t* parent) {
+        // Re-entered within the quiet period: the services must stay stopped.
+        if (resume_timer) { lv_timer_delete(resume_timer); resume_timer = nullptr; }
+
         Serial.println("[xOTA] Entry. Suspending core monitoring sockets to free RAM...");
         services::DxManager::stop();
         services::HamAlertManager::stop();
@@ -435,14 +450,12 @@ namespace ui {
                 rows = nullptr;
             }
 
-            xTaskCreate(async_resume_task, "resume_task", 2048, NULL, 1, NULL);
+            if (!resume_timer) resume_timer = lv_timer_create(resume_services_cb, 2000, NULL);
             
         }, LV_EVENT_DELETE, NULL);
 
-        // Force LVGL to physically draw the initial canvas and the big loading label
-        lv_timer_handler();
-
-        // Queue the initial dynamic fetch sequence
+        // The fetch runs from a 100 ms timer so LVGL renders the loading label first
+        // (a nested lv_timer_handler() call here would be ignored by LVGL's re-entrancy guard).
         delayed_fetch_timer = lv_timer_create(execute_delayed_fetch, 100, NULL);
 
         ui_timer = lv_timer_create(update_ui, 300, NULL);
