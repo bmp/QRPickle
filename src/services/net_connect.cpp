@@ -1,3 +1,4 @@
+#include "net_lock.h"
 #include "net_connect.h"
 #include <WiFi.h>
 #include <lwip/netdb.h>
@@ -6,6 +7,8 @@ namespace services {
 
     bool connect_host(WiFiClient& client, const char* host, uint16_t port, uint32_t timeout_ms,
                       crashlog::Slot slot) {
+        NetLock lock(15000);
+        if (!lock.held()) return false;
         // getaddrinfo() runs the lookup inside the lwIP thread. WiFi.hostByName() (Arduino-ESP32
         // 2.0.17) calls dns_gethostbyname() from the caller's task without the lwIP core lock and
         // registers a stack pointer as the callback target, which corrupted lwIP's DNS table when

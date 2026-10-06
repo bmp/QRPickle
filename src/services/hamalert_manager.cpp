@@ -36,7 +36,7 @@ namespace services {
         Serial.println("[HamAlert-Engine] Initializing background monitoring task...");
         running = true;
         task_alive = true;
-        if (xTaskCreate(task_loop, "hamalert_task", 3072, NULL, 1, NULL) != pdPASS) {
+        if (xTaskCreate(task_loop, "hamalert_task", 4096, NULL, 1, NULL)  /* 3072 was tight (review 3.9) */ != pdPASS) {
             running = false;
             task_alive = false;
             Serial.println("[HamAlert-Engine] Task creation failed (heap).");
@@ -167,10 +167,19 @@ namespace services {
                             } 
                             else if (strstr(buffer, "password:")) {
                                 client.printf("%s\r\n", cfg.hamalert_password);
+                                buf_idx = 0;
+                                buffer[0] = '\0';
+                            }
+                            // Only HamAlert's greeting proves the login worked (review 3.8).
+                            else if (strstr(buffer, "Hello ")) {
                                 connected = true;
                                 authenticated = true;
                                 buf_idx = 0;
                                 buffer[0] = '\0';
+                            }
+                            else if (strcasestr(buffer, "fail") || strcasestr(buffer, "incorrect") || strcasestr(buffer, "invalid")) {
+                                Serial.println("[HamAlert-Socket] Login rejected; check callsign/password.");
+                                break;
                             }
                             else if (c == '\n' || buf_idx >= sizeof(buffer) - 1) {
                                 buf_idx = 0;

@@ -13,6 +13,9 @@ Items that automation could not verify (screen/touch/browser), plus patches for 
 - [ ] **Plan E, LVGL trim (S2):** walk every screen in each theme. Semi-transparent or transformed elements use ARGB8888 layers, which are now disabled. If anything renders blank or wrong, re-enable `LV_DRAW_SW_SUPPORT_ARGB8888` in `include/lv_conf.h` and run `pio run -t clean`.
 - [ ] **Plan E, decisions:** keep `release/*.bin` in git? Implement `gzip_data.py`, or drop it from `extra_scripts`?
 
+- [ ] **Plan F, xOTA:** POTA now loads in the background. The status dot is orange while fetching, the list fills when done, and the screen stays responsive during the fetch.
+- [ ] **Plan F, APRS radar:** stations now show their real symbol-based type (an off-by-one used to read E/W); compressed-position stations no longer appear at bogus coordinates.
+
 ## Patches to apply (files on the ask-first list)
 Apply with `git apply docs/patches/<file>` after review.
 - `0001-native-test-filter-add-test_config.patch`: run the config unit tests in plain `pio test -e native`. Until it's applied, use `pio test -e native -f test_parsers -f test_config`.

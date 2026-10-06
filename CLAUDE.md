@@ -64,6 +64,8 @@ The device's Cloud OTA (`src/services/cloud_ota.cpp`) pulls releases from `meta:
 
 Out-of-memory panics during HTTPS fetches and OTA are a recurring bug class (see git log).
 
+**Network sessions:** wrap every DNS+connect or HTTP(S) request in `services::NetLock` (`net_lock.h`); one session at a time, which keeps TLS heap use and lookups serialised. `connect_host()` takes it already.
+
 **DNS:** never call `WiFi.hostByName()` or `WiFiClient::connect(hostname, …)` from tasks. The Arduino 2.0.17 implementation isn't thread-safe and caused boot-time watchdog resets (review 3.14). Use `services::connect_host()` (`src/services/net_connect.h`), which uses `getaddrinfo()`. After an abnormal reset, `[CRASHLOG]` lines at boot show each task's last breadcrumb (`src/core/crashlog.h`). When adding a network feature, check the free and max-alloc heap. Don't start a TLS request while another is in flight.
 
 **Layers:**

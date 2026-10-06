@@ -1,3 +1,4 @@
+#include "net_lock.h"
 #include "../core/crashlog.h"
 #include "cloud_ota.h"
 #include "ota_manager.h"
@@ -26,6 +27,8 @@ namespace services {
             }
             if (WiFi.status() != WL_CONNECTED) return;
 
+            NetLock lock;
+            if (!lock.held()) return;
             WiFiClientSecure client;
             client.setInsecure();  // TLS is not authenticated; see review 2.4 (SHA-256 below)
             HTTPClient http;
@@ -106,6 +109,8 @@ namespace services {
         // unavailable or malformed.
         static bool fetch_expected_sha(char out_hex[65]) {
             if (!cached_info.sha256_url[0]) return false;
+            NetLock lock;
+            if (!lock.held()) return false;
             WiFiClientSecure client;
             client.setInsecure();
             HTTPClient http;
@@ -140,6 +145,8 @@ namespace services {
                 Serial.println("[OTA Worker] WARNING: release has no firmware.bin.sha256; integrity not verified.");
             }
 
+            NetLock lock(60000);  // whole download; other services are stopped by the lockdown
+            if (!lock.held()) fail_and_restart("network busy");
             WiFiClientSecure client;
             client.setInsecure();
             HTTPClient http;

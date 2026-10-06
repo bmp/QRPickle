@@ -1,3 +1,4 @@
+#include "net_lock.h"
 #include "pota_manager.h"
 #include "../core/metadata.h" 
 #include <Arduino.h>
@@ -91,8 +92,22 @@ namespace services {
 
         if (fetching || (millis() - last_fetch_time < 30000 && last_fetch_time != 0)) return;
         fetching = true;
+        // Off the UI thread (review 3.3): the TLS handshake and stream used to freeze the screen.
+        if (xTaskCreate(fetch_task, "pota_fetch", 8192, NULL, 1, NULL) != pdPASS) {
+            fetching = false;
+            Serial.println("[POTA] Task creation failed (heap).");
+        }
+    }
 
-        Serial.println("[POTA] Synchronous main-thread fetch started.");
+    void PotaManager::fetch_task(void*) {
+        run_fetch();
+        vTaskDelete(NULL);
+    }
+
+    void PotaManager::run_fetch() {
+        NetLock lock;
+        if (!lock.held()) { fetching = false; return; }
+        Serial.println("[POTA] Fetch started.");
         
         WiFiClientSecure secureClient;
         secureClient.setInsecure(); 

@@ -1,3 +1,4 @@
+#include "aprs_parse.h"
 #include "net_connect.h"
 #include "../core/crashlog.h"
 #include "aprs_manager.h"
@@ -32,17 +33,18 @@ namespace services {
     uint32_t AprsManager::last_tx_time = 0;
     static uint32_t loop_last_beacon_millis = 0;
 
-    static char* tx_msg_queue = nullptr;
-    static bool tx_msg_pending = false;
+    // Outgoing packets (messages and acks) from any task; drained by the APRS task (review 3.7).
+    static QueueHandle_t tx_queue = nullptr;
+    static const size_t TX_LEN = 160;
 
     void AprsManager::start() {
         if (running || task_alive || !config::get().aprs_enabled) return;  // previous task may still be exiting
         
         if (!stations) stations = (AprsStation*)calloc(30, sizeof(AprsStation));
         if (!messages) messages = (AprsMessage*)calloc(10, sizeof(AprsMessage));
-        if (!tx_msg_queue) tx_msg_queue = (char*)calloc(160, sizeof(char));
+        if (!tx_queue) tx_queue = xQueueCreate(4, TX_LEN);
         
-        if (!stations || !messages || !tx_msg_queue) return;
+        if (!stations || !messages || !tx_queue) return;
 
         running = true;
         task_alive = true;
@@ -77,7 +79,7 @@ namespace services {
 
     void AprsManager::send_message(const char* target, const char* message, bool silent) {
         auto& cfg = config::get();
-        if (!connected || !tx_msg_queue) return;
+        if (!connected || !tx_queue) return;
         if (strlen(target) == 0 || strlen(message) == 0) return;
 
         char src_call[16];
@@ -90,9 +92,13 @@ namespace services {
             padded_target[i] = toupper(target[i]);
         }
 
-        snprintf(tx_msg_queue, 160, "%s>APRS,TCPIP*::%s:%s\r\n", src_call, padded_target, message);
-        tx_msg_pending = true;
-        Serial.printf("[APRS-TX] Queued for network stream: %s", tx_msg_queue);
+        char packet[TX_LEN];
+        snprintf(packet, sizeof(packet), "%s>APRS,TCPIP*::%s:%s\r\n", src_call, padded_target, message);
+        if (xQueueSend(tx_queue, packet, 0) != pdTRUE) {
+            Serial.println("[APRS-TX] Queue full; message dropped.");
+            return;
+        }
+        Serial.printf("[APRS-TX] Queued for network stream: %s", packet);
 
         if (!silent) {
             if (message_count < 10) {
@@ -231,34 +237,12 @@ namespace services {
     }
 
     void AprsManager::parse_uncompressed_position(const char* call, const char* info) {
-        if (strlen(info) < 19) return;
-        
-        char lat_str[9] = {0};
-        char lon_str[10] = {0};
-        
-        strncpy(lat_str, info + 1, 8);  
-        strncpy(lon_str, info + 10, 9);  
-        
-        char table_char[2] = { info[9], '\0' };
-        char symbol_char[2] = { info[18], '\0' };
-        
-        char lat_dir = lat_str[7];
-        char lon_dir = lon_str[8];
-        lat_str[7] = '\0';
-        lon_str[8] = '\0';
-        
-        float lat_deg = (lat_str[0]-'0')*10 + (lat_str[1]-'0');
-        float lat_min = atof(lat_str + 2);
-        float dec_lat = lat_deg + (lat_min / 60.0f);
-        if (lat_dir == 'S') dec_lat *= -1.0f;
-        
-        float lon_deg = (lon_str[0]-'0')*100 + (lon_str[1]-'0')*10 + (lon_str[2]-'0');
-        float lon_min = atof(lon_str + 3);
-        float dec_lon = lon_deg + (lon_min / 60.0f);
-        if (lon_dir == 'W') dec_lon *= -1.0f;
-
-        const char* cmt = (strlen(info) > 19) ? (info + 19) : "";
-        update_or_add_station(call, dec_lat, dec_lon, table_char, symbol_char, cmt);
+        float lat, lon;
+        char table, symbol;
+        if (!aprs::parse_uncompressed_latlon(info, lat, lon, table, symbol)) return;  // compressed/garbage
+        char table_char[2] = {table, '\0'};
+        char symbol_char[2] = {symbol, '\0'};
+        update_or_add_station(call, lat, lon, table_char, symbol_char, info + 20);
     }
 
     void AprsManager::parse_incoming_message(const char* call, const char* info) {
@@ -273,7 +257,7 @@ namespace services {
             else break;
         }
 
-        if (strncasecmp(rx_target, cfg.callsign, strlen(cfg.callsign)) != 0) return;
+        if (!aprs::addressed_to(rx_target, cfg.callsign)) return;
 
         if (info[10] == ':') {
             char msg_body[64];
@@ -391,11 +375,11 @@ namespace services {
                 if (loop_last_beacon_millis == 0) loop_last_beacon_millis = 1;
             }
 
-            if (tx_msg_pending && connected) {
-                client.print(tx_msg_queue);
-                client.flush();  
-                Serial.printf("[APRS-TX] Hardware flushed packet to network: %s", tx_msg_queue);
-                tx_msg_pending = false;
+            char out[TX_LEN];
+            while (connected && xQueueReceive(tx_queue, out, 0) == pdTRUE) {
+                client.print(out);
+                client.flush();
+                Serial.printf("[APRS-TX] Sent: %s", out);
             }
 
             while (client.available() && running) {

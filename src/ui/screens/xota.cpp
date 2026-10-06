@@ -184,7 +184,8 @@ namespace ui {
     static void update_ui(lv_timer_t* t) {
         if(!scr || !rows) return;
 
-        bool fetching = (delayed_fetch_timer != nullptr);
+        bool fetching = (delayed_fetch_timer != nullptr) ||
+                        (active_tab == TAB_POTA ? services::PotaManager::is_fetching() : services::SotaManager::is_fetching());
         bool dirty = (active_tab == TAB_POTA) ? services::PotaManager::is_dirty() : services::SotaManager::is_dirty();
 
         if (status_dot) {
