@@ -3,3 +3,7 @@
 .gcc-flags.json
 src/config/secrets_default.h
 scripts/fonts-src/
+# VS Code: PlatformIO regenerates these with machine-specific paths
+.vscode/c_cpp_properties.json
+.vscode/launch.json
+.vscode/ipch
