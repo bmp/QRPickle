@@ -17,13 +17,9 @@
 
 ---
 
-## Roadmap (separate plans, in order)
+## Roadmap
 
-1. **Stability** (this plan): 3.1, 3.2, 4.1, plus the double `web_server_init`.
-2. **Web console security**: 1.1 (escape HTML), 1.3 (don't return secrets), 1.4 (null-safe JSON copy), 1.2 (admin password and AP password), 1.5–1.7.
-3. **OTA safety**: 2.3 (restart on failure), 2.6 (working rollback), 2.1/2.2 (after the device test), 2.4 (SHA-256 check), 2.5.
-4. **Flash size and build**: S1–S3 from area 6 (−91KB), `check_size.py`, pinned dependencies, font licences, CI on PRs, and the release workflow changes (6.1).
-5. **Network robustness and refactors**: 3.3–3.11, 1.9 (single config field table), the shared parser with native tests, and the Low items.
+Moved to the "Status and roadmap" section of `docs/reviews/2026-10-code-review.md`.
 
 ---
 
