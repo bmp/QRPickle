@@ -168,7 +168,7 @@ namespace ui {
         lv_obj_set_style_pad_all(scr, 0, 0);
         lv_obj_clear_flag(scr, LV_OBJ_FLAG_SCROLLABLE);
 
-        // FIXED: Shifted overlay position completely clear of text layout bounds
+        // Shifted overlay position completely clear of text layout bounds
         status_dot = lv_obj_create(lv_layer_top());
         lv_obj_set_size(status_dot, 6, 6);
         lv_obj_set_pos(status_dot, 118, 9); 

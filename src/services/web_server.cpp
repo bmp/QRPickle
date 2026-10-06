@@ -46,6 +46,26 @@ static bool authorized(AsyncWebServerRequest* r) {
 // this completion callback only answers unauthenticated requests.
 static void auth_gate(AsyncWebServerRequest* r) { if (!authorized(r)) r->requestAuthentication(); }
 
+// Request bodies can arrive in several TCP chunks (review 1.13). Collect them into the
+// request's _tempObject (freed by the library) and return the whole body once complete.
+static const size_t MAX_BODY = 8192;
+static char* collect_body(AsyncWebServerRequest* r, uint8_t* data, size_t len, size_t index, size_t total) {
+    if (total == 0 || total > MAX_BODY) {
+        if (index == 0) r->send(413, "application/json", "{\"status\":\"too_large\"}");
+        return nullptr;
+    }
+    if (index == 0) {
+        free(r->_tempObject);
+        r->_tempObject = malloc(total + 1);
+    }
+    char* buf = static_cast<char*>(r->_tempObject);
+    if (!buf || index + len > total) return nullptr;
+    memcpy(buf + index, data, len);
+    if (index + len < total) return nullptr;
+    buf[total] = '\0';
+    return buf;
+}
+
 static void queue_config(config::Config* staged) {
     config::sanitize(*staged, config::get());
     delete pending_config.exchange(staged);
@@ -120,9 +140,16 @@ void web_server_init() {
         doc["heap"] = ESP.getFreeHeap();
         doc["rssi"] = WiFi.isConnected() ? WiFi.RSSI() : 0;
         doc["ip"] = WiFi.localIP().toString();
-        doc["temp"] = sensor_get_temp();
-        doc["humidity"] = sensor_get_humidity();
-        doc["pressure"] = sensor_get_pressure();
+        doc["sensor_online"] = sensor_is_online();  // review 5.1: null instead of a fake 0
+        if (sensor_is_online()) {
+            doc["temp"] = sensor_get_temp();
+            doc["humidity"] = sensor_get_humidity();
+            doc["pressure"] = sensor_get_pressure();
+        } else {
+            doc["temp"] = nullptr;
+            doc["humidity"] = nullptr;
+            doc["pressure"] = nullptr;
+        }
         doc["fw_name"] = meta::FW_NAME;
         doc["fw_version"] = meta::FW_VERSION;
         doc["author_call"] = meta::AUTHOR_CALL;
@@ -218,8 +245,10 @@ void web_server_init() {
     server.on("/api/config/save", HTTP_POST, auth_gate, nullptr,
              [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
                  if (!authorized(request)) return;
+                 const char* body = collect_body(request, data, len, index, total);
+                 if (!body) return;  // more chunks to come (or rejected as too large)
                  JsonDocument doc;
-                 DeserializationError err = deserializeJson(doc, data, len);
+                 DeserializationError err = deserializeJson(doc, body, total);
                  if (!err) {
                      auto* c = new config::Config(config::get());
                      copy_str(c->callsign, doc["callsign"]);
@@ -269,8 +298,10 @@ void web_server_init() {
     server.on("/api/profiles/save", HTTP_POST, auth_gate, nullptr,
              [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
                  if (!authorized(request)) return;
+                 const char* body = collect_body(request, data, len, index, total);
+                 if (!body) return;  // more chunks to come (or rejected as too large)
                  JsonDocument doc;
-                 DeserializationError err = deserializeJson(doc, data, len);
+                 DeserializationError err = deserializeJson(doc, body, total);
                  if (!err && doc["name"].is<const char*>() && config::is_valid_profile_name(doc["name"].as<const char*>()) && !doc["config"].isNull()) {
                      String p_name = doc["name"].as<String>();
                      if (services::profile_manager::save_profile_from_json(p_name.c_str(), doc["config"])) {
@@ -300,8 +331,10 @@ void web_server_init() {
     server.on("/api/aprs/send", HTTP_POST, auth_gate, nullptr,
              [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
                  if (!authorized(request)) return;
+                 const char* body = collect_body(request, data, len, index, total);
+                 if (!body) return;  // more chunks to come (or rejected as too large)
                  JsonDocument doc;
-                 DeserializationError err = deserializeJson(doc, data, len);
+                 DeserializationError err = deserializeJson(doc, body, total);
 
                  if (!err && doc["target"].is<const char*>() && doc["message"].is<const char*>()) {
                      String target = doc["target"].as<String>();

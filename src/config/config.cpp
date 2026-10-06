@@ -3,13 +3,79 @@
 #include <Arduino.h>
 #include <Preferences.h>
 #include <string.h>
+#include <stddef.h>
 #include <esp_system.h>
 
 namespace config {
 
-    static Config* cfg_ptr = nullptr;
-    
-    #define cfg (*cfg_ptr)
+    // The single live config (review 1.10: replaces a heap pointer behind `#define cfg`).
+    static Config cfg;
+    static bool initialized = false;
+
+    // One table drives NVS load and save (review 1.9). NVS keys are unchanged so existing
+    // devices keep their settings. Add a field here once instead of in two lists.
+    enum class Kind : uint8_t { STR, U8, I8, U16, BOOL, F32 };
+    struct Field { const char* key; Kind kind; size_t offset; size_t size; };
+    #define FIELD(key, kind, member) { key, Kind::kind, offsetof(Config, member), sizeof(Config::member) }
+    #define FIELD_STR_AT(key, member, idx) { key, Kind::STR, offsetof(Config, member) + (idx) * sizeof(Config::member[0]), sizeof(Config::member[0]) }
+    static const Field FIELDS[] = {
+        FIELD("callsign",   STR,  callsign),
+        FIELD("grid",       STR,  grid),
+        FIELD("brightness", U8,   brightness),
+        FIELD("auto_bl",    BOOL, auto_brightness),
+        FIELD("theme_id",   U8,   theme_id),
+        FIELD("tz_hh",      I8,   tz_offset_hh),
+        FIELD("scr_to",     U8,   screen_timeout_min),
+        FIELD("fc_slots",   U8,   forecast_slots),
+        FIELD("web_en",     BOOL, web_enabled),
+        FIELD("wifi_ssid",  STR,  wifi_ssid),
+        FIELD("wifi_pw",    STR,  wifi_password),
+        FIELD("ow_key",     STR,  openweather_api_key),
+        FIELD("lat",        F32,  lat),
+        FIELD("lon",        F32,  lon),
+        FIELD("dx_url_p",   STR,  dx_url_primary),
+        FIELD("dx_port_p",  U16,  dx_port_primary),
+        FIELD("dx_url_s",   STR,  dx_url_secondary),
+        FIELD("dx_port_s",  U16,  dx_port_secondary),
+        FIELD("aprs_en",    BOOL, aprs_enabled),
+        FIELD("aprs_ssid",  I8,   aprs_ssid),
+        FIELD("aprs_pass",  STR,  aprs_passcode),
+        FIELD("aprs_cmt",   STR,  aprs_comment),
+        FIELD("aprs_icn",   STR,  aprs_icon),
+        FIELD_STR_AT("mac0", aprs_macros, 0),
+        FIELD_STR_AT("mac1", aprs_macros, 1),
+        FIELD_STR_AT("mac2", aprs_macros, 2),
+        FIELD_STR_AT("mac3", aprs_macros, 3),
+        FIELD_STR_AT("mac4", aprs_macros, 4),
+        FIELD("ham_pass",   STR,  hamalert_password),
+        FIELD("admin_pw",   STR,  admin_password),
+    };
+    #undef FIELD
+    #undef FIELD_STR_AT
+
+    static void read_field(Preferences& p, const Field& f) {
+        void* dst = reinterpret_cast<uint8_t*>(&cfg) + f.offset;
+        switch (f.kind) {
+            case Kind::STR:  p.getString(f.key, static_cast<char*>(dst), f.size); static_cast<char*>(dst)[f.size - 1] = '\0'; break;
+            case Kind::U8:   *static_cast<uint8_t*>(dst)  = p.getUChar(f.key, *static_cast<uint8_t*>(dst)); break;
+            case Kind::I8:   *static_cast<int8_t*>(dst)   = p.getChar(f.key, *static_cast<int8_t*>(dst)); break;
+            case Kind::U16:  *static_cast<uint16_t*>(dst) = (uint16_t)p.getUInt(f.key, *static_cast<uint16_t*>(dst)); break;
+            case Kind::BOOL: *static_cast<bool*>(dst)     = p.getBool(f.key, *static_cast<bool*>(dst)); break;
+            case Kind::F32:  *static_cast<float*>(dst)    = p.getFloat(f.key, *static_cast<float*>(dst)); break;
+        }
+    }
+
+    static void write_field(Preferences& p, const Field& f) {
+        const void* src = reinterpret_cast<const uint8_t*>(&cfg) + f.offset;
+        switch (f.kind) {
+            case Kind::STR:  p.putString(f.key, static_cast<const char*>(src)); break;
+            case Kind::U8:   p.putUChar(f.key, *static_cast<const uint8_t*>(src)); break;
+            case Kind::I8:   p.putChar(f.key, *static_cast<const int8_t*>(src)); break;
+            case Kind::U16:  p.putUInt(f.key, *static_cast<const uint16_t*>(src)); break;
+            case Kind::BOOL: p.putBool(f.key, *static_cast<const bool*>(src)); break;
+            case Kind::F32:  p.putFloat(f.key, *static_cast<const float*>(src)); break;
+        }
+    }
 
     static const char* NS = "qrpclock"; 
 
@@ -21,8 +87,8 @@ namespace config {
     }
 
     void reset_to_defaults() {
-        if (!cfg_ptr) cfg_ptr = new Config(); 
-        memset(cfg_ptr, 0, sizeof(Config));
+        memset(&cfg, 0, sizeof(cfg));
+        initialized = true;
 
         strncpy(cfg.callsign, "N0CALL", sizeof(cfg.callsign) - 1);
         strncpy(cfg.grid,     "MK82wb", sizeof(cfg.grid) - 1);
@@ -50,7 +116,6 @@ namespace config {
         strncpy(cfg.aprs_comment, "ESP32 Dashboard", sizeof(cfg.aprs_comment) - 1);
         strncpy(cfg.aprs_icon, "/[", sizeof(cfg.aprs_icon) - 1);
 
-        // FIXED: Using sizeof() prevents strncpy from zero-padding into adjacent heap memory!
         strncpy(cfg.aprs_macros[0], "QRT. Packing up gear.", sizeof(cfg.aprs_macros[0]) - 1);
         strncpy(cfg.aprs_macros[1], "CQ POTA, spotting active now.", sizeof(cfg.aprs_macros[1]) - 1);
         strncpy(cfg.aprs_macros[2], "All OK, monitoring frequency.", sizeof(cfg.aprs_macros[2]) - 1);
@@ -61,47 +126,16 @@ namespace config {
     }
 
     void load() {
-        if (!cfg_ptr) reset_to_defaults();
+        if (!initialized) reset_to_defaults();
 
         Preferences p;
         p.begin(NS, true);
-
-        if (p.isKey("callsign")) {
-            p.getString("callsign", cfg.callsign,      sizeof(cfg.callsign));
-            p.getString("grid",     cfg.grid,          sizeof(cfg.grid));
-            cfg.brightness   = p.getUChar("brightness", cfg.brightness);
-            cfg.auto_brightness = p.getBool("auto_bl", cfg.auto_brightness);
-            cfg.theme_id     = p.getUChar("theme_id",   cfg.theme_id);
-            cfg.tz_offset_hh = p.getChar("tz_hh",       cfg.tz_offset_hh);
-            cfg.screen_timeout_min = p.getUChar("scr_to", cfg.screen_timeout_min);
-            cfg.forecast_slots = p.getUChar("fc_slots", cfg.forecast_slots);
-            cfg.web_enabled  = p.getBool("web_en",      cfg.web_enabled);
-            p.getString("wifi_ssid", cfg.wifi_ssid,    sizeof(cfg.wifi_ssid));
-            p.getString("wifi_pw",   cfg.wifi_password,sizeof(cfg.wifi_password));
-            p.getString("ow_key",    cfg.openweather_api_key, sizeof(cfg.openweather_api_key));
-            cfg.lat          = p.getFloat("lat",        cfg.lat);
-            cfg.lon          = p.getFloat("lon",        cfg.lon);
-
-            if (p.isKey("dx_url_p"))  p.getString("dx_url_p",  cfg.dx_url_primary, sizeof(cfg.dx_url_primary));
-            if (p.isKey("dx_port_p")) cfg.dx_port_primary = p.getUInt("dx_port_p", cfg.dx_port_primary);
-            if (p.isKey("dx_url_s"))  p.getString("dx_url_s",  cfg.dx_url_secondary, sizeof(cfg.dx_url_secondary));
-            if (p.isKey("dx_port_s")) cfg.dx_port_secondary = p.getUInt("dx_port_s", cfg.dx_port_secondary);
-
-            cfg.aprs_enabled = p.getBool("aprs_en", cfg.aprs_enabled);
-            cfg.aprs_ssid    = p.getChar("aprs_ssid", cfg.aprs_ssid);
-            if (p.isKey("aprs_pass")) p.getString("aprs_pass", cfg.aprs_passcode, sizeof(cfg.aprs_passcode));
-            if (p.isKey("aprs_cmt"))  p.getString("aprs_cmt", cfg.aprs_comment, sizeof(cfg.aprs_comment));
-            if (p.isKey("aprs_icn"))  p.getString("aprs_icn", cfg.aprs_icon, sizeof(cfg.aprs_icon));
-
-            for (int i = 0; i < 5; i++) {
-                char key[8]; snprintf(key, sizeof(key), "mac%d", i);
-                // FIXED: Explicitly cap the extraction length to the actual array bounds
-                if (p.isKey(key)) p.getString(key, cfg.aprs_macros[i], sizeof(cfg.aprs_macros[i]));
-            }
-
-            if (p.isKey("ham_pass")) p.getString("ham_pass", cfg.hamalert_password, sizeof(cfg.hamalert_password));
+        // Settings exist once a callsign has been saved; the admin password is managed on its own.
+        const bool has_settings = p.isKey("callsign");
+        for (const Field& f : FIELDS) {
+            bool is_admin = strcmp(f.key, "admin_pw") == 0;
+            if ((has_settings || is_admin) && p.isKey(f.key)) read_field(p, f);
         }
-        if (p.isKey("admin_pw")) p.getString("admin_pw", cfg.admin_password, sizeof(cfg.admin_password));
         p.end();
 
         // First boot (or upgrade): generate the web/AP password and persist it on its own.
@@ -121,52 +155,19 @@ namespace config {
     }
 
     void save() {
-        if (!cfg_ptr) return;
+        if (!initialized) return;
         Preferences p;
-        p.begin(NS, false); 
-        p.putString("callsign",  cfg.callsign);
-        p.putString("grid",      cfg.grid);
-        p.putUChar("brightness", cfg.brightness);
-        p.putBool("auto_bl",     cfg.auto_brightness);
-        p.putUChar("theme_id",   cfg.theme_id);
-        p.putChar("tz_hh",       cfg.tz_offset_hh);
-        p.putUChar("scr_to",     cfg.screen_timeout_min); 
-        p.putUChar("fc_slots",   cfg.forecast_slots); 
-        p.putBool("web_en",      cfg.web_enabled);
-        p.putString("wifi_ssid", cfg.wifi_ssid);
-        p.putString("wifi_pw",   cfg.wifi_password);
-        p.putString("ow_key",    cfg.openweather_api_key);
-        p.putFloat("lat",        cfg.lat);
-        p.putFloat("lon",        cfg.lon);
-        
-        p.putString("dx_url_p",  cfg.dx_url_primary);
-        p.putUInt("dx_port_p",   cfg.dx_port_primary);
-        p.putString("dx_url_s",  cfg.dx_url_secondary);
-        p.putUInt("dx_port_s",   cfg.dx_port_secondary);
-
-        p.putBool("aprs_en",     cfg.aprs_enabled);
-        p.putChar("aprs_ssid",   cfg.aprs_ssid);
-        p.putString("aprs_pass", cfg.aprs_passcode);
-        p.putString("aprs_cmt",  cfg.aprs_comment);
-        p.putString("aprs_icn",  cfg.aprs_icon);
-        
-        for (int i = 0; i < 5; i++) {
-            char key[8]; snprintf(key, sizeof(key), "mac%d", i);
-            p.putString(key, cfg.aprs_macros[i]);
-        }
-        
-        p.putString("ham_pass", cfg.hamalert_password);
-        p.putString("admin_pw", cfg.admin_password);
-
+        p.begin(NS, false);
+        for (const Field& f : FIELDS) write_field(p, f);
         p.end();
         Serial.println("[Storage] Transaction execution successfully committed.");
     }
 
-    const Config& get()         { return *cfg_ptr; }
-    Config&       mutable_get() { return *cfg_ptr; }
+    const Config& get()         { return cfg; }
+    Config&       mutable_get() { return cfg; }
 
     void log_summary() {
-        if (!cfg_ptr) return;
+        if (!initialized) return;
         char pw[16]; mask(cfg.wifi_password, pw, sizeof(pw));
         char aprs_pw[16]; mask(cfg.aprs_passcode, aprs_pw, sizeof(aprs_pw));
         const char* key_display = (strlen(cfg.openweather_api_key) > 0) ? "(redacted)" : "(unset)";

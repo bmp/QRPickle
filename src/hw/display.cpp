@@ -1,5 +1,6 @@
+#include "led_rgb.h"
 #include "display.h"
-#include "../services/display_manager.h" // FIXED: Linked to dedicated power logic
+#include "../services/display_manager.h" // Linked to dedicated power logic
 #include <Arduino.h>
 #include <TFT_eSPI.h>
 #include <lvgl.h>
@@ -21,7 +22,7 @@ static void flush_cb(lv_display_t * disp, const lv_area_t * area, uint8_t * px_m
 }
 
 void display_init() {
-    // FIXED: Offloaded raw backlight GPIO init to the dedicated manager
+    // Offloaded raw backlight GPIO init to the dedicated manager
     services::display_manager::init();
 
     Serial.println("  [Display Sub-Check] Initializing TFT_eSPI driver bus (tft.begin)..."); Serial.flush();
@@ -42,6 +43,7 @@ void display_init() {
 
     if (disp == nullptr) {
         Serial.println("\n[CRITICAL MEMORY FAULT] lv_display_create returned NULL!");
+        hw::led_rgb::set_state(hw::led_rgb::STATE_FAULT);  // visible without a serial console (review 5.5)
         while (1) { delay(100); } 
     }
 
@@ -55,14 +57,4 @@ void display_init() {
     lv_display_set_flush_cb(disp, flush_cb);
 
     Serial.println("  [Display Sub-Check] Display initialization successfully completed."); Serial.flush();
-}
-
-void display_update() {
-    static uint32_t last_tick = 0;
-    uint32_t current = millis();
-
-    lv_tick_inc(current - last_tick);
-    last_tick = current;
-
-    lv_timer_handler();
 }

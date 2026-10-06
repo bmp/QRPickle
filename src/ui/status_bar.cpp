@@ -125,7 +125,7 @@ namespace ui {
         lv_obj_add_event_cb(btn_sleep, [](lv_event_t*) { show_sleep_modal(); }, LV_EVENT_CLICKED, NULL);
 
         lbl_sleep = lv_label_create(btn_sleep);
-        // FIXED: Replaced Power symbol with the Eye-Closed symbol for sleep/privacy mode
+        // Replaced Power symbol with the Eye-Closed symbol for sleep/privacy mode
         lv_label_set_text(lbl_sleep, LV_SYMBOL_EYE_CLOSE);
         lv_obj_center(lbl_sleep);
 

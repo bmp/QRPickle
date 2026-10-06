@@ -120,7 +120,7 @@ namespace services {
         snprintf(user_agent, sizeof(user_agent), "%s/%s", meta::FW_NAME, meta::FW_VERSION);
         http.addHeader("User-Agent", user_agent); 
         
-        // FIXED: Hard-closes the link instantly to clear lingering cache sockets
+        // Hard-closes the link instantly to clear lingering cache sockets
         http.addHeader("Connection", "close"); 
         
         http.setTimeout(8000); 

@@ -30,7 +30,7 @@ namespace services {
         static size_t get_spot_count() { return spot_count; }
         static void clear_spots();
 
-        // FIXED: Added high-speed cache dirty validation flags
+        // Added high-speed cache dirty validation flags
         static bool is_dirty() { return buffer_dirty; }
         static void clear_dirty() { buffer_dirty = false; }
 

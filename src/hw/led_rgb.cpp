@@ -17,9 +17,10 @@ namespace hw {
         static unsigned long priority_strobe_start = 0;
 
         static void write_raw_rgb(uint8_t r, uint8_t g, uint8_t b) {
-            analogWrite(LED_PIN_R, 255 - r);
-            analogWrite(LED_PIN_G, 255 - g);
-            analogWrite(LED_PIN_B, 255 - b);
+            crashlog::mark(crashlog::SLOT_LED, 2); analogWrite(LED_PIN_R, 255 - r);
+            crashlog::mark(crashlog::SLOT_LED, 3); analogWrite(LED_PIN_G, 255 - g);
+            crashlog::mark(crashlog::SLOT_LED, 4); analogWrite(LED_PIN_B, 255 - b);
+            crashlog::mark(crashlog::SLOT_LED, 5);
         }
 
         static void led_engine_task(void* pvParameters) {
@@ -66,7 +67,7 @@ namespace hw {
                         break;
 
                     case STATE_BOOT_SYNC: 
-                        // FIXED: Neutered the Cyan breathing loop triggered by the timekeeper!
+                        // Neutered the Cyan breathing loop triggered by the timekeeper!
                         write_raw_rgb(0, 0, 0);  
                         vTaskDelay(100 / portTICK_PERIOD_MS);
                         break;
@@ -78,7 +79,7 @@ namespace hw {
                         break;
 
                     case STATE_WIFI_LOST: 
-                        // FIXED: Neutered the Purple breathing loop.
+                        // Neutered the Purple breathing loop.
                         write_raw_rgb(0, 0, 0);  
                         vTaskDelay(100 / portTICK_PERIOD_MS);
                         break;

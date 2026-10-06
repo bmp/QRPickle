@@ -359,7 +359,7 @@ namespace ui {
         lv_obj_set_flex_flow(form, LV_FLEX_FLOW_COLUMN);
         lv_obj_set_scroll_dir(form, LV_DIR_VER);
 
-        // FIXED: Standard, stable LVGL 9 scrollbar thickness configuration
+        // Standard, stable LVGL 9 scrollbar thickness configuration
         lv_obj_set_scrollbar_mode(form, LV_SCROLLBAR_MODE_ON);
         lv_obj_set_style_width(form, 6, LV_PART_SCROLLBAR); 
         lv_obj_set_style_radius(form, 3, LV_PART_SCROLLBAR);
@@ -370,7 +370,7 @@ namespace ui {
         lv_textarea_set_one_line(ta_call, true);
         lv_textarea_set_max_length(ta_call, 11);
         lv_textarea_set_text(ta_call, c.callsign);
-        lv_obj_set_width(ta_call, 250); // FIXED: Trimmed to open a 50px vertical swipe-to-scroll lane
+        lv_obj_set_width(ta_call, 250); // Trimmed to open a 50px vertical swipe-to-scroll lane
         lv_obj_add_event_cb(ta_call, [](lv_event_t* e){ open_kb_for((lv_obj_t*)lv_event_get_target(e), KB_CALLSIGN); }, LV_EVENT_FOCUSED, NULL);
 
         make_label(form, "Grid Square");
@@ -378,19 +378,19 @@ namespace ui {
         lv_textarea_set_one_line(ta_grid, true);
         lv_textarea_set_max_length(ta_grid, 6);
         lv_textarea_set_text(ta_grid, c.grid);
-        lv_obj_set_width(ta_grid, 250); // FIXED: Swipe lane clearance
+        lv_obj_set_width(ta_grid, 250); // Swipe lane clearance
         lv_obj_add_event_cb(ta_grid, [](lv_event_t* e){ open_kb_for((lv_obj_t*)lv_event_get_target(e), KB_GRID); }, LV_EVENT_FOCUSED, NULL);
 
         make_label(form, "WiFi SSID");
         ta_ssid = lv_textarea_create(form);
         lv_textarea_set_one_line(ta_ssid, true);
         lv_textarea_set_text(ta_ssid, c.wifi_ssid);
-        lv_obj_set_width(ta_ssid, 250); // FIXED: Swipe lane clearance
+        lv_obj_set_width(ta_ssid, 250); // Swipe lane clearance
         lv_obj_add_event_cb(ta_ssid, [](lv_event_t* e){ open_kb_for((lv_obj_t*)lv_event_get_target(e), KB_TEXT); }, LV_EVENT_FOCUSED, NULL);
 
         {
             lv_obj_t* row = lv_obj_create(form);
-            lv_obj_set_size(row, 250, 44); // FIXED: Contained row width to support swipe track
+            lv_obj_set_size(row, 250, 44); // Contained row width to support swipe track
             lv_obj_set_style_bg_opa(row, LV_OPA_TRANSP, 0);
             lv_obj_set_style_border_width(row, 0, 0);
             lv_obj_set_style_pad_all(row, 0, 0);
@@ -418,7 +418,7 @@ namespace ui {
 
         {
             lv_obj_t* row = lv_obj_create(form);
-            lv_obj_set_size(row, 270, 44); // FIXED: Truncated to safe width limits
+            lv_obj_set_size(row, 270, 44); // Truncated to safe width limits
             lv_obj_set_style_bg_opa(row, LV_OPA_TRANSP, 0);
             lv_obj_set_style_border_width(row, 0, 0);
             lv_obj_set_style_pad_all(row, 0, 0);
@@ -446,7 +446,7 @@ namespace ui {
 
         {
             lv_obj_t* row = lv_obj_create(form);
-            lv_obj_set_size(row, 270, 44); // FIXED: Truncated to safe width limits
+            lv_obj_set_size(row, 270, 44); // Truncated to safe width limits
             lv_obj_set_style_bg_opa(row, LV_OPA_TRANSP, 0);
             lv_obj_set_style_border_width(row, 0, 0);
             lv_obj_set_style_pad_all(row, 0, 0);
@@ -499,7 +499,7 @@ namespace ui {
 
         make_label(form, "UI Theme");
         btn_theme = lv_btn_create(form);
-        lv_obj_set_width(btn_theme, 250); // FIXED: Unified width
+        lv_obj_set_width(btn_theme, 250); // Unified width
         lv_obj_set_height(btn_theme, 30);
         lv_obj_set_style_border_width(btn_theme, 1, 0);
         lv_obj_set_style_radius(btn_theme, 4, 0);
@@ -512,7 +512,7 @@ namespace ui {
 
         make_label(form, "Staged Deployment Profile");
         btn_profile = lv_btn_create(form);
-        lv_obj_set_width(btn_profile, 250); // FIXED: Unified width
+        lv_obj_set_width(btn_profile, 250); // Unified width
         lv_obj_set_height(btn_profile, 30);
         lv_obj_set_style_border_width(btn_profile, 1, 0);
         lv_obj_set_style_radius(btn_profile, 4, 0);
@@ -530,7 +530,7 @@ namespace ui {
 
         {
             lv_obj_t* row = lv_obj_create(form);
-            lv_obj_set_size(row, 280, 44); // FIXED: Leaves clear 40px right swipe space for bottom row
+            lv_obj_set_size(row, 280, 44); // Leaves clear 40px right swipe space for bottom row
             lv_obj_set_style_bg_opa(row, LV_OPA_TRANSP, 0);
             lv_obj_set_style_border_width(row, 0, 0);
             lv_obj_set_style_pad_all(row, 0, 0);

@@ -70,7 +70,7 @@ void setup() {
     Serial.println("--- All operational tasks successfully scheduled ---");
     Serial.flush();
 
-    // FIXED: Force the LED state to OFF after the boot sequence is complete
+    // Force the LED state to OFF after the boot sequence is complete
     // This instantly kills the stuck "breathing cyan" timekeeper loop
     hw::led_rgb::set_state(hw::led_rgb::STATE_OFF);
 }

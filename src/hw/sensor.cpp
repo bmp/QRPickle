@@ -19,6 +19,8 @@ void sensor_init() {
     }
 }
 
+bool sensor_is_online() { return sensor_online; }
+
 float sensor_get_temp() {
     return sensor_online ? bme.readTemperature() : 0.0f;
 }

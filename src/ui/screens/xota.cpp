@@ -6,7 +6,7 @@
 #include "../../services/sota_manager.h"
 #include "../../services/dx_manager.h"       
 #include "../../services/hamalert_manager.h" 
-#include "../../services/aprs_manager.h"    // NEW: Include to reclaim the 10KB stack
+#include "../../services/aprs_manager.h"    // Include to reclaim the 10KB stack
 #include <cstdio>
 #include <cstring>
 #include <strings.h>
@@ -269,7 +269,7 @@ namespace ui {
         Serial.println("[xOTA] Entry. Suspending core monitoring sockets to free RAM...");
         services::DxManager::stop();
         services::HamAlertManager::stop();
-        services::AprsManager::stop(); // NEW: Halts 10KB APRS task loop immediately on entry
+        services::AprsManager::stop(); // Halts 10KB APRS task loop immediately on entry
 
         if (!rows) {
             rows = (RowX*)calloc(MAX_UI_ROWS, sizeof(RowX));

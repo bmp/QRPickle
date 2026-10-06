@@ -62,7 +62,7 @@ namespace services {
         }
         status = DX_STATUS_DISCONNECTED;
         buffer_dirty = false;
-        // FIXED: We intentionally DO NOT free the spots array here anymore. 
+        // We intentionally DO NOT free the spots array here anymore. 
         // This prevents Use-After-Free race conditions during time-slicing pauses!
         Serial.println("[DX Engine] Socket safely suspended for Time-Slicing.");
     }

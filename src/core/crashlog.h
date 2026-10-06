@@ -13,4 +13,7 @@ namespace crashlog {
     // Call right after Serial.begin() in setup().
     void report_previous();
 
+    // Print the current breadcrumbs (diagnostics).
+    void dump(const char* why);
+
 }  // namespace crashlog

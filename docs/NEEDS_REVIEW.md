@@ -16,6 +16,8 @@ Items that automation could not verify (screen/touch/browser), plus patches for 
 - [ ] **Plan F, xOTA:** POTA now loads in the background. The status dot is orange while fetching, the list fills when done, and the screen stays responsive during the fetch.
 - [ ] **Plan F, APRS radar:** stations now show their real symbol-based type (an off-by-one used to read E/W); compressed-position stations no longer appear at bogus coordinates.
 
+- [ ] **Plan G, sensor offline:** (optional) unplug the BME280 and boot. The dashboard should show `-- C | --%` and `-- hPa`, and the weather screen `--`.
+
 ## Patches to apply (files on the ask-first list)
 Apply with `git apply docs/patches/<file>` after review.
 - `0001-native-test-filter-add-test_config.patch`: run the config unit tests in plain `pio test -e native`. Until it's applied, use `pio test -e native -f test_parsers -f test_config`.

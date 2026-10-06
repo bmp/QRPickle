@@ -16,7 +16,7 @@ namespace ui {
         {"Settings",    DEST_SETTINGS},
         {"DX Cluster",  DEST_SPOTS},
         {"xOTA",        DEST_XOTA},
-        {"APRS",        DEST_APRS},// FIXED: Now routes to unified module
+        {"APRS",        DEST_APRS},// Now routes to unified module
         {"Propagation", DEST_PROP},
         {"HamAlert",    DEST_HAMALERT},
         {"Cloud OTA",   DEST_CLOUD_OTA}

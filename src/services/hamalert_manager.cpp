@@ -2,7 +2,7 @@
 #include "../core/crashlog.h"
 #include "hamalert_manager.h"
 #include "../config/config.h"
-#include "../hw/led_rgb.h" // RESTORED: Needed for LED telemetry
+#include "../hw/led_rgb.h" // Needed for LED telemetry
 #include <Arduino.h>
 #include <WiFi.h>
 #include <WiFiClient.h>
@@ -117,7 +117,7 @@ namespace services {
         }
         dirty = true;
         
-        // RESTORED: Fire the visual LED alert for the user
+        // Fire the visual LED alert for the user
         hw::led_rgb::trigger_priority_strobe();
     }
 

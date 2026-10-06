@@ -13,7 +13,7 @@ namespace ui {
     static lv_timer_t* refresh_timer = nullptr;
 
     static void update_hamalert_ui_cb(lv_timer_t* t) {
-        // FIXED: Force an initial render path draw step even if the dirty bits aren't set yet
+        // Force an initial render path draw step even if the dirty bits aren't set yet
         bool initial_draw = (t == nullptr);
         if (!scroll_box) return;
         if (!initial_draw && !services::HamAlertManager::is_dirty()) return;

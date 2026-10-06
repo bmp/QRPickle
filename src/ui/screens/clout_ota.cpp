@@ -63,7 +63,7 @@ namespace ui {
         lv_obj_set_style_border_width(header, 1, 0);
         lv_obj_align(header, LV_ALIGN_TOP_MID, 0, 0);
 
-        // FIXED: Balanced fonts to font_jetbrains_14 for both targets layout symmetry
+        // Balanced fonts to font_jetbrains_14 for both targets layout symmetry
         lv_obj_t* local_lbl = lv_label_create(header);
         lv_label_set_text_fmt(local_lbl, "Local: %s", meta::FW_VERSION);
         lv_obj_set_style_text_font(local_lbl, &font_jetbrains_10, 0);
@@ -90,7 +90,7 @@ namespace ui {
             draw_cloud_ota_page(p);
         }, LV_EVENT_CLICKED, NULL);
 
-        // FIXED: Balanced fonts to font_jetbrains_14 layout symmetry
+        // Balanced fonts to font_jetbrains_14 layout symmetry
         lv_obj_t* remote_lbl = lv_label_create(header);
         lv_label_set_text_fmt(remote_lbl, "GitHub: %s", info.latest_version);
         lv_obj_set_style_text_font(remote_lbl, &font_jetbrains_10, 0);
@@ -105,7 +105,7 @@ namespace ui {
         lv_obj_set_style_border_color(notes_area, theme_color(COLOR_BORDER), 0);
         lv_obj_set_style_border_width(notes_area, 1, 0);
         
-        // FIXED: Explicitly hidden scrollbar trackers
+        // Explicitly hidden scrollbar trackers
         lv_obj_set_scrollbar_mode(notes_area, LV_SCROLLBAR_MODE_OFF); 
 
         notes_label = lv_label_create(notes_area);

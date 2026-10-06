@@ -30,7 +30,7 @@ namespace services {
             HTTPClient http;
             http.begin(tls, url);
             if (http.GET() == 200) {
-                // NEW: Strict Memory Filter
+                // Strict Memory Filter
                 JsonDocument filter;
                 filter["main"]["temp"] = true;
                 filter["main"]["humidity"] = true;
@@ -78,7 +78,7 @@ namespace services {
             HTTPClient http;
             http.begin(tls, url);
             if (http.GET() == 200) {
-                // NEW: Strict Memory Filter
+                // Strict Memory Filter
                 JsonDocument filter;
                 filter["list"][0]["dt"] = true;
                 filter["list"][0]["main"]["temp"] = true;

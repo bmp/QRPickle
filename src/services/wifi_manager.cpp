@@ -1,7 +1,7 @@
 #include "wifi_manager.h"
 #include "../config/config.h" 
 #include "web_server.h"
-#include "../hw/led_rgb.h" // NEW: RGB LED controller inclusion
+#include "../hw/led_rgb.h" // RGB LED controller inclusion
 #include <WiFi.h>
 #include <esp_wifi.h>
 #include <Arduino.h>
@@ -43,7 +43,7 @@ void wifi_manager_init() {
     connection_timeout_mark = millis();
     snprintf(status_msg, sizeof(status_msg), "CONNECTING TO %s...", cfg.wifi_ssid);
 
-    // NEW: Set Stage 2 -> Solid Blue when network search is active
+    // Set Stage 2 -> Solid Blue when network search is active
     hw::led_rgb::set_state(hw::led_rgb::STATE_BOOT_WIFI);
 }
 
@@ -108,7 +108,7 @@ void wifi_manager_update() {
             snprintf(status_msg, sizeof(status_msg), "CONNECTED | IP: %d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
             Serial.printf("[Wi-Fi] Network Link Stable! %s\n", status_msg);
             
-            // NEW: Network link restored, clear lost warning
+            // Network link restored, clear lost warning
             hw::led_rgb::set_state(hw::led_rgb::STATE_OFF);
         }
         last_drop_mark = millis(); // Reset the watchdog timer while connected
@@ -119,7 +119,7 @@ void wifi_manager_update() {
             Serial.println("[Wi-Fi] Link dropped. Trusting ESP-IDF native auto-reconnect...");
             last_drop_mark = millis();
             
-            // NEW: Set Post-Boot warning -> Breathing Red/Magenta connection lost indicator
+            // Set Post-Boot warning -> Breathing Red/Magenta connection lost indicator
             hw::led_rgb::set_state(hw::led_rgb::STATE_WIFI_LOST);
         }
 

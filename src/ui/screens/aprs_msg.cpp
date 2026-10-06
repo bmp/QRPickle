@@ -50,7 +50,7 @@ namespace ui {
             case 1:
                 lv_obj_clear_flag(panel_wizard, LV_OBJ_FLAG_HIDDEN);
                 lv_obj_set_style_bg_color(btn_tab_wiz, theme_color(COLOR_BG_APP), 0);
-                // FIXED: Use the industry standard live target gateway callsigns
+                // Use the industry standard live target gateway callsigns
                 if (dd_wiz_net && ta_target) {
                     uint16_t opt = lv_dropdown_get_selected(dd_wiz_net);
                     lv_textarea_set_text(ta_target, (opt == 0) ? "APSPOT" : "SOTA");
@@ -80,7 +80,7 @@ namespace ui {
             lv_dropdown_get_selected_str(dd_wiz_mode, mode_str, sizeof(mode_str));
             uint16_t opt = lv_dropdown_get_selected(dd_wiz_net);
 
-            // FIXED: Structure rigid syntax patterns based on official gateway specs
+            // Structure rigid syntax patterns based on official gateway specs
             if (opt == 0) {
                 // POTA via APSPOT target expects: ! POTA [REF] [FREQ] [MODE] [COMMENT]
                 snprintf(wiz_payload, sizeof(wiz_payload), "! POTA %s %s %s %s",
@@ -302,7 +302,7 @@ namespace ui {
         lv_obj_align(ta_wiz_cmt, LV_ALIGN_TOP_LEFT, 65, 92);
         lv_textarea_set_one_line(ta_wiz_cmt, true);
         lv_textarea_set_max_length(ta_wiz_cmt, 24);
-        lv_textarea_set_text(ta_wiz_cmt, "QRP 5W"); // FIXED: Dropped the word "TEST" from default comments
+        lv_textarea_set_text(ta_wiz_cmt, "QRP 5W"); // Dropped the word "TEST" from default comments
         lv_obj_set_style_text_font(ta_wiz_cmt, &font_jetbrains_10, 0);
         lv_obj_add_event_cb(ta_wiz_cmt, [](lv_event_t* e){
             if(kb_input && ta_wiz_cmt) {

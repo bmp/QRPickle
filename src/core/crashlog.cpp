@@ -32,4 +32,12 @@ namespace crashlog {
         magic = MAGIC;
     }
 
+    void dump(const char* why) {
+        Serial.printf("[CRASHLOG] dump (%s) at %lu ms:\n", why, (unsigned long)millis());
+        for (int i = 0; i < SLOT_COUNT; i++) {
+            Serial.printf("[CRASHLOG]   %-8s step=%u t=%lu ms core=%u\n", NAMES[i], marks[i].step,
+                          (unsigned long)marks[i].ms, marks[i].core);
+        }
+    }
+
 }  // namespace crashlog

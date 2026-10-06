@@ -66,6 +66,10 @@ Saved secrets (WiFi password, API keys, passcodes) are never shown again in the 
 
 ---
 
+## Time Zone Note
+
+QRPickle uses a fixed UTC offset (in half-hour steps), with no automatic daylight saving. In regions that observe DST, change the offset in Settings twice a year. Most ham-radio activity is logged in UTC, which is always shown correctly.
+
 ## Third-Party Licences
 
 QRPickle's own code is MIT-licensed (see `License`). It bundles or links:

@@ -4,7 +4,7 @@
 #include "aprs_manager.h"
 #include "../config/config.h"
 #include <atomic>
-#include "../core/metadata.h" // NEW: Pulls dynamic version
+#include "../core/metadata.h" // Pulls dynamic version
 #include "../hw/sensor.h"
 #include "../hw/led_rgb.h" 
 #include <Arduino.h>
