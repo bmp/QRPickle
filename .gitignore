@@ -7,3 +7,6 @@ scripts/fonts-src/
 .vscode/c_cpp_properties.json
 .vscode/launch.json
 .vscode/ipch
+# clangd compile database (regenerate: pio run -t compiledb)
+compile_commands.json
+.cache/
