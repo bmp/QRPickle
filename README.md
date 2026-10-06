@@ -66,6 +66,25 @@ Saved secrets (WiFi password, API keys, passcodes) are never shown again in the 
 
 ---
 
+## Third-Party Licences
+
+QRPickle's own code is MIT-licensed (see `License`). It bundles or links:
+
+| Component | Licence | Notes |
+|---|---|---|
+| Atkinson Hyperlegible font | SIL OFL 1.1 | © 2020 Braille Institute of America. `assets/fonts/OFL-AtkinsonHyperlegible.txt` |
+| JetBrains Mono font | SIL OFL 1.1 | © 2020 The JetBrains Mono Project Authors. `assets/fonts/OFL-JetBrainsMono.txt` |
+| LVGL 9.5 | MIT | |
+| TFT_eSPI 2.5 | MIT (per library.json) | |
+| ArduinoJson 7 | MIT | |
+| ESPAsyncWebServer 3.11, AsyncTCP 3.4 | LGPL-3.0 | Dynamically relinkable from this public source tree |
+| Adafruit BME280 | BSD | |
+| Adafruit Unified Sensor | Apache-2.0 | |
+| Adafruit BusIO | MIT | |
+| XPT2046_Touchscreen | MIT-style | © 2015 Paul Stoffregen |
+
+The fonts are converted to C arrays in `src/ui/fonts/`; the OFL applies to those derived files too.
+
 ## Libraries & Frameworks
 
 * **[LVGL (Light and Versatile Graphics Library) v9.x](https://lvgl.io/):** Core C-based UI framework handling all screens, layouts, animations, and touch interactions.

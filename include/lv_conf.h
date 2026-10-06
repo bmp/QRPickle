@@ -10,6 +10,27 @@
 #define LV_MEM_POOL_INCLUDE <stdlib.h>
 #define LV_MEM_POOL_ALLOC   malloc
 
+/* Flash budget (review area 6, S2/S3). The display is RGB565, so only the RGB565
+ * software renderer (plus RGB565A8 sources and A8 masks/fonts) is needed: ~53 KB saved.
+ * NOTE: LVGL renders semi-transparent or transformed containers into ARGB8888 layers;
+ * if a screen ever needs that, re-enable LV_DRAW_SW_SUPPORT_ARGB8888. */
+#define LV_DRAW_SW_SUPPORT_RGB565_SWAPPED       0
+#define LV_DRAW_SW_SUPPORT_RGB888               0
+#define LV_DRAW_SW_SUPPORT_XRGB8888             0
+#define LV_DRAW_SW_SUPPORT_ARGB8888             0
+#define LV_DRAW_SW_SUPPORT_ARGB8888_PREMULTIPLIED 0
+#define LV_DRAW_SW_SUPPORT_L8                   0
+#define LV_DRAW_SW_SUPPORT_AL88                 0
+#define LV_DRAW_SW_SUPPORT_I1                   0
+
+/* Widgets never used by QRPickle (~25 KB). lv_arc stays: lv_spinner needs it. */
+#define LV_USE_CHART    0
+#define LV_USE_SCALE    0
+#define LV_USE_CALENDAR 0
+#define LV_USE_TABLE    0
+#define LV_USE_ROLLER   0
+#define LV_USE_SPINBOX  0
+
 /* Route LVGL memory allocation directly to standard C malloc/free */
 #define LV_USE_BUILTIN_MALLOC 1
 

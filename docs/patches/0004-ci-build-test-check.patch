@@ -1,0 +1,28 @@
+--- /dev/null
++++ b/.github/workflows/ci.yml
+@@ -0,0 +1,25 @@
++name: CI
++
++on:
++  pull_request:
++  push:
++    branches-ignore: [main]
++
++jobs:
++  build-test:
++    runs-on: ubuntu-latest
++    steps:
++      - uses: actions/checkout@v4
++      - uses: actions/setup-python@v5
++        with:
++          python-version: '3.x'
++      - name: Install PlatformIO (pinned)
++        run: pip install "platformio==6.2.0"
++      - name: Native unit tests
++        run: pio test -e native -f test_parsers -f test_config
++      - name: Static analysis
++        run: pio check -e cyd --severity=high --severity=medium --fail-on-defect=medium
++      - name: Firmware + filesystem build (size and secret guards run as build scripts)
++        run: |
++          pio run -e cyd
++          pio run -e cyd -t buildfs
