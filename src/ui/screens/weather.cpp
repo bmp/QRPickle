@@ -319,7 +319,7 @@ namespace ui {
         float t = sensor_get_temp(); float h = sensor_get_humidity(); float p = sensor_get_pressure();
 
         if (lbl_loc_temp) { snprintf(buf, sizeof(buf), "%.1f°C", t); lv_label_set_text(lbl_loc_temp, buf); }
-        if (lbl_loc_hum)  { snprintf(buf, sizeof(buf), "%.0f %", h);  lv_label_set_text(lbl_loc_hum, buf);  lv_label_set_text(lbl_unit_hum, "%"); }
+        if (lbl_loc_hum)  { snprintf(buf, sizeof(buf), "%.0f %%", h);  lv_label_set_text(lbl_loc_hum, buf);  lv_label_set_text(lbl_unit_hum, "%"); }
         if (lbl_loc_pres) { snprintf(buf, sizeof(buf), "%.0f hPa", p);  lv_label_set_text(lbl_loc_pres, buf); lv_label_set_text(lbl_unit_pres, "hPa"); }
         if (lbl_loc_dew)  { snprintf(buf, sizeof(buf), "%.1f°C", t - ((100.0f - h) / 5.0f)); lv_label_set_text(lbl_loc_dew, buf); }
         
