@@ -49,7 +49,8 @@ void wifi_manager_init() {
 
 static bool bring_up_ap(wifi_mode_t mode) {
     WiFi.mode(mode);
-    if (!WiFi.softAP(AP_SSID)) {
+    // WPA2 with the device admin password (review 1.2); it is shown on the Network screen.
+    if (!WiFi.softAP(AP_SSID, config::get().admin_password)) {
         snprintf(status_msg, sizeof(status_msg), "HOTSPOT INITIALIZATION FAULT");
         return false;
     }

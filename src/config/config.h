@@ -33,6 +33,9 @@ struct Config {
     char    aprs_macros[5][64];
 
     char    hamalert_password[33];
+
+    // Web console login (user "admin") and setup-AP WPA2 key. Generated on first boot.
+    char    admin_password[17];
 };
 
 void load();

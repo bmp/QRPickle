@@ -7,6 +7,9 @@
 #include "dx_manager.h"        
 #include "hamalert_manager.h"  
 #include "../config/config.h"
+#include "../config/config_validation.h"
+#include "json_copy.h"
+#include <atomic>
 #include "../core/metadata.h"
 #include "../hw/sensor.h"
 #include "../ui/status_bar.h"
@@ -20,10 +23,33 @@
 #include <esp_arduino_version.h>
 
 static AsyncWebServer server(80);
-static bool flag_trigger_reboot = false;
-static bool flag_trigger_ui_refresh = false;
-static bool flag_trigger_ota_flash = false; // NEW: Safe main-loop execution flag
+using services::copy_str;
+using services::copy_secret;
+
+static std::atomic<bool> flag_trigger_reboot{false};
+static std::atomic<bool> flag_trigger_ui_refresh{false};
+static std::atomic<bool> flag_trigger_ota_flash{false};
 static unsigned long reboot_timer_mark = 0;
+
+// Config/profile changes are validated in the AsyncTCP task but applied on the main loop,
+// so no task ever reads a half-written config (review 1.6).
+static std::atomic<config::Config*> pending_config{nullptr};
+static char pending_profile[25];
+static std::atomic<bool> pending_profile_flag{false};
+
+// Digest auth on every route, user "admin" (review 1.2).
+static bool authorized(AsyncWebServerRequest* r) {
+    return r->authenticate("admin", config::get().admin_password);
+}
+#define REQUIRE_AUTH(req) do { if (!authorized(req)) { (req)->requestAuthentication(); return; } } while (0)
+// For POST routes with a body handler: the body callback runs first and checks auth itself;
+// this completion callback only answers unauthenticated requests.
+static void auth_gate(AsyncWebServerRequest* r) { if (!authorized(r)) r->requestAuthentication(); }
+
+static void queue_config(config::Config* staged) {
+    config::sanitize(*staged, config::get());
+    delete pending_config.exchange(staged);
+}
 
 const char fallback_html[] PROGMEM = R"rawhtml(
 <!DOCTYPE html>
@@ -69,21 +95,25 @@ void web_server_init() {
     }
 
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
+        REQUIRE_AUTH(request);
         if (LittleFS.exists("/www/index.html")) request->send(LittleFS, "/www/index.html", "text/html");
         else request->send(200, "text/html", fallback_html);
     });
 
     server.on("/style.css", HTTP_GET, [](AsyncWebServerRequest *request) {
+        REQUIRE_AUTH(request);
         if (LittleFS.exists("/www/style.css")) request->send(LittleFS, "/www/style.css", "text/css");
         else request->send(404, "text/plain", "CSS Missing");
     });
 
     server.on("/app.js", HTTP_GET, [](AsyncWebServerRequest *request) {
+        REQUIRE_AUTH(request);
         if (LittleFS.exists("/www/app.js")) request->send(LittleFS, "/www/app.js", "application/javascript");
         else request->send(404, "text/plain", "JS Missing");
     });
 
     server.on("/api/status", HTTP_GET, [](AsyncWebServerRequest *request) {
+        REQUIRE_AUTH(request);
         AsyncResponseStream *response = request->beginResponseStream("application/json");
         JsonDocument doc;
         doc["uptime"] = millis() / 1000;
@@ -107,6 +137,7 @@ void web_server_init() {
     });
 
     server.on("/api/config", HTTP_GET, [](AsyncWebServerRequest *request) {
+        REQUIRE_AUTH(request);
         AsyncResponseStream *response = request->beginResponseStream("application/json");
         JsonDocument doc;
         const auto& c = config::get();
@@ -117,8 +148,9 @@ void web_server_init() {
         doc["callsign"] = c.callsign;
         doc["grid"] = c.grid;
         doc["ssid"] = c.wifi_ssid;
-        doc["password"] = c.wifi_password;
-        doc["apikey"] = c.openweather_api_key;
+        // Secrets are never returned (review 1.3); the UI shows "saved" and sends "" to keep them.
+        doc["password"] = "";      doc["password_set"] = c.wifi_password[0] != '\0';
+        doc["apikey"] = "";        doc["apikey_set"] = c.openweather_api_key[0] != '\0';
         doc["lat"] = c.lat;
         doc["lon"] = c.lon;
         doc["offset"] = (float)c.tz_offset_hh / 2.0f;
@@ -134,7 +166,7 @@ void web_server_init() {
         doc["dx_port_s"] = c.dx_port_secondary;
         
         doc["aprs_en"]   = c.aprs_enabled;
-        doc["aprs_pass"] = c.aprs_passcode;
+        doc["aprs_pass"] = "";     doc["aprs_pass_set"] = c.aprs_passcode[0] != '\0';
         doc["aprs_ssid"] = c.aprs_ssid;
         doc["aprs_cmt"]  = c.aprs_comment;
         doc["aprs_icn"]  = c.aprs_icon;
@@ -142,14 +174,15 @@ void web_server_init() {
         JsonArray mac_arr = doc["aprs_macros"].to<JsonArray>();
         for(int i=0; i<5; i++) mac_arr.add(c.aprs_macros[i]);
 
-        doc["hamalert_pass"] = c.hamalert_password;
+        doc["hamalert_pass"] = ""; doc["hamalert_pass_set"] = c.hamalert_password[0] != '\0';
 
         serializeJson(doc, *response);
         request->send(response);
     });
 
     server.on("/api/profiles/get", HTTP_GET, [](AsyncWebServerRequest *request) {
-        if (request->hasParam("name")) {
+        REQUIRE_AUTH(request);
+        if (request->hasParam("name") && config::is_valid_profile_name(request->getParam("name")->value().c_str())) {
             String name = request->getParam("name")->value();
             services::profile_manager::ProfileData p_data;
             if (services::profile_manager::read_profile(name.c_str(), p_data)) {
@@ -158,8 +191,8 @@ void web_server_init() {
                 doc["callsign"] = p_data.callsign;
                 doc["grid"] = p_data.grid;
                 doc["ssid"] = p_data.wifi_ssid;
-                doc["password"] = p_data.wifi_password;
-                doc["apikey"] = p_data.openweather_api_key;
+                doc["password"] = "";  doc["password_set"] = p_data.wifi_password[0] != '\0';
+                doc["apikey"] = "";    doc["apikey_set"] = p_data.openweather_api_key[0] != '\0';
                 doc["lat"] = p_data.lat;
                 doc["lon"] = p_data.lon;
                 doc["offset"] = (float)p_data.tz_offset_hh / 2.0f;
@@ -169,7 +202,7 @@ void web_server_init() {
                 doc["timeout"] = p_data.screen_timeout_min; 
 
                 doc["aprs_en"]   = p_data.aprs_enabled;
-                doc["aprs_pass"] = p_data.aprs_passcode;
+                doc["aprs_pass"] = ""; doc["aprs_pass_set"] = p_data.aprs_passcode[0] != '\0';
                 doc["aprs_ssid"] = p_data.aprs_ssid;
                 doc["aprs_cmt"]  = p_data.aprs_comment;
                 doc["aprs_icn"]  = p_data.aprs_icon;
@@ -182,50 +215,40 @@ void web_server_init() {
         request->send(404, "application/json", "{\"status\":\"not_found\"}");
     });
 
-    server.on("/api/config/save", HTTP_POST, [](AsyncWebServerRequest *request) {}, nullptr,
+    server.on("/api/config/save", HTTP_POST, auth_gate, nullptr,
              [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
+                 if (!authorized(request)) return;
                  JsonDocument doc;
                  DeserializationError err = deserializeJson(doc, data, len);
                  if (!err) {
-                     auto& c = config::mutable_get();  
-                     if (!doc["callsign"].isNull())  strncpy(c.callsign, doc["callsign"], sizeof(c.callsign)-1);
-                     if (!doc["grid"].isNull())       strncpy(c.grid, doc["grid"], sizeof(c.grid)-1);
-                     if (!doc["ssid"].isNull())       strncpy(c.wifi_ssid, doc["ssid"], sizeof(c.wifi_ssid)-1);
-                     if (!doc["password"].isNull())  strncpy(c.wifi_password, doc["password"], sizeof(c.wifi_password)-1);
-                     if (!doc["apikey"].isNull())    strncpy(c.openweather_api_key, doc["apikey"], sizeof(c.openweather_api_key)-1);
-                     if (!doc["lat"].isNull())        c.lat = doc["lat"].as<float>();  
-                     if (!doc["lon"].isNull())        c.lon = doc["lon"].as<float>();  
-                     if (!doc["brightness"].isNull()) c.brightness = doc["brightness"].as<uint8_t>();
-                     if (!doc["auto_bright"].isNull()) {
-                         config::mutable_get().auto_brightness = doc["auto_bright"].as<bool>();
-                     }
-                     if (!doc["theme_id"].isNull())   c.theme_id = doc["theme_id"].as<uint8_t>();
-                     if (!doc["offset"].isNull())     c.tz_offset_hh = (int8_t)(doc["offset"].as<float>() * 2.0f);
-                     if (!doc["timeout"].isNull())    c.screen_timeout_min = doc["timeout"].as<uint8_t>();  
-                     if (!doc["fc_slots"].isNull())   c.forecast_slots = doc["fc_slots"].as<uint8_t>();  
-                      
-                     if (!doc["dx_url_p"].isNull())  strncpy(c.dx_url_primary, doc["dx_url_p"], sizeof(c.dx_url_primary)-1);
-                     if (!doc["dx_port_p"].isNull()) c.dx_port_primary = doc["dx_port_p"].as<uint16_t>();
-                     if (!doc["dx_url_s"].isNull())  strncpy(c.dx_url_secondary, doc["dx_url_s"], sizeof(c.dx_url_secondary)-1);
-                     if (!doc["dx_port_s"].isNull()) c.dx_port_secondary = doc["dx_port_s"].as<uint16_t>();
-
-                     if (!doc["aprs_en"].isNull())    c.aprs_enabled = doc["aprs_en"].as<bool>();
-                     if (!doc["aprs_pass"].isNull())  strncpy(c.aprs_passcode, doc["aprs_pass"], sizeof(c.aprs_passcode)-1);
-                     if (!doc["aprs_ssid"].isNull())  c.aprs_ssid = doc["aprs_ssid"].as<int8_t>();
-                     if (!doc["aprs_cmt"].isNull())   strncpy(c.aprs_comment, doc["aprs_cmt"], sizeof(c.aprs_comment)-1);
-                     if (!doc["aprs_icn"].isNull())   strncpy(c.aprs_icon, doc["aprs_icn"], sizeof(c.aprs_icon)-1);
-
-                     if (!doc["aprs_macros"].isNull()) {
-                         JsonArray mac_arr = doc["aprs_macros"].as<JsonArray>();
-                         for(int i=0; i<5 && i<mac_arr.size(); i++) {
-                             strncpy(c.aprs_macros[i], mac_arr[i].as<const char*>(), 63);
-                         }
-                     }
-
-                     if (!doc["hamalert_pass"].isNull()) strncpy(c.hamalert_password, doc["hamalert_pass"], sizeof(c.hamalert_password)-1);
-
-                     config::save();
-                     flag_trigger_ui_refresh = true;
+                     auto* c = new config::Config(config::get());
+                     copy_str(c->callsign, doc["callsign"]);
+                     copy_str(c->grid, doc["grid"]);
+                     copy_str(c->wifi_ssid, doc["ssid"]);
+                     copy_secret(c->wifi_password, doc["password"]);
+                     copy_secret(c->openweather_api_key, doc["apikey"]);
+                     if (doc["lat"].is<float>())        c->lat = doc["lat"].as<float>();
+                     if (doc["lon"].is<float>())        c->lon = doc["lon"].as<float>();
+                     if (doc["brightness"].is<int>())   c->brightness = (uint8_t)constrain(doc["brightness"].as<int>(), 0, 255);
+                     if (doc["auto_bright"].is<bool>()) c->auto_brightness = doc["auto_bright"].as<bool>();
+                     if (doc["theme_id"].is<int>())     c->theme_id = (uint8_t)constrain(doc["theme_id"].as<int>(), 0, 255);
+                     if (doc["offset"].is<float>())     c->tz_offset_hh = (int8_t)constrain((int)(doc["offset"].as<float>() * 2.0f), -128, 127);
+                     if (doc["timeout"].is<int>())      c->screen_timeout_min = (uint8_t)constrain(doc["timeout"].as<int>(), 0, 255);
+                     if (doc["fc_slots"].is<int>())     c->forecast_slots = (uint8_t)doc["fc_slots"].as<int>();
+                     copy_str(c->dx_url_primary, doc["dx_url_p"]);
+                     if (doc["dx_port_p"].is<int>())    c->dx_port_primary = (uint16_t)doc["dx_port_p"].as<int>();
+                     copy_str(c->dx_url_secondary, doc["dx_url_s"]);
+                     if (doc["dx_port_s"].is<int>())    c->dx_port_secondary = (uint16_t)doc["dx_port_s"].as<int>();
+                     if (doc["aprs_en"].is<bool>())     c->aprs_enabled = doc["aprs_en"].as<bool>();
+                     copy_secret(c->aprs_passcode, doc["aprs_pass"]);
+                     if (doc["aprs_ssid"].is<int>())    c->aprs_ssid = (int8_t)constrain(doc["aprs_ssid"].as<int>(), -1, 99);
+                     copy_str(c->aprs_comment, doc["aprs_cmt"]);
+                     copy_str(c->aprs_icon, doc["aprs_icn"]);
+                     JsonArrayConst mac_arr = doc["aprs_macros"].as<JsonArrayConst>();
+                     for (size_t i = 0; i < 5 && i < mac_arr.size(); i++) copy_str(c->aprs_macros[i], mac_arr[i]);
+                     copy_secret(c->hamalert_password, doc["hamalert_pass"]);
+                     copy_secret(c->admin_password, doc["admin_pw"]);  // sanitize() rejects < 8 chars
+                     queue_config(c);
                      request->send(200, "application/json", "{\"status\":\"success\"}");
                  } else {
                      request->send(400, "application/json", "{\"status\":\"malformed\"}");
@@ -233,6 +256,7 @@ void web_server_init() {
              });
 
     server.on("/api/profiles", HTTP_GET, [](AsyncWebServerRequest *request) {
+        REQUIRE_AUTH(request);
         AsyncResponseStream *response = request->beginResponseStream("application/json");
         JsonDocument doc;
         JsonArray array = doc.to<JsonArray>();
@@ -242,11 +266,12 @@ void web_server_init() {
         request->send(response);
     });
 
-    server.on("/api/profiles/save", HTTP_POST, [](AsyncWebServerRequest *request) {}, nullptr,
+    server.on("/api/profiles/save", HTTP_POST, auth_gate, nullptr,
              [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
+                 if (!authorized(request)) return;
                  JsonDocument doc;
                  DeserializationError err = deserializeJson(doc, data, len);
-                 if (!err && !doc["name"].isNull() && !doc["config"].isNull()) {
+                 if (!err && doc["name"].is<const char*>() && config::is_valid_profile_name(doc["name"].as<const char*>()) && !doc["config"].isNull()) {
                      String p_name = doc["name"].as<String>();
                      if (services::profile_manager::save_profile_from_json(p_name.c_str(), doc["config"])) {
                          request->send(200, "application/json", "{\"status\":\"success\"}");
@@ -257,10 +282,14 @@ void web_server_init() {
              });
 
     server.on("/api/profiles/load", HTTP_POST, [](AsyncWebServerRequest *request) {
+        REQUIRE_AUTH(request);
         if (request->hasParam("name")) {
             String name = request->getParam("name")->value();
-            if (services::profile_manager::apply_profile_to_live(name.c_str())) {
-                flag_trigger_ui_refresh = true;  
+            services::profile_manager::ProfileData probe;
+            if (config::is_valid_profile_name(name.c_str()) && services::profile_manager::read_profile(name.c_str(), probe)) {
+                strncpy(pending_profile, name.c_str(), sizeof(pending_profile) - 1);
+                pending_profile[sizeof(pending_profile) - 1] = '\0';
+                pending_profile_flag = true;  // applied on the main loop
                 request->send(200, "application/json", "{\"status\":\"success\"}");
                 return;
             }
@@ -268,12 +297,13 @@ void web_server_init() {
         request->send(404, "application/json", "{\"status\":\"not_found\"}");
     });
 
-    server.on("/api/aprs/send", HTTP_POST, [](AsyncWebServerRequest *request) {}, nullptr,
+    server.on("/api/aprs/send", HTTP_POST, auth_gate, nullptr,
              [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
+                 if (!authorized(request)) return;
                  JsonDocument doc;
                  DeserializationError err = deserializeJson(doc, data, len);
 
-                 if (!err && !doc["target"].isNull() && !doc["message"].isNull()) {
+                 if (!err && doc["target"].is<const char*>() && doc["message"].is<const char*>()) {
                      String target = doc["target"].as<String>();
                      String message = doc["message"].as<String>();
                      services::AprsManager::send_message(target.c_str(), message.c_str(), false);
@@ -285,6 +315,7 @@ void web_server_init() {
     );
 
     server.on("/api/aprs/messages", HTTP_GET, [](AsyncWebServerRequest *request) {
+        REQUIRE_AUTH(request);
         AsyncResponseStream *response = request->beginResponseStream("application/json");
         JsonDocument doc;
         JsonArray arr = doc.to<JsonArray>();
@@ -303,24 +334,30 @@ void web_server_init() {
     });
 
     server.on("/api/about", HTTP_GET, [](AsyncWebServerRequest *request) {
+        REQUIRE_AUTH(request);
         if (LittleFS.exists("/about.txt")) request->send(LittleFS, "/about.txt", "text/plain");
         else request->send(200, "text/plain", "QRPickle Tactical Platform.\nNo custom about.txt document found on filesystem.");
     });
 
     server.on("/save-basic", HTTP_POST, [](AsyncWebServerRequest *request) {
-        auto& c = config::mutable_get();
-        if (request->hasParam("callsign", true)) strncpy(c.callsign, request->getParam("callsign", true)->value().c_str(), sizeof(c.callsign)-1);
-        if (request->hasParam("grid", true))     strncpy(c.grid, request->getParam("grid", true)->value().c_str(), sizeof(c.grid)-1);
-        if (request->hasParam("ssid", true))     strncpy(c.wifi_ssid, request->getParam("ssid", true)->value().c_str(), sizeof(c.wifi_ssid)-1);
-        if (request->hasParam("pass", true))     strncpy(c.wifi_password, request->getParam("pass", true)->value().c_str(), sizeof(c.wifi_password)-1);
-        if (request->hasParam("offset", true))   c.tz_offset_hh = (int8_t)(request->getParam("offset", true)->value().toFloat() * 2.0f);
-        config::save();
+        REQUIRE_AUTH(request);
+        auto* c = new config::Config(config::get());
+        auto param = [&](const char* k) -> const char* {
+            return request->hasParam(k, true) ? request->getParam(k, true)->value().c_str() : nullptr;
+        };
+        if (const char* v = param("callsign")) { strncpy(c->callsign, v, sizeof(c->callsign) - 1); }
+        if (const char* v = param("grid"))     { strncpy(c->grid, v, sizeof(c->grid) - 1); }
+        if (const char* v = param("ssid"))     { strncpy(c->wifi_ssid, v, sizeof(c->wifi_ssid) - 1); }
+        if (const char* v = param("pass"))     { if (v[0]) strncpy(c->wifi_password, v, sizeof(c->wifi_password) - 1); }
+        if (const char* v = param("offset"))   { c->tz_offset_hh = (int8_t)constrain((int)(atof(v) * 2.0f), -128, 127); }
+        queue_config(c);
         request->send(200, "text/html", "<h3>Basic Config Committed. Rebooting...</h3>");
         flag_trigger_reboot = true;
         reboot_timer_mark = millis();
     });
 
     server.on("/api/system/reboot", HTTP_POST, [](AsyncWebServerRequest *request) {
+        REQUIRE_AUTH(request);
         request->send(200, "application/json", "{\"status\":\"rebooting\"}");
         flag_trigger_reboot = true;
         reboot_timer_mark = millis();
@@ -328,6 +365,7 @@ void web_server_init() {
 
     server.on("/api/system/update", HTTP_POST,  
         [](AsyncWebServerRequest *request) {
+            REQUIRE_AUTH(request);
             bool failed = Update.hasError();
             if (!failed) {
                 request->send(200, "application/json", "{\"status\":\"success\"}");
@@ -340,6 +378,7 @@ void web_server_init() {
             }
         },
         [](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
+            if (!authorized(request)) return;  // never write flash for an unauthenticated upload
             if (index == 0) {
                 services::ota_manager::UpdateType type = services::ota_manager::UPDATE_TYPE_UNKNOWN;
                 if (request->hasParam("target")) {
@@ -365,6 +404,7 @@ void web_server_init() {
     );
 
     server.on("/api/cloud_ota/check", HTTP_GET, [](AsyncWebServerRequest *request) {
+        REQUIRE_AUTH(request);
         if (request->hasParam("force") && request->getParam("force")->value() == "true") {
             services::cloud_ota::force_update_check();
         }
@@ -383,18 +423,32 @@ void web_server_init() {
     });
 
     server.on("/api/cloud_ota/flash", HTTP_POST, [](AsyncWebServerRequest *request) {
+        REQUIRE_AUTH(request);
         // Just send success back to the browser and flip the execution flag.
         // We MUST exit this async callback context before trying to kill the server!
         request->send(200, "application/json", "{\"status\":\"flashing\"}");
         flag_trigger_ota_flash = true; 
     });
 
+    // Defence in depth for review 1.1: no remote scripts, no requests to other hosts.
+    DefaultHeaders::Instance().addHeader("Content-Security-Policy",
+        "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data:; connect-src 'self'; form-action 'self'; frame-ancestors 'none'");
     server.begin();
 }
 
 void web_server_stop() { server.end(); }
 
 void web_server_update() {
+    if (config::Config* staged = pending_config.exchange(nullptr)) {
+        config::mutable_get() = *staged;
+        delete staged;
+        config::save();
+        flag_trigger_ui_refresh = true;
+    }
+    if (pending_profile_flag.exchange(false)) {
+        if (services::profile_manager::apply_profile_to_live(pending_profile)) flag_trigger_ui_refresh = true;
+    }
     if (flag_trigger_ui_refresh) {
         flag_trigger_ui_refresh = false;
         ui::status_bar_refresh_theme();

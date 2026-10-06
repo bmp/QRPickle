@@ -1,3 +1,16 @@
+// Escape text from the device (APRS messages arrive from the internet) before putting it
+// into innerHTML (review 1.1).
+function esc(v) {
+    return String(v ?? "").replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+}
+
+// Secrets are never sent to the browser (review 1.3). Show that one is stored; leaving the
+// field blank keeps it.
+function markSaved(id, isSet) {
+    const el = document.getElementById(id);
+    if (el) el.placeholder = isSet ? "saved (leave blank to keep)" : "";
+}
+
 document.addEventListener("DOMContentLoaded", () => {
     initTabsEngine();
     loadCurrentConfig();
@@ -82,7 +95,8 @@ function loadCurrentConfig() {
             setElementValue("cfg-callsign", data.callsign || "");
             setElementValue("cfg-grid", data.grid || "");
             setElementValue("cfg-ssid", data.ssid || "");
-            setElementValue("cfg-password", data.password || "");
+            setElementValue("cfg-password", "");
+            markSaved("cfg-password", data.password_set);
             setElementValue("cfg-lat", data.lat ?? 12.97);
             setElementValue("cfg-lon", data.lon ?? 77.59);
             setElementValue("cfg-offset", (data.offset ?? 5.5) * 2.0 / 2.0); 
@@ -93,10 +107,13 @@ function loadCurrentConfig() {
             // FIXED: Fallback parser chains map explicit openweather keys strictly matching C++ fields
             const extractedApiKey = data.openweather_api_key || data.owm_api_key || data.apikey || data.api_key || "";
             setElementValue("cfg-apikey", extractedApiKey);
+            markSaved("cfg-apikey", data.apikey_set);
             
-            setElementValue("cfg-hamalert-pass", data.hamalert_pass || "");
+            setElementValue("cfg-hamalert-pass", "");
+            markSaved("cfg-hamalert-pass", data.hamalert_pass_set);
             setElementValue("cfg-aprs-en", data.aprs_en ? "1" : "0");
-            setElementValue("cfg-aprs-pass", data.aprs_pass || "");
+            setElementValue("cfg-aprs-pass", "");
+            markSaved("cfg-aprs-pass", data.aprs_pass_set);
             setElementValue("cfg-aprs-ssid", data.aprs_ssid ?? 0);
             setElementValue("cfg-aprs-icon", data.aprs_icon || "/[");
             setElementValue("cfg-aprs-cmt", data.aprs_cmt || "");
@@ -298,7 +315,7 @@ function fetchProfilesList() {
             dropdown.innerHTML = '<option value="">-- No Profile Selected --</option>';
             if (Array.isArray(data)) {
                 data.forEach(pName => {
-                    dropdown.innerHTML += `<option value="${pName}">${pName}</option>`;
+                    dropdown.innerHTML += `<option value="${esc(pName)}">${esc(pName)}</option>`;
                 });
             }
         });
@@ -348,7 +365,7 @@ function saveProfile() {
         callsign: getElementValue("cfg-callsign"),
         grid: getElementValue("cfg-grid"),
         ssid: getElementValue("cfg-ssid"),
-        password: getElementValue("cfg-password") || "unset",
+        password: getElementValue("cfg-password"),  // blank = device keeps the saved one
         
         // FIXED: Unified profile mapping variations
         apikey: activeApiKey,
@@ -567,7 +584,7 @@ function fetchAprsMessages() {
         let html = "";
         data.forEach(msg => {
             html += `<div style="padding: 6px; border-bottom: 1px solid var(--border); margin-bottom: 4px;">
-            <strong style="color: var(--accent);">${msg.from}</strong>: ${msg.text}
+            <strong style="color: var(--accent);">${esc(msg.from)}</strong>: ${esc(msg.text)}
             </div>`;
         });
         inbox.innerHTML = html;

@@ -1,4 +1,5 @@
 #include "config_validation.h"
+#include "config.h"
 #include <ctype.h>
 #include <string.h>
 
@@ -59,6 +60,40 @@ bool normalize_grid(char* s, size_t len) {
         s[i] = c;
     }
     return true;
+}
+
+bool is_valid_profile_name(const char* s) {
+    if (!s) return false;
+    size_t n = strnlen(s, 25);
+    if (n == 0 || n > 24) return false;
+    for (size_t i = 0; i < n; i++) {
+        char c = s[i];
+        if (!(isalnum((unsigned char)c) || c == '_' || c == '-')) return false;
+    }
+    return true;
+}
+
+template <size_t N> static void terminate(char (&s)[N]) { s[N - 1] = '\0'; }
+
+void sanitize(Config& c, const Config& prev) {
+    terminate(c.callsign); terminate(c.grid); terminate(c.wifi_ssid); terminate(c.wifi_password);
+    terminate(c.openweather_api_key); terminate(c.dx_url_primary); terminate(c.dx_url_secondary);
+    terminate(c.aprs_passcode); terminate(c.aprs_comment); terminate(c.aprs_icon);
+    for (auto& m : c.aprs_macros) terminate(m);
+    terminate(c.hamalert_password); terminate(c.admin_password);
+
+    if (!normalize_callsign(c.callsign, sizeof(c.callsign))) memcpy(c.callsign, prev.callsign, sizeof(c.callsign));
+    if (!normalize_grid(c.grid, sizeof(c.grid)))             memcpy(c.grid, prev.grid, sizeof(c.grid));
+    c.brightness   = clamp_brightness((int)c.brightness);
+    c.theme_id     = clamp_theme_id((int)c.theme_id);
+    c.tz_offset_hh = clamp_tz_hh((int)c.tz_offset_hh);
+    if (c.screen_timeout_min > 60) c.screen_timeout_min = 60;
+    if (c.aprs_ssid < 0 || c.aprs_ssid > 15) c.aprs_ssid = prev.aprs_ssid;
+    if (!(c.lat >= -90.0f && c.lat <= 90.0f))    c.lat = prev.lat;     // also rejects NaN
+    if (!(c.lon >= -180.0f && c.lon <= 180.0f))  c.lon = prev.lon;
+    if (c.dx_port_primary == 0)   c.dx_port_primary = prev.dx_port_primary;
+    if (c.dx_port_secondary == 0) c.dx_port_secondary = prev.dx_port_secondary;
+    if (strlen(c.admin_password) < 8) memcpy(c.admin_password, prev.admin_password, sizeof(c.admin_password));
 }
 
 }  // namespace config

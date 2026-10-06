@@ -26,7 +26,7 @@ Run every step that applies and report each result.
 4. **Filesystem** (only if `data/` changed):
    `pio run -t buildfs`. LittleFS is 448KB.
 
-5. **Native tests:** `pio test -e native`
+5. **Native tests:** `pio test -e native -f test_parsers -f test_config` (drop the `-f` flags once docs/patches/0001 is applied)
    - Read the summary line. **`0 test cases` means nothing was tested. Report "no tests exist", not "tests pass."**
    - If tests were collected, every one must succeed.
 

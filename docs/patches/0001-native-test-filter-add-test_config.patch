@@ -1,0 +1,10 @@
+--- a/platformio.ini
++++ b/platformio.ini
+@@ -66,6 +66,7 @@
+ ; Add test_scheduler / test_config here once they contain tests.
+ test_filter     =
+     test_parsers
++    test_config
+ ; Host-testable sources only (no Arduino/FreeRTOS dependencies)
+ test_build_src  = yes
+ build_src_filter = -<*> +<services/sota_cluster_parse.cpp>

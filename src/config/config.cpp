@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include <Preferences.h>
 #include <string.h>
+#include <esp_system.h>
 
 namespace config {
 
@@ -100,7 +101,19 @@ namespace config {
 
             if (p.isKey("ham_pass")) p.getString("ham_pass", cfg.hamalert_password, sizeof(cfg.hamalert_password));
         }
+        if (p.isKey("admin_pw")) p.getString("admin_pw", cfg.admin_password, sizeof(cfg.admin_password));
         p.end();
+
+        // First boot (or upgrade): generate the web/AP password and persist it on its own.
+        if (strlen(cfg.admin_password) < 8) {
+            static const char CHARS[] = "abcdefghjkmnpqrstuvwxyz23456789";  // no 0/o/1/l/i
+            for (int i = 0; i < 8; i++) cfg.admin_password[i] = CHARS[esp_random() % (sizeof(CHARS) - 1)];
+            cfg.admin_password[8] = '\0';
+            Preferences w;
+            w.begin(NS, false);
+            w.putString("admin_pw", cfg.admin_password);
+            w.end();
+        }
 
         cfg.brightness   = clamp_brightness((int)cfg.brightness);
         cfg.theme_id     = clamp_theme_id((int)cfg.theme_id);
@@ -143,6 +156,7 @@ namespace config {
         }
         
         p.putString("ham_pass", cfg.hamalert_password);
+        p.putString("admin_pw", cfg.admin_password);
 
         p.end();
         Serial.println("[Storage] Transaction execution successfully committed.");
@@ -165,6 +179,8 @@ namespace config {
         Serial.printf("         DX Cluster Secondary: %s:%u\n", cfg.dx_url_secondary, cfg.dx_port_secondary);
         Serial.printf("         APRS-IS: %s | SSID: -%d | Passcode: %s | Icon: %s\n", 
                       cfg.aprs_enabled ? "Enabled" : "Disabled", (int)cfg.aprs_ssid, aprs_pw, cfg.aprs_icon);
+        // Shown deliberately (owner decision): needed to log in to the web console / setup AP.
+        Serial.printf("         Web console login: admin / %s\n", cfg.admin_password);
     }
 
 } // namespace config

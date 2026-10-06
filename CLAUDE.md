@@ -66,6 +66,14 @@ Out-of-memory panics during HTTPS fetches and OTA are a recurring bug class (see
 - `src/services/`: one manager per data source (weather, POTA, SOTA, DX cluster, HamAlert telnet, APRS-IS, propagation), plus wifi, web_server, OTA (manual upload), cloud_ota (GitHub pull) and display_manager (backlight, sleep, LDR auto-brightness).
 - `src/ui/`: `ui.cpp` owns the persistent shell (status bar, sidebar, home button) and swaps page content into a single `view_container` via `ui_navigate_local(LocalPage)`. Each page lives in `screens/` with create/destroy lifecycle functions. Dashboard tiles live in `widgets/` and are sized by `WidgetSize`.
 
+**Web console security.**
+- Every route requires Digest auth: `REQUIRE_AUTH` for plain routes; `auth_gate` plus an `authorized()` check in the body/upload callback for POST bodies.
+- Never return secrets from the API; send `*_set` flags instead.
+- Parse JSON strings with `copy_str`/`copy_secret` (`src/services/json_copy.h`).
+- Validate with `config::sanitize()`.
+- Apply config changes on the main loop via `pending_config`.
+- Test with `QRP_ADMIN_PW=… tools/web_security_check.sh <ip>`.
+
 **Web console.** `data/www/{index.html,app.js,style.css}` is served from LittleFS; there is an inline fallback page in `web_server.cpp` if the filesystem is missing. The REST endpoints (`/api/config`, `/api/profiles/*`, `/api/aprs/*`, `/api/system/update`, `/api/cloud_ota/*`) are registered in `web_server_init()`. Changes to `data/` require `pio run -t buildfs` / `uploadfs`; they don't go out with a firmware flash.
 
 **Flash layout** (`partitions.csv`): two 1.75MB OTA app slots (`app0`/`app1`) and a 448KB LittleFS partition at `0x390000`. The README and the web-flasher instructions depend on these offsets, so changing them breaks OTA for deployed devices.

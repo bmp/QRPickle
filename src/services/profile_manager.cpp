@@ -1,5 +1,7 @@
 #include "profile_manager.h"
 #include "../config/config.h"
+#include "../config/config_validation.h"
+#include "json_copy.h"
 #include <LittleFS.h>
 
 namespace services {
@@ -24,6 +26,7 @@ namespace services {
         }
 
         bool read_profile(const char* name, ProfileData& data) {
+            if (!config::is_valid_profile_name(name)) return false;  // review 1.7
             String path = "/profiles/" + String(name) + ".json";
             File file = LittleFS.open(path, "r");
             if (!file) return false;
@@ -33,11 +36,11 @@ namespace services {
             file.close();
             if (err) return false;
 
-            if (!doc["callsign"].isNull())   strncpy(data.callsign, doc["callsign"], sizeof(data.callsign) - 1);
-            if (!doc["grid"].isNull())       strncpy(data.grid, doc["grid"], sizeof(data.grid) - 1);
-            if (!doc["ssid"].isNull())       strncpy(data.wifi_ssid, doc["ssid"], sizeof(data.wifi_ssid) - 1);
-            if (!doc["password"].isNull())   strncpy(data.wifi_password, doc["password"], sizeof(data.wifi_password) - 1);
-            if (!doc["apikey"].isNull())     strncpy(data.openweather_api_key, doc["apikey"], sizeof(data.openweather_api_key) - 1);
+            services::copy_str(data.callsign, doc["callsign"]);
+            services::copy_str(data.grid, doc["grid"]);
+            services::copy_str(data.wifi_ssid, doc["ssid"]);
+            services::copy_str(data.wifi_password, doc["password"]);
+            services::copy_str(data.openweather_api_key, doc["apikey"]);
             if (!doc["lat"].isNull())        data.lat = doc["lat"].as<float>();
             if (!doc["lon"].isNull())        data.lon = doc["lon"].as<float>();
             if (!doc["brightness"].isNull()) data.brightness = doc["brightness"].as<uint8_t>();
@@ -47,14 +50,15 @@ namespace services {
 
             if (!doc["aprs_en"].isNull())    data.aprs_enabled = doc["aprs_en"].as<bool>();
             if (!doc["aprs_ssid"].isNull())  data.aprs_ssid = doc["aprs_ssid"].as<int8_t>();
-            if (!doc["aprs_pass"].isNull())  strncpy(data.aprs_passcode, doc["aprs_pass"], sizeof(data.aprs_passcode) - 1);
-            if (!doc["aprs_cmt"].isNull())   strncpy(data.aprs_comment, doc["aprs_cmt"], sizeof(data.aprs_comment) - 1);
-            if (!doc["aprs_icn"].isNull())   strncpy(data.aprs_icon, doc["aprs_icn"], sizeof(data.aprs_icon) - 1);
+            services::copy_str(data.aprs_passcode, doc["aprs_pass"]);
+            services::copy_str(data.aprs_comment, doc["aprs_cmt"]);
+            services::copy_str(data.aprs_icon, doc["aprs_icn"]);
 
             return true;
         }
 
         bool write_profile(const char* name, const ProfileData& data) {
+            if (!config::is_valid_profile_name(name)) return false;  // review 1.7
             String p_name = String(name);
             p_name.replace(" ", "_");
             String path = "/profiles/" + p_name + ".json";
@@ -88,11 +92,11 @@ namespace services {
 
         bool save_profile_from_json(const char* name, JsonVariantConst json) {
             ProfileData p_data;
-            if (!json["callsign"].isNull())   strncpy(p_data.callsign, json["callsign"], sizeof(p_data.callsign)-1);
-            if (!json["grid"].isNull())       strncpy(p_data.grid, json["grid"], sizeof(p_data.grid)-1);
-            if (!json["ssid"].isNull())       strncpy(p_data.wifi_ssid, json["ssid"], sizeof(p_data.wifi_ssid)-1);
-            if (!json["password"].isNull())   strncpy(p_data.wifi_password, json["password"], sizeof(p_data.wifi_password)-1);
-            if (!json["apikey"].isNull())     strncpy(p_data.openweather_api_key, json["apikey"], sizeof(p_data.openweather_api_key)-1);
+            services::copy_str(p_data.callsign, json["callsign"]);
+            services::copy_str(p_data.grid, json["grid"]);
+            services::copy_str(p_data.wifi_ssid, json["ssid"]);
+            services::copy_str(p_data.wifi_password, json["password"]);
+            services::copy_str(p_data.openweather_api_key, json["apikey"]);
             if (!json["lat"].isNull())        p_data.lat = json["lat"].as<float>();
             if (!json["lon"].isNull())        p_data.lon = json["lon"].as<float>();
             if (!json["brightness"].isNull()) p_data.brightness = json["brightness"].as<uint8_t>();
@@ -102,10 +106,18 @@ namespace services {
 
             if (!json["aprs_en"].isNull())    p_data.aprs_enabled = json["aprs_en"].as<bool>();
             if (!json["aprs_ssid"].isNull())  p_data.aprs_ssid = json["aprs_ssid"].as<int8_t>();
-            if (!json["aprs_pass"].isNull())  strncpy(p_data.aprs_passcode, json["aprs_pass"], sizeof(p_data.aprs_passcode)-1);
-            if (!json["aprs_cmt"].isNull())   strncpy(p_data.aprs_comment, json["aprs_cmt"], sizeof(p_data.aprs_comment)-1);
-            if (!json["aprs_icn"].isNull())   strncpy(p_data.aprs_icon, json["aprs_icn"], sizeof(p_data.aprs_icon)-1);
+            services::copy_str(p_data.aprs_passcode, json["aprs_pass"]);
+            services::copy_str(p_data.aprs_comment, json["aprs_cmt"]);
+            services::copy_str(p_data.aprs_icon, json["aprs_icn"]);
 
+            // The UI no longer receives secrets (review 1.3): blank/"unset" means "use the live value".
+            const auto& live = config::get();
+            if (!p_data.wifi_password[0] || !strcmp(p_data.wifi_password, "unset"))
+                strncpy(p_data.wifi_password, live.wifi_password, sizeof(p_data.wifi_password) - 1);
+            if (!p_data.openweather_api_key[0] || !strcmp(p_data.openweather_api_key, "unset"))
+                strncpy(p_data.openweather_api_key, live.openweather_api_key, sizeof(p_data.openweather_api_key) - 1);
+            if (!p_data.aprs_passcode[0] || !strcmp(p_data.aprs_passcode, "unset"))
+                strncpy(p_data.aprs_passcode, live.aprs_passcode, sizeof(p_data.aprs_passcode) - 1);
             return write_profile(name, p_data);
         }
 
@@ -113,6 +125,7 @@ namespace services {
             ProfileData data;
             if (!read_profile(name, data)) return false;
 
+            const config::Config before = config::get();
             auto& c = config::mutable_get();
             strncpy(c.callsign, data.callsign, sizeof(c.callsign) - 1);
             strncpy(c.grid, data.grid, sizeof(c.grid) - 1);
@@ -133,6 +146,7 @@ namespace services {
             }
             strncpy(c.aprs_comment, data.aprs_comment, sizeof(c.aprs_comment) - 1);
             strncpy(c.aprs_icon, data.aprs_icon, sizeof(c.aprs_icon) - 1);
+            config::sanitize(c, before);
 
             config::save();
             return true;

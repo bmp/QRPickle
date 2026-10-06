@@ -40,6 +40,17 @@ When on the same network, navigate to the device's IP address to access the inte
 
 
 
+## Web Console Login
+
+The web console and the `QRPickle-Setup` hotspot are password-protected.
+
+- **Username:** `admin`
+- **Password:** generated on first boot. It's shown on the device's **Network** screen and in the serial boot log. The same password is the WPA2 key for the setup hotspot.
+
+Saved secrets (WiFi password, API keys, passcodes) are never shown again in the web console. Leave those fields blank to keep the stored values.
+
+**Note:** saved profiles store their WiFi credentials on the device's filesystem, so they can switch networks. The flash is not encrypted.
+
 ## Core Features & Architecture
 
 * **Stream-Buffered HamAlert & DX Cluster:** Maintains a persistent, asynchronous TCP Telnet socket to background-listen for targeted DX spots. Uses a custom "Smart Parser" to read arbitrary-length streams without overflowing the FreeRTOS stack.
