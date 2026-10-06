@@ -19,7 +19,20 @@ Gaps found during the initial Claude Code review (2026-10-06). Revisit once the 
 - [ ] `platformio.ini`: the comment says `CORE_DEBUG_LEVEL=1`, but the flag is set to `4` (verbose).
 - [ ] Filename typo: `src/ui/screens/clout_ota.cpp` (the header is `cloud_ota.h`).
 
-## Security items to investigate (not yet verified)
-- [ ] Check whether `GET /api/config` returns secrets (WiFi password, OpenWeather key, APRS passcode, HamAlert password) in plain text.
-- [ ] Check whether the web console and endpoints like `/api/system/update`, `/api/cloud_ota/flash` and `/api/system/reboot` require any authentication on the LAN.
-- [ ] POTA/SOTA clients use `WiFiClientSecure::setInsecure()` (no certificate validation). Assess whether Cloud OTA does the same; an unvalidated firmware download is the higher risk.
+## Security fixes (from the code review; details in `docs/reviews/2026-10-code-review.md`)
+Ordered by priority.
+- [ ] **1.1 High**: escape APRS messages and profile names in `app.js`, using `textContent` instead of `innerHTML`. Add a CSP header.
+- [ ] **1.2 Critical**: add an admin password (ESPAsyncWebServer Digest auth) on `/api/*` and `/save-basic`. Give the setup AP a WPA2 password (`wifi_manager.cpp:50`).
+- [ ] **1.3 High**: stop returning secrets from `/api/config` and `/api/profiles/get`; return `*_set: true/false` instead. On save, an empty value means "keep the existing value".
+- [ ] **1.4 Medium**: replace the `strncpy(dst, doc["x"])` pattern with a null-safe `copy_json_str()` helper (web_server.cpp, profile_manager.cpp).
+- [ ] **1.5 Medium**: route all config writes (web, profile, UI) through one validate-and-apply function.
+- [ ] **1.6 Medium**: apply web config changes on the main loop rather than the AsyncTCP task; make the `flag_trigger_*` flags atomic.
+- [ ] **1.7 Medium**: whitelist profile names (`[A-Za-z0-9_-]{1,24}`).
+- [ ] **1.8 Low**: keep secrets out of profile files; document that NVS is unencrypted.
+
+## Refactors (from the code review)
+- [ ] **1.9**: replace the ~9 hand-maintained copies of the config field list with a single field table. This also covers 1.3–1.5.
+- [ ] **1.10–1.13**: drop the `#define cfg` macro; rewrite the `FIXED:`/`NEW:` comments; document units (`tz_offset_hh` is half-hours, the `forecast_slots` bitmask); reassemble chunked request bodies.
+
+## Still to investigate
+- [ ] POTA/SOTA use `WiFiClientSecure::setInsecure()`. Check whether Cloud OTA does too (area 2 of the review).
