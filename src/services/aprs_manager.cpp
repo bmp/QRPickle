@@ -1,5 +1,6 @@
 #include "aprs_manager.h"
 #include "../config/config.h"
+#include <atomic>
 #include "../core/metadata.h" // NEW: Pulls dynamic version
 #include "../hw/sensor.h"
 #include "../hw/led_rgb.h" 
@@ -21,6 +22,9 @@ namespace services {
     bool AprsManager::dirty = false;
     bool AprsManager::msg_dirty = false;
     bool AprsManager::running = false;
+
+    // Set before the task is created, cleared by the task as its last action.
+    static std::atomic<bool> task_alive{false};
     
     uint32_t AprsManager::tx_count = 0;
     uint32_t AprsManager::last_tx_time = 0;
@@ -30,7 +34,7 @@ namespace services {
     static bool tx_msg_pending = false;
 
     void AprsManager::start() {
-        if (running || !config::get().aprs_enabled) return;
+        if (running || task_alive || !config::get().aprs_enabled) return;  // previous task may still be exiting
         
         if (!stations) stations = (AprsStation*)calloc(30, sizeof(AprsStation));
         if (!messages) messages = (AprsMessage*)calloc(10, sizeof(AprsMessage));
@@ -39,13 +43,20 @@ namespace services {
         if (!stations || !messages || !tx_msg_queue) return;
 
         running = true;
-        xTaskCreate(task_loop, "aprs_task", 10240, NULL, 1, NULL);
+        task_alive = true;
+        if (xTaskCreate(task_loop, "aprs_task", 10240, NULL, 1, NULL) != pdPASS) {
+            running = false;
+            task_alive = false;
+            Serial.println("[APRS] Task creation failed (heap).");
+        }
     }
 
     void AprsManager::stop() {
         running = false;
         connected = false;
     }
+
+    bool AprsManager::is_stopped() { return !task_alive; }
 
     const AprsStation* AprsManager::get_stations() { return stations; }
     size_t AprsManager::get_station_count() { return station_count; }
@@ -399,6 +410,7 @@ namespace services {
         }
         client.stop();
         connected = false;
+        task_alive = false;
         vTaskDelete(NULL);
     }
 } // namespace services
