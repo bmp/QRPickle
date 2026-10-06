@@ -95,7 +95,7 @@ namespace ui {
                 if (cur.valid) {
                     snprintf(buf, sizeof(buf), "%.1f °C\n%d %%\n%.0f hPa", cur.temp, cur.humidity, cur.pressure);
                 } else {
-                    snprintf(buf, sizeof(buf), "-- °C\n-- %\n-- hPa");
+                    snprintf(buf, sizeof(buf), "-- °C\n-- %%\n-- hPa");
                 }
             }
         }

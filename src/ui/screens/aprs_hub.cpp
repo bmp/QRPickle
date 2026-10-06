@@ -176,7 +176,7 @@ namespace ui {
                 lv_label_set_text(lbl_b_last, s_buf);
 
                 int remaining = (30 * 60) - elapsed_sec; if(remaining < 0) remaining = 0;
-                snprintf(s_buf, sizeof(s_buf), "NEXT TX: scheduled in %u mins %u secs", remaining / 60, remaining % 60);
+                snprintf(s_buf, sizeof(s_buf), "NEXT TX: scheduled in %d mins %d secs", remaining / 60, remaining % 60);
                 lv_label_set_text(lbl_b_next, s_buf);
             }
 
@@ -191,7 +191,7 @@ namespace ui {
             else if (strcmp(cfg.aprs_icon, "/;") == 0) human_sym = "Portable Operation Tent";
             else if (strcmp(cfg.aprs_icon, "\\F") == 0) human_sym = "Field Day Operations";
             else if (strcmp(cfg.aprs_icon, "\\;") == 0) human_sym = "Park/Picnic Station Vector";
-            snprintf(s_buf, sizeof(s_buf), "MAP ICON: %s (\x25%s)", human_sym, cfg.aprs_icon);
+            snprintf(s_buf, sizeof(s_buf), "MAP ICON: %s (%s)", human_sym, cfg.aprs_icon);
             lv_label_set_text(lbl_b_sym, s_buf);
 
             char p_buf[96]; services::AprsManager::get_current_payload(p_buf, sizeof(p_buf));
