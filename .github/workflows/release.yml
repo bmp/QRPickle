@@ -1,10 +1,11 @@
 name: Auto-Build and Release
 
 on:
+  # Release only when a version tag is pushed (git tag v0.1.12 && git push origin v0.1.12),
+  # never on every push to main (review 6.1). See docs/RELEASING.md.
   push:
-    branches:
-      - main
-  workflow_dispatch:
+    tags:
+      - "v*"
 
 permissions:
   contents: write
@@ -25,12 +26,11 @@ jobs:
           echo "Extracted Version: $VERSION"
           echo "FW_VERSION=$VERSION" >> $GITHUB_ENV
 
-      - name: Push Git Tag
+      - name: Tag must match FW_VERSION
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git tag -f ${{ env.FW_VERSION }}
-          git push -f origin ${{ env.FW_VERSION }}
+          if [ "${GITHUB_REF_NAME}" != "${FW_VERSION}" ]; then
+            echo "Tag ${GITHUB_REF_NAME} != FW_VERSION ${FW_VERSION} in src/core/metadata.h"; exit 1
+          fi
 
       - name: Capture Commit Message for Release Notes
         run: |
@@ -46,7 +46,8 @@ jobs:
 
       - name: Install PlatformIO & Build Binaries
         run: |
-          pip install platformio
+          pip install "platformio==6.2.0"
+          pio test -e native
           pio run
           pio run -t buildfs
 
@@ -83,8 +84,10 @@ jobs:
           pandoc temp_doc.md -o temp_doc.typ
           sed -i 's/#horizontalrule/#line(length: 100%, stroke: 0.5pt)/g' temp_doc.typ
           typst compile temp_doc.typ "staging_release/QRPickle_Documentation_${{ env.FW_VERSION }}.pdf"
-          
+
           find .pio/build/ -name "*.bin" -exec cp {} staging_release/ \;
+          # Devices verify Cloud OTA downloads against this hash (review 2.4).
+          sha256sum staging_release/firmware.bin | cut -d' ' -f1 > staging_release/firmware.bin.sha256
           zip -j "QRPickle_Release_${{ env.FW_VERSION }}.zip" staging_release/*
 
       - name: Create GitHub Release
@@ -97,4 +100,5 @@ jobs:
           files: |
             QRPickle_Release_${{ env.FW_VERSION }}.zip
             staging_release/firmware.bin
+            staging_release/firmware.bin.sha256
             staging_release/littlefs.bin

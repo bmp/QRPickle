@@ -42,14 +42,7 @@ Current gaps (don't assume these work):
 
 ## Release process (important)
 
-`.github/workflows/release.yml` runs on **every push to `main`**:
-1. Reads `FW_VERSION` from `src/core/metadata.h`.
-2. Force-pushes a git tag with that version.
-3. Builds the firmware and filesystem.
-4. Renders README.md to a PDF (pandoc + typst).
-5. Publishes a GitHub Release using the last commit message as the changelog.
-
-The device's Cloud OTA (`src/services/cloud_ota.cpp`) pulls releases from `meta::GITHUB_REPO`. So a push to `main` effectively ships firmware to users. Bump `FW_VERSION` for each release; otherwise the existing tag/release is overwritten. Don't push to `main` without explicit confirmation.
+Releases happen **only** when a `v*` tag matching `FW_VERSION` (`src/core/metadata.h`) is pushed. CI checks the tag, runs the tests, builds, and publishes `firmware.bin`, `firmware.bin.sha256` and `littlefs.bin`. Pushing to `main` does not release. Never push tags without explicit confirmation. Full procedure: `docs/RELEASING.md`.
 
 ## Architecture
 
