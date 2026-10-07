@@ -43,7 +43,7 @@ Current gaps (don't assume these work):
 
 ## Release process (important)
 
-Releases happen **only** when a `v*` tag matching `FW_VERSION` (`src/core/metadata.h`) is pushed. CI checks the tag, runs the tests, builds, and publishes `firmware.bin`, `firmware.bin.sha256` and `littlefs.bin`. Pushing to `main` does not release. Never push tags without explicit confirmation. Full procedure: `docs/RELEASING.md`.
+Releases happen **only** when a `v*` tag matching `FW_VERSION` (`src/core/metadata.h`) is pushed. CI checks the tag, runs the tests, builds, and publishes `firmware.bin`, `firmware.bin.sha256` and `littlefs.bin`. Pushing to `main` does not release; `ci.yml` checks every push and PR. Never push tags without explicit confirmation. Full procedure: `docs/RELEASING.md`.
 
 ## Architecture
 

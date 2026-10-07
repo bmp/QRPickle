@@ -18,12 +18,7 @@ Items that automation could not verify (screen/touch/browser), plus patches for 
 
 - [ ] **Plan G, sensor offline:** (optional) unplug the BME280 and boot. The dashboard should show `-- C | --%` and `-- hPa`, and the weather screen `--`.
 
-## Patches to apply (files on the ask-first list)
-Apply with `git apply docs/patches/<file>` after review.
-- ~~0001 native test_filter~~: applied 2026-10-07.
-- ~~0002-release-publish-firmware-sha256.patch~~: applied 2026-10-07 (see docs/RELEASING.md).
-- ~~0003 platformio.ini~~: applied 2026-10-07, with the cyd-debug level fix (see docs/DEBUGGING.md).
-- `0004-ci-build-test-check.patch`: new `ci.yml` (tests, cppcheck, build on PRs).
-- ~~0005-release-on-tags-only.patch~~: applied 2026-10-07 (see docs/RELEASING.md).
+## Patches
+All five patches were reviewed and applied on 2026-10-07 (0001 test filter, 0002 SHA-256, 0003 platformio.ini, 0004 CI, 0005 tag-only releases).
 
-All patches pass `git apply --check` against the merged branch.
+- [ ] **First GitHub run of CI:** the workflow passed every step in a clean `python:3.12` container locally. Confirm it goes green on GitHub after your next push (Actions → "CI").
