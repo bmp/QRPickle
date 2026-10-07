@@ -20,7 +20,7 @@ Items that automation could not verify (screen/touch/browser), plus patches for 
 
 ## Patches to apply (files on the ask-first list)
 Apply with `git apply docs/patches/<file>` after review.
-- `0001-native-test-filter-add-test_config.patch`: run the config unit tests in plain `pio test -e native`. Until it's applied, use `pio test -e native -f test_parsers -f test_config`.
+- ~~0001 native test_filter~~: applied 2026-10-07.
 - `0002-release-publish-firmware-sha256.patch`: CI publishes `firmware.bin.sha256` with each release, so devices can verify Cloud OTA downloads.
 - `0003-platformio-release-logging-pinned-deps.patch`: `CORE_DEBUG_LEVEL=1` (fixes the API key in the log), `cyd-debug` env, pinned libs, platform and XPT2046 commit. Test-built and device-checked in a throwaway worktree.
 - `0004-ci-build-test-check.patch`: new `ci.yml` (tests, cppcheck, build on PRs).
