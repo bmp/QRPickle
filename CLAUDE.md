@@ -9,13 +9,14 @@ QRPickle is ESP32 firmware for a ham-radio dashboard running on the "Cheap Yello
 ## Commands
 
 ```bash
-pio run                        # build firmware (default env: cyd)
+pio run                        # build firmware (default env: cyd, CORE_DEBUG_LEVEL=1)
+pio run -e cyd-debug -t upload # verbose framework logs (level 4); never release (docs/DEBUGGING.md)
 pio run -t buildfs             # build littlefs.bin from data/
 pio run -t upload              # flash firmware over USB (needs device attached)
 pio run -t uploadfs            # flash data/ (web UI, images) to LittleFS
 pio device monitor             # serial log @ 115200
-pio test -e native             # host-side unit tests (Unity)
-pio test -e native -f test_parsers   # run a single test folder
+pio test -e native             # host-side unit tests (Unity): test_parsers + test_config
+pio test -e native -f test_config    # run a single test folder
 ```
 
 Every build runs `extra_scripts` from `platformio.ini`. `scripts/release_copy.py` copies the built `firmware.bin`, `littlefs.bin`, `bootloader.bin` and `partitions.bin` into `release/`, which is **tracked in git**, so any build changes tracked files.

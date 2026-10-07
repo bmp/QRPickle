@@ -22,7 +22,7 @@ Items that automation could not verify (screen/touch/browser), plus patches for 
 Apply with `git apply docs/patches/<file>` after review.
 - ~~0001 native test_filter~~: applied 2026-10-07.
 - ~~0002-release-publish-firmware-sha256.patch~~: applied 2026-10-07 (see docs/RELEASING.md).
-- `0003-platformio-release-logging-pinned-deps.patch`: `CORE_DEBUG_LEVEL=1` (fixes the API key in the log), `cyd-debug` env, pinned libs, platform and XPT2046 commit. Test-built and device-checked in a throwaway worktree.
+- ~~0003 platformio.ini~~: applied 2026-10-07, with the cyd-debug level fix (see docs/DEBUGGING.md).
 - `0004-ci-build-test-check.patch`: new `ci.yml` (tests, cppcheck, build on PRs).
 - ~~0005-release-on-tags-only.patch~~: applied 2026-10-07 (see docs/RELEASING.md).
 
