@@ -32,7 +32,7 @@ namespace ui {
     }
 
     // --- Core Grid Card Generator ---
-    // FIXED: Added font parameter so we can shrink the text for tighter boxes
+    // Added font parameter so we can shrink the text for tighter boxes
     static lv_obj_t* create_grid_card(lv_obj_t* parent, const char* title, lv_obj_t** out_val, const lv_font_t* val_font, lv_obj_t** out_unit = nullptr) {
         lv_obj_t* card = lv_obj_create(parent);
         lv_obj_set_style_bg_color(card, theme_color(COLOR_BG_PANEL), 0);
@@ -139,7 +139,7 @@ namespace ui {
         lv_obj_set_style_border_width(top_deck, 0, 0);
         lv_obj_clear_flag(top_deck, LV_OBJ_FLAG_SCROLLABLE);
 
-        // FIXED: Icon and Temp moved further to the right
+        // Icon and Temp moved further to the right
         img_cur_icon = lv_image_create(top_deck);
         lv_obj_set_size(img_cur_icon, 40, 40);
         lv_obj_align(img_cur_icon, LV_ALIGN_LEFT_MID, 25, 0); 
@@ -150,7 +150,7 @@ namespace ui {
         lv_label_set_text(lbl_cur_temp, "--");
         lv_obj_align(lbl_cur_temp, LV_ALIGN_LEFT_MID, 75, 0); 
 
-        // FIXED: Superscript degree utilizing the robust 14pt font
+        // Superscript degree utilizing the robust 14pt font
         lbl_cur_tunit = lv_label_create(top_deck);
         lv_label_set_text(lbl_cur_tunit, "°C");
         lv_obj_set_style_text_font(lbl_cur_tunit, &font_jetbrains_14, 0);
@@ -179,7 +179,7 @@ namespace ui {
 
         int q_w = (320 - 12) / 2; int q_h = 42;
         
-        // FIXED: Grid Values now use 14pt so they fit beautifully inside the boxes
+        // Grid Values now use 14pt so they fit beautifully inside the boxes
         lv_obj_t* q1 = create_grid_card(parent, "SUNRISE", &lbl_cur_sr, &font_jetbrains_14);
         lv_obj_set_size(q1, q_w, q_h); lv_obj_align(q1, LV_ALIGN_TOP_LEFT, 2, 54);
 
@@ -247,12 +247,12 @@ namespace ui {
             dyn_rows[i].lbl_rain = lv_label_create(row);
             lv_obj_set_style_text_font(dyn_rows[i].lbl_rain, &font_jetbrains_10, 0);
             lv_obj_set_style_text_color(dyn_rows[i].lbl_rain, theme_color(COLOR_TEXT_MUTED), 0);
-            lv_obj_align(dyn_rows[i].lbl_rain, LV_ALIGN_LEFT_MID, 135, 0); // FIXED: Shifted Left
+            lv_obj_align(dyn_rows[i].lbl_rain, LV_ALIGN_LEFT_MID, 135, 0); // Shifted Left
 
             dyn_rows[i].lbl_wind = lv_label_create(row);
             lv_obj_set_style_text_font(dyn_rows[i].lbl_wind, &font_jetbrains_10, 0);
             lv_obj_set_style_text_color(dyn_rows[i].lbl_wind, theme_color(COLOR_TEXT_MUTED), 0);
-            lv_obj_align(dyn_rows[i].lbl_wind, LV_ALIGN_LEFT_MID, 215, 0); // FIXED: Shifted Left & anchored left
+            lv_obj_align(dyn_rows[i].lbl_wind, LV_ALIGN_LEFT_MID, 215, 0); // Shifted Left & anchored left
         }
     }
 
@@ -268,7 +268,7 @@ namespace ui {
         lv_tabview_set_tab_bar_position(tabview, LV_DIR_TOP);
         lv_tabview_set_tab_bar_size(tabview, 24);
 
-        // FIXED: Force all tabview backgrounds to match the theme color seamlessly
+        // Force all tabview backgrounds to match the theme color seamlessly
         lv_obj_set_style_bg_color(tabview, theme_color(COLOR_BG_APP), 0);
         lv_obj_t* tab_cont = lv_tabview_get_content(tabview);
         if (tab_cont) lv_obj_set_style_bg_color(tab_cont, theme_color(COLOR_BG_APP), 0);
@@ -318,9 +318,10 @@ namespace ui {
         // 1. Tab 1: Local Calculations
         float t = sensor_get_temp(); float h = sensor_get_humidity(); float p = sensor_get_pressure();
 
-        if (lbl_loc_temp) { snprintf(buf, sizeof(buf), "%.1f°C", t); lv_label_set_text(lbl_loc_temp, buf); }
-        if (lbl_loc_hum)  { snprintf(buf, sizeof(buf), "%.0f %", h);  lv_label_set_text(lbl_loc_hum, buf);  lv_label_set_text(lbl_unit_hum, "%"); }
-        if (lbl_loc_pres) { snprintf(buf, sizeof(buf), "%.0f hPa", p);  lv_label_set_text(lbl_loc_pres, buf); lv_label_set_text(lbl_unit_pres, "hPa"); }
+        const bool online = sensor_is_online();  // review 5.1: show "--" instead of a fake 0
+        if (lbl_loc_temp) { if (online) snprintf(buf, sizeof(buf), "%.1f°C", t); else snprintf(buf, sizeof(buf), "--°C"); lv_label_set_text(lbl_loc_temp, buf); }
+        if (lbl_loc_hum)  { if (online) snprintf(buf, sizeof(buf), "%.0f %%", h); else snprintf(buf, sizeof(buf), "-- %%");  lv_label_set_text(lbl_loc_hum, buf);  lv_label_set_text(lbl_unit_hum, "%"); }
+        if (lbl_loc_pres) { if (online) snprintf(buf, sizeof(buf), "%.0f hPa", p); else snprintf(buf, sizeof(buf), "-- hPa");  lv_label_set_text(lbl_loc_pres, buf); lv_label_set_text(lbl_unit_pres, "hPa"); }
         if (lbl_loc_dew)  { snprintf(buf, sizeof(buf), "%.1f°C", t - ((100.0f - h) / 5.0f)); lv_label_set_text(lbl_loc_dew, buf); }
         
         if (lbl_loc_alt && p > 100.0f) {

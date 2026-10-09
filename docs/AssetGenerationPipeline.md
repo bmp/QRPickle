@@ -49,3 +49,9 @@ Executes flash injection operations and hooks the system runtime log monitor str
 ```bash
 pio run -t upload -t monitor
 ```
+
+## Licences for new assets
+
+`scripts/check_licenses.py` runs on every build and fails if a new asset isn't recorded:
+- **Fonts:** add the TTF's licence text to `assets/fonts/` and a row to `THIRD_PARTY_NOTICES.md` (with the TTF filename). `scripts/build_fonts.sh` adds the copyright/OFL header to each generated `src/ui/fonts/*_raw.c`.
+- **Images:** add every new `assets/img/*.png` to `assets/img/SOURCES.md` with its source and licence.

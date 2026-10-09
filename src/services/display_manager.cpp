@@ -32,7 +32,7 @@ namespace services {
         void update() {
             if (sleeping) return;
 
-            // FIXED: Pull dynamic timer target from active configuration
+            // Pull dynamic timer target from active configuration
             uint32_t timeout_min = config::get().screen_timeout_min;
             
             // 0 means manual sleep only (bypass inactivity checks entirely)

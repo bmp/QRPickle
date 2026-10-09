@@ -1,9 +1,13 @@
+#include "../core/crashlog.h"
+#include "../hw/led_rgb.h"
+#include "net_connect.h"
 #include "dx_manager.h"
 #include "../config/config.h"
 #include <WiFi.h>
 #include <cstring>
 #include <cstdio>
 #include <cstdlib>
+#include <atomic>
 
 namespace services {
 
@@ -19,9 +23,15 @@ namespace services {
     uint32_t DxManager::state_timer = 0;
     bool DxManager::using_secondary = false;
 
+    // The blocking part of connecting (DNS + connect, up to ~6 s with both clusters down) runs
+    // in this short-lived task instead of the UI thread (review 3.3/3.12). It touches `client`
+    // only until it hands over by setting status = CONNECTING; after that only update() does.
+    static std::atomic<bool> dial_alive{false};
+    static std::atomic<bool> stop_requested{false};
+
     void DxManager::start() {
-        if (status != DX_STATUS_DISCONNECTED) return;
-        
+        if (status != DX_STATUS_DISCONNECTED || dial_alive) return;
+
         if (!spots) {
             spots = (DxSpot*)calloc(50, sizeof(DxSpot));
             if (!spots) {
@@ -29,38 +39,63 @@ namespace services {
                 return;
             }
         }
-        
+
         line_idx = 0;
         using_secondary = false;
-        buffer_dirty = true; 
-        
-        const auto& cfg = config::get();
-        Serial.printf("[DX Engine] Connecting to Primary Node: %s:%u\n", cfg.dx_url_primary, cfg.dx_port_primary);
-        
-        if (client.connect(cfg.dx_url_primary, cfg.dx_port_primary)) {
-            status = DX_STATUS_CONNECTING;
-            state_timer = millis();
-        } else {
-            Serial.println("[DX Engine] Primary connection failed, attempting Secondary...");
-            using_secondary = true;
-            if (client.connect(cfg.dx_url_secondary, cfg.dx_port_secondary)) {
-                status = DX_STATUS_CONNECTING;
-                state_timer = millis();
-            } else {
-                Serial.println("[DX Engine] Secondary connection failed completely.");
-                status = DX_STATUS_DISCONNECTED;
-            }
+        buffer_dirty = true;
+        stop_requested = false;
+        status = DX_STATUS_DIALING;
+        dial_alive = true;
+        if (xTaskCreate(dial_task, "dx_dial", 4096, NULL, 1, NULL) != pdPASS) {
+            dial_alive = false;
+            status = DX_STATUS_DISCONNECTED;
+            Serial.println("[DX Engine] Dial task creation failed (heap).");
         }
     }
 
+    void DxManager::dial_task(void*) {
+        const auto& cfg = config::get();
+        char host_p[sizeof(cfg.dx_url_primary)], host_s[sizeof(cfg.dx_url_secondary)];
+        strncpy(host_p, cfg.dx_url_primary, sizeof(host_p));
+        strncpy(host_s, cfg.dx_url_secondary, sizeof(host_s));
+        uint16_t port_p = cfg.dx_port_primary, port_s = cfg.dx_port_secondary;
+
+        Serial.printf("[DX Engine] Connecting to Primary Node: %s:%u\n", host_p, port_p);
+        bool ok = connect_host(client, host_p, port_p, 3000, crashlog::SLOT_NET);
+        if (!ok && !stop_requested) {
+            Serial.println("[DX Engine] Primary connection failed, attempting Secondary...");
+            using_secondary = true;
+            ok = connect_host(client, host_s, port_s, 3000, crashlog::SLOT_NET);
+        }
+
+        if (stop_requested) {
+            if (ok) client.stop();
+            status = DX_STATUS_DISCONNECTED;
+        } else if (ok) {
+            state_timer = millis();
+            status = DX_STATUS_CONNECTING;  // hand-over: update() owns the socket from here
+        } else {
+            Serial.println("[DX Engine] Secondary connection failed completely.");
+            status = DX_STATUS_DISCONNECTED;
+        }
+        dial_alive = false;
+        vTaskDelete(NULL);
+    }
+
     void DxManager::stop() {
+        if (dial_alive) {
+            // The dial task still owns the socket; it closes it and finishes the state change.
+            stop_requested = true;
+            buffer_dirty = false;
+            return;
+        }
         if (client.connected()) {
             client.println("bye"); 
             client.stop();
         }
         status = DX_STATUS_DISCONNECTED;
         buffer_dirty = false;
-        // FIXED: We intentionally DO NOT free the spots array here anymore. 
+        // We intentionally DO NOT free the spots array here anymore. 
         // This prevents Use-After-Free race conditions during time-slicing pauses!
         Serial.println("[DX Engine] Socket safely suspended for Time-Slicing.");
     }
@@ -74,7 +109,7 @@ namespace services {
     }
 
     void DxManager::update() {
-        if (status == DX_STATUS_DISCONNECTED || !spots) return;
+        if (status == DX_STATUS_DISCONNECTED || status == DX_STATUS_DIALING || !spots) return;
 
         if (status == DX_STATUS_CONNECTING || status == DX_STATUS_AUTHORIZING) {
             if (millis() - state_timer > 10000) {
@@ -176,6 +211,7 @@ namespace services {
         if (spot_count < 50) spot_count++;
         
         buffer_dirty = true; 
+        hw::led_rgb::trigger_traffic_pulse();  // data ingress (docs/LEDColours.md)
     }
 
     void DxManager::deduce_mode(float freq, const char* comment, char* out_mode, size_t max_len) {

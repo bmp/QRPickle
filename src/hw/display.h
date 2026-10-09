@@ -8,6 +8,5 @@
 void display_init();
 
 // Services the LVGL internal timer task handler and increments systemic tick timings inside the main runtime loop
-void display_update();
 
 #endif // DISPLAY_H

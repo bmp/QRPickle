@@ -15,4 +15,12 @@ bool normalize_callsign(char* s, size_t len);
 // Format checker for Maidenhead grid identifiers (Enforces AA00aa case layout)
 bool normalize_grid(char* s, size_t len);
 
+// Profile file names: [A-Za-z0-9_-], 1..24 chars (no paths, no markup).
+bool is_valid_profile_name(const char* s);
+
+struct Config;
+// Validate a candidate config in place before it goes live. Invalid callsign/grid/ports/
+// coordinates revert to `previous`; numeric fields are clamped; strings are terminated.
+void sanitize(Config& c, const Config& previous);
+
 }  // namespace config

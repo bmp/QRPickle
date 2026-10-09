@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Install QRPickle</title>
+  <!-- ESP Web Tools, pinned (https://esphome.github.io/esp-web-tools/) -->
+  <script type="module" src="https://unpkg.com/esp-web-tools@10.4.0/dist/web/install-button.js?module"></script>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 40rem; margin: 3rem auto; padding: 0 1rem; line-height: 1.5; }
+    code { background: #eee; padding: 0 .3em; border-radius: 3px; }
+    select { font-size: 1rem; padding: .3em; }
+    table { border-collapse: collapse; margin: .5rem 0 1rem; }
+    td, th { border: 1px solid #ccc; padding: .2em .6em; text-align: left; }
+    .note { background: #fff4d6; border: 1px solid #e6c200; padding: .5em .8em; border-radius: 4px; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <h1>Install QRPickle on a Cheap Yellow Display</h1>
+  <p>
+    <label for="ver">Version:</label>
+    <select id="ver" onchange="selectVersion()"><option>loading…</option></select>
+  </p>
+  <p id="notes"></p>
+  <p id="older" class="note hidden">This is an older version. Installing it replaces the firmware and the
+     web console files; with "Erase device" it also clears all settings. Cloud OTA will offer newer
+     versions again afterwards.</p>
+  <ol>
+    <li>Use <strong>Chrome or Edge</strong> on a computer (Web Serial is required).</li>
+    <li>Connect the CYD with a USB <em>data</em> cable.</li>
+    <li>Click <strong>Install</strong>, pick the serial port, and allow erasing for a clean install.</li>
+  </ol>
+  <esp-web-install-button id="install" manifest="manifest.json"></esp-web-install-button>
+  <details>
+    <summary>What gets written where</summary>
+    <p>Every version uses the same flash layout:</p>
+    <table>
+      <tr><th>Address</th><th>File</th><th>Contents</th></tr>
+      <tr><td><code>0x1000</code></td><td><code>bootloader.bin</code></td><td>ESP32 bootloader</td></tr>
+      <tr><td><code>0x8000</code></td><td><code>partitions.bin</code></td><td>Partition table</td></tr>
+      <tr><td><code>0xE000</code></td><td><code>boot_app0.bin</code></td><td>otadata: boot from app0</td></tr>
+      <tr><td><code>0x10000</code></td><td><code>firmware.bin</code></td><td>Firmware (app0)</td></tr>
+      <tr><td><code>0x390000</code></td><td><code>littlefs.bin</code></td><td>Web console files (LittleFS)</td></tr>
+    </table>
+    <p>Settings (<code>nvs</code>, <code>0x9000</code>) are kept unless you erase the device.</p>
+  </details>
+  <p>After installing, the device opens a <code>QRPickle-Setup</code> WiFi network. Its password and the web
+     console login are shown on the device's Network screen.</p>
+  <p>Already running QRPickle v0.2.0 or later? Update over WiFi instead: <strong>Cloud OTA</strong> on the device or in the web console.
+     Older versions need this installer once. Erasing also clears your settings and profiles, so download a
+     backup first (web console → Profiles → Download Backup) where available.</p>
+  <p><small>QRPickle is MIT-licensed and includes fonts under the SIL Open Font License 1.1 and other components:
+     see the <a href="https://github.com/bmp/QRPickle/blob/main/THIRD_PARTY_NOTICES.md">third-party notices</a>.</small></p>
+  <script>
+    // versions.json is written by scripts/make_pages_site.py: newest first, each with its own manifest.
+    let versions = [];
+    function selectVersion() {
+      const sel = document.getElementById("ver");
+      const v = versions[sel.selectedIndex];
+      if (!v) return;
+      document.getElementById("install").setAttribute("manifest", v.manifest);
+      document.getElementById("notes").textContent = v.notes || "";
+      document.getElementById("older").classList.toggle("hidden", sel.selectedIndex === 0);
+    }
+    fetch("versions.json")
+      .then(r => r.json())
+      .then(data => {
+        versions = data.versions;
+        const sel = document.getElementById("ver");
+        sel.textContent = "";
+        versions.forEach((v, i) => sel.add(new Option(v.version + (i === 0 ? " (latest)" : ""), v.version)));
+        selectVersion();
+      })
+      .catch(() => {  // older site without versions.json: the latest manifest only
+        fetch("manifest.json").then(r => r.json()).then(m => {
+          const sel = document.getElementById("ver");
+          sel.textContent = "";
+          sel.add(new Option(m.version + " (latest)", m.version));
+        });
+      });
+  </script>
+</body>
+</html>

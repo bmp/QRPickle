@@ -25,7 +25,7 @@ namespace services {
             uint32_t dt = 0;         
             float temp = 0.0f;
             uint8_t pop = 0;         
-            float wind_speed = 0.0f; // FIXED: Added wind speed extraction for Forecast tab
+            float wind_speed = 0.0f; // Added wind speed extraction for Forecast tab
             char icon[4] = "";
         };
 

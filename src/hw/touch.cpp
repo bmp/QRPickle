@@ -1,5 +1,5 @@
 #include "touch.h"
-#include "../services/display_manager.h" // FIXED: Linked to dedicated touch-block logic
+#include "../services/display_manager.h" // Linked to dedicated touch-block logic
 #include <Arduino.h>
 #include <SPI.h>
 #include <XPT2046_Touchscreen.h>
@@ -22,7 +22,7 @@ static void touch_read_cb(lv_indev_t * indev, lv_indev_data_t * data) {
     // Determine the baseline physical hardware contact state
     bool is_contacting = ts.touched();
 
-    // FIXED: Trap the raw physical interrupt to process wake logic safely
+    // Trap the raw physical interrupt to process wake logic safely
     if (is_contacting) {
         if (services::display_manager::is_sleeping()) {
             services::display_manager::wake();

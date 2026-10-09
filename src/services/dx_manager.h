@@ -6,6 +6,7 @@ namespace services {
 
     enum DxStatus {
         DX_STATUS_DISCONNECTED,
+        DX_STATUS_DIALING,       // DNS + connect running in the background task
         DX_STATUS_CONNECTING,
         DX_STATUS_AUTHORIZING,
         DX_STATUS_CONNECTED
@@ -30,7 +31,7 @@ namespace services {
         static size_t get_spot_count() { return spot_count; }
         static void clear_spots();
 
-        // FIXED: Added high-speed cache dirty validation flags
+        // Added high-speed cache dirty validation flags
         static bool is_dirty() { return buffer_dirty; }
         static void clear_dirty() { buffer_dirty = false; }
 
@@ -45,6 +46,7 @@ namespace services {
         static uint32_t state_timer;
         static bool using_secondary;
 
+        static void dial_task(void* param);
         static void handle_line(const char* line);
         static void parse_dx_line(const char* line);
         static void deduce_mode(float freq, const char* comment, char* out_mode, size_t max_len);

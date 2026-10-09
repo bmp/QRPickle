@@ -1,0 +1,18 @@
+# clangd config for ESP32 (xtensa) PlatformIO builds.
+# Regenerate the compile database with: pio run -t compiledb
+CompileFlags:
+  Add:
+    - --target=xtensa-esp32-elf
+    - -Wno-unknown-warning-option
+  Remove:
+    - -mlongcalls
+    - -mtext-section-literals
+    - -fstrict-volatile-bitfields
+    - -fno-tree-switch-conversion
+    - -fipa-pta
+    - -freorder-blocks
+    - -fno-shrink-wrap
+Diagnostics:
+  Suppress:
+    - drv_unknown_argument
+    - drv_unsupported_opt

@@ -17,13 +17,15 @@ namespace ui {
 
         if (lbl_th) {
             char buf[32];
-            snprintf(buf, sizeof(buf), "%.1f C  |  %.1f%%", sensor_get_temp(), sensor_get_humidity());
+            if (sensor_is_online()) snprintf(buf, sizeof(buf), "%.1f C  |  %.1f%%", sensor_get_temp(), sensor_get_humidity());
+            else snprintf(buf, sizeof(buf), "-- C  |  --%%");  // no sensor fitted (review 5.1)
             lv_label_set_text(lbl_th, buf);
         }
 
         if (lbl_pres) {
             char buf[32];
-            snprintf(buf, sizeof(buf), "%.1f hPa", sensor_get_pressure());
+            if (sensor_is_online()) snprintf(buf, sizeof(buf), "%.1f hPa", sensor_get_pressure());
+            else snprintf(buf, sizeof(buf), "-- hPa");
             lv_label_set_text(lbl_pres, buf);
         }
     }

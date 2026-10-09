@@ -33,12 +33,26 @@ When on the same network, navigate to the device's IP address to access the inte
 | Basic Network & Station Config | Advanced Settings |
 | :---: | :---: |
 | <img src="docs/screenshots/WebUI.png" alt="Web UI Basic" width="400"> | <img src="docs/screenshots/AdvancedSettings.png" alt="Advanced Settings" width="400"> |
-| **Staged Profile Management** | **Live Hardware Telemetry** |
-| <img src="docs/screenshots/Profiles.png" alt="Profiles" width="400"> | <img src="docs/screenshots/SysInfo.png" alt="System Info" width="400"> |
-| **Over-The-Air (OTA) Firmware Flashing** | |
-| <img src="docs/screenshots/OTA.png" alt="OTA Updates" width="400"> | <img src="docs/screenshots/APRS_Msg.png" alt="APRS Messaging" width="400"> |
+| **Profiles, Backup & Restore** | **Editing a Profile in the Settings Form** |
+| <img src="docs/screenshots/Profiles.png" alt="Profiles" width="400"> | <img src="docs/screenshots/ProfileEdit.png" alt="Editing a profile" width="400"> |
+| **Live Hardware Telemetry & Manual Update** | **Cloud OTA** |
+| <img src="docs/screenshots/SysInfo.png" alt="System Info" width="400"> | <img src="docs/screenshots/OTA.png" alt="Cloud OTA" width="400"> |
+| **APRS Messaging** | |
+| <img src="docs/screenshots/APRS_Msg.png" alt="APRS Messaging" width="400"> | |
 
 
+
+## Web Console Login
+
+The web console and the `QRPickle-Setup` hotspot are password-protected.
+
+- **Username:** `admin`
+- **Password:** generated on first boot. It's shown on the device's **Network** screen and in the serial boot log. The same password is the WPA2 key for the setup hotspot.
+- **Changing it:** Basic Settings → **Admin Password** (8-16 characters, no spaces), then **Save Configuration**. The browser then asks you to log in again, and the setup hotspot uses the new password.
+
+Saved secrets (WiFi password, API keys, passcodes) are never shown again in the web console. Leave those fields blank to keep the stored values.
+
+**Note:** saved profiles store their WiFi credentials on the device's filesystem, so they can switch networks. The flash is not encrypted. A profile without a stored password or key keeps the device's current one when applied. Backups never contain secrets.
 
 ## Core Features & Architecture
 
@@ -46,21 +60,35 @@ When on the same network, navigate to the device's IP address to access the inte
 * **Heap-Protected POTA & SOTA Fetching:** Standard HTTPS requests require ~40KB of contiguous RAM for RSA encryption (`mbedTLS`). QRPickle uses element-by-element JSON stream deserialization and task-staggering to prevent `BIGNUM` Out-Of-Memory kernel panics.
 * **APRS-IS Integration:** Connects to the global APRS-IS network. Features a tactical Radar view, live spotter tracking, custom macros, and direct bidirectional messaging.
 * **Solar & Weather Telemetry:** Pulls active K-Index, A-Index, and SFI from solar endpoints, and maps granular, bitmask-driven 24-hour weather forecasts via OpenWeatherMap API.
-* **Adaptive Power & Wi-Fi Management:** Enforces hardware-level radio power caps (`esp_wifi_set_max_tx_power(52)`) to prevent LDO voltage brownouts on the CYD board. Falls back to an integrated Setup AP (`192.168.4.1`) if routing fails.
-* **Dynamic Staged Profiles:** Save and hot-swap complete configuration layouts (Callsign, Grid, Network, Theme, Settings) via LittleFS for quick transitions between Home, Mobile, and Field ops.
+* **Adaptive Power & Wi-Fi Management:** Enforces hardware-level radio power caps (`esp_wifi_set_max_tx_power(60)`, i.e. 15 dBm) to prevent LDO voltage brownouts on the CYD board. Falls back to an integrated Setup AP (`192.168.4.1`) if routing fails.
+* **Profiles:** Save and hot-swap complete configurations (every setting except the admin password: callsign, grid, network, theme, APRS, macros, DX servers, HamAlert) for quick transitions between Home, Mobile and Field ops. Edit a profile in the normal settings form, delete it, or download/restore a backup (settings + profiles, without passwords and keys). Profiles are stored on LittleFS, so download a backup before writing a new filesystem image.
 * **Monochrome & Tactical Themes:** Driven by **LVGL 9**, featuring high-contrast modes including Tactical Field Red, GitHub Slate Dark, Terminal Phosphor Green, and pure-binary E-Ink simulations.
-* **OTA:** Manual firmware update through the web dashboard and ability to pull from Github.
+* **OTA:** Manual firmware update through the web dashboard, or **Cloud OTA** (pulls the latest release published on GitHub Pages and checks its SHA-256 before switching). A new image that doesn't come up healthy within 3 boots is rolled back automatically.
 * **Adaptive brightness:** Option to enable adaptive brightness or set it manually.
+* **Indoor sensor (optional):** a BME280 on the CN1 connector adds indoor temperature, humidity and pressure. See [Hardware and Wiring](docs/HARDWARE.md).
+* **Documentation:** guides for hardware, releasing, debugging and assets are indexed in [docs/](docs/README.md).
 * **LED Status:** A very elementary notification system is implemented through the LED lights on the backside of the ESP32-CYD. Details are documented in the [LED Colours](docs/LEDColours.md) file in the docs folder.
 
 ---
 
+## Time Zone Note
+
+QRPickle uses a fixed UTC offset (in half-hour steps), with no automatic daylight saving. In regions that observe DST, change the offset in Settings twice a year. Most ham-radio activity is logged in UTC, which is always shown correctly.
+
+## Third-Party Licences
+
+QRPickle's own code is MIT-licensed (see [`License`](License)). The fonts are under the SIL Open Font License 1.1, the web server libraries under LGPL-3.0, and the CYD pinout image in the docs under CC BY-NC-ND 4.0. The full list, with copyright holders and licence texts, is in **[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)**; each release zip includes it.
+
 ## Libraries & Frameworks
 
 * **[LVGL (Light and Versatile Graphics Library) v9.x](https://lvgl.io/):** Core C-based UI framework handling all screens, layouts, animations, and touch interactions.
-* **[TFT_eSPI](https://github.com/Bodmer/TFT_eSPI):** Highly optimized hardware-specific SPI driver for the ILI9341 display and XPT2046 resistive touch controller.
+* **[TFT_eSPI](https://github.com/Bodmer/TFT_eSPI):** Highly optimized SPI driver for the ILI9341 display.
+* **[XPT2046_Touchscreen](https://github.com/PaulStoffregen/XPT2046_Touchscreen):** Driver for the resistive touch controller (on its own SPI bus).
+* **[ESPAsyncWebServer](https://github.com/ESP32Async/ESPAsyncWebServer):** The web console and its REST API, with Digest authentication.
 * **[ArduinoJson v7](https://arduinojson.org/):** Zero-allocation stream parsing for OpenWeatherMap, POTA, and SOTA HTTPS payloads.
 * **ESP-IDF Native APIs:** Utilized directly alongside the Arduino Core wrapper for strict Wi-Fi TX power limits, FreeRTOS task handling, and lwIP socket management.
+
+The complete list, with licences, is in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ---
 
@@ -68,15 +96,19 @@ When on the same network, navigate to the device's IP address to access the inte
 
 This project utilizes a heavily customized partition table (`partitions.csv`) to fit a complex FreeRTOS application, LVGL graphics, a Web UI, and an Over-The-Air (OTA) update system into a standard 4MB ESP32 flash chip.
 
-Here is the exact memory map breakdown:
+The full flash map, from the start of the chip. The bootloader and the partition table sit at fixed addresses before the first partition; the rest comes from `partitions.csv`:
 
-| Partition Name | Address Offset | Hexadecimal Size | Human-Readable Size | Operational Assignment |
+| Address | Region | Size | Contents | Written at install |
 | :--- | :--- | :--- | :--- | :--- |
-| **`nvs`** | `0x009000` | `0x005000` | 20 KB | Core hardware flags, automated network authorization pairs, calibration registers, and ambient settings profiles. |
-| **`otadata`** | `0x00E000` | `0x002000` | 8 KB | Real-time execution targeting registers managed by the ESP32 bootloader tracking loops to determine current stable application selection flags (`app0` vs `app1`). |
-| **`app0`** | `0x010000` | `0x1C0000` | 1.75 MB (1,792 KB) | Primary system firmware image block storage. Expanded to resolve memory boundary overhead limitations from growing graphics frameworks. |
-| **`app1`** | `0x1D0000` | `0x1C0000` | 1.75 MB (1,792 KB) | Mirror staging architecture slot dedicated to downloading incoming firmware packages directly from the GitHub API CDN pipelines without colliding with current live executions. |
-| **`spiffs`** | `0x390000` | `0x070000` | 448 KB | Dedicated LittleFS structural loop containing web console visual layouts (`index.html`, `style.css`, `app.js`), local operator descriptions, and raw static binary user definitions. |
+| `0x001000` | Bootloader | | ESP32 second-stage bootloader | `bootloader.bin` |
+| `0x008000` | Partition table | | The table below | `partitions.bin` |
+| `0x009000` | **`nvs`** | `0x005000` (20 KB) | Settings: WiFi, callsign, keys, admin password | Kept (cleared only by "Erase device") |
+| `0x00E000` | **`otadata`** | `0x002000` (8 KB) | Which app slot boots (`app0` or `app1`) | `boot_app0.bin` (boot `app0`) |
+| `0x010000` | **`app0`** | `0x1C0000` (1.75 MB) | Firmware slot 1 | `firmware.bin` |
+| `0x1D0000` | **`app1`** | `0x1C0000` (1.75 MB) | Firmware slot 2: updates (web upload or Cloud OTA) are written to whichever slot isn't running, so a failed update can roll back | Not written |
+| `0x390000` | **`spiffs`** | `0x070000` (448 KB) | LittleFS: web console (`www/`), images, about text, saved profiles | `littlefs.bin` |
+
+The installer and the manual flashing steps below use exactly these addresses for every version. Changing `partitions.csv` breaks OTA for devices already in use.
 
 ---
 
@@ -85,13 +117,14 @@ Here is the exact memory map breakdown:
 The project is built entirely within **PlatformIO** (VS Code).
 
 ### 1. Pre-Flight Setup
-Ensure your `platformio.ini` is configured for your specific CYD hardware pins. No external hardware modifications are required.
+QRPickle targets the ESP32-2432S028R (2.8" CYD); no soldering is needed. The pins it uses and the wiring for the optional BME280 sensor are in **[Hardware and Wiring](docs/HARDWARE.md)**.
 
 ### 2. Uploading the Filesystem (Web UI & Profiles)
 Before the firmware will function fully (especially the Web UI), you must write the `data/` folder to the LittleFS partition.
 ```bash
 pio run --target uploadfs
 ```
+**Warning:** writing the filesystem (by USB, web upload or web installer) replaces the whole LittleFS partition, which **erases saved profiles**. Settings stored in NVS (WiFi, callsign, keys, admin password) are kept, unless you tick "Erase device" in the web installer.
 
 ### 3. Compiling and Flashing the Core Firmware
 Compile the C++ source and burn the binary to the ESP32 via USB.
@@ -110,18 +143,21 @@ Designed for operational reliability out in the field. Keep the signal clean, th
 
 You do not need to install VS Code or PlatformIO to use QRPickle. Pre-compiled binaries for the CYD are available in the repository releases.
 
-**[Download Latest Release Binaries Here](releases/)**
+**[Download the latest release binaries](https://github.com/bmp/QRPickle/releases/latest)** (every release also lists `firmware.bin.sha256` for integrity checks)
 
 The release folder contains the following files:
 * `firmware.bin` (The core C++ application)
 * `littlefs.bin` (The Web UI and filesystem data)
 * `bootloader.bin` & `partitions.bin` (Low-level ESP32 boot structures)
+* `License`, `THIRD_PARTY_NOTICES.md` and the font licences (`OFL-*.txt`) (in the ZIP)
 
 ---
 
 ## Easy Web Installation (No Software Required)
 
-You can flash QRPickle directly from your Chrome or Edge web browser using the Espressif Web Flasher.
+**One-click installer (from v0.2.0):** open **[bmp.github.io/QRPickle/install](https://bmp.github.io/QRPickle/install/)** in Chrome or Edge, pick a version (the latest is preselected; the last five releases are listed), connect the CYD by USB and click **Install**. It writes everything, including the filesystem. If you're updating a device that already has profiles, download a backup first (web console → Profiles → Download Backup).
+
+**Manual alternative:** flash the release files with the Espressif Web Flasher.
 
 1. Connect your CYD to your computer via USB.
 2. Open the **[Espressif Web Flasher Tool](https://espressif.github.io/esptool-js/)**.
@@ -132,4 +168,4 @@ You can flash QRPickle directly from your Chrome or Edge web browser using the E
    * **`0x10000`** ➔ `firmware.bin`
    * **`0x390000`** ➔ `littlefs.bin`
 5. Click **Program** and wait for the process to finish. The device will automatically reboot into QRPickle!
-6. And the device should boot up, and create a WiFi access-point called `QRPickle-Setup` which does not require authentication.
+6. And the device should boot up, and create a WiFi access-point called `QRPickle-Setup` protected with the admin password shown on the device's **Network** screen (see [Web Console Login](#web-console-login)).

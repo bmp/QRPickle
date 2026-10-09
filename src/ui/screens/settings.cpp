@@ -191,13 +191,17 @@ namespace ui {
             lv_label_set_text(lbl_profile, clean_name.c_str());
         }
 
-        services::profile_manager::ProfileData p_data;
-        if (services::profile_manager::read_profile(name.c_str(), p_data)) {
+        config::Config p_data;
+        if (services::profile_manager::read_profile(name.c_str(), p_data, services::profile_manager::Secrets::LiveFallback)) {
             if (ta_call) lv_textarea_set_text(ta_call, p_data.callsign);
             if (ta_grid) lv_textarea_set_text(ta_grid, p_data.grid);
             if (ta_ssid) lv_textarea_set_text(ta_ssid, p_data.wifi_ssid);
             if (ta_pw)   lv_textarea_set_text(ta_pw, p_data.wifi_password);
             if (slider_bright) lv_slider_set_value(slider_bright, p_data.brightness, LV_ANIM_OFF);
+            if (cb_auto_bright) {
+                if (p_data.auto_brightness) lv_obj_add_state(cb_auto_bright, LV_STATE_CHECKED);
+                else lv_obj_remove_state(cb_auto_bright, LV_STATE_CHECKED);
+            }
 
             pending_theme_id = p_data.theme_id;
             if (lbl_theme) lv_label_set_text(lbl_theme, theme_get_name(pending_theme_id));
@@ -264,8 +268,11 @@ namespace ui {
     }
 
     static void save_clicked(lv_event_t*) {
+        // A chosen profile is applied in full (macros, DX servers, ...), then the form on top.
+        const bool applied = current_profile_idx >= 0 &&
+            services::profile_manager::apply_profile_to_live(profile_list[current_profile_idx].c_str());
         const auto& c = config::get();
-        bool modified = false;
+        bool modified = applied;
         bool new_auto_bright = lv_obj_has_state(cb_auto_bright, LV_STATE_CHECKED);
 
         const char* new_call = lv_textarea_get_text(ta_call);
@@ -274,7 +281,7 @@ namespace ui {
         const char* new_pass = lv_textarea_get_text(ta_pw);
         uint8_t new_bright = (uint8_t)lv_slider_get_value(slider_bright);
 
-        if (strcmp(c.callsign, new_call) != 0 ||
+        if (!modified && (strcmp(c.callsign, new_call) != 0 ||
             strcmp(c.grid, new_grid) != 0 ||
             strcmp(c.wifi_ssid, new_ssid) != 0 ||
             strcmp(c.wifi_password, new_pass) != 0 ||
@@ -283,7 +290,7 @@ namespace ui {
             c.brightness != new_bright ||
             c.auto_brightness != new_auto_bright ||
             c.theme_id != pending_theme_id ||
-            c.screen_timeout_min != pending_timeout_min) 
+            c.screen_timeout_min != pending_timeout_min))
         {
             modified = true;
         }
@@ -359,7 +366,7 @@ namespace ui {
         lv_obj_set_flex_flow(form, LV_FLEX_FLOW_COLUMN);
         lv_obj_set_scroll_dir(form, LV_DIR_VER);
 
-        // FIXED: Standard, stable LVGL 9 scrollbar thickness configuration
+        // Standard, stable LVGL 9 scrollbar thickness configuration
         lv_obj_set_scrollbar_mode(form, LV_SCROLLBAR_MODE_ON);
         lv_obj_set_style_width(form, 6, LV_PART_SCROLLBAR); 
         lv_obj_set_style_radius(form, 3, LV_PART_SCROLLBAR);
@@ -370,7 +377,7 @@ namespace ui {
         lv_textarea_set_one_line(ta_call, true);
         lv_textarea_set_max_length(ta_call, 11);
         lv_textarea_set_text(ta_call, c.callsign);
-        lv_obj_set_width(ta_call, 250); // FIXED: Trimmed to open a 50px vertical swipe-to-scroll lane
+        lv_obj_set_width(ta_call, 250); // Trimmed to open a 50px vertical swipe-to-scroll lane
         lv_obj_add_event_cb(ta_call, [](lv_event_t* e){ open_kb_for((lv_obj_t*)lv_event_get_target(e), KB_CALLSIGN); }, LV_EVENT_FOCUSED, NULL);
 
         make_label(form, "Grid Square");
@@ -378,19 +385,19 @@ namespace ui {
         lv_textarea_set_one_line(ta_grid, true);
         lv_textarea_set_max_length(ta_grid, 6);
         lv_textarea_set_text(ta_grid, c.grid);
-        lv_obj_set_width(ta_grid, 250); // FIXED: Swipe lane clearance
+        lv_obj_set_width(ta_grid, 250); // Swipe lane clearance
         lv_obj_add_event_cb(ta_grid, [](lv_event_t* e){ open_kb_for((lv_obj_t*)lv_event_get_target(e), KB_GRID); }, LV_EVENT_FOCUSED, NULL);
 
         make_label(form, "WiFi SSID");
         ta_ssid = lv_textarea_create(form);
         lv_textarea_set_one_line(ta_ssid, true);
         lv_textarea_set_text(ta_ssid, c.wifi_ssid);
-        lv_obj_set_width(ta_ssid, 250); // FIXED: Swipe lane clearance
+        lv_obj_set_width(ta_ssid, 250); // Swipe lane clearance
         lv_obj_add_event_cb(ta_ssid, [](lv_event_t* e){ open_kb_for((lv_obj_t*)lv_event_get_target(e), KB_TEXT); }, LV_EVENT_FOCUSED, NULL);
 
         {
             lv_obj_t* row = lv_obj_create(form);
-            lv_obj_set_size(row, 250, 44); // FIXED: Contained row width to support swipe track
+            lv_obj_set_size(row, 250, 44); // Contained row width to support swipe track
             lv_obj_set_style_bg_opa(row, LV_OPA_TRANSP, 0);
             lv_obj_set_style_border_width(row, 0, 0);
             lv_obj_set_style_pad_all(row, 0, 0);
@@ -418,7 +425,7 @@ namespace ui {
 
         {
             lv_obj_t* row = lv_obj_create(form);
-            lv_obj_set_size(row, 270, 44); // FIXED: Truncated to safe width limits
+            lv_obj_set_size(row, 270, 44); // Truncated to safe width limits
             lv_obj_set_style_bg_opa(row, LV_OPA_TRANSP, 0);
             lv_obj_set_style_border_width(row, 0, 0);
             lv_obj_set_style_pad_all(row, 0, 0);
@@ -446,7 +453,7 @@ namespace ui {
 
         {
             lv_obj_t* row = lv_obj_create(form);
-            lv_obj_set_size(row, 270, 44); // FIXED: Truncated to safe width limits
+            lv_obj_set_size(row, 270, 44); // Truncated to safe width limits
             lv_obj_set_style_bg_opa(row, LV_OPA_TRANSP, 0);
             lv_obj_set_style_border_width(row, 0, 0);
             lv_obj_set_style_pad_all(row, 0, 0);
@@ -499,7 +506,7 @@ namespace ui {
 
         make_label(form, "UI Theme");
         btn_theme = lv_btn_create(form);
-        lv_obj_set_width(btn_theme, 250); // FIXED: Unified width
+        lv_obj_set_width(btn_theme, 250); // Unified width
         lv_obj_set_height(btn_theme, 30);
         lv_obj_set_style_border_width(btn_theme, 1, 0);
         lv_obj_set_style_radius(btn_theme, 4, 0);
@@ -512,7 +519,7 @@ namespace ui {
 
         make_label(form, "Staged Deployment Profile");
         btn_profile = lv_btn_create(form);
-        lv_obj_set_width(btn_profile, 250); // FIXED: Unified width
+        lv_obj_set_width(btn_profile, 250); // Unified width
         lv_obj_set_height(btn_profile, 30);
         lv_obj_set_style_border_width(btn_profile, 1, 0);
         lv_obj_set_style_radius(btn_profile, 4, 0);
@@ -530,7 +537,7 @@ namespace ui {
 
         {
             lv_obj_t* row = lv_obj_create(form);
-            lv_obj_set_size(row, 280, 44); // FIXED: Leaves clear 40px right swipe space for bottom row
+            lv_obj_set_size(row, 280, 44); // Leaves clear 40px right swipe space for bottom row
             lv_obj_set_style_bg_opa(row, LV_OPA_TRANSP, 0);
             lv_obj_set_style_border_width(row, 0, 0);
             lv_obj_set_style_pad_all(row, 0, 0);

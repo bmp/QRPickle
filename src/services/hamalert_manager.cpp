@@ -1,11 +1,14 @@
+#include "net_connect.h"
+#include "../core/crashlog.h"
 #include "hamalert_manager.h"
 #include "../config/config.h"
-#include "../hw/led_rgb.h" // RESTORED: Needed for LED telemetry
+#include "../hw/led_rgb.h" // Needed for LED telemetry
 #include <Arduino.h>
 #include <WiFi.h>
 #include <WiFiClient.h>
 #include <cstring>
 #include <cstdio>
+#include <atomic>
 
 namespace services {
 
@@ -15,8 +18,11 @@ namespace services {
     bool HamAlertManager::dirty = false;
     bool HamAlertManager::running = false;
 
+    // Set before the task is created, cleared by the task as its last action.
+    static std::atomic<bool> task_alive{false};
+
     void HamAlertManager::start() {
-        if (running) return;
+        if (running || task_alive) return;  // previous task may still be exiting
         if (strlen(config::get().hamalert_password) == 0) {
             Serial.println("[HamAlert-Engine] Token password missing. Aborting start.");
             return;
@@ -29,13 +35,19 @@ namespace services {
 
         Serial.println("[HamAlert-Engine] Initializing background monitoring task...");
         running = true;
-        xTaskCreate(task_loop, "hamalert_task", 3072, NULL, 1, NULL);
+        task_alive = true;
+        if (xTaskCreate(task_loop, "hamalert_task", 4096, NULL, 1, NULL)  /* 3072 was tight (review 3.9) */ != pdPASS) {
+            running = false;
+            task_alive = false;
+            Serial.println("[HamAlert-Engine] Task creation failed (heap).");
+        }
     }
 
     void HamAlertManager::stop() { 
         running = false; 
         connected = false; 
     }
+    bool HamAlertManager::is_stopped() { return !task_alive; }
     bool HamAlertManager::is_connected() { return connected; }
     bool HamAlertManager::is_dirty() { return dirty; }
     void HamAlertManager::clear_dirty() { dirty = false; }
@@ -105,7 +117,7 @@ namespace services {
         }
         dirty = true;
         
-        // RESTORED: Fire the visual LED alert for the user
+        // Fire the visual LED alert for the user
         hw::led_rgb::trigger_priority_strobe();
     }
 
@@ -134,7 +146,8 @@ namespace services {
                 client.stop();
                 Serial.println("[HamAlert-Socket] Directing link to hamalert.org:7300...");
                 
-                if (client.connect("hamalert.org", 7300, 5000)) {
+                crashlog::mark(crashlog::SLOT_HAMALERT, 2); 
+                if (connect_host(client, "hamalert.org", 7300, 5000, crashlog::SLOT_HAMALERT)) {
                     unsigned long timeout_mark = millis();
                     bool authenticated = false;
                     
@@ -154,10 +167,19 @@ namespace services {
                             } 
                             else if (strstr(buffer, "password:")) {
                                 client.printf("%s\r\n", cfg.hamalert_password);
+                                buf_idx = 0;
+                                buffer[0] = '\0';
+                            }
+                            // Only HamAlert's greeting proves the login worked (review 3.8).
+                            else if (strstr(buffer, "Hello ")) {
                                 connected = true;
                                 authenticated = true;
                                 buf_idx = 0;
                                 buffer[0] = '\0';
+                            }
+                            else if (strcasestr(buffer, "fail") || strcasestr(buffer, "incorrect") || strcasestr(buffer, "invalid")) {
+                                Serial.println("[HamAlert-Socket] Login rejected; check callsign/password.");
+                                break;
                             }
                             else if (c == '\n' || buf_idx >= sizeof(buffer) - 1) {
                                 buf_idx = 0;
@@ -186,7 +208,7 @@ namespace services {
                     if (buf_idx > 0 && buffer[buf_idx - 1] == '\r') buffer[buf_idx - 1] = '\0';
                     
                     if (buffer[0] != '#' && strlen(buffer) > 10) {
-                        process_line(buffer);
+                        crashlog::mark(crashlog::SLOT_HAMALERT, 5); process_line(buffer);
                     }
                     buf_idx = 0;
                 } else if (buf_idx < sizeof(buffer) - 1) {
@@ -200,12 +222,13 @@ namespace services {
                 for(int i=0; i<300 && running; i++) vTaskDelay(pdMS_TO_TICKS(100));
             }
 
-            vTaskDelay(pdMS_TO_TICKS(50));
+            crashlog::mark(crashlog::SLOT_HAMALERT, 6); vTaskDelay(pdMS_TO_TICKS(50));
         }
         
         client.stop();
         connected = false;
         Serial.println("[HamAlert-Socket] Safely suspended for Time-Slicing.");
+        task_alive = false;
         vTaskDelete(NULL);
     }
 } // namespace services

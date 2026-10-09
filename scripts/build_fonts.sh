@@ -10,6 +10,32 @@ if [ ! -f "assets/fonts/AtkinsonHyperlegible-Regular.ttf" ] || [ ! -f "assets/fo
     exit 1
 fi
 
+# OFL 1.1 requires the copyright notice and licence with every copy, including converted ones.
+licence_header() {
+    case "$1" in
+        *Atkinson*)  echo "Copyright 2020 Braille Institute of America, Inc.|assets/fonts/OFL-AtkinsonHyperlegible.txt" ;;
+        *JetBrains*) echo "Copyright 2020 The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono)|assets/fonts/OFL-JetBrainsMono.txt" ;;
+    esac
+}
+
+prepend_licence() {
+    local font_path="$1"
+    local out_path="$2"
+    local info copyright licence_file tmp
+    info="$(licence_header "$font_path")"
+    copyright="${info%%|*}"
+    licence_file="${info##*|}"
+    tmp="$(mktemp)"
+    {
+        echo "/*"
+        echo " * Converted from $(basename "$font_path") with lv_font_conv (glyphs 0x20-0x7F)."
+        echo " * $copyright"
+        echo " * Licensed under the SIL Open Font License, Version 1.1: see $licence_file"
+        echo " */"
+        cat "$out_path"
+    } > "$tmp" && mv "$tmp" "$out_path"
+}
+
 # Helper function to generate fonts with overwrite protection
 generate_font() {
     local name="$1"
@@ -33,7 +59,7 @@ generate_font() {
     echo "⚙️  Compiling $name..."
     lv_font_conv --no-compress --no-prefilter --bpp 4 --size "$size" \
         --font "$font_path" -r 0x20-0x7F \
-        --format lvgl -o "$out_path"
+        --format lvgl -o "$out_path" && prepend_licence "$font_path" "$out_path"
 }
 
 # --- Atkinson Hyperlegible Generations ---

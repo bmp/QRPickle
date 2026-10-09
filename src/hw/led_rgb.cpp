@@ -1,3 +1,4 @@
+#include "../core/crashlog.h"
 #include "led_rgb.h"
 #include "../services/display_manager.h" 
 
@@ -8,90 +9,51 @@
 namespace hw {
     namespace led_rgb {
 
-        static LEDState current_state = STATE_OFF;
-        static bool traffic_pulse_active = false;
-        static unsigned long traffic_pulse_start = 0;
+        static volatile LEDState current_state = STATE_OFF;
+        static volatile bool traffic_pulse_active = false;
+        static volatile unsigned long traffic_pulse_start = 0;
 
-        static bool priority_strobe_active = false;
-        static unsigned long priority_strobe_start = 0;
+        static volatile bool priority_strobe_active = false;
+        static volatile unsigned long priority_strobe_start = 0;
 
         static void write_raw_rgb(uint8_t r, uint8_t g, uint8_t b) {
-            analogWrite(LED_PIN_R, 255 - r);
-            analogWrite(LED_PIN_G, 255 - g);
-            analogWrite(LED_PIN_B, 255 - b);
+            crashlog::mark(crashlog::SLOT_LED, 2); analogWrite(LED_PIN_R, pwm_duty(r));
+            crashlog::mark(crashlog::SLOT_LED, 3); analogWrite(LED_PIN_G, pwm_duty(g));
+            crashlog::mark(crashlog::SLOT_LED, 4); analogWrite(LED_PIN_B, pwm_duty(b));
+            crashlog::mark(crashlog::SLOT_LED, 5);
+        }
+
+        // How long to hold a colour before re-evaluating (unchanged from the original loop).
+        static uint32_t hold_ms(LEDState state, bool strobe, bool pulse) {
+            if (strobe) return 20;
+            if (pulse) return 5;
+            switch (state) {
+                case STATE_BOOT_HW:
+                case STATE_BOOT_WIFI:  return 50;
+                case STATE_BOOT_READY: return 1000;
+                case STATE_FAULT:      return 30;
+                default:               return 100;
+            }
         }
 
         static void led_engine_task(void* pvParameters) {
             while (true) {
-                unsigned long now = millis();
+                crashlog::mark(crashlog::SLOT_LED, 1);
+                const uint32_t now = millis();
 
-                // Priority Inbound Strobe (APRS / HamAlert) - PRESERVED
-                if (priority_strobe_active) {
-                    if (now - priority_strobe_start > 3000) {   
-                        priority_strobe_active = false;
-                    } else {
-                        if ((now / 125) % 2 == 0) write_raw_rgb(120, 120, 120);  
-                        else write_raw_rgb(150, 0, 150);   
-                        vTaskDelay(20 / portTICK_PERIOD_MS);
-                        continue;
-                    }
-                }
+                int32_t strobe_age = priority_strobe_active ? (int32_t)(now - priority_strobe_start) : -1;
+                if (strobe_age > (int32_t)STROBE_MS) { priority_strobe_active = false; strobe_age = -1; }
+                int32_t pulse_age = traffic_pulse_active ? (int32_t)(now - traffic_pulse_start) : -1;
+                if (pulse_age > (int32_t)PULSE_MS) { traffic_pulse_active = false; pulse_age = -1; }
 
-                if (traffic_pulse_active) {
-                    if (now - traffic_pulse_start > 30) {   
-                        traffic_pulse_active = false;
-                    } else {
-                        write_raw_rgb(0, 40, 60);  
-                        vTaskDelay(5 / portTICK_PERIOD_MS);
-                        continue;
-                    }
-                }
+                const LEDState state = current_state;
+                const Rgb c = pattern_color(state, now, strobe_age, pulse_age);
+                write_raw_rgb(c.r, c.g, c.b);
+                vTaskDelay(pdMS_TO_TICKS(hold_ms(state, strobe_age >= 0, pulse_age >= 0)));
 
-                switch (current_state) {
-                    case STATE_OFF:
-                        write_raw_rgb(0, 0, 0);
-                        vTaskDelay(100 / portTICK_PERIOD_MS);
-                        break;
-
-                    case STATE_BOOT_HW:
-                        write_raw_rgb(180, 45, 0);  
-                        vTaskDelay(50 / portTICK_PERIOD_MS);
-                        break;
-
-                    case STATE_BOOT_WIFI:
-                        write_raw_rgb(0, 0, 150);  
-                        vTaskDelay(50 / portTICK_PERIOD_MS);
-                        break;
-
-                    case STATE_BOOT_SYNC: 
-                        // FIXED: Neutered the Cyan breathing loop triggered by the timekeeper!
-                        write_raw_rgb(0, 0, 0);  
-                        vTaskDelay(100 / portTICK_PERIOD_MS);
-                        break;
-
-                    case STATE_BOOT_READY:
-                        write_raw_rgb(0, 25, 0);  
-                        vTaskDelay(1000 / portTICK_PERIOD_MS);  
-                        current_state = STATE_OFF;  
-                        break;
-
-                    case STATE_WIFI_LOST: 
-                        // FIXED: Neutered the Purple breathing loop.
-                        write_raw_rgb(0, 0, 0);  
-                        vTaskDelay(100 / portTICK_PERIOD_MS);
-                        break;
-
-                    case STATE_FAULT: {
-                        unsigned long loop_pos = now % 3000;
-                        if (loop_pos < 600) {
-                            if ((loop_pos / 100) % 2 == 0) write_raw_rgb(200, 0, 0);  
-                            else write_raw_rgb(0, 0, 0);
-                        } else {
-                            write_raw_rgb(0, 0, 0);  
-                        }
-                        vTaskDelay(30 / portTICK_PERIOD_MS);
-                        break;
-                    }
+                // "Ready" green is shown for one hold (1 s), then the LED goes dark.
+                if (strobe_age < 0 && pulse_age < 0 && state == STATE_BOOT_READY && current_state == STATE_BOOT_READY) {
+                    current_state = STATE_OFF;
                 }
             }
         }

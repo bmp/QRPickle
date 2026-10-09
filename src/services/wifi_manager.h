@@ -7,8 +7,9 @@ enum wifi_state_t {
     WIFI_STATE_CONNECTING,
     WIFI_STATE_CONNECTED,
     WIFI_STATE_FAILED,
-    WIFI_STATE_AP_MODE,
-    WIFI_STATE_BACKGROUND_RETRY // FIXED: Isolated background recovery state
+    WIFI_STATE_AP_MODE,           // No network configured: setup AP only
+    WIFI_STATE_AP_FALLBACK,       // Network configured but unreachable: setup AP + station retrying
+    WIFI_STATE_BACKGROUND_RETRY
 };
 
 // Configures the ESP32 network stack and launches an async connection attempt

@@ -81,9 +81,9 @@ namespace ui {
 
         // 6. Hardware Diagnostic Trace Window Box
         lv_obj_t* diag_box = lv_obj_create(page);
-        // FIXED: Expanded height to 125px to accommodate the text data comfortably
+        // Expanded height to 125px to accommodate the text data comfortably
         lv_obj_set_size(diag_box, 260, 125);
-        // FIXED: Shifted slightly downward to center the larger container beautifully
+        // Shifted slightly downward to center the larger container beautifully
         lv_obj_align(diag_box, LV_ALIGN_CENTER, 0, 26);
         lv_obj_set_style_bg_color(diag_box, lv_color_hex(0x1C2128), 0);
         lv_obj_set_style_border_color(diag_box, lv_color_hex(0x30363D), 0);
@@ -123,11 +123,11 @@ namespace ui {
 
         // 7. Network Handshaking Dynamic Output Status Line
         lbl_wifi_status = lv_label_create(page);
-        // FIXED: Dropped the text size to 10 to clean up layout hierarchy
+        // Dropped the text size to 10 to clean up layout hierarchy
         lv_obj_set_style_text_font(lbl_wifi_status, &font_atkinson_10, 0);
         lv_obj_set_style_text_color(lbl_wifi_status, lv_color_hex(0x58A6FF), 0);
         lv_label_set_text(lbl_wifi_status, "Connecting to Network... [0/20]");
-        // FIXED: Tucked tightly against the bottom bezel to make room for the expanded window
+        // Tucked tightly against the bottom bezel to make room for the expanded window
         lv_obj_align(lbl_wifi_status, LV_ALIGN_BOTTOM_MID, 0, -6);
 
         // 8. Spawn Asynchronous Network Interrogation Timer

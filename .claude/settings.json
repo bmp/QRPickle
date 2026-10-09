@@ -1,0 +1,41 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(./src/config/secrets_default.h)",
+      "Edit(./src/config/secrets_default.h)",
+      "Read(./**/.env*)",
+      "Read(~/.ssh/**)",
+      "Read(~/.claude/.credentials.json)",
+      "Bash(cat *secrets_default*)",
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(git push * --force*)",
+      "Bash(git push * -f*)",
+      "Bash(git tag -f*)",
+      "Bash(git tag -d*)"
+    ],
+    "ask": [
+      "Bash(git push*)",
+      "Bash(git reset --hard*)",
+      "Bash(pio run *upload*)",
+      "Bash(pio * erase*)",
+      "Bash(esptool*)",
+      "Bash(gh release*)",
+      "Edit(./.github/workflows/**)",
+      "Edit(./partitions.csv)",
+      "Edit(./src/core/metadata.h)",
+      "Edit(./platformio.ini)"
+    ],
+    "allow": [
+      "Bash(pio run)",
+      "Bash(pio run -e cyd)",
+      "Bash(pio run -t buildfs)",
+      "Bash(pio test *)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git show*)",
+      "Bash(git branch)"
+    ]
+  }
+}

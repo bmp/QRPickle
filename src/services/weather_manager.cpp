@@ -1,3 +1,6 @@
+#include <WiFiClientSecure.h>
+#include "../hw/led_rgb.h"
+#include "net_lock.h"
 #include "weather_manager.h"
 #include "wifi_manager.h"
 #include "../config/config.h"
@@ -18,12 +21,17 @@ namespace services {
         static void fetch_current(const config::Config& cfg) {
             if (strlen(cfg.openweather_api_key) == 0) return;
             char url[256];
-            snprintf(url, sizeof(url), "http://api.openweathermap.org/data/2.5/weather?lat=%.4f&lon=%.4f&appid=%s&units=metric", cfg.lat, cfg.lon, cfg.openweather_api_key);
+            snprintf(url, sizeof(url), "https://api.openweathermap.org/data/2.5/weather?lat=%.4f&lon=%.4f&appid=%s&units=metric", cfg.lat, cfg.lon, cfg.openweather_api_key);
 
+            NetLock lock;
+            if (!lock.held()) return;
+            // HTTPS so the API key isn't sent in clear (review 3.5); serialised by NetLock.
+            WiFiClientSecure tls;
+            tls.setInsecure();
             HTTPClient http;
-            http.begin(url);
+            http.begin(tls, url);
             if (http.GET() == 200) {
-                // NEW: Strict Memory Filter
+                // Strict Memory Filter
                 JsonDocument filter;
                 filter["main"]["temp"] = true;
                 filter["main"]["humidity"] = true;
@@ -53,6 +61,7 @@ namespace services {
                     strlcpy(current_wx.icon, doc["weather"][0]["icon"] | "01d", sizeof(current_wx.icon));
                     strlcpy(current_wx.location, doc["name"] | "Local Area", sizeof(current_wx.location));
                     current_wx.valid = true;
+                    hw::led_rgb::trigger_traffic_pulse();  // data ingress (docs/LEDColours.md)
                 }
             }
             http.end();
@@ -61,12 +70,17 @@ namespace services {
         static void fetch_forecast(const config::Config& cfg) {
             if (strlen(cfg.openweather_api_key) == 0) return;
             char url[256];
-            snprintf(url, sizeof(url), "http://api.openweathermap.org/data/2.5/forecast?lat=%.4f&lon=%.4f&appid=%s&units=metric&cnt=8", cfg.lat, cfg.lon, cfg.openweather_api_key);
+            snprintf(url, sizeof(url), "https://api.openweathermap.org/data/2.5/forecast?lat=%.4f&lon=%.4f&appid=%s&units=metric&cnt=8", cfg.lat, cfg.lon, cfg.openweather_api_key);
 
+            NetLock lock;
+            if (!lock.held()) return;
+            // HTTPS so the API key isn't sent in clear (review 3.5); serialised by NetLock.
+            WiFiClientSecure tls;
+            tls.setInsecure();
             HTTPClient http;
-            http.begin(url);
+            http.begin(tls, url);
             if (http.GET() == 200) {
-                // NEW: Strict Memory Filter
+                // Strict Memory Filter
                 JsonDocument filter;
                 filter["list"][0]["dt"] = true;
                 filter["list"][0]["main"]["temp"] = true;
@@ -88,6 +102,7 @@ namespace services {
                         idx++;
                     }
                     forecast_wx.valid = true;
+                    hw::led_rgb::trigger_traffic_pulse();  // data ingress (docs/LEDColours.md)
                 }
             }
             http.end();

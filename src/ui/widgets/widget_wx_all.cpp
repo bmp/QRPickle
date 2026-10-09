@@ -8,7 +8,7 @@
 #include <cstdio>
 #include <cstring>
 #include <Arduino.h>
-#include <LittleFS.h> // FIXED: Included to read files directly to RAM
+#include <LittleFS.h> // Included to read files directly to RAM
 
 namespace ui {
 
@@ -95,7 +95,7 @@ namespace ui {
                 if (cur.valid) {
                     snprintf(buf, sizeof(buf), "%.1f °C\n%d %%\n%.0f hPa", cur.temp, cur.humidity, cur.pressure);
                 } else {
-                    snprintf(buf, sizeof(buf), "-- °C\n-- %\n-- hPa");
+                    snprintf(buf, sizeof(buf), "-- °C\n-- %%\n-- hPa");
                 }
             }
         }
@@ -120,7 +120,7 @@ namespace ui {
     }
 
     lv_obj_t* widget_wx_all_create(lv_obj_t* parent, uint8_t size_type) {
-        // FIXED: Cache the icons immediately to RAM on the very first load
+        // Cache the icons immediately to RAM on the very first load
         if (!icons_in_ram) {
             cache_bin_to_ram(PATH_ICON_SENSOR, &dsc_sensor);
             cache_bin_to_ram(PATH_ICON_WEB, &dsc_web);
@@ -183,10 +183,10 @@ namespace ui {
         lv_obj_set_style_text_line_space(lbl_data, 8, 0); 
         lv_obj_align(lbl_data, LV_ALIGN_RIGHT_MID, 0, 0); 
 
-        // FIXED: Since everything is safely in RAM, we paint instantly with zero lag!
+        // Since everything is safely in RAM, we paint instantly with zero lag!
         repaint_widget_metrics();
 
-        // FIXED: Revert to standard 2-second polling interval. No delay needed.
+        // Revert to standard 2-second polling interval. No delay needed.
         lv_timer_t* timer = lv_timer_create(widget_timer_cb, 2000, base_card);
 
         lv_obj_add_event_cb(base_card, [](lv_event_t* e) {

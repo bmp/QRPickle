@@ -25,6 +25,8 @@ namespace services {
     public:
         static void start();
         static void stop();
+        // True once the background task has fully exited (stop() only requests the exit).
+        static bool is_stopped();
         
         static const AprsStation* get_stations();
         static size_t get_station_count();

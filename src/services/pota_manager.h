@@ -25,7 +25,7 @@ namespace services {
         static bool is_dirty() { return dirty; }
         static void clear_dirty() { dirty = false; }
         static uint32_t get_last_fetch_time() { return last_fetch_time; }
-        static void expire_timer() { last_fetch_time = 0; } // NEW: Forces refresh on button tap
+        static void expire_timer() { last_fetch_time = 0; } // Forces refresh on button tap
 
     private:
         static PotaSpot* spots;
@@ -35,6 +35,8 @@ namespace services {
         static uint32_t last_fetch_time;
 
         static void deduce_mode(float freq, const char* comment, char* out_mode, size_t max_len);
+        static void run_fetch();             // the HTTPS fetch; runs in its own task
+        static void fetch_task(void* param);
     };
 
 } // namespace services

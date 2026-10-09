@@ -1,7 +1,7 @@
 #include "wifi_manager.h"
 #include "../config/config.h" 
 #include "web_server.h"
-#include "../hw/led_rgb.h" // NEW: RGB LED controller inclusion
+#include "../hw/led_rgb.h" // RGB LED controller inclusion
 #include <WiFi.h>
 #include <esp_wifi.h>
 #include <Arduino.h>
@@ -13,6 +13,10 @@ static wifi_state_t current_state = WIFI_STATE_OFFLINE;
 static unsigned long connection_timeout_mark = 0;
 static unsigned long last_drop_mark = 0; 
 static char status_msg[64] = "DISCONNECTED";
+
+// While the fallback setup AP is up, retry the saved network this often.
+static const unsigned long STA_RETRY_INTERVAL_MS = 60000;
+static unsigned long last_sta_retry_mark = 0;
 
 void wifi_manager_init() {
     Serial.println("[Wi-Fi] Querying NVS parameters for link parameters...");
@@ -39,26 +43,39 @@ void wifi_manager_init() {
     connection_timeout_mark = millis();
     snprintf(status_msg, sizeof(status_msg), "CONNECTING TO %s...", cfg.wifi_ssid);
 
-    // NEW: Set Stage 2 -> Solid Blue when network search is active
+    // Set Stage 2 -> Solid Blue when network search is active
     hw::led_rgb::set_state(hw::led_rgb::STATE_BOOT_WIFI);
 }
 
-void wifi_manager_start_ap() {
-    WiFi.disconnect(true, true); 
-    delay(100);
-    WiFi.mode(WIFI_AP);
-    if (WiFi.softAP(AP_SSID)) {
-        current_state = WIFI_STATE_AP_MODE;
-        IPAddress ap_ip = WiFi.softAPIP();
-        snprintf(status_msg, sizeof(status_msg), "AP ACTIVE | SSID: %s | IP: %d.%d.%d.%d",
-                 AP_SSID, ap_ip[0], ap_ip[1], ap_ip[2], ap_ip[3]);
-        Serial.printf("[Wi-Fi] Hotspot Broadcast Up! %s\n", status_msg);
-        web_server_init();
-        
-        // NEW: Drop status back to flashing amber/fault tracking if forced into portal mode
-        hw::led_rgb::set_state(hw::led_rgb::STATE_BOOT_HW);
-    } else {
+static bool bring_up_ap(wifi_mode_t mode) {
+    WiFi.mode(mode);
+    // WPA2 with the device admin password (review 1.2); it is shown on the Network screen.
+    if (!WiFi.softAP(AP_SSID, config::get().admin_password)) {
         snprintf(status_msg, sizeof(status_msg), "HOTSPOT INITIALIZATION FAULT");
+        return false;
+    }
+    IPAddress ap_ip = WiFi.softAPIP();
+    snprintf(status_msg, sizeof(status_msg), "AP ACTIVE | SSID: %s | IP: %d.%d.%d.%d",
+             AP_SSID, ap_ip[0], ap_ip[1], ap_ip[2], ap_ip[3]);
+    Serial.printf("[Wi-Fi] Hotspot Broadcast Up! %s\n", status_msg);
+    web_server_init();
+    hw::led_rgb::set_state(hw::led_rgb::STATE_BOOT_HW);
+    return true;
+}
+
+// No network configured: AP only, nothing to retry.
+void wifi_manager_start_ap() {
+    WiFi.disconnect(true, true);
+    delay(100);
+    if (bring_up_ap(WIFI_AP)) current_state = WIFI_STATE_AP_MODE;
+}
+
+// Network configured but unreachable (e.g. router still booting after a power cut):
+// keep the station interface so the saved network is retried while the setup AP is up.
+static void start_fallback_ap() {
+    if (bring_up_ap(WIFI_AP_STA)) {
+        current_state = WIFI_STATE_AP_FALLBACK;
+        last_sta_retry_mark = millis();
     }
 }
 
@@ -69,6 +86,21 @@ void wifi_manager_update() {
 
     if (current_state == WIFI_STATE_AP_MODE) return;
 
+    if (current_state == WIFI_STATE_AP_FALLBACK) {
+        if (WiFi.status() != WL_CONNECTED) {
+            if (millis() - last_sta_retry_mark > STA_RETRY_INTERVAL_MS) {
+                Serial.println("[Wi-Fi] Fallback AP up. Retrying saved network...");
+                WiFi.begin(config::get().wifi_ssid, config::get().wifi_password);
+                last_sta_retry_mark = millis();
+            }
+            return;
+        }
+        Serial.println("[Wi-Fi] Saved network reachable again. Shutting down fallback AP...");
+        WiFi.softAPdisconnect(true);
+        WiFi.mode(WIFI_STA);
+        // Fall through: the WL_CONNECTED branch below records the CONNECTED state.
+    }
+
     if (WiFi.status() == WL_CONNECTED) {
         if (current_state != WIFI_STATE_CONNECTED) {
             current_state = WIFI_STATE_CONNECTED;
@@ -76,7 +108,7 @@ void wifi_manager_update() {
             snprintf(status_msg, sizeof(status_msg), "CONNECTED | IP: %d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
             Serial.printf("[Wi-Fi] Network Link Stable! %s\n", status_msg);
             
-            // NEW: Network link restored, clear lost warning
+            // Network link restored, clear lost warning
             hw::led_rgb::set_state(hw::led_rgb::STATE_OFF);
         }
         last_drop_mark = millis(); // Reset the watchdog timer while connected
@@ -87,7 +119,7 @@ void wifi_manager_update() {
             Serial.println("[Wi-Fi] Link dropped. Trusting ESP-IDF native auto-reconnect...");
             last_drop_mark = millis();
             
-            // NEW: Set Post-Boot warning -> Breathing Red/Magenta connection lost indicator
+            // Set Post-Boot warning -> Breathing Red/Magenta connection lost indicator
             hw::led_rgb::set_state(hw::led_rgb::STATE_WIFI_LOST);
         }
 
@@ -101,8 +133,8 @@ void wifi_manager_update() {
         }
 
         if (current_state == WIFI_STATE_CONNECTING && (millis() - connection_timeout_mark > 20000)) {
-            Serial.println("[Wi-Fi] Boot connection timeout. Dropping back to Fallback Setup AP Mode...");
-            wifi_manager_start_ap();
+            Serial.println("[Wi-Fi] Boot connection timeout. Starting fallback setup AP; will keep retrying saved network...");
+            start_fallback_ap();
         }
     }
 }

@@ -3,3 +3,20 @@
 .gcc-flags.json
 src/config/secrets_default.h
 scripts/fonts-src/
+# VS Code: PlatformIO regenerates these with machine-specific paths
+.vscode/c_cpp_properties.json
+.vscode/launch.json
+.vscode/ipch
+# clangd compile database (regenerate: pio run -t compiledb)
+compile_commands.json
+.cache/
+
+# Local build copies (scripts/release_copy.py). Published binaries live on GitHub Releases.
+release/
+device_check.log
+
+# Working plans from Claude Code sessions (local only)
+docs/superpowers/
+
+# Local editor/tool database (not project data)
+.vorg.db

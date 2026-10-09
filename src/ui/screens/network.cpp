@@ -13,13 +13,16 @@ namespace ui {
     static void network_timer_cb(lv_timer_t* timer) {
         if (!lbl_stats) return;
 
+        char buf[256];
         if (WiFi.isConnected()) {
-            char buf[256];
-            snprintf(buf, sizeof(buf), "Status: CONNECTED\nSSID: %s\nIP: %s\nRSSI: %d dBm\nMAC: %s",
-                     WiFi.SSID().c_str(), WiFi.localIP().toString().c_str(), WiFi.RSSI(), WiFi.macAddress().c_str());
+            snprintf(buf, sizeof(buf), "Status: CONNECTED\nSSID: %s\nIP: %s\nRSSI: %d dBm\nMAC: %s\nWeb login: admin / %s",
+                     WiFi.SSID().c_str(), WiFi.localIP().toString().c_str(), WiFi.RSSI(), WiFi.macAddress().c_str(),
+                     config::get().admin_password);
             lv_label_set_text(lbl_stats, buf);
         } else {
-            lv_label_set_text(lbl_stats, "Status: DISCONNECTED\nSSID: --\nIP: --\nRSSI: -- dBm");
+            snprintf(buf, sizeof(buf), "Status: DISCONNECTED\nSSID: --\nIP: --\nRSSI: -- dBm\nWeb login: admin / %s",
+                     config::get().admin_password);
+            lv_label_set_text(lbl_stats, buf);
         }
     }
 

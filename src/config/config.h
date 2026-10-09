@@ -9,9 +9,9 @@ struct Config {
     uint8_t brightness;
     bool    auto_brightness;
     uint8_t theme_id;
-    int8_t  tz_offset_hh;     
-    uint8_t screen_timeout_min; 
-    uint8_t forecast_slots;     
+    int8_t  tz_offset_hh;     // UTC offset in HALF-hours (e.g. 11 = +5:30); no DST     
+    uint8_t screen_timeout_min; // backlight sleep after N minutes idle; 0 = manual sleep only 
+    uint8_t forecast_slots;   // bitmask of forecast slots shown (set in the web UI; default 0x0F)     
     bool    web_enabled;
 
     char    wifi_ssid[33];
@@ -27,12 +27,15 @@ struct Config {
 
     bool    aprs_enabled;
     char    aprs_passcode[8]; 
-    int8_t  aprs_ssid;        
+    int8_t  aprs_ssid;         // 0..15; 0 = no -SSID suffix        
     char    aprs_comment[48]; 
     char    aprs_icon[4];     
     char    aprs_macros[5][64];
 
     char    hamalert_password[33];
+
+    // Web console login (user "admin") and setup-AP WPA2 key. Generated on first boot.
+    char    admin_password[17];
 };
 
 void load();

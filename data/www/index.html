@@ -13,6 +13,10 @@
     </header>
 
     <div class="wrapper">
+        <div id="profile-edit-banner" class="edit-banner hidden">
+            <span>Editing profile <strong id="profile-edit-name"></strong>: saving writes to the profile, not the device.</span>
+            <button class="btn btn-secondary" onclick="stopEditingProfile()">Stop Editing</button>
+        </div>
         <nav class="tabs">
             <button class="tab-btn active" data-tab="basic">Basic Settings</button>
             <button class="tab-btn" data-tab="advanced">Advanced</button>
@@ -75,6 +79,19 @@
                         <option value="5">E-Ink Light</option>
                         <option value="6">E-Ink Dark</option>
                     </select>
+                </div>
+
+                <label class="admin-pw-group" style="grid-column: span 2; font-weight: bold; border-bottom: 1px solid var(--border); padding-bottom: 5px; color: var(--accent); margin-top: 10px;">Admin Password (web login "admin" and QRPickle-Setup WiFi key)</label>
+                <div class="form-group admin-pw-group">
+                    <label>New Admin Password (8-16 characters, no spaces)</label>
+                    <div class="password-wrapper">
+                        <input type="password" id="cfg-admin-pw" placeholder="leave blank to keep" minlength="8" maxlength="16" autocomplete="new-password">
+                        <button class="eye-toggle" type="button" onclick="togglePass('cfg-admin-pw')">👁️</button>
+                    </div>
+                </div>
+                <div class="form-group admin-pw-group">
+                    <label>Repeat New Admin Password</label>
+                    <input type="password" id="cfg-admin-pw2" placeholder="leave blank to keep" maxlength="16" autocomplete="new-password">
                 </div>
             </div>
         </section>
@@ -185,124 +202,36 @@
 
         <section id="tab-profiles" class="tab-content">
             <div class="profile-section">
-                <h2>Deployed Profile Selection & Modification Terminal</h2>
+                <h2>Stored Profiles</h2>
+                <p class="hint">A profile holds every setting except the admin password. Profiles live on the filesystem: writing a new <code>littlefs.bin</code> erases them, so download a backup first.</p>
                 <div class="form-group">
-                    <label>Select Stored Profile Layout</label>
+                    <label>Profile</label>
                     <select id="profile-select" onchange="handleProfileSelectionChange()">
                         <option value="">-- No Profile Selected --</option>
                     </select>
                 </div>
-
-                <div id="profile-inspect-panel" class="profile-details-card hidden">
-                    <h3>Modifying Isolated Profile Parameters</h3>
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label>Profile Callsign</label>
-                            <input type="text" id="prof-edit-callsign" maxlength="9">
-                        </div>
-                        <div class="form-group">
-                            <label>Profile Grid Square</label>
-                            <input type="text" id="prof-edit-grid" maxlength="6">
-                        </div>
-                        <div class="form-group">
-                            <label>Profile Latitude</label>
-                            <input type="number" id="prof-edit-lat" step="0.00001" min="-90" max="90">
-                        </div>
-                        <div class="form-group">
-                            <label>Profile Longitude</label>
-                            <input type="number" id="prof-edit-lon" step="0.00001" min="-180" max="180">
-                        </div>
-                        <div class="form-group">
-                            <label>Profile Network SSID</label>
-                            <input type="text" id="prof-edit-ssid" maxlength="32">
-                        </div>
-                        <div class="form-group">
-                            <label>Profile Network Password</label>
-                            <div class="password-wrapper">
-                                <input type="password" id="prof-edit-password" maxlength="63">
-                                <button class="eye-toggle" type="button" onclick="togglePass('prof-edit-password')">👁</button>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>UTC Offset (Hours)</label>
-                            <input type="number" id="prof-edit-offset" step="0.5" min="-12" max="14">
-                        </div>
-                        <div class="form-group">
-                            <label>TFT Backlight PWM</label>
-                            <input type="range" id="prof-edit-brightness" min="10" max="255">
-                        </div>
-                        <div class="form-group">
-                            <label>Color Profile Theme</label>
-                            <select id="prof-edit-theme">
-                                <option value="0">Classic Tactical</option>
-                                <option value="1">Tactical Field Red</option>
-                                <option value="2">GitHub Slate Dark</option>
-                                <option value="3">Clean High-Contrast</option>
-                                <option value="4">Terminal Green</option>
-                                <option value="5">E-Ink Light</option>
-                                <option value="6">E-Ink Dark</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>APRS Connection</label>
-                            <select id="prof-edit-aprs-en">
-                                <option value="0">Disabled</option>
-                                <option value="1">Enabled</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>APRS SSID Suffix</label>
-                            <select id="prof-edit-aprs-ssid">
-                                <option value="0">-0</option>
-                                <option value="1">-1</option>
-                                <option value="5">-5</option>
-                                <option value="7">-7</option>
-                                <option value="9">-9</option>
-                                <option value="10">-10</option>
-                                <option value="15">-15</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>APRS Icon</label>
-                            <select id="prof-edit-aprs-icn">
-                                <option value="/[">/[ : Runner</option>
-                                <option value="/-">/- : House</option>
-                                <option value="I&">I& : IGate</option>
-                                <option value="\Y">\Y : RADIOS</option>
-                                <option value="/;">/; : Portable</option>
-                                <option value="\F">\F : Field Day</option>
-                                <option value="\;">\; : Park</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Sleep Timeout (Min)</label>
-                            <input type="number" id="prof-edit-timeout" min="0" max="120">
-                        </div>
-                        <div class="form-group" style="grid-column: span 2;">
-                            <label>Profile OpenWeatherMap API Token</label>
-                            <div class="password-wrapper">
-                                <input type="password" id="prof-edit-apikey" placeholder="Profile API Key...">
-                                <button class="eye-toggle" type="button" onclick="togglePass('prof-edit-apikey')">👁</button>
-                            </div>
-                        </div>
-                        <div class="form-group" style="grid-column: span 2;">
-                            <label>APRS Comment</label>
-                            <input type="text" id="prof-edit-aprs-cmt" maxlength="31">
-                        </div>
-                    </div>
-                    
-                    <div class="action-bar" style="margin-top: 20px; padding:0; background:none; border:0;">
-                        <button class="btn btn-primary" onclick="applySelectedProfile()">Commit Hot-Swap Live</button>
-                        <button class="btn btn-secondary" onclick="saveProfileChanges()">Save Changes to Profile</button>
-                    </div>
+                <div class="profile-controls">
+                    <button class="btn btn-primary profile-needs-selection" onclick="applySelectedProfile()" disabled>Apply to Device</button>
+                    <button class="btn btn-secondary profile-needs-selection" onclick="editSelectedProfile()" disabled>Edit in Settings Form</button>
+                    <button class="btn btn-secondary profile-needs-selection" onclick="deleteSelectedProfile()" disabled>Delete</button>
                 </div>
 
                 <hr style="border:0; border-top:1px dashed #333; margin:25px 0;">
 
-                <h2>Snapshot Active Settings into New Profile</h2>
+                <h2>Save Current Form as New Profile</h2>
                 <div class="profile-controls">
-                    <input type="text" id="new-profile-name" placeholder="Profile name (e.g. Field Ops)" maxlength="20">
+                    <input type="text" id="new-profile-name" placeholder="Name: letters, digits, - and _ (e.g. Field_Ops)" maxlength="24">
                     <button class="btn btn-secondary" onclick="saveProfile()">Save New Profile</button>
+                </div>
+
+                <hr style="border:0; border-top:1px dashed #333; margin:25px 0;">
+
+                <h2>Backup and Restore</h2>
+                <p class="hint">The backup holds the current settings and all profiles, without passwords or keys. Restoring keeps the device's current secrets; restored profiles have none until you edit them.</p>
+                <div class="profile-controls">
+                    <button class="btn btn-secondary" onclick="downloadBackup()">Download Backup</button>
+                    <button class="btn btn-secondary" onclick="document.getElementById('restore-file').click()">Restore from Backup...</button>
+                    <input type="file" id="restore-file" accept=".json,application/json" class="hidden" onchange="restoreBackup(this)">
                 </div>
             </div>
         </section>
@@ -413,7 +342,7 @@
         </section>
 
         <div class="action-bar">
-            <button class="btn btn-primary" onclick="saveActiveConfig()">Save Configuration</button>
+            <button class="btn btn-primary" id="btn-save-config" onclick="saveActiveConfig()">Save Configuration</button>
             <button class="btn btn-secondary" onclick="loadCurrentConfig()">Cancel</button>
             <button class="btn btn-danger" onclick="triggerReboot()">Reboot Device</button>
         </div>

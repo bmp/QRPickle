@@ -20,7 +20,7 @@
 #include "../services/aprs_manager.h"
 #include "../services/prop_manager.h"
 #include "../services/cloud_ota.h"
-#include "../hw/led_rgb.h" // NEW: RGB LED controller inclusion
+#include "../hw/led_rgb.h" // RGB LED controller inclusion
 #include "fonts.h"
 #include "../config/config.h"
 #include "../hw/sensor.h"
@@ -155,7 +155,7 @@ namespace ui {
 
             services::cloud_ota::start_background_check();
 
-            // NEW: Set Stage 4 -> Turn LED faint green to indicate operational readiness
+            // Set Stage 4 -> Turn LED faint green to indicate operational readiness
             hw::led_rgb::set_state(hw::led_rgb::STATE_BOOT_READY);
 
             ui_navigate_local(PAGE_DASHBOARD);
