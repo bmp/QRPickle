@@ -19,7 +19,7 @@ pio test -e native             # host-side unit tests (Unity): test_parsers + te
 pio test -e native -f test_config    # run a single test folder
 ```
 
-Every build runs `extra_scripts` from `platformio.ini`. `scripts/release_copy.py` copies the built `firmware.bin`, `littlefs.bin`, `bootloader.bin` and `partitions.bin` into `release/`, which is **tracked in git**, so any build changes tracked files.
+Every build runs `extra_scripts` from `platformio.ini`. `scripts/release_copy.py` copies the built binaries into `release/` for convenience. That folder is **gitignored**: published binaries come only from CI on GitHub Releases.
 
 Build guards and tests:
 - `scripts/check_secrets.py` (pre-build) fails the build on credential-like literals in `src/`, `include/` and `data/`.

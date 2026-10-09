@@ -11,7 +11,8 @@ Items that automation could not verify (screen/touch/browser), plus patches for 
 - [ ] **Plan D, Cloud OTA:** not testable without publishing a release. On the next release (docs/RELEASING.md step 5), use sidebar → Cloud OTA → ↻ → INITIATE FIRMWARE FLASH; the serial log should show `SHA-256 verified.` and then `[OTA Guard] New image healthy`.
 
 - [ ] **Plan E, LVGL trim (S2):** all images are RGB565A8 (kept) and no UI code uses whole-object opacity, transforms or blend modes, so the risk is low. Check: the splash logos, the weather-screen condition icon, the dashboard weather widget's two 20×20 icons, and symbol glyphs (⌂ ↻ WiFi). If anything is blank, re-enable `LV_DRAW_SW_SUPPORT_ARGB8888` in `include/lv_conf.h` and run `pio run -t clean`.
-- [ ] **Plan E, decisions:** keep `release/*.bin` in git? Implement `gzip_data.py`, or drop it from `extra_scripts`?
+- [x] ~~keep `release/*.bin` in git?~~ No: untracked and ignored 2026-10-09; README links to GitHub Releases.
+- [ ] **gzip_data.py:** implement build-time gzip of the web UI (56KB → 12.6KB), or drop it.
 
 - [ ] **Plan F, xOTA:** POTA now loads in the background. The status dot is orange while fetching, the list fills when done, and the screen stays responsive during the fetch.
 - [ ] **Plan F, APRS radar:** stations now show their real symbol-based type (an off-by-one used to read E/W); compressed-position stations no longer appear at bogus coordinates.

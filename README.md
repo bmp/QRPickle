@@ -144,7 +144,7 @@ Designed for operational reliability out in the field. Keep the signal clean, th
 
 You do not need to install VS Code or PlatformIO to use QRPickle. Pre-compiled binaries for the CYD are available in the repository releases.
 
-**[Download Latest Release Binaries Here](releases/)**
+**[Download the latest release binaries](https://github.com/bmp/QRPickle/releases/latest)** (every release also lists `firmware.bin.sha256` for integrity checks)
 
 The release folder contains the following files:
 * `firmware.bin` (The core C++ application)

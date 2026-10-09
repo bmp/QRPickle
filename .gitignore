@@ -10,3 +10,6 @@ scripts/fonts-src/
 # clangd compile database (regenerate: pio run -t compiledb)
 compile_commands.json
 .cache/
+
+# Local build copies (scripts/release_copy.py). Published binaries live on GitHub Releases.
+release/

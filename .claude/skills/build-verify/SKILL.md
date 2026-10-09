@@ -21,7 +21,7 @@ Run every step that applies and report each result.
 
 3. **Size budget.** The app slot is 1,835,008 bytes (`0x1C0000`).
    - Flash ≥ 95%: **warn**. OTA will fail once the image no longer fits the slot.
-   - Compare against the last known value (86.9% at v0.1.11). Flag any jump of more than 2 points and name the likely cause.
+   - Compare against the last known value (83.3% on 2026-10-09). Flag any jump of more than 2 points and name the likely cause.
 
 4. **Filesystem** (only if `data/` changed):
    `pio run -t buildfs`. LittleFS is 448KB.
@@ -30,13 +30,9 @@ Run every step that applies and report each result.
    - Read the summary line. **`0 test cases` means nothing was tested. Report "no tests exist", not "tests pass."**
    - If tests were collected, every one must succeed.
 
-6. **Secret scan of the diff.** `scripts/check_secrets.py` is empty, so do this by hand:
-   `git diff HEAD | grep -nEi '(api[_-]?key|passw\w*|secret\w*|token\w*|passcode)\s*[:=]\s*"[^"]{6,}"'`
-   Any hit blocks the commit. Show it with the value masked.
+6. **Secret scan:** `scripts/check_secrets.py` runs automatically before every build and fails it on credential literals. Confirm the build log shows `[check_secrets] OK`.
 
-7. **Restore build artifacts.** Builds overwrite the tracked `release/*.bin` files.
-   `git checkout -- release/`
-   Only skip this when the user is deliberately cutting a release.
+7. **Build artifacts:** `release/` is gitignored, so builds no longer dirty the tree. Never commit binaries; CI publishes them.
 
 ## What the hardware is still needed for
 
@@ -50,12 +46,11 @@ Never flash the board yourself (`pio run -t upload` asks for permission); ask th
 ## Report format
 
 ```
-Build:   SUCCESS  (Flash 86.9% | RAM 38.0%)
+Build:   SUCCESS  (Flash 83.3% | static DRAM headroom 64.6 KB)
 Static:  no defects (cppcheck)
 FS:      skipped (data/ unchanged)
-Tests:   none exist (0 test cases)
+Tests:   17/17 passed
 Secrets: clean
-release/: restored
 Needs on-device check: <list or "none">
 ```
 
@@ -64,6 +59,6 @@ Needs on-device check: <list or "none">
 | Mistake | Reality |
 |---|---|
 | "Tests pass" when `0 test cases` were collected | Nothing ran. Say so. |
-| Committing `release/*.bin` from a dev build | Restore it; CI builds the release binaries. |
+| Committing binaries | Never; `release/` is ignored and CI publishes release binaries. |
 | Running `buildfs` only, after editing C++ | The `data/` and firmware builds are independent; run whichever ones the change touches. |
 | Claiming an OTA or memory fix works because it compiles | Compiling proves nothing at runtime. List it as needing an on-device check. |
