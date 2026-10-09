@@ -13,7 +13,7 @@ QRPickle's own code is MIT-licensed (see [`License`](License)). The firmware and
 | Font Awesome 7 Free icons "globe" and "microchip" (`assets/img/icon_*`), recoloured | CC BY 4.0 | © Fonticons, Inc. | [creativecommons.org/licenses/by/4.0](https://creativecommons.org/licenses/by/4.0/) |
 | Weather condition icons (`assets/img/[0-9]*`) | No published icon licence; attributed | © OpenWeather, [openweathermap.org](https://openweathermap.org/weather-conditions) | [`assets/img/SOURCES.md`](assets/img/SOURCES.md) |
 | International amateur radio symbol (splash screen) | Public domain | Denelson83, [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:International_amateur_radio_symbol.svg) | [`assets/img/SOURCES.md`](assets/img/SOURCES.md) |
-| Bangalore Amateur Radio Club (VU2ARC) logo (splash screen) | Not MIT; used with attribution | © Bangalore Amateur Radio Club, [barc.in](https://www.barc.in/) | [`assets/img/SOURCES.md`](assets/img/SOURCES.md) |
+| Bangalore Amateur Radio Club (VU2ARC) logo (splash screen) | Not MIT; used with the club's permission | © Bangalore Amateur Radio Club, [barc.in](https://www.barc.in/) | [`assets/img/SOURCES.md`](assets/img/SOURCES.md) |
 | LVGL 9.5 | MIT | © LVGL Kft, [lvgl/lvgl](https://github.com/lvgl/lvgl) | in the library |
 | TFT_eSPI 2.5 | MIT (per library.json) | Bodmer, [Bodmer/TFT_eSPI](https://github.com/Bodmer/TFT_eSPI) | in the library |
 | ArduinoJson 7 | MIT | © Benoît Blanchon, [arduinojson.org](https://arduinojson.org) | in the library |

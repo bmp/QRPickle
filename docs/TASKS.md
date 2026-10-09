@@ -9,9 +9,6 @@ The web console checks are automated (`tools/webui_e2e/`, 31/31 on 2026-10-09). 
 - [ ] **Setup hotspot:** when the device can't reach WiFi, `QRPickle-Setup` asks for the admin password, and the LED stays amber.
 - [ ] **Sensor offline (optional):** unplug the BME280 and boot. The dashboard shows `-- C | --%` and `-- hPa`, the weather screen `--`.
 
-## Licences
-- [ ] **VU2ARC logo (optional):** barc.in publishes no logo terms; it's used with attribution. A short OK from the club would remove any doubt.
-
 ## Planned for v0.2.2
 - [ ] **Screen geometry constants (review 4.3):** replace the ~27 hardcoded `320`/`240`/`216` values with named constants; check each screen.
 - [ ] **Theme colours (review 4.4):** move the ~27 hardcoded colours into the theme system; check each theme.
