@@ -4,6 +4,12 @@ Releases are created by GitHub Actions (`.github/workflows/release.yml`) **only 
 
 Devices on the field pick up new releases through **Cloud OTA** (sidebar menu → **Cloud OTA** → ↻ to check → **INITIATE FIRMWARE FLASH**), so every tag you push ships firmware to users.
 
+## One-time GitHub setup (before the first Pages release)
+
+Releases also publish to **GitHub Pages**: Cloud OTA files under `/ota/` and the browser installer under `/install/` (https://bmp.github.io/QRPickle/install/).
+1. Repository **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+2. **Settings → Environments → github-pages → Deployment branches and tags → Add rule → Tag, pattern `v*`.** By default only the default branch may deploy, and releases run from tags.
+
 ## Version numbers
 
 - The version lives in one place: `FW_VERSION` in `src/core/metadata.h`, e.g. `"v0.1.12"`.
@@ -67,6 +73,7 @@ On GitHub → **Actions** → "Auto-Build and Release":
    - `firmware.bin.sha256`
    - `littlefs.bin`
    - a ZIP containing everything, including `bootloader.bin` and `partitions.bin`
+6. Publishes **GitHub Pages**: `ota/ota.json` + `ota/firmware.bin` (what devices update from) and the `install/` page (built by `scripts/make_pages_site.py`).
 
 ### 5. Verify the release on a device
 On a CYD running the previous version, open the sidebar menu → **Cloud OTA**, tap ↻, then **INITIATE FIRMWARE FLASH**. On the serial log, expect:
@@ -82,9 +89,9 @@ The **"New image healthy"** line has to appear. If the new firmware can't run fo
 
 | Step | Behaviour |
 |---|---|
-| Check | Reads the latest release from `api.github.com/repos/bmp/QRPickle`; offers it only if newer |
+| Check | Reads `https://bmp.github.io/QRPickle/ota/ota.json` (with HamAlert/APRS paused for memory); offers it only if newer and it has a valid SHA-256 |
 | Download | Streams `firmware.bin` into the inactive app slot |
-| Integrity | Compares against `firmware.bin.sha256`; refuses on mismatch. Releases without the file still install, with a warning. |
+| Integrity | Compares against the SHA-256 in `ota.json`; refuses on mismatch, and never flashes a release without one |
 | Safety net | Trial-boot guard: no healthy boot within 3 tries → previous version restored |
 
 Cloud OTA updates **firmware only**. If `data/` changed (web console files), users must also upload `littlefs.bin` from the web console's OTA tab, or flash it by USB. Say so in the release notes.
@@ -107,7 +114,9 @@ git push origin :refs/tags/v0.1.12
 
 ## Users without Cloud OTA
 
-Pre-built files are attached to every GitHub release. The USB and web-flasher instructions in the README ("Easy Web Installation") use these offsets:
+**Easiest:** open https://bmp.github.io/QRPickle/install/ in Chrome or Edge, connect the CYD by USB and click **Install** (ESP Web Tools). This is a full install, so settings are erased.
+
+Pre-built files are also attached to every GitHub release. The USB and web-flasher instructions in the README ("Easy Web Installation") use these offsets:
 
 | File | Offset |
 |---|---|

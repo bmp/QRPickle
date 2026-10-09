@@ -8,6 +8,8 @@ Items that automation could not verify (screen/touch/browser), plus patches for 
 - [x] **Plan C, profiles:** saving a new profile (name with letters/digits/`_-` only) and loading it still works; the dropdown lists the profiles.
 - [ ] **Plan C, setup AP:** `QRPickle-Setup` now needs the same password (only seen when the device can't reach WiFi).
 - [x] ~~2.1/2.2~~: verified automatically with `curl` (Plan D).
+- [ ] **GitHub Pages setup (one-time):** Settings → Pages → Source: GitHub Actions; Settings → Environments → github-pages → allow tag pattern `v*` (docs/RELEASING.md).
+- [ ] **First Pages release:** check https://bmp.github.io/QRPickle/install/ loads, and that Cloud OTA on a CYD finds the release (the local end-to-end test already passed: download, SHA-256, flash, healthy).
 - [ ] **Plan D, Cloud OTA:** not testable without publishing a release. On the next release (docs/RELEASING.md step 5), use sidebar → Cloud OTA → ↻ → INITIATE FIRMWARE FLASH; the serial log should show `SHA-256 verified.` and then `[OTA Guard] New image healthy`.
 
 - [x] **Plan E, LVGL trim (S2):** all images are RGB565A8 (kept) and no UI code uses whole-object opacity, transforms or blend modes, so the risk is low. Check: the splash logos, the weather-screen condition icon, the dashboard weather widget's two 20×20 icons, and symbol glyphs (⌂ ↻ WiFi). If anything is blank, re-enable `LV_DRAW_SW_SUPPORT_ARGB8888` in `include/lv_conf.h` and run `pio run -t clean`.

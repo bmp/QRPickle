@@ -44,11 +44,12 @@ Current gaps (don't assume these work):
 - Web uploads (`/api/system/update?target=firmware|filesystem`) and Cloud OTA both use the partition sizes.
 - After a firmware update the **trial-boot guard** keeps the previous slot. A new image that doesn't reach 60s with WiFi within 3 boots is rolled back (`ota_manager.h`).
 - Test builds can use `-DQRP_TEST_CRASH_AT_BOOT` (never release these).
-- Cloud OTA verifies `firmware.bin.sha256` when the release publishes it.
+- Cloud OTA reads `https://<owner>.github.io/<repo>/ota/ota.json` (version, notes, sha256) and downloads `firmware.bin` from the same place. GitHub's release download host is unreachable with this mbedTLS (review 2.9). The SHA-256 is mandatory; TLS isn't certificate-checked yet (2.11). Test builds can override the base URL with `-DQRP_OTA_BASE_URL=\"http://...\"` (also export it for `-t upload`, which rebuilds).
+- `scripts/make_pages_site.py` builds the Pages site (Cloud OTA files + ESP Web Tools installer from `web-installer/index.html`); CI runs it on each release.
 
 ## Release process (important)
 
-Releases happen **only** when a `v*` tag matching `FW_VERSION` (`src/core/metadata.h`) is pushed. CI checks the tag, runs the tests, builds, and publishes `firmware.bin`, `firmware.bin.sha256` and `littlefs.bin`. Pushing to `main` does not release; `ci.yml` checks every push and PR. Never push tags without explicit confirmation. Full procedure: `docs/RELEASING.md`.
+Releases happen **only** when a `v*` tag matching `FW_VERSION` (`src/core/metadata.h`) is pushed. CI checks the tag, runs the tests, builds, publishes `firmware.bin`, `firmware.bin.sha256` and `littlefs.bin` to the Release, and deploys GitHub Pages (`ota/`, `install/`). Pushing to `main` does not release; `ci.yml` checks every push and PR. Never push tags without explicit confirmation. Full procedure: `docs/RELEASING.md`.
 
 ## Architecture
 

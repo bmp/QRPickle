@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Install QRPickle</title>
+  <!-- ESP Web Tools, pinned (https://esphome.github.io/esp-web-tools/) -->
+  <script type="module" src="https://unpkg.com/esp-web-tools@10.4.0/dist/web/install-button.js?module"></script>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 40rem; margin: 3rem auto; padding: 0 1rem; line-height: 1.5; }
+    code { background: #eee; padding: 0 .3em; border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <h1>Install QRPickle on a Cheap Yellow Display</h1>
+  <p>Version: <strong id="ver">loading…</strong></p>
+  <ol>
+    <li>Use <strong>Chrome or Edge</strong> on a computer (Web Serial is required).</li>
+    <li>Connect the CYD with a USB <em>data</em> cable.</li>
+    <li>Click <strong>Install</strong>, pick the serial port, and allow erasing for a clean install.</li>
+  </ol>
+  <esp-web-install-button manifest="manifest.json"></esp-web-install-button>
+  <p>After installing, the device opens a <code>QRPickle-Setup</code> WiFi network. Its password and the web
+     console login are shown on the device's Network screen.</p>
+  <p>Already running QRPickle? Update over WiFi instead: sidebar → <strong>Cloud OTA</strong>.</p>
+  <script>
+    fetch("manifest.json").then(r => r.json()).then(m => { document.getElementById("ver").textContent = m.version; });
+  </script>
+</body>
+</html>
