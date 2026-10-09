@@ -31,11 +31,13 @@ On your release branch:
 ```bash
 pio test -e native                 # unit tests
 pio check -e cyd --severity=high --severity=medium   # expect "No defects found"
-pio run && pio run -t buildfs      # check_size / check_secrets guards run here
+pio run && pio run -t buildfs      # check_size / check_secrets / check_licenses guards run here
 pio run -t upload && pio run -t uploadfs
 ~/.platformio/penv/bin/python -I tools/device_check.py --cycles 10   # expect PASS, wdt=0
 ```
-If the web console changed, also run `QRP_ADMIN_PW=<pw> tools/web_security_check.sh <device-ip>` (expect 15/15).
+If the web console changed, also run `QRP_ADMIN_PW=<pw> tools/web_security_check.sh <device-ip>` (expect 17/17).
+
+If the web console's look changed, regenerate the screenshots in `docs/screenshots/` (see `tools/webui_screenshots/README.md`) after the version bump, so they show the new version.
 
 The release build must **not** use the `cyd-debug` environment or `-DQRP_TEST_CRASH_AT_BOOT`.
 
@@ -94,7 +96,7 @@ The **"New image healthy"** line has to appear. If the new firmware can't run fo
 | Integrity | Compares against the SHA-256 in `ota.json`; refuses on mismatch, and never flashes a release without one |
 | Safety net | Trial-boot guard: no healthy boot within 3 tries → previous version restored |
 
-Cloud OTA updates **firmware only**. If `data/` changed (web console files), users must also upload `littlefs.bin` from the web console's OTA tab, or flash it by USB. Say so in the release notes.
+Cloud OTA updates **firmware only**. If `data/` changed (web console files), users must also upload `littlefs.bin` (web console → **System Info** → Wireless Maintenance → filesystem target), or flash it by USB. Writing the filesystem **erases saved profiles**, so tell users to download a backup first (Profiles → Download Backup). Say both in the release notes.
 
 ## When something goes wrong
 

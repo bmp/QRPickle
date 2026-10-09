@@ -369,6 +369,7 @@ function editSelectedProfile() {
             document.getElementById("profile-edit-name").innerText = pName;
             document.getElementById("profile-edit-banner").classList.remove("hidden");
             document.querySelectorAll(".admin-pw-group").forEach(el => el.classList.add("hidden"));
+            document.getElementById("btn-save-config").innerText = "Save to Profile";
             document.querySelector('.tab-btn[data-tab="basic"]').click();
         })
         .catch(err => alert("Could not load the profile: " + err));
@@ -378,6 +379,7 @@ function stopEditingProfile() {
     editingProfile = null;
     document.getElementById("profile-edit-banner").classList.add("hidden");
     document.querySelectorAll(".admin-pw-group").forEach(el => el.classList.remove("hidden"));
+    document.getElementById("btn-save-config").innerText = "Save Configuration";
     loadCurrentConfig();
 }
 

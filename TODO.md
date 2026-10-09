@@ -1,23 +1,16 @@
 # TODO
 
-Gaps found during the initial Claude Code review (2026-10-06). Revisit once the Claude Code setup is complete.
+Gaps found during the initial Claude Code review (2026-10-06). The code review findings, with severity, location and status, live in `docs/reviews/2026-10-code-review.md`; owner checks and follow-up tasks live in `docs/NEEDS_REVIEW.md`. Don't duplicate them here.
 
-## Build scripts (wired into `platformio.ini` but empty)
-- [ ] `scripts/check_secrets.py` is 0 bytes. Implement a pre-build check that fails if credential-like strings appear in tracked source.
-- [ ] `scripts/gzip_data.py` is 0 bytes. Either implement gzip of `data/www/*` (and serve `.gz` from `web_server.cpp`) or remove it from `extra_scripts`.
-- [ ] `scripts/check_size.py` is 0 bytes. Implement a post-build size check against the 1.75MB app slot (`0x1C0000`) and the 448KB LittleFS partition, or remove it.
+## Done
+- [x] Build guards implemented: `check_secrets.py`, `gzip_data.py`, `check_size.py`, plus `check_licenses.py`.
+- [x] Native unit tests: `test_parsers` and `test_config` (`pio test -e native`).
+- [x] `release/` is untracked; binaries come only from CI.
+- [x] Releases run only on a `v*` tag matching `FW_VERSION`.
+- [x] `CORE_DEBUG_LEVEL` is 1 in `cyd`; verbose logs use the `cyd-debug` env.
+- [x] Filename typo fixed: `src/ui/screens/cloud_ota.cpp` (was `clout_ota.cpp`).
 
-## Tests
-- [ ] `test/test_parsers`, `test/test_scheduler` and `test/test_config` are empty, so `pio test -e native` runs nothing. Add native Unity tests, starting with the parsers (POTA/SOTA/DX/HamAlert) and `config_validation`.
-- [ ] `test/test_hw_led.cpp` is an on-device sketch sitting in `test/`. Move it to a `test_*` folder as a proper embedded test, or move it out of `test/`.
-
-## Build / release hygiene
-- [ ] Every `pio run` overwrites the tracked `release/*.bin` via `scripts/release_copy.py`, so local builds produce noisy diffs. Decide whether `release/` should stay in git; CI already publishes binaries to GitHub Releases.
-- [ ] `release.yml` releases on every push to `main` and force-overwrites the tag if `FW_VERSION` wasn't bumped. Consider moving to a feature-branch workflow and/or triggering releases only on a version bump or a manual dispatch.
-
-## Small inconsistencies
-- [ ] `platformio.ini`: the comment says `CORE_DEBUG_LEVEL=1`, but the flag is set to `4` (verbose).
-- [ ] Filename typo: `src/ui/screens/clout_ota.cpp` (the header is `cloud_ota.h`).
-
-## Code review findings
-All findings, with severity, location and fix, live in `docs/reviews/2026-10-code-review.md`. Track them there; don't duplicate them here.
+## Open
+- [ ] `test/test_scheduler/` is empty and excluded from `test_filter`. Add tests or remove the folder.
+- [ ] `test/test_hw_led/` is a standalone on-device LED/TFT sketch, not a Unity test.
+- [ ] There is no linter or formatter config.

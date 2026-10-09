@@ -14,7 +14,7 @@
 
     <div class="wrapper">
         <div id="profile-edit-banner" class="edit-banner hidden">
-            Editing profile <strong id="profile-edit-name"></strong>: <em>Save</em> writes to the profile, not the device.
+            <span>Editing profile <strong id="profile-edit-name"></strong>: saving writes to the profile, not the device.</span>
             <button class="btn btn-secondary" onclick="stopEditingProfile()">Stop Editing</button>
         </div>
         <nav class="tabs">
@@ -342,7 +342,7 @@
         </section>
 
         <div class="action-bar">
-            <button class="btn btn-primary" onclick="saveActiveConfig()">Save Configuration</button>
+            <button class="btn btn-primary" id="btn-save-config" onclick="saveActiveConfig()">Save Configuration</button>
             <button class="btn btn-secondary" onclick="loadCurrentConfig()">Cancel</button>
             <button class="btn btn-danger" onclick="triggerReboot()">Reboot Device</button>
         </div>

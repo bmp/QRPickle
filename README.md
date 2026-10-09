@@ -33,10 +33,12 @@ When on the same network, navigate to the device's IP address to access the inte
 | Basic Network & Station Config | Advanced Settings |
 | :---: | :---: |
 | <img src="docs/screenshots/WebUI.png" alt="Web UI Basic" width="400"> | <img src="docs/screenshots/AdvancedSettings.png" alt="Advanced Settings" width="400"> |
-| **Staged Profile Management** | **Live Hardware Telemetry** |
-| <img src="docs/screenshots/Profiles.png" alt="Profiles" width="400"> | <img src="docs/screenshots/SysInfo.png" alt="System Info" width="400"> |
-| **Over-The-Air (OTA) Firmware Flashing** | |
-| <img src="docs/screenshots/OTA.png" alt="OTA Updates" width="400"> | <img src="docs/screenshots/APRS_Msg.png" alt="APRS Messaging" width="400"> |
+| **Profiles, Backup & Restore** | **Editing a Profile in the Settings Form** |
+| <img src="docs/screenshots/Profiles.png" alt="Profiles" width="400"> | <img src="docs/screenshots/ProfileEdit.png" alt="Editing a profile" width="400"> |
+| **Live Hardware Telemetry & Manual Update** | **Cloud OTA** |
+| <img src="docs/screenshots/SysInfo.png" alt="System Info" width="400"> | <img src="docs/screenshots/OTA.png" alt="Cloud OTA" width="400"> |
+| **APRS Messaging** | |
+| <img src="docs/screenshots/APRS_Msg.png" alt="APRS Messaging" width="400"> | |
 
 
 
@@ -58,7 +60,7 @@ Saved secrets (WiFi password, API keys, passcodes) are never shown again in the 
 * **Heap-Protected POTA & SOTA Fetching:** Standard HTTPS requests require ~40KB of contiguous RAM for RSA encryption (`mbedTLS`). QRPickle uses element-by-element JSON stream deserialization and task-staggering to prevent `BIGNUM` Out-Of-Memory kernel panics.
 * **APRS-IS Integration:** Connects to the global APRS-IS network. Features a tactical Radar view, live spotter tracking, custom macros, and direct bidirectional messaging.
 * **Solar & Weather Telemetry:** Pulls active K-Index, A-Index, and SFI from solar endpoints, and maps granular, bitmask-driven 24-hour weather forecasts via OpenWeatherMap API.
-* **Adaptive Power & Wi-Fi Management:** Enforces hardware-level radio power caps (`esp_wifi_set_max_tx_power(52)`) to prevent LDO voltage brownouts on the CYD board. Falls back to an integrated Setup AP (`192.168.4.1`) if routing fails.
+* **Adaptive Power & Wi-Fi Management:** Enforces hardware-level radio power caps (`esp_wifi_set_max_tx_power(60)`, i.e. 15 dBm) to prevent LDO voltage brownouts on the CYD board. Falls back to an integrated Setup AP (`192.168.4.1`) if routing fails.
 * **Profiles:** Save and hot-swap complete configurations (every setting except the admin password: callsign, grid, network, theme, APRS, macros, DX servers, HamAlert) for quick transitions between Home, Mobile and Field ops. Edit a profile in the normal settings form, delete it, or download/restore a backup (settings + profiles, without passwords and keys). Profiles are stored on LittleFS, so download a backup before writing a new filesystem image.
 * **Monochrome & Tactical Themes:** Driven by **LVGL 9**, featuring high-contrast modes including Tactical Field Red, GitHub Slate Dark, Terminal Phosphor Green, and pure-binary E-Ink simulations.
 * **OTA:** Manual firmware update through the web dashboard, or **Cloud OTA** (pulls the latest release published on GitHub Pages and checks its SHA-256 before switching). A new image that doesn't come up healthy within 3 boots is rolled back automatically.
@@ -79,9 +81,13 @@ QRPickle's own code is MIT-licensed (see [`License`](License)). The fonts are un
 ## Libraries & Frameworks
 
 * **[LVGL (Light and Versatile Graphics Library) v9.x](https://lvgl.io/):** Core C-based UI framework handling all screens, layouts, animations, and touch interactions.
-* **[TFT_eSPI](https://github.com/Bodmer/TFT_eSPI):** Highly optimized hardware-specific SPI driver for the ILI9341 display and XPT2046 resistive touch controller.
+* **[TFT_eSPI](https://github.com/Bodmer/TFT_eSPI):** Highly optimized SPI driver for the ILI9341 display.
+* **[XPT2046_Touchscreen](https://github.com/PaulStoffregen/XPT2046_Touchscreen):** Driver for the resistive touch controller (on its own SPI bus).
+* **[ESPAsyncWebServer](https://github.com/ESP32Async/ESPAsyncWebServer):** The web console and its REST API, with Digest authentication.
 * **[ArduinoJson v7](https://arduinojson.org/):** Zero-allocation stream parsing for OpenWeatherMap, POTA, and SOTA HTTPS payloads.
 * **ESP-IDF Native APIs:** Utilized directly alongside the Arduino Core wrapper for strict Wi-Fi TX power limits, FreeRTOS task handling, and lwIP socket management.
+
+The complete list, with licences, is in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ---
 
@@ -138,12 +144,15 @@ The release folder contains the following files:
 * `firmware.bin` (The core C++ application)
 * `littlefs.bin` (The Web UI and filesystem data)
 * `bootloader.bin` & `partitions.bin` (Low-level ESP32 boot structures)
+* `License`, `THIRD_PARTY_NOTICES.md` and the font licences (`OFL-*.txt`) (in the ZIP)
 
 ---
 
 ## Easy Web Installation (No Software Required)
 
-You can flash QRPickle directly from your Chrome or Edge web browser using the Espressif Web Flasher.
+**One-click installer (from v0.2.0):** open **[bmp.github.io/QRPickle/install](https://bmp.github.io/QRPickle/install/)** in Chrome or Edge, connect the CYD by USB and click **Install**. It writes everything, including the filesystem. If you're updating a device that already has profiles, download a backup first (web console → Profiles → Download Backup).
+
+**Manual alternative:** flash the release files with the Espressif Web Flasher.
 
 1. Connect your CYD to your computer via USB.
 2. Open the **[Espressif Web Flasher Tool](https://espressif.github.io/esptool-js/)**.
