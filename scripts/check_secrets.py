@@ -2,7 +2,8 @@
 # sources that end up in the firmware or the LittleFS image. Credentials belong in NVS,
 # entered on the device (see CLAUDE.md "Secrets").
 Import("env")
-import os, re
+import os
+import re
 
 PATTERN = re.compile(
     r'(api[_-]?key|appid|passw\w*|passcode|secret\w*|token\w*|ham_?pass\w*)\s*[:=]\s*"([^"\n]{6,})"',

@@ -78,7 +78,8 @@ def process_file(in_path, out_dir):
 def main():
     parser = argparse.ArgumentParser(description="Convert PNGs to LVGL v9 Split-Map .bin")
     parser.add_argument("-f", "--file", help="Filename of the PNG (e.g., icon_web_20x20.png)", required=False, type=str)
-    parser.add_argument("-a", "--all", help="Batch convert all PNG files in the assets/img directory", action="store_true")
+    parser.add_argument("-a", "--all", action="store_true",
+                        help="Batch convert all PNG files in the assets/img directory")
     args = parser.parse_args()
 
     # Define base paths

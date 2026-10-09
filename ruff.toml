@@ -1,0 +1,16 @@
+# Python lint for scripts/ and tools/ (run in CI). Version pinned in CI: ruff 0.16.10.
+line-length = 120
+target-version = "py310"
+include = ["scripts/**/*.py", "tools/**/*.py"]
+extend-exclude = ["scripts/venv"]
+# PlatformIO extra scripts get Import/env/DefaultEnvironment from SCons.
+builtins = ["Import", "env", "DefaultEnvironment", "projenv"]
+
+[lint]
+select = ["E", "F", "W", "B"]
+# Compact one-liners ("if x: return") are used on purpose, as in the C++ code.
+ignore = ["E701", "E702"]
+
+[lint.per-file-ignores]
+# PlatformIO extra scripts must call Import("env") before other imports.
+"scripts/{check_secrets,check_size,gzip_data,release_copy,check_licenses}.py" = ["E402"]

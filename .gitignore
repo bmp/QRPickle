@@ -20,3 +20,7 @@ docs/superpowers/
 
 # Local editor/tool database (not project data)
 .vorg.db
+
+# Python bytecode
+__pycache__/
+*.pyc

@@ -34,7 +34,7 @@ def convert_to_lvgl9_split_c(input_path, output_path, w, h, var_name):
         color565 = ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3)
         byte1 = color565 & 0xFF
         byte2 = (color565 >> 8) & 0xFF
-        
+
         rgb_data.append(f"0x{byte1:02X}")
         rgb_data.append(f"0x{byte2:02X}")
         alpha_data.append(f"0x{a:02X}")

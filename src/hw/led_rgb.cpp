@@ -37,6 +37,7 @@ namespace hw {
         }
 
         static void led_engine_task(void* pvParameters) {
+            Rgb shown = {0, 0, 0};  // init() leaves the LED off
             while (true) {
                 crashlog::mark(crashlog::SLOT_LED, 1);
                 const uint32_t now = millis();
@@ -48,7 +49,12 @@ namespace hw {
 
                 const LEDState state = current_state;
                 const Rgb c = pattern_color(state, now, strobe_age, pulse_age);
-                write_raw_rgb(c.r, c.g, c.b);
+                // Only touch the PWM channels when the colour changes (review 5.3): in standby the
+                // task used to rewrite all three every 100 ms forever.
+                if (c.r != shown.r || c.g != shown.g || c.b != shown.b) {
+                    write_raw_rgb(c.r, c.g, c.b);
+                    shown = c;
+                }
                 vTaskDelay(pdMS_TO_TICKS(hold_ms(state, strobe_age >= 0, pulse_age >= 0)));
 
                 // "Ready" green is shown for one hold (1 s), then the LED goes dark.

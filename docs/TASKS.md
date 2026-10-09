@@ -20,5 +20,3 @@ The web console checks are automated (`tools/webui_e2e/`, 31/31 on 2026-10-09). 
 - [ ] **DX screen freeze (review 4.6):** cause not found. 2026-10-09: 30 min on DX Spots with v0.2.0 code, no freeze, reset or heap drift (94.2-95.1 KB). If it recurs, capture with `tools/serial_soak.py` and decode the watchdog backtrace ([DEBUGGING.md](DEBUGGING.md)).
 - [ ] **Cloud OTA certificate checking (review 2.11):** HTTPS is not certificate-checked yet; integrity relies on the mandatory SHA-256.
 - [ ] **Cosmetic review items 4.3 / 4.4.**
-- [ ] `test/test_scheduler/` is empty and excluded from `test_filter`: add tests or remove it.
-- [ ] **After v0.2.0: linter and formatter.** `clang-format` for C++ (config matching the current style, checked in CI; no mass reformat) and `ruff` for the Python scripts.

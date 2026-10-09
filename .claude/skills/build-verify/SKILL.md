@@ -21,7 +21,9 @@ Run every step that applies and report each result.
 
 3. **Size budget.** The app slot is 1,835,008 bytes (`0x1C0000`).
    - Flash ≥ 95%: **warn**. OTA will fail once the image no longer fits the slot.
-   - Compare against the last known value (83.3% on 2026-10-09). Flag any jump of more than 2 points and name the likely cause.
+   - Compare against the last known value (83.1% on 2026-10-09, v0.2.0). Flag any jump of more than 2 points and name the likely cause.
+
+3b. **Lint:** `ruff check` (Python) and `scripts/check_format.sh` (C/C++ lines changed vs `origin/main`), with the pinned tools (`clang-format==19.1.7`, `ruff==0.16.10`; set `CLANG_FORMAT`). Format only changed lines (`git clang-format`); never reformat whole files.
 
 4. **Filesystem** (only if `data/` changed):
    `pio run -t buildfs`. LittleFS is 448KB.
@@ -48,8 +50,9 @@ Never flash the board yourself (`pio run -t upload` asks for permission); ask th
 ```
 Build:   SUCCESS  (Flash 83.3% | static DRAM headroom 64.6 KB)
 Static:  no defects (cppcheck)
+Lint:    ruff OK, format OK (changed lines)
 FS:      skipped (data/ unchanged)
-Tests:   17/17 passed
+Tests:   29/29 passed
 Secrets: clean
 Needs on-device check: <list or "none">
 ```

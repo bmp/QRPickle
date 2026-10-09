@@ -14,7 +14,8 @@ import time
 
 import serial
 
-ALERT = re.compile(r"rst:|Guru Meditation|panic|abort\(\)|task_wdt|Task watchdog|Backtrace|CRASHLOG|Brownout|assert", re.I)
+ALERT = re.compile(r"rst:|Guru Meditation|panic|abort\(\)|task_wdt|Task watchdog|Backtrace|CRASHLOG|Brownout|assert",
+                   re.I)
 
 
 def main():
