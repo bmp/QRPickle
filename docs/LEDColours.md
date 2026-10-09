@@ -22,4 +22,6 @@ During a cold boot or hardware reset, the LED acts as a progressive loading indi
 * **Triple Red Flash:** Critical System Fault. Repeated 3-second cycle indicating a severe blockage (e.g., flash memory corruption or continuous socket failures).
 
 ---
-**Hardware Note:** The CYD RGB LED is wired via a **Common Anode** configuration. This requires inverted logic in the software (`0` is full brightness, `255` is off). To prevent PWM "ghosting" or "leakage shimmer" when a channel is idle, the firmware explicitly re-routes the pin to a standard digital output and drives it `HIGH` to physically lock the voltage rail.
+**Hardware Note:** The CYD RGB LED (R = GPIO4, G = GPIO16, B = GPIO17) is **common anode**, so the PWM duty is inverted: `0` is full brightness and `255` is off. An idle channel is driven at duty 255 (off).
+
+**Tests:** the colours and timings above live in `src/hw/led_pattern.cpp` and are checked by the host unit tests in `test/test_led` (run in CI). `test/test_hw_led/` is an optional on-device sketch that cycles through every state with the same code, for checking by eye.

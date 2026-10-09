@@ -22,5 +22,4 @@ The single list of open work: checks that need a person (screen, touch, browser)
 - [ ] **Cloud OTA certificate checking (review 2.11):** HTTPS is not certificate-checked yet; integrity relies on the mandatory SHA-256.
 - [ ] **Cosmetic review items 4.3 / 4.4.**
 - [ ] `test/test_scheduler/` is empty and excluded from `test_filter`: add tests or remove it.
-- [ ] `test/test_hw_led/` is a standalone on-device sketch, not a Unity test.
 - [ ] No linter or formatter config.

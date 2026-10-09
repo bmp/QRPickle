@@ -15,7 +15,7 @@ pio run -t buildfs             # build littlefs.bin from data/
 pio run -t upload              # flash firmware over USB (needs device attached)
 pio run -t uploadfs            # flash data/ (web UI, images) to LittleFS
 pio device monitor             # serial log @ 115200
-pio test -e native             # host-side unit tests (Unity): test_parsers + test_config
+pio test -e native             # host-side unit tests (Unity): test_parsers, test_config, test_led
 pio test -e native -f test_config    # run a single test folder
 ```
 
@@ -26,13 +26,13 @@ Build guards and tests:
 - `scripts/check_licenses.py` (pre-build, also standalone) fails the build when a library, platform version, font, image or file with a foreign copyright line isn't recorded in `THIRD_PARTY_NOTICES.md`, `assets/img/SOURCES.md` or `docs/pics/third-party/README.md`. It warns while image entries are UNCONFIRMED.
 - `scripts/gzip_data.py` (pre-build) builds the LittleFS image from a staged copy of `data/` with `www/*.html|js|css` gzipped (56KB → 13KB); the server sends the `.gz` files with `Content-Encoding: gzip`. Edit the plain files in `data/`; never commit `.gz`.
 - `scripts/check_size.py` (post-build) fails if static DRAM headroom is under 4KB or the image is over 95% of the OTA slot.
-- Native unit tests (host): `test/test_parsers` (SOTA cluster, APRS parsing, version compare) and `test/test_config` (validation, profile names, the JSON field table). The native env compiles only the host-safe sources in `build_src_filter`; tests may `#include` other host-safe `.cpp` files directly. `test_filter` takes one pattern per line.
+- Native unit tests (host): `test/test_parsers` (SOTA cluster, APRS parsing, version compare) `test/test_config` (validation, profile names, the JSON field table) and `test/test_led` (status LED colours and timings from `src/hw/led_pattern`). The native env compiles only the host-safe sources in `build_src_filter`; tests may `#include` other host-safe `.cpp` files directly. `test_filter` takes one pattern per line.
 - `pio check -e cyd --severity=high --severity=medium` (cppcheck) must report no defects. CI (`.github/workflows/ci.yml`) runs all of the above.
 
 Open work, owner checks and known gaps: `docs/TASKS.md` (the single tracker; don't add new TODO files).
 
 Current gaps (don't assume these work):
-- `test/test_hw_led/` is a standalone on-device LED/TFT sketch, not a Unity test.
+- `test/test_hw_led/` is an optional on-device sketch for checking the LED by eye; the automated LED test is `test/test_led`.
 - There is no linter or formatter config.
 
 ## Device checks and memory budgets
