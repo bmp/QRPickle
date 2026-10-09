@@ -88,7 +88,29 @@ def accessibility(name, call, version):
             "#set table(inset: (x: 6pt, y: 5pt), stroke: (x, y) => (bottom: if y == 0 "
             "{ 1.4pt + rgb(\"#a70f0f\") } else { 0.4pt + luma(200) }))\n"
             "#show table.cell.where(y: 0): set text(fill: rgb(\"#a70f0f\"), weight: \"bold\")\n"
-            "#show table.hline: none\n")
+            "#show table.hline: none\n"
+            # Figures centre their content; tables start at the left margin (image grids are full width).
+            "#show figure.where(kind: table): set align(left)\n")
+
+
+def left_align_text_tables(typ):
+    """Left-align tables that hold text/numbers (cells and placement); image grids stay centred.
+    pandoc writes each table as `align(center)[#table(... align: (center,left,...), ...)]`."""
+    out, pos = [], 0
+    for m in re.finditer(r"align\(center\)\[#table\(", typ):
+        if m.start() < pos:
+            continue
+        depth, i = 1, m.end()
+        while depth and i < len(typ):        # find the end of table( ... )
+            depth += {"(": 1, ")": -1}.get(typ[i], 0)
+            i += 1
+        block = typ[m.start():i]
+        if "image(" not in block:
+            block = block.replace("align(center)[#table(", "align(left)[#table(", 1)
+            block = re.sub(r"\n    align: \([^)]*\),", "\n    align: left,", block, count=1)
+        out.append(typ[pos:m.start()] + block)
+        pos = i
+    return "".join(out) + typ[pos:]
 
 
 def absolute_links(text, repo):
@@ -216,6 +238,7 @@ def main():
                 "#show figure: set block(breakable: true)\n"
                 "#show raw.where(block: true): set block(breakable: false)\n" + text)
         text = text.replace("table.header(", "table.header(repeat: false, ")
+        text = left_align_text_tables(text)
         # Typst resolves image paths relative to the .typ file; point them at the repo root, using
         # smaller copies (max 1000 px wide, JPEG) so the PDF stays a few MB instead of ~20 MB.
         # Full-page screenshots are trimmed to their top (at most 1.25x as tall as wide): table rows
