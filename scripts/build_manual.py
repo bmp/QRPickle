@@ -58,12 +58,37 @@ def page_setup(name, call, version, email):
     small = "set text(size: 8pt, fill: luma(90))"
     rule = "line(length: 100%, stroke: 0.4pt + luma(160))"
     page_x_of_y = "[Page #counter(page).display() of #counter(page).final().first()]"
-    mail = f'[#link("mailto:" + {typst_str(email)})[#{typst_str(email)}]]'
+    # Plain text: PDF/UA treats headers/footers as artifacts, which may not contain links.
+    mail = f"[#{typst_str(email)}]"
     header = (f"context {{ {small}; grid(columns: (1fr, 1fr), align: (left, right), "
               f"[{name}], [{call}]); v(-4pt); {rule} }}")
     footer = (f"context {{ {small}; {rule}; v(-4pt); grid(columns: (1fr, 1fr, 1fr), "
               f"align: (left, center, right), [{version}], {page_x_of_y}, {mail}) }}")
     return f"#set page(\n  header: {header},\n  footer: {footer},\n)\n"
+
+
+def accessibility(name, call, version):
+    """Document metadata and link styling for a tagged, accessible PDF (PDF/UA-1).
+
+    Links: underlined (not colour alone), #005bb5 on white (contrast about 6.6:1, WCAG AA/AAA
+    for body text), the link blue of ham.bharathpalavalli.com's light theme.
+    """
+    title = typst_str(f"{name} {version} Field Manual")
+    return (f"#set document(title: {title}, author: {typst_str(call)})\n"
+            '#set text(lang: "en")\n'
+            '#show link: set text(fill: rgb("#005bb5"))\n'
+            "#show link: underline.with(offset: 2pt, stroke: 0.6pt)\n")
+
+
+def absolute_links(text, repo):
+    """Relative links (README.md, docs/X.md, License) would be dead in a PDF: point them at GitHub.
+    In-page anchors (#...) and images (local files embedded in the PDF) are left alone."""
+    def repl(m):
+        label, target = m.group(1), m.group(2)
+        if re.match(r"^(https?:|mailto:|#)", target):
+            return m.group(0)
+        return f"{label}(https://github.com/{repo}/blob/main/{target.lstrip('./')})"
+    return re.sub(r"(?<!!)(\[[^\]]*\])\(([^)\s]+)\)", repl, text)
 
 
 def main():
@@ -93,13 +118,14 @@ def main():
     for name in ("HARDWARE.md", "LEDColours.md"):
         with open(os.path.join(ROOT, "docs", name), encoding="utf-8") as f:
             chapters.append(rebase_links(html_images_to_markdown(f.read()), "docs"))
-    doc = header + readme + "".join("\n\n---\n\n" + c for c in chapters)
+    doc = absolute_links(header + readme + "".join("\n\n---\n\n" + c for c in chapters), a.repo)
 
     with tempfile.TemporaryDirectory(dir=ROOT) as tmp:   # inside the repo, so image paths resolve
         md, typ = os.path.join(tmp, "manual.md"), os.path.join(tmp, "manual.typ")
         with open(md, "w", encoding="utf-8") as f:
             f.write(doc)
-        subprocess.run(["pandoc", md, "-f", "markdown", "-t", "typst", "-o", typ,
+        # GitHub renders a list that directly follows a paragraph; pandoc needs this extension for it.
+        subprocess.run(["pandoc", md, "-f", "markdown+lists_without_preceding_blankline", "-t", "typst", "-o", typ,
                         "--resource-path", ROOT], check=True)
         with open(typ, encoding="utf-8") as f:
             text = f.read().replace("#horizontalrule", "#line(length: 100%, stroke: 0.5pt)")
@@ -108,7 +134,7 @@ def main():
         # Don't repeat a table's first row on the next page (in the screenshot tables it holds
         # captions for the first images only), and keep code blocks (the wiring diagram) together.
         name, call, email = metadata("FW_NAME"), metadata("AUTHOR_CALL"), metadata("SUPPORT_EMAIL")
-        text = (page_setup(name, call, a.version, email) +
+        text = (accessibility(name, call, a.version) + page_setup(name, call, a.version, email) +
                 "#show figure: set block(breakable: true)\n"
                 "#show raw.where(block: true): set block(breakable: false)\n" + text)
         text = text.replace("table.header(", "table.header(repeat: false, ")
@@ -132,7 +158,8 @@ def main():
         text = re.sub(r'image\("(?!/)([^"]+)"', image_path, text)
         with open(typ, "w", encoding="utf-8") as f:
             f.write(text)
-        subprocess.run(["typst", "compile", "--root", ROOT, typ, os.path.abspath(a.out)], check=True)
+        subprocess.run(["typst", "compile", "--root", ROOT, "--pdf-standard", "ua-1", typ, os.path.abspath(a.out)],
+                       check=True)
     print(f"manual: {a.out}")
 
 
