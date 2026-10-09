@@ -66,6 +66,12 @@ static char* collect_body(AsyncWebServerRequest* r, uint8_t* data, size_t len, s
     return buf;
 }
 
+// The filesystem build stores the web console gzipped (scripts/gzip_data.py); the library
+// serves "<path>.gz" transparently, so accept either form.
+static bool www_exists(const char* path) {
+    return LittleFS.exists(path) || LittleFS.exists(String(path) + ".gz");
+}
+
 static void queue_config(config::Config* staged) {
     config::sanitize(*staged, config::get());
     delete pending_config.exchange(staged);
@@ -116,19 +122,19 @@ void web_server_init() {
 
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
         REQUIRE_AUTH(request);
-        if (LittleFS.exists("/www/index.html")) request->send(LittleFS, "/www/index.html", "text/html");
+        if (www_exists("/www/index.html")) request->send(LittleFS, "/www/index.html", "text/html");
         else request->send(200, "text/html", fallback_html);
     });
 
     server.on("/style.css", HTTP_GET, [](AsyncWebServerRequest *request) {
         REQUIRE_AUTH(request);
-        if (LittleFS.exists("/www/style.css")) request->send(LittleFS, "/www/style.css", "text/css");
+        if (www_exists("/www/style.css")) request->send(LittleFS, "/www/style.css", "text/css");
         else request->send(404, "text/plain", "CSS Missing");
     });
 
     server.on("/app.js", HTTP_GET, [](AsyncWebServerRequest *request) {
         REQUIRE_AUTH(request);
-        if (LittleFS.exists("/www/app.js")) request->send(LittleFS, "/www/app.js", "application/javascript");
+        if (www_exists("/www/app.js")) request->send(LittleFS, "/www/app.js", "application/javascript");
         else request->send(404, "text/plain", "JS Missing");
     });
 
