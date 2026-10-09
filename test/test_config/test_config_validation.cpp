@@ -37,7 +37,7 @@ void test_invalid_fields_revert_or_clamp() {
     sanitize(c, prev);
     TEST_ASSERT_EQUAL_STRING("VU3GLJ", c.callsign);
     TEST_ASSERT_EQUAL_UINT8(10, c.brightness);
-    TEST_ASSERT_EQUAL_UINT8(5, c.theme_id);
+    TEST_ASSERT_EQUAL_UINT8(THEME_ID_MAX, c.theme_id);  // 6 = E-Ink Monochrome Dark (all 7 themes valid)
     TEST_ASSERT_EQUAL_INT8(-24, c.tz_offset_hh);
     TEST_ASSERT_EQUAL_UINT8(60, c.screen_timeout_min);
     TEST_ASSERT_EQUAL_INT8(7, c.aprs_ssid);

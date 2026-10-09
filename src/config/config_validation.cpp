@@ -19,7 +19,7 @@ namespace config {
 
     uint8_t clamp_theme_id(int v) {
         if (v < 0) return 0;
-        if (v > 5) return 5;
+        if (v > THEME_ID_MAX) return THEME_ID_MAX;  // was 5: "E-Ink Monochrome Dark" (6) became 5
         return (uint8_t)v;
     }
 

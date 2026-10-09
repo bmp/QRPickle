@@ -1,5 +1,8 @@
 #include "theme.h"
 #include "../config/config.h"
+#include "../config/config_validation.h"
+
+static_assert(ui::THEME_COUNT - 1 == config::THEME_ID_MAX, "update config::THEME_ID_MAX when adding a theme");
 
 namespace ui {
 
