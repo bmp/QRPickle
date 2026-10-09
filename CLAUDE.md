@@ -29,6 +29,8 @@ Build guards and tests:
 - Native unit tests (host): `test/test_parsers` (SOTA cluster, APRS parsing, version compare) and `test/test_config` (validation, profile names, the JSON field table). The native env compiles only the host-safe sources in `build_src_filter`; tests may `#include` other host-safe `.cpp` files directly. `test_filter` takes one pattern per line.
 - `pio check -e cyd --severity=high --severity=medium` (cppcheck) must report no defects. CI (`.github/workflows/ci.yml`) runs all of the above.
 
+Open work, owner checks and known gaps: `docs/TASKS.md` (the single tracker; don't add new TODO files).
+
 Current gaps (don't assume these work):
 - `test/test_hw_led/` is a standalone on-device LED/TFT sketch, not a Unity test.
 - There is no linter or formatter config.

@@ -14,3 +14,6 @@ compile_commands.json
 # Local build copies (scripts/release_copy.py). Published binaries live on GitHub Releases.
 release/
 device_check.log
+
+# Working plans from Claude Code sessions (local only)
+docs/superpowers/

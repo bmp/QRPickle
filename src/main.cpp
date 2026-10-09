@@ -24,7 +24,7 @@ void setup() {
     crashlog::report_previous();
     services::ota_manager::rollback_boot_check();  // may reboot into the previous image
 #ifdef QRP_TEST_CRASH_AT_BOOT
-    // Test-only build (never released): proves the OTA rollback guard. See docs/superpowers/plans/*plan-d*.
+    // Test-only build (never released): proves the OTA rollback guard. See ota_manager.h and docs/RELEASING.md.
     Serial.println("[TEST] QRP_TEST_CRASH_AT_BOOT: crashing in 3 s");
     delay(3000);
     abort();

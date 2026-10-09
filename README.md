@@ -66,6 +66,7 @@ Saved secrets (WiFi password, API keys, passcodes) are never shown again in the 
 * **OTA:** Manual firmware update through the web dashboard, or **Cloud OTA** (pulls the latest release published on GitHub Pages and checks its SHA-256 before switching). A new image that doesn't come up healthy within 3 boots is rolled back automatically.
 * **Adaptive brightness:** Option to enable adaptive brightness or set it manually.
 * **Indoor sensor (optional):** a BME280 on the CN1 connector adds indoor temperature, humidity and pressure. See [Hardware and Wiring](docs/HARDWARE.md).
+* **Documentation:** guides for hardware, releasing, debugging and assets are indexed in [docs/](docs/README.md).
 * **LED Status:** A very elementary notification system is implemented through the LED lights on the backside of the ESP32-CYD. Details are documented in the [LED Colours](docs/LEDColours.md) file in the docs folder.
 
 ---

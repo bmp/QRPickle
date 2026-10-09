@@ -1,0 +1,26 @@
+# Open Tasks
+
+The single list of open work: checks that need a person (screen, touch, browser), release steps, and follow-ups. Remove an item once it's done; git history keeps the record.
+
+## Before the v0.2.0 release (owner, on the device and in a browser)
+- [ ] **Admin password:** Basic Settings → set a new password twice → Save. The browser asks for the new login and the device's Network screen shows it. Change it back if you like.
+- [ ] **Profiles:** Profiles tab → save a profile → "Edit in Settings Form" (banner shows, the button says "Save to Profile") → save → Apply → Delete → Download Backup → Restore from it. On the device: Settings → tap the profile button → Save applies the whole profile.
+- [ ] **Setup hotspot:** when the device can't reach WiFi, `QRPickle-Setup` asks for the admin password.
+- [ ] **Sensor offline (optional):** unplug the BME280 and boot. The dashboard shows `-- C | --%` and `-- hPa`, the weather screen `--`.
+
+## Release
+- [ ] **GitHub Pages, one-time:** Settings → Pages → Source: GitHub Actions; Settings → Environments → github-pages → allow tag pattern `v*` ([RELEASING.md](RELEASING.md)).
+- [ ] **After the first Pages release:** https://bmp.github.io/QRPickle/install/ loads.
+- [ ] **Cloud OTA end-to-end:** only testable with the release after v0.2.0. A v0.2.0 device → Cloud OTA → ↻ → flash; the serial log shows `SHA-256 verified.` and then `[OTA Guard] New image healthy` ([RELEASING.md](RELEASING.md) step 5).
+- [ ] **Code review doc:** decide whether to publish `docs/reviews/2026-10-code-review.md` (kept local for now).
+
+## Licences
+- [ ] **Image sources:** fill in the 5 UNCONFIRMED entries in [`assets/img/SOURCES.md`](../assets/img/SOURCES.md): the weather icons (OpenWeatherMap's set?), the globe and sensor icons, and the splash logos (the VU2ARC club logo needs the club's permission).
+
+## Engineering follow-ups
+- [ ] **DX screen freeze (review 4.6):** cause not found. If it recurs, capture with `tools/serial_soak.py` and decode the watchdog backtrace ([DEBUGGING.md](DEBUGGING.md)).
+- [ ] **Cloud OTA certificate checking (review 2.11):** HTTPS is not certificate-checked yet; integrity relies on the mandatory SHA-256.
+- [ ] **Cosmetic review items 4.3 / 4.4.**
+- [ ] `test/test_scheduler/` is empty and excluded from `test_filter`: add tests or remove it.
+- [ ] `test/test_hw_led/` is a standalone on-device sketch, not a Unity test.
+- [ ] No linter or formatter config.
