@@ -83,11 +83,12 @@ def accessibility(name, call, version):
             '#set text(lang: "en")\n'
             '#show link: set text(fill: rgb("#005bb5"))\n'
             "#show link: underline.with(offset: 2pt, stroke: 0.6pt)\n"
-            # Tables: booktabs (rules above, below and under the header only; no fills or grid).
-            "#set table(stroke: none, inset: (x: 6pt, y: 5pt))\n"
-            "#set table.hline(stroke: 0.6pt)\n"
-            "#show table.cell.where(y: 0): set text(weight: \"bold\")\n"
-            "#show table: t => block(stroke: (top: 1.2pt, bottom: 1.2pt), t)\n")
+            # Tables ("minimal accent"): header in the accent colour with an accent rule under it,
+            # hairline separators between rows, no fills or vertical lines. The cover uses a grid.
+            "#set table(inset: (x: 6pt, y: 5pt), stroke: (x, y) => (bottom: if y == 0 "
+            "{ 1.4pt + rgb(\"#a70f0f\") } else { 0.4pt + luma(200) }))\n"
+            "#show table.cell.where(y: 0): set text(fill: rgb(\"#a70f0f\"), weight: \"bold\")\n"
+            "#show table.hline: none\n")
 
 
 def absolute_links(text, repo):
@@ -169,7 +170,7 @@ def main():
 #v(2cm)
 #grid(columns: (5cm, 1fr), row-gutter: 10pt, {detail_cells})
 #v(1fr)
-#align(right)[#image("/docs/pics/vu3glj-logo.png", width: 42%, alt: "VU3GLJ logo")]
+#align(right)[#image("/docs/pics/vu3glj-logo.png", width: 34%, alt: "VU3GLJ logo")]
 #pagebreak()
 ```
 
