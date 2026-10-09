@@ -6,8 +6,8 @@ QRPickle's own code is MIT-licensed (see [`License`](License)). The firmware and
 
 | Component | Licence | Copyright / source | Licence text |
 |---|---|---|---|
-| Atkinson Hyperlegible font (converted to `src/ui/fonts/font_atkinson_*_raw.c`) | SIL OFL 1.1 | © 2020 Braille Institute of America, Inc. | [`assets/fonts/OFL-AtkinsonHyperlegible.txt`](assets/fonts/OFL-AtkinsonHyperlegible.txt) |
-| JetBrains Mono font (converted to `src/ui/fonts/font_jetbrains_*_raw.c`) | SIL OFL 1.1 | © 2020 The JetBrains Mono Project Authors | [`assets/fonts/OFL-JetBrainsMono.txt`](assets/fonts/OFL-JetBrainsMono.txt) |
+| Atkinson Hyperlegible font (AtkinsonHyperlegible-Regular.ttf, converted to `src/ui/fonts/font_atkinson_*_raw.c`) | SIL OFL 1.1 | © 2020 Braille Institute of America, Inc. | [`assets/fonts/OFL-AtkinsonHyperlegible.txt`](assets/fonts/OFL-AtkinsonHyperlegible.txt) |
+| JetBrains Mono font (JetBrainsMono-Bold.ttf, converted to `src/ui/fonts/font_jetbrains_*_raw.c`) | SIL OFL 1.1 | © 2020 The JetBrains Mono Project Authors | [`assets/fonts/OFL-JetBrainsMono.txt`](assets/fonts/OFL-JetBrainsMono.txt) |
 | Montserrat font (LVGL built-in `lv_font_montserrat_*`) | SIL OFL 1.1 | © 2011 The Montserrat Project Authors | [`assets/fonts/OFL-LVGL-builtin.txt`](assets/fonts/OFL-LVGL-builtin.txt) |
 | Font Awesome 5 Free symbols (in the LVGL built-in fonts) | SIL OFL 1.1 | © Fonticons, Inc. | [`assets/fonts/OFL-LVGL-builtin.txt`](assets/fonts/OFL-LVGL-builtin.txt) |
 | LVGL 9.5 | MIT | © LVGL Kft, [lvgl/lvgl](https://github.com/lvgl/lvgl) | in the library |
@@ -18,10 +18,12 @@ QRPickle's own code is MIT-licensed (see [`License`](License)). The firmware and
 | Adafruit Unified Sensor | Apache-2.0 | © Adafruit Industries | in the library |
 | Adafruit BusIO | MIT | © Adafruit Industries | in the library |
 | XPT2046_Touchscreen | MIT-style | © 2015 Paul Stoffregen | in the library |
-| Arduino-ESP32 core 2.0.17 | LGPL-2.1 | © Espressif Systems and contributors | [espressif/arduino-esp32](https://github.com/espressif/arduino-esp32) |
+| Arduino-ESP32 core 2.0.17 (platform `espressif32 @ 6.13.0`) | LGPL-2.1 | © Espressif Systems and contributors | [espressif/arduino-esp32](https://github.com/espressif/arduino-esp32) |
 | ESP-IDF 4.4 (incl. FreeRTOS, lwIP, mbedTLS) | Apache-2.0 (FreeRTOS: MIT, lwIP: BSD) | © Espressif Systems and the respective authors | [espressif/esp-idf](https://github.com/espressif/esp-idf) |
 
-The libraries are fetched by PlatformIO at the versions pinned in `platformio.ini`; their licence files come with them.
+The libraries are fetched by PlatformIO at the versions pinned in `platformio.ini`; their licence files come with them. Image assets and their sources are listed in [`assets/img/SOURCES.md`](assets/img/SOURCES.md).
+
+`scripts/check_licenses.py` runs on every build and in CI. It fails when a library, font, platform version, image or file with a foreign copyright line is added without being recorded here (or in the image manifests).
 
 ## In the documentation only
 

@@ -76,7 +76,8 @@ This is how the boot freeze (review 3.14) was traced to a non-thread-safe DNS ca
 | Tool | What it checks | Pass |
 |---|---|---|
 | `~/.platformio/penv/bin/python -I tools/device_check.py --cycles 10` | Resets the board N times over USB; per boot: WiFi, NTP, watchdog resets, panics, brownouts | `PASS`, `wdt=0` |
-| `QRP_ADMIN_PW=<pw> tools/web_security_check.sh <ip>` | Auth on all routes, no secrets in the API, crash payloads, path traversal, CSP | `pass=15 fail=0` |
+| `QRP_ADMIN_PW=<pw> tools/web_security_check.sh <ip>` | Auth on all routes, no secrets in the API, crash payloads, path traversal, CSP | `pass=17 fail=0` |
+| `~/.platformio/penv/bin/python -I tools/serial_soak.py --hours 0.5` | Timestamped serial capture for rare freezes; echoes resets, panics, watchdog and `[CRASHLOG]` lines. Opening the port may reset the board once, so start it before opening the screen under test | `0 alert lines` |
 
 The device's IP and web password are printed at boot (`[Wi-Fi] Network Link Stable! ... IP:` and `Web console login: admin / ...`); the IP can change with DHCP.
 

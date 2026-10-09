@@ -13,3 +13,4 @@ compile_commands.json
 
 # Local build copies (scripts/release_copy.py). Published binaries live on GitHub Releases.
 release/
+device_check.log
