@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 # Black-box security checks against a running QRPickle web console (review area 1).
-# Usage: QRP_ADMIN_PW=<password> tools/web_security_check.sh [device-ip]
-# The password is on the device's Network screen and in the boot log.
+# Usage: QRP_ADMIN_PW=<password> tools/web_security_check.sh <device-ip>   (or set QRP_DEVICE_IP)
+# The password is on the device's Network screen and in the boot log. The IP comes from DHCP and
+# changes, so it is required rather than defaulted (boot log: "[Wi-Fi] Network Link Stable! ... IP:").
 set -u
-IP="${1:-192.168.0.6}"; B="http://$IP"; PW="${QRP_ADMIN_PW:?set QRP_ADMIN_PW}"
+IP="${1:-${QRP_DEVICE_IP:-}}"
+[ -n "$IP" ] || { echo "usage: QRP_ADMIN_PW=... $0 <device-ip>   (or set QRP_DEVICE_IP)" >&2; exit 2; }
+B="http://$IP"; PW="${QRP_ADMIN_PW:?set QRP_ADMIN_PW}"
 pass=0; fail=0
 check() { if [ "$2" = "$3" ]; then echo "PASS  $1"; pass=$((pass+1)); else echo "FAIL  $1 (got $2, want $3)"; fail=$((fail+1)); fi; }
 code() { curl -s -o /dev/null -m 10 -w '%{http_code}' "$@"; }
