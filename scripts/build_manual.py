@@ -82,7 +82,12 @@ def accessibility(name, call, version):
     return (f"#set document(title: {title}, author: {typst_str(call)})\n"
             '#set text(lang: "en")\n'
             '#show link: set text(fill: rgb("#005bb5"))\n'
-            "#show link: underline.with(offset: 2pt, stroke: 0.6pt)\n")
+            "#show link: underline.with(offset: 2pt, stroke: 0.6pt)\n"
+            # Tables: booktabs (rules above, below and under the header only; no fills or grid).
+            "#set table(stroke: none, inset: (x: 6pt, y: 5pt))\n"
+            "#set table.hline(stroke: 0.6pt)\n"
+            "#show table.cell.where(y: 0): set text(weight: \"bold\")\n"
+            "#show table: t => block(stroke: (top: 1.2pt, bottom: 1.2pt), t)\n")
 
 
 def absolute_links(text, repo):
@@ -141,25 +146,30 @@ def main():
     # Cover page: title, the project table (centred by pandoc) and the author's logo; the
     # content starts on page 2. The appendix anchor is pandoc's id for "# Appendix E: ...".
     subtitle = "A lightweight opinionated field friendly HAM Clock"
+    details = [
+        ("Firmware Package", "QRPickle Tracker Dashboard"),
+        ("Software Version", a.version),
+        ("Compilation Date", datetime.date.today().isoformat()),
+        ("Target Hardware", "ESP32 Cheap Yellow Display (CYD)"),
+        ("Source Repository", f'#link("https://github.com/{a.repo}")[{a.repo}]'),
+        # pandoc's id for the "# Appendix E: Third-Party Notices" heading
+        ("Primary License",
+         "MIT License (third-party components: #link(<appendix-e-third-party-notices>)[Appendix E])"),
+    ]
+    detail_cells = ", ".join(f"text(fill: luma(90))[{k}], [{v}]" for k, v in details)
+    # Cover (report style): accent bar beside a left-aligned title, a borderless details list and
+    # the author's logo bottom right. The content starts on page 2.
     cover = f"""```{{=typst}}
 #v(3cm)
-#align(center)[#text(size: 30pt, weight: "bold")[QRPickle:] \\
-#v(4pt) #text(size: 20pt, weight: "bold")[{subtitle}]]
-#v(1.5cm)
-```
-
-| Project Property | System Specification |
-| :--- | :--- |
-| **Firmware Package** | QRPickle Tracker Dashboard |
-| **Software Version** | {a.version} |
-| **Compilation Date** | {datetime.date.today().isoformat()} |
-| **Target Hardware** | ESP32 Cheap Yellow Display (CYD) |
-| **Source Repository** | [{a.repo}](https://github.com/{a.repo}) |
-| **Primary License** | MIT License (third-party components: [Appendix E](#appendix-e-third-party-notices)) |
-
-```{{=typst}}
-#v(1.5cm)
-#align(center)[#image("/docs/pics/vu3glj-logo.png", width: 60%, alt: "VU3GLJ logo")]
+#grid(columns: (6pt, 1fr), column-gutter: 14pt,
+  rect(fill: rgb("#a70f0f"), width: 6pt, height: 3cm),
+  [#text(fill: rgb("#a70f0f"), size: 36pt, weight: "bold")[QRPickle] \\
+   #v(4pt) #text(fill: rgb("#a70f0f"), size: 16pt)[{subtitle}] \\
+   #v(6pt) #text(size: 11pt, fill: luma(90))[Field Manual]])
+#v(2cm)
+#grid(columns: (5cm, 1fr), row-gutter: 10pt, {detail_cells})
+#v(1fr)
+#align(right)[#image("/docs/pics/vu3glj-logo.png", width: 42%, alt: "VU3GLJ logo")]
 #pagebreak()
 ```
 
