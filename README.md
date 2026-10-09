@@ -96,15 +96,19 @@ The complete list, with licences, is in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOT
 
 This project utilizes a heavily customized partition table (`partitions.csv`) to fit a complex FreeRTOS application, LVGL graphics, a Web UI, and an Over-The-Air (OTA) update system into a standard 4MB ESP32 flash chip.
 
-Here is the exact memory map breakdown:
+The full flash map, from the start of the chip. The bootloader and the partition table sit at fixed addresses before the first partition; the rest comes from `partitions.csv`:
 
-| Partition Name | Address Offset | Hexadecimal Size | Human-Readable Size | Operational Assignment |
+| Address | Region | Size | Contents | Written at install |
 | :--- | :--- | :--- | :--- | :--- |
-| **`nvs`** | `0x009000` | `0x005000` | 20 KB | Core hardware flags, automated network authorization pairs, calibration registers, and ambient settings profiles. |
-| **`otadata`** | `0x00E000` | `0x002000` | 8 KB | Real-time execution targeting registers managed by the ESP32 bootloader tracking loops to determine current stable application selection flags (`app0` vs `app1`). |
-| **`app0`** | `0x010000` | `0x1C0000` | 1.75 MB (1,792 KB) | Primary system firmware image block storage. Expanded to resolve memory boundary overhead limitations from growing graphics frameworks. |
-| **`app1`** | `0x1D0000` | `0x1C0000` | 1.75 MB (1,792 KB) | Mirror staging architecture slot dedicated to downloading incoming firmware (web upload or Cloud OTA) without colliding with current live executions. |
-| **`spiffs`** | `0x390000` | `0x070000` | 448 KB | Dedicated LittleFS structural loop containing web console visual layouts (`index.html`, `style.css`, `app.js`), local operator descriptions, and raw static binary user definitions. |
+| `0x001000` | Bootloader | | ESP32 second-stage bootloader | `bootloader.bin` |
+| `0x008000` | Partition table | | The table below | `partitions.bin` |
+| `0x009000` | **`nvs`** | `0x005000` (20 KB) | Settings: WiFi, callsign, keys, admin password | Kept (cleared only by "Erase device") |
+| `0x00E000` | **`otadata`** | `0x002000` (8 KB) | Which app slot boots (`app0` or `app1`) | `boot_app0.bin` (boot `app0`) |
+| `0x010000` | **`app0`** | `0x1C0000` (1.75 MB) | Firmware slot 1 | `firmware.bin` |
+| `0x1D0000` | **`app1`** | `0x1C0000` (1.75 MB) | Firmware slot 2: updates (web upload or Cloud OTA) are written to whichever slot isn't running, so a failed update can roll back | Not written |
+| `0x390000` | **`spiffs`** | `0x070000` (448 KB) | LittleFS: web console (`www/`), images, about text, saved profiles | `littlefs.bin` |
+
+The installer and the manual flashing steps below use exactly these addresses for every version. Changing `partitions.csv` breaks OTA for devices already in use.
 
 ---
 
@@ -151,7 +155,7 @@ The release folder contains the following files:
 
 ## Easy Web Installation (No Software Required)
 
-**One-click installer (from v0.2.0):** open **[bmp.github.io/QRPickle/install](https://bmp.github.io/QRPickle/install/)** in Chrome or Edge, connect the CYD by USB and click **Install**. It writes everything, including the filesystem. If you're updating a device that already has profiles, download a backup first (web console → Profiles → Download Backup).
+**One-click installer (from v0.2.0):** open **[bmp.github.io/QRPickle/install](https://bmp.github.io/QRPickle/install/)** in Chrome or Edge, pick a version (the latest is preselected; the last five releases are listed), connect the CYD by USB and click **Install**. It writes everything, including the filesystem. If you're updating a device that already has profiles, download a backup first (web console → Profiles → Download Backup).
 
 **Manual alternative:** flash the release files with the Espressif Web Flasher.
 

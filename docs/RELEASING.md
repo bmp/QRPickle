@@ -71,11 +71,10 @@ On GitHub → **Actions** → "Auto-Build and Release":
 3. Builds the firmware and filesystem.
 4. Builds the PDF manual.
 5. Publishes the release with these files:
-   - `firmware.bin`
-   - `firmware.bin.sha256`
-   - `littlefs.bin`
-   - a ZIP containing everything, including `bootloader.bin` and `partitions.bin`
-6. Publishes **GitHub Pages**: `ota/ota.json` + `ota/firmware.bin` (what devices update from) and the `install/` page (built by `scripts/make_pages_site.py`).
+   - `firmware.bin`, `firmware.bin.sha256`, `littlefs.bin`
+   - `bootloader.bin`, `partitions.bin`, `boot_app0.bin` (for the installer's version list)
+   - a ZIP containing everything, plus the licence texts
+6. Downloads the images of earlier releases (v0.2.0 and later) and publishes **GitHub Pages**: `ota/ota.json` + `ota/firmware.bin` (what devices update from) and the `install/` page with a version list (built by `scripts/make_pages_site.py`).
 
 ### 5. Verify the release on a device
 On a CYD running the previous version, open the sidebar menu → **Cloud OTA**, tap ↻, then **INITIATE FIRMWARE FLASH**. On the serial log, expect:
@@ -116,7 +115,9 @@ git push origin :refs/tags/v0.1.12
 
 ## Users without Cloud OTA
 
-**Easiest:** open https://bmp.github.io/QRPickle/install/ in Chrome or Edge, connect the CYD by USB and click **Install** (ESP Web Tools). This is a full install, so settings are erased.
+**Easiest:** open https://bmp.github.io/QRPickle/install/ in Chrome or Edge, pick a version, connect the CYD by USB and click **Install** (ESP Web Tools). It writes the firmware and the filesystem (erasing saved profiles); settings in NVS are kept unless the user ticks "Erase device".
+
+The version list holds the newest 5 releases from v0.2.0 on. CI downloads the earlier ones' five images from their GitHub releases, so **don't delete release assets** of versions that should stay installable. Older versions are a way to roll back by hand; Cloud OTA never downgrades.
 
 Pre-built files are also attached to every GitHub release. The USB and web-flasher instructions in the README ("Easy Web Installation") use these offsets:
 

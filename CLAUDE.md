@@ -48,7 +48,7 @@ Current gaps (don't assume these work):
 - After a firmware update the **trial-boot guard** keeps the previous slot. A new image that doesn't reach 60s with WiFi within 3 boots is rolled back (`ota_manager.h`).
 - Test builds can use `-DQRP_TEST_CRASH_AT_BOOT` (never release these).
 - Cloud OTA reads `https://<owner>.github.io/<repo>/ota/ota.json` (version, notes, sha256) and downloads `firmware.bin` from the same place. GitHub's release download host is unreachable with this mbedTLS (review 2.9). The SHA-256 is mandatory; TLS isn't certificate-checked yet (2.11). Test builds can override the base URL with `-DQRP_OTA_BASE_URL=\"http://...\"` (also export it for `-t upload`, which rebuilds).
-- `scripts/make_pages_site.py` builds the Pages site (Cloud OTA files + ESP Web Tools installer from `web-installer/index.html`); CI runs it on each release.
+- `scripts/make_pages_site.py` builds the Pages site (Cloud OTA files + ESP Web Tools installer from `web-installer/index.html`); CI runs it on each release. The installer offers the newest 5 releases from v0.2.0 on (`install/<version>/`, `versions.json`); CI downloads earlier releases' five images from their GitHub release assets. Flash addresses are fixed for all versions.
 
 ## Release process (important)
 

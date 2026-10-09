@@ -18,7 +18,7 @@ The single list of open work: checks that need a person (screen, touch, browser)
 - [ ] **Image sources:** fill in the 5 UNCONFIRMED entries in [`assets/img/SOURCES.md`](../assets/img/SOURCES.md): the weather icons (OpenWeatherMap's set?), the globe and sensor icons, and the splash logos (the VU2ARC club logo needs the club's permission).
 
 ## Engineering follow-ups
-- [ ] **DX screen freeze (review 4.6):** cause not found. If it recurs, capture with `tools/serial_soak.py` and decode the watchdog backtrace ([DEBUGGING.md](DEBUGGING.md)).
+- [ ] **DX screen freeze (review 4.6):** cause not found. 2026-10-09: 30 min on DX Spots with v0.2.0 code, no freeze, reset or heap drift (94.2-95.1 KB). If it recurs, capture with `tools/serial_soak.py` and decode the watchdog backtrace ([DEBUGGING.md](DEBUGGING.md)).
 - [ ] **Cloud OTA certificate checking (review 2.11):** HTTPS is not certificate-checked yet; integrity relies on the mandatory SHA-256.
 - [ ] **Cosmetic review items 4.3 / 4.4.**
 - [ ] `test/test_scheduler/` is empty and excluded from `test_filter`: add tests or remove it.
