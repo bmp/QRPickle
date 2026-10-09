@@ -64,9 +64,10 @@ def page_setup(name, call, version, email):
     page_x_of_y = "[Page #counter(page).display() of #counter(page).final().first()]"
     # Plain text: PDF/UA treats headers/footers as artifacts, which may not contain links.
     mail = f"[#{typst_str(email)}]"
-    header = (f"context {{ {small}; grid(columns: (1fr, 1fr), align: (left, right), "
+    # Nothing on the cover page (page 1).
+    header = (f"context if counter(page).get().first() > 1 {{ {small}; grid(columns: (1fr, 1fr), align: (left, right), "
               f"[{name}], [{call}]); v(-4pt); {rule} }}")
-    footer = (f"context {{ {small}; {rule}; v(-4pt); grid(columns: (1fr, 1fr, 1fr), "
+    footer = (f"context if counter(page).get().first() > 1 {{ {small}; {rule}; v(-4pt); grid(columns: (1fr, 1fr, 1fr), "
               f"align: (left, center, right), [{version}], {page_x_of_y}, {mail}) }}")
     return f"#set page(\n  header: {header},\n  footer: {footer},\n)\n"
 
@@ -137,8 +138,15 @@ def main():
     ap.add_argument("--out", required=True)
     a = ap.parse_args()
 
-    notices_link = "[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)"   # made absolute below
-    header = f"""# QRPickle Field Manual & System Documentation
+    # Cover page: title, the project table (centred by pandoc) and the author's logo; the
+    # content starts on page 2. The appendix anchor is pandoc's id for "# Appendix E: ...".
+    subtitle = "A lightweight opinionated field friendly HAM Clock"
+    cover = f"""```{{=typst}}
+#v(3cm)
+#align(center)[#text(size: 30pt, weight: "bold")[QRPickle:] \\
+#v(4pt) #text(size: 20pt, weight: "bold")[{subtitle}]]
+#v(1.5cm)
+```
 
 | Project Property | System Specification |
 | :--- | :--- |
@@ -147,13 +155,23 @@ def main():
 | **Compilation Date** | {datetime.date.today().isoformat()} |
 | **Target Hardware** | ESP32 Cheap Yellow Display (CYD) |
 | **Source Repository** | [{a.repo}](https://github.com/{a.repo}) |
-| **Primary License** | MIT License (third-party components: {notices_link}, Appendix E) |
+| **Primary License** | MIT License (third-party components: [Appendix E](#appendix-e-third-party-notices)) |
 
----
+```{{=typst}}
+#v(1.5cm)
+#align(center)[#image("/docs/pics/vu3glj-logo.png", width: 60%, alt: "VU3GLJ logo")]
+#pagebreak()
+```
 
 """
     preamble, sections = split_sections(read_doc("README.md"))
-    body = preamble + "".join(t for title, t in sections
+    # The README's title and subtitle are on the cover; its first section becomes "Introduction".
+    preamble = re.sub(r"(?m)^# .*\n", "", preamble)
+    sections = [("Introduction", "## Introduction\n" + t.split("\n", 1)[1]) if title == subtitle else (title, t)
+                for title, t in sections]
+    # README sections are '## '; in the manual they are chapters ('# '), like Hardware and the
+    # appendices (PDF/UA also requires the first heading to be level 1).
+    body = preamble + "".join(re.sub(r"(?m)^#(#+) ", r"\1 ", t) for title, t in sections
                               if title not in README_APPENDICES and title not in README_DROPPED)
     body += "\n\n---\n\n" + read_doc("docs/HARDWARE.md")
 
@@ -164,7 +182,7 @@ def main():
     appendices.append(("Third-Party Notices", read_doc("THIRD_PARTY_NOTICES.md"), 1))
     appendix_text = "".join(PAGEBREAK + as_appendix(text, chr(ord("A") + i), title, level)
                             for i, (title, text, level) in enumerate(appendices))
-    doc = absolute_links(header + body + appendix_text, a.repo)
+    doc = absolute_links(cover + body + appendix_text, a.repo)
 
     with tempfile.TemporaryDirectory(dir=ROOT) as tmp:   # inside the repo, so image paths resolve
         md, typ = os.path.join(tmp, "manual.md"), os.path.join(tmp, "manual.typ")
