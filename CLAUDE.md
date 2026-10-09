@@ -21,9 +21,14 @@ pio test -e native -f test_config    # run a single test folder
 
 Every build runs `extra_scripts` from `platformio.ini`. `scripts/release_copy.py` copies the built `firmware.bin`, `littlefs.bin`, `bootloader.bin` and `partitions.bin` into `release/`, which is **tracked in git**, so any build changes tracked files.
 
+Build guards and tests:
+- `scripts/check_secrets.py` (pre-build) fails the build on credential-like literals in `src/`, `include/` and `data/`.
+- `scripts/check_size.py` (post-build) fails if static DRAM headroom is under 4KB or the image is over 95% of the OTA slot.
+- Native unit tests (host): `test/test_parsers` (SOTA cluster, APRS parsing, version compare) and `test/test_config` (validation, profile names). The native env compiles only the host-safe sources in `build_src_filter`; tests may `#include` other host-safe `.cpp` files directly. `test_filter` takes one pattern per line.
+- `pio check -e cyd --severity=high --severity=medium` (cppcheck) must report no defects. CI (`.github/workflows/ci.yml`) runs all of the above.
+
 Current gaps (don't assume these work):
-- `scripts/check_secrets.py` and `scripts/gzip_data.py` are empty (0 bytes), so they do nothing. `scripts/check_size.py` fails the build if static DRAM headroom is under 4KB or the image is over 95% of the OTA slot.
-- Native unit tests live in `test/test_parsers` (SOTA cluster parser). The native env compiles only the host-safe sources listed in its `build_src_filter`. `test_filter` takes one pattern per line.
+- `scripts/gzip_data.py` is empty (0 bytes) and does nothing.
 - `test/test_hw_led/` is a standalone on-device LED/TFT sketch, not a Unity test.
 - There is no linter or formatter config.
 
