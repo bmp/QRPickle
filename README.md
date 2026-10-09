@@ -63,6 +63,7 @@ Saved secrets (WiFi password, API keys, passcodes) are never shown again in the 
 * **Monochrome & Tactical Themes:** Driven by **LVGL 9**, featuring high-contrast modes including Tactical Field Red, GitHub Slate Dark, Terminal Phosphor Green, and pure-binary E-Ink simulations.
 * **OTA:** Manual firmware update through the web dashboard, or **Cloud OTA** (pulls the latest release published on GitHub Pages and checks its SHA-256 before switching). A new image that doesn't come up healthy within 3 boots is rolled back automatically.
 * **Adaptive brightness:** Option to enable adaptive brightness or set it manually.
+* **Indoor sensor (optional):** a BME280 on the CN1 connector adds indoor temperature, humidity and pressure. See [Hardware and Wiring](docs/HARDWARE.md).
 * **LED Status:** A very elementary notification system is implemented through the LED lights on the backside of the ESP32-CYD. Details are documented in the [LED Colours](docs/LEDColours.md) file in the docs folder.
 
 ---
@@ -120,7 +121,7 @@ Here is the exact memory map breakdown:
 The project is built entirely within **PlatformIO** (VS Code).
 
 ### 1. Pre-Flight Setup
-Ensure your `platformio.ini` is configured for your specific CYD hardware pins. No external hardware modifications are required.
+QRPickle targets the ESP32-2432S028R (2.8" CYD); no soldering is needed. The pins it uses and the wiring for the optional BME280 sensor are in **[Hardware and Wiring](docs/HARDWARE.md)**.
 
 ### 2. Uploading the Filesystem (Web UI & Profiles)
 Before the firmware will function fully (especially the Web UI), you must write the `data/` folder to the LittleFS partition.
