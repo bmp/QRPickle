@@ -233,6 +233,7 @@ namespace services {
                 end = strchr(stations[target_idx].comment, '\n'); if(end) *end = '\0';
             }
             dirty = true;
+            hw::led_rgb::trigger_traffic_pulse();  // data ingress (docs/LEDColours.md)
         }
     }
 

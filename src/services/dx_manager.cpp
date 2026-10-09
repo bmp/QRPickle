@@ -1,4 +1,5 @@
 #include "../core/crashlog.h"
+#include "../hw/led_rgb.h"
 #include "net_connect.h"
 #include "dx_manager.h"
 #include "../config/config.h"
@@ -210,6 +211,7 @@ namespace services {
         if (spot_count < 50) spot_count++;
         
         buffer_dirty = true; 
+        hw::led_rgb::trigger_traffic_pulse();  // data ingress (docs/LEDColours.md)
     }
 
     void DxManager::deduce_mode(float freq, const char* comment, char* out_mode, size_t max_len) {

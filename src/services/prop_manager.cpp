@@ -1,4 +1,5 @@
 #include "prop_manager.h"
+#include "../hw/led_rgb.h"
 #include <HardwareSerial.h> // For Serial logging
 #include <cstring>
 #include <cstdlib>
@@ -46,6 +47,7 @@ namespace services {
 
         // DYNAMIC DIAGNOSTIC PRINT LINK
         if (updated) {
+            hw::led_rgb::trigger_traffic_pulse();  // data ingress (docs/LEDColours.md)
             Serial.printf("[PROP-ENGINE] Scraped solar data from stream -> SFI:%u | K-INDEX:%u | A-INDEX:%u | FCST:%s\n",
                           data.sfi, data.k_index, data.a_index, data.forecast);
             

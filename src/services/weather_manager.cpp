@@ -1,4 +1,5 @@
 #include <WiFiClientSecure.h>
+#include "../hw/led_rgb.h"
 #include "net_lock.h"
 #include "weather_manager.h"
 #include "wifi_manager.h"
@@ -60,6 +61,7 @@ namespace services {
                     strlcpy(current_wx.icon, doc["weather"][0]["icon"] | "01d", sizeof(current_wx.icon));
                     strlcpy(current_wx.location, doc["name"] | "Local Area", sizeof(current_wx.location));
                     current_wx.valid = true;
+                    hw::led_rgb::trigger_traffic_pulse();  // data ingress (docs/LEDColours.md)
                 }
             }
             http.end();
@@ -100,6 +102,7 @@ namespace services {
                         idx++;
                     }
                     forecast_wx.valid = true;
+                    hw::led_rgb::trigger_traffic_pulse();  // data ingress (docs/LEDColours.md)
                 }
             }
             http.end();

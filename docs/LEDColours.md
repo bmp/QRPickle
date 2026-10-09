@@ -6,7 +6,8 @@ The Cheap Yellow Display (CYD) features a rear-mounted SMD RGB LED. The QRPickle
 During a cold boot or hardware reset, the LED acts as a progressive loading indicator.
 
 * **Solid Amber:** Hardware Initialization. (Mounting NVS, checking I2C sensors, allocating display canvas).
-* **Solid Blue:** Network Search. (Scanning for Wi-Fi configurations or broadcasting the setup Hotspot).
+* **Solid Blue:** Network Search. (Connecting to the configured Wi-Fi network.)
+* **Solid Amber (stays on):** Setup Hotspot. No network is configured or it couldn't be reached, so the device runs the `QRPickle-Setup` hotspot. The LED stays amber until it joins a network.
 * ~~**Breathing Cyan:** Services Sync.~~ *Disabled in firmware: the LED stays off during NTP/GitHub sync.*
 * **Dim Green (1 Second):** System Ready. (All boot checks passed, handing execution to the dashboard).
 * **Off:** Standby. (Normal operation, conserving power).
@@ -15,7 +16,7 @@ During a cold boot or hardware reset, the LED acts as a progressive loading indi
 * ~~**Breathing Magenta:** Link Lost.~~ *Disabled in firmware: the LED stays off while Wi-Fi reconnects; the status bar shows the link state.*
 
 ## 3. Live Data Traffic
-* **Crisp Dim Cyan Pulse (30ms):** Data Ingress. A standard telemetry packet (APRS coordinate, POTA log, solar conditions) was successfully parsed. Faint to prevent blinding the operator in tactical/low-light environments.
+* **Crisp Dim Cyan Pulse (30ms):** Data Ingress. New data arrived and was parsed: an APRS station position, a DX cluster spot, a SOTA cluster spot, a POTA spot list, propagation (solar) data, or a weather update. Faint to prevent blinding the operator in tactical/low-light environments, and skipped while the display is asleep.
 * **White & Magenta Strobe (3 Seconds):** High-Priority Alert. A HamAlert filter was triggered, or a direct peer-to-peer APRS message was received.
 
 ## 4. Hardware Faults

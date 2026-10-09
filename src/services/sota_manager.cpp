@@ -1,4 +1,5 @@
 #include "net_connect.h"
+#include "../hw/led_rgb.h"
 #include "../core/crashlog.h"
 #include "sota_manager.h"
 #include "../config/config.h"
@@ -81,6 +82,7 @@ namespace services {
         spots[0] = s;
         dirty = true;
         portEXIT_CRITICAL(&spots_mux);
+        hw::led_rgb::trigger_traffic_pulse();  // data ingress (docs/LEDColours.md)
     }
 
     void SotaManager::task_loop(void* param) {

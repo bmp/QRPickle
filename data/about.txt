@@ -19,13 +19,16 @@ Created by VU3GLJ with LLMs.
 
 Attributions:
 ------------
-Icons:
-- Directions Icons by Gonzalo Bravo from Noun Project (CC BY 3.0)
-- Rain by Jae Deasigner from Noun Project (CC BY 3.0)
-- Weather Conditions Icons by OpenWeather
-- sunny by iconbysonny from Noun Project (CC BY 3.0)
-- Night by iconbysonny from Noun Project (CC BY 3.0)
-- Magnetic Field by Fusion Experience from Noun Project (CC BY 3.0)
-- ion by Lars Meiertoberens from Noun Project (CC BY 3.0)
-- Night Mode by Zeva Zahra from Noun Project (CC BY 3.0)
-- Compass by Sadie Kroll from Noun Project (CC BY 3.0)
+Images:
+- Weather condition icons by OpenWeather (openweathermap.org)
+- Globe and microchip icons: Font Awesome Free by Fonticons, Inc.
+  (CC BY 4.0), recoloured
+- International amateur radio symbol by Denelson83, Wikimedia Commons
+  (public domain)
+- Bangalore Amateur Radio Club (VU2ARC) logo, (c) Bangalore Amateur
+  Radio Club (barc.in)
+Fonts (SIL Open Font License 1.1):
+- Atkinson Hyperlegible, (c) Braille Institute of America
+- JetBrains Mono, (c) The JetBrains Mono Project Authors
+- Montserrat and Font Awesome symbols (LVGL built-in fonts)
+Full list: THIRD_PARTY_NOTICES.md (github.com/bmp/QRPickle)

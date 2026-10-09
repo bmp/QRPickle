@@ -1,4 +1,5 @@
 #include "net_lock.h"
+#include "../hw/led_rgb.h"
 #include "pota_manager.h"
 #include "../core/metadata.h" 
 #include <Arduino.h>
@@ -162,6 +163,7 @@ namespace services {
                     spots[spot_count++] = s;
                 }
                 dirty = true;
+                hw::led_rgb::trigger_traffic_pulse();  // data ingress (docs/LEDColours.md)
                 Serial.printf("[POTA] Success. Mapped %u spots.\n", spot_count);
             }
         } else {
