@@ -61,6 +61,16 @@ Every boot after an **abnormal reset** (watchdog, panic, brownout) prints the la
 
 This is how the boot freeze (review 3.14) was traced to a non-thread-safe DNS call even though the crash printed nothing.
 
+### Hangs (loop watchdog)
+
+`loop()` runs under the task watchdog with a 30s timeout (`enableLoopWDT()` in `setup()`). A hang reboots the device and prints `Task watchdog got triggered` plus a backtrace. Decode it with:
+```bash
+~/.platformio/packages/toolchain-xtensa-esp32/bin/xtensa-esp32-elf-addr2line -pfiaC -e .pio/build/cyd/firmware.elf 0x400d1234 0x400d5678 ...
+```
+(or monitor with `-f esp32_exception_decoder`). Keep any single piece of loop work well under 30s.
+
+**Don't** try to read the breadcrumbs from a hung device with `esptool dump_mem`: entering download mode cleared that RTC memory in testing. Let the watchdog reboot the device and read `[CRASHLOG]` instead.
+
 ## Automated device checks
 
 | Tool | What it checks | Pass |

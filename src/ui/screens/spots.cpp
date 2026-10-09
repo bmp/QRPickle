@@ -15,6 +15,7 @@ namespace ui {
     static lv_obj_t* lbl_comment = nullptr;
     static lv_obj_t* status_dot = nullptr;
     static lv_timer_t* ui_timer = nullptr;
+    static bool filters_changed = false;  // set by the FREQ/MODE buttons
 
     static int active_band_idx = 0; 
     static const char* BANDS[] = {"ALL", "160m", "80m", "40m", "20m", "15m", "10m", "6m"};
@@ -63,6 +64,7 @@ namespace ui {
     }
 
     static void filter_freq_cb(lv_event_t* e) {
+        filters_changed = true;
         active_band_idx = (active_band_idx + 1) % (sizeof(BANDS) / sizeof(BANDS[0]));
         char buf[16];
         snprintf(buf, sizeof(buf), "FREQ: %s", BANDS[active_band_idx]);
@@ -71,6 +73,7 @@ namespace ui {
     }
 
     static void filter_mode_cb(lv_event_t* e) {
+        filters_changed = true;
         active_mode_idx = (active_mode_idx + 1) % (sizeof(MODES) / sizeof(MODES[0]));
         char buf[16];
         snprintf(buf, sizeof(buf), "MODE: %s", MODES[active_mode_idx]);
@@ -96,7 +99,10 @@ namespace ui {
             }
         }
 
-        if (!services::DxManager::is_dirty()) return;
+        // Redraw on new spots, or when a filter changed (filters used to have no visible effect
+        // until the next spot arrived).
+        if (!services::DxManager::is_dirty() && !filters_changed) return;
+        filters_changed = false;
 
         const services::DxSpot* raw_spots = services::DxManager::get_spots();
         size_t total_raw = services::DxManager::get_spot_count();

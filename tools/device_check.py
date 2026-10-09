@@ -43,7 +43,7 @@ def main():
 
     s = open_port(a.port)
     results, glitches, t0 = [], 0, time.time()
-    with open(a.log, 'w') as f:
+    with open(a.log, 'w', buffering=1) as f:  # line-buffered: readable while running
         for c in range(1, a.cycles + 1):
             s.dtr = False; s.rts = True; time.sleep(0.1); s.rts = False
             f.write(f'===== CYCLE {c} =====\n')

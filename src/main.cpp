@@ -1,6 +1,7 @@
 #include "services/ota_manager.h"
 #include "core/crashlog.h"
 #include <Arduino.h>
+#include <esp_task_wdt.h>
 #include "hw/display.h"
 #include "hw/touch.h"
 #include "hw/sensor.h"
@@ -73,6 +74,12 @@ void setup() {
     // Force the LED state to OFF after the boot sequence is complete
     // This instantly kills the stuck "breathing cyan" timekeeper loop
     hw::led_rgb::set_state(hw::led_rgb::STATE_OFF);
+
+    // Watch the main loop: a hang now reboots after 30 s with a backtrace and [CRASHLOG]
+    // breadcrumbs instead of freezing silently (found with the DX screen, 2026-10-09).
+    // 30 s leaves room for the slowest legitimate loop work (a weather HTTPS fetch).
+    esp_task_wdt_init(30, true);
+    enableLoopWDT();
 }
 
 void loop() {
