@@ -21,6 +21,9 @@ Items that automation could not verify (screen/touch/browser), plus patches for 
 
 - [ ] **Plan G, sensor offline:** (optional) unplug the BME280 and boot. The dashboard should show `-- C | --%` and `-- hPa`, and the weather screen `--`.
 
+## Follow-up tasks
+- [ ] **Change the web/AP password from the web UI:** add an "Admin password" field (min 8 chars) to the web console's settings. The API already accepts `admin_pw` and `config::sanitize()` rejects < 8 chars. Changing it also changes the `QRPickle-Setup` WPA2 key; the browser will ask for the new login.
+
 ## Patches
 All five patches were reviewed and applied on 2026-10-07 (0001 test filter, 0002 SHA-256, 0003 platformio.ini, 0004 CI, 0005 tag-only releases).
 
