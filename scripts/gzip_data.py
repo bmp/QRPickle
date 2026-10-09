@@ -3,7 +3,9 @@
 # serves "x.gz" with "Content-Encoding: gzip" when "x" is requested and absent, and browsers
 # decompress transparently. The sources in data/ stay plain text; nothing compressed is committed.
 Import("env")
-import gzip, os, shutil
+import gzip
+import os
+import shutil
 
 COMPRESS = (".html", ".js", ".css")
 

@@ -13,7 +13,13 @@ optional notes.txt; CI downloads them from GitHub Releases. Versions before MIN_
 folders and names that aren't vMAJOR.MINOR.PATCH are skipped.
 The notes are read from files (never shell arguments) so commit messages can't inject commands.
 """
-import argparse, glob, hashlib, json, os, re, shutil
+import argparse
+import glob
+import hashlib
+import json
+import os
+import re
+import shutil
 
 # Flash addresses: bootloader and partition table at their fixed places, then the start of the
 # otadata, app0 and spiffs partitions from partitions.csv (README "Partition System").
@@ -48,7 +54,8 @@ def write_version(inst, version, files, notes):
 def find_boot_app0(explicit):
     if explicit:
         return explicit
-    hits = glob.glob(os.path.expanduser("~/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin"))
+    hits = glob.glob(os.path.expanduser(
+        "~/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin"))
     if not hits:
         raise SystemExit("boot_app0.bin not found; pass --boot-app0")
     return hits[0]
@@ -62,7 +69,8 @@ def main():
     ap.add_argument("--boot-app0")
     ap.add_argument("--previous-dir")
     ap.add_argument("--keep", type=int, default=5, help="versions offered by the installer, incl. this one")
-    ap.add_argument("--installer-page", default=os.path.join(os.path.dirname(__file__), "..", "web-installer", "index.html"))
+    ap.add_argument("--installer-page",
+                    default=os.path.join(os.path.dirname(__file__), "..", "web-installer", "index.html"))
     a = ap.parse_args()
     if parse_version(a.version) is None:
         raise SystemExit(f"--version must look like v1.2.3, got {a.version!r}")

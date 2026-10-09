@@ -4,7 +4,8 @@
   PLATFORMIO_BUILD_FLAGS='-Wl,-Map,${BUILD_DIR}/firmware.map' pio run
 Usage: python3 -I tools/dram_report.py .pio/build/cyd/firmware.map [top_n]
 """
-import re, sys
+import re
+import sys
 t = open(sys.argv[1], errors='replace').read()
 seg = re.search(r'^dram0_0_seg\s+(0x[0-9a-f]+)\s+(0x[0-9a-f]+)', t, re.M)
 org, ln = int(seg.group(1), 16), int(seg.group(2), 16)

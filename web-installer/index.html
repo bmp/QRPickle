@@ -7,17 +7,61 @@
   <!-- ESP Web Tools, pinned (https://esphome.github.io/esp-web-tools/) -->
   <script type="module" src="https://unpkg.com/esp-web-tools@10.4.0/dist/web/install-button.js?module"></script>
   <style>
-    body { font-family: system-ui, sans-serif; max-width: 40rem; margin: 3rem auto; padding: 0 1rem; line-height: 1.5; }
-    code { background: #eee; padding: 0 .3em; border-radius: 3px; }
-    select { font-size: 1rem; padding: .3em; }
-    table { border-collapse: collapse; margin: .5rem 0 1rem; }
-    td, th { border: 1px solid #ccc; padding: .2em .6em; text-align: left; }
-    .note { background: #fff4d6; border: 1px solid #e6c200; padding: .5em .8em; border-radius: 4px; }
-    .hidden { display: none; }
+    /* Matches ham.bharathpalavalli.com: Garamond, 720px column, dark by default with a light toggle. */
+    :root { --bg-color:#1d1f27; --text-color:#c9d1d9; --heading-color:#eee; --link-color:#8cc2dd;
+            --toggle-border:#444; --code-bg:#282a36; --code-color:#f8f8f2; --td-border:#444;
+            --th-border:#8cc2dd; --row-odd:rgba(255,255,255,.03); --note-bg:#2a2a1d; --note-border:#eba613;
+            --input-bg:#252525; --input-color:#ddd; }
+    [data-theme=light] { --bg-color:#fdfdfd; --text-color:#2c3338; --heading-color:#111; --link-color:#005bb5;
+            --toggle-border:#ccc; --code-bg:#e8e8e8; --code-color:#c92a2a; --td-border:#ddd;
+            --th-border:#005bb5; --row-odd:rgba(0,0,0,.03); --note-bg:#fff7e0; --note-border:#d11;
+            --input-bg:#f4f4f4; --input-color:#333; }
+    body { font-family:Garamond,serif; margin:auto; padding:20px; max-width:720px; line-height:1.5;
+           background-color:var(--bg-color); color:var(--text-color); overflow-wrap:break-word; }
+    h1, h2, h3, strong, b { color:var(--heading-color); }
+    a { color:var(--link-color); }
+    nav a { margin-right:10px; }
+    .header-row { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+    .title { text-decoration:none; border:0; }
+    .title h1 { font-size:24px; margin:19.92px 0; }
+    .theme-toggle-btn { margin-left:auto; background:none; border:1px solid var(--toggle-border); border-radius:20px;
+           cursor:pointer; padding:2px 8px; font-size:.8rem; color:var(--text-color); }
+    .theme-toggle-btn:hover { border-color:var(--link-color); }
+    code { font-family:"courier new",monospace; background:var(--code-bg); color:var(--code-color); padding:0 .3em; border-radius:3px; }
+    select { font:inherit; padding:.2em .4em; background:var(--input-bg); color:var(--input-color); border:1px solid var(--td-border); }
+    table { border-collapse:collapse; font-size:.9rem; margin:1rem 0; }
+    th { text-align:left; border-bottom:2px solid var(--th-border); padding:8px 12px; color:var(--heading-color); }
+    td { border-bottom:1px solid var(--td-border); padding:8px 12px; }
+    tbody tr:nth-child(odd) { background:var(--row-odd); }
+    .note { background:var(--note-bg); border-left:3px solid var(--note-border); padding:.5em .8em; }
+    .hidden { display:none; }
+    esp-web-install-button { display:block; margin:1rem 0; }
+    .install-btn { font:inherit; font-size:1.05rem; padding:.45em 1.2em; border-radius:20px; cursor:pointer;
+           border:1px solid var(--link-color); background:var(--link-color); color:var(--bg-color); }
+    .install-btn:hover { filter:brightness(1.1); }
+    footer { margin-top:2rem; }
   </style>
+  <script>  // theme before first paint (no flash); same choice as the blog: dark unless set to light
+    if (localStorage.getItem("theme") === "light") document.documentElement.setAttribute("data-theme", "light");
+  </script>
 </head>
 <body>
-  <h1>Install QRPickle on a Cheap Yellow Display</h1>
+  <header>
+    <div class="header-row">
+      <a href="https://ham.bharathpalavalli.com/" class="title"><h1>Getting On The Air</h1></a>
+      <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle light/dark mode" onclick="toggleTheme()">☀️ | 🌙</button>
+    </div>
+    <nav>
+      <a href="https://ham.bharathpalavalli.com/">Home</a>
+      <a href="https://ham.bharathpalavalli.com/posts/20260525174115-qrpickle/">About QRPickle</a>
+      <a href="https://github.com/bmp/QRPickle">Source</a>
+      <a href="https://github.com/bmp/QRPickle/releases">Releases</a>
+    </nav>
+  </header>
+  <main>
+  <h2>Install QRPickle on a Cheap Yellow Display</h2>
+  <p>QRPickle is a field-friendly ham radio dashboard for the ESP32 "Cheap Yellow Display".
+     Read about it in <a href="https://ham.bharathpalavalli.com/posts/20260525174115-qrpickle/">the QRPickle article</a>.</p>
   <p>
     <label for="ver">Version:</label>
     <select id="ver" onchange="selectVersion()"><option>loading…</option></select>
@@ -29,19 +73,25 @@
   <ol>
     <li>Use <strong>Chrome or Edge</strong> on a computer (Web Serial is required).</li>
     <li>Connect the CYD with a USB <em>data</em> cable.</li>
-    <li>Click <strong>Install</strong>, pick the serial port, and allow erasing for a clean install.</li>
+    <li>Click <strong>Install QRPickle</strong>, pick the serial port, and allow erasing for a clean install.</li>
   </ol>
-  <esp-web-install-button id="install" manifest="manifest.json"></esp-web-install-button>
+  <esp-web-install-button id="install" manifest="manifest.json">
+    <button slot="activate" class="install-btn">Install QRPickle</button>
+    <span slot="unsupported" class="note">This browser can't access USB serial ports. Use Chrome or Edge on a computer.</span>
+    <span slot="not-allowed" class="note">The installer needs a secure (https) page.</span>
+  </esp-web-install-button>
   <details>
     <summary>What gets written where</summary>
     <p>Every version uses the same flash layout:</p>
     <table>
-      <tr><th>Address</th><th>File</th><th>Contents</th></tr>
+      <thead><tr><th>Address</th><th>File</th><th>Contents</th></tr></thead>
+      <tbody>
       <tr><td><code>0x1000</code></td><td><code>bootloader.bin</code></td><td>ESP32 bootloader</td></tr>
       <tr><td><code>0x8000</code></td><td><code>partitions.bin</code></td><td>Partition table</td></tr>
       <tr><td><code>0xE000</code></td><td><code>boot_app0.bin</code></td><td>otadata: boot from app0</td></tr>
       <tr><td><code>0x10000</code></td><td><code>firmware.bin</code></td><td>Firmware (app0)</td></tr>
       <tr><td><code>0x390000</code></td><td><code>littlefs.bin</code></td><td>Web console files (LittleFS)</td></tr>
+      </tbody>
     </table>
     <p>Settings (<code>nvs</code>, <code>0x9000</code>) are kept unless you erase the device.</p>
   </details>
@@ -50,9 +100,16 @@
   <p>Already running QRPickle v0.2.0 or later? Update over WiFi instead: <strong>Cloud OTA</strong> on the device or in the web console.
      Older versions need this installer once. Erasing also clears your settings and profiles, so download a
      backup first (web console → Profiles → Download Backup) where available.</p>
-  <p><small>QRPickle is MIT-licensed and includes fonts under the SIL Open Font License 1.1 and other components:
-     see the <a href="https://github.com/bmp/QRPickle/blob/main/THIRD_PARTY_NOTICES.md">third-party notices</a>.</small></p>
+  </main>
+  <footer><small>QRPickle by VU3GLJ is MIT-licensed and includes fonts under the SIL Open Font License 1.1 and other
+     components: see the <a href="https://github.com/bmp/QRPickle/blob/main/THIRD_PARTY_NOTICES.md">third-party notices</a>.</small></footer>
   <script>
+    function toggleTheme() {
+      const light = document.documentElement.getAttribute("data-theme") !== "light";
+      if (light) document.documentElement.setAttribute("data-theme", "light");
+      else document.documentElement.removeAttribute("data-theme");
+      localStorage.setItem("theme", light ? "light" : "dark");
+    }
     // versions.json is written by scripts/make_pages_site.py: newest first, each with its own manifest.
     let versions = [];
     function selectVersion() {

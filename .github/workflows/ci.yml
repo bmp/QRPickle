@@ -16,13 +16,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # the format check compares against the base commit
 
       - uses: actions/setup-python@v5
         with:
           python-version: '3.x'
 
-      - name: Install PlatformIO (pinned)
-        run: pip install "platformio==6.2.0"
+      - name: Install PlatformIO and linters (pinned)
+        run: pip install "platformio==6.2.0" "clang-format==19.1.7" "ruff==0.16.10"
+
+      - name: Python lint (ruff)
+        run: ruff check
+
+      # Only lines changed by this push / PR must follow .clang-format (no mass reformat).
+      - name: C++ format of changed lines (clang-format)
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+            BASE=$(git merge-base origin/main HEAD)
+          fi
+          scripts/check_format.sh "$BASE"
 
       - name: Native unit tests
         run: pio test -e native

@@ -1,0 +1,37 @@
+# Matches the existing code style, so formatting changed lines doesn't fight the rest of the file.
+# CI checks only the lines a change touches (git clang-format --diff); there was no mass reformat.
+# Pinned version: clang-format 19.1.7 (pip install clang-format==19.1.7), the same in CI.
+BasedOnStyle: Google
+IndentWidth: 4
+ContinuationIndentWidth: 4
+ColumnLimit: 0
+NamespaceIndentation: All
+AccessModifierOffset: -4
+PointerAlignment: Left
+DerivePointerAlignment: false
+SortIncludes: Never
+IncludeBlocks: Preserve
+AllowShortFunctionsOnASingleLine: All
+AllowShortIfStatementsOnASingleLine: AllIfsAndElse
+AllowShortLoopsOnASingleLine: true
+AllowShortBlocksOnASingleLine: Always
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortEnumsOnASingleLine: true
+AlignTrailingComments: false
+AlignConsecutiveAssignments: None
+AlignConsecutiveDeclarations: None
+AlignConsecutiveMacros: None
+SpacesBeforeTrailingComments: 2
+FixNamespaceComments: false
+ReflowComments: false
+MaxEmptyLinesToKeep: 2
+KeepEmptyLinesAtTheStartOfBlocks: true
+SpaceBeforeParens: ControlStatements
+IndentCaseLabels: true
+BreakBeforeBraces: Attach
+InsertBraces: false
+AlignConsecutiveShortCaseStatements:
+  Enabled: true
+  AcrossEmptyLines: false
+  AcrossComments: true
+BreakTemplateDeclarations: Leave

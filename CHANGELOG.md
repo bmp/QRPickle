@@ -2,6 +2,31 @@
 
 User-facing changes per release, newest first. Each section is also the release commit message (see `docs/RELEASING.md`).
 
+## v0.2.1 (2026-10-10)
+
+Fixes the Cloud OTA update check; manual with images and appendices; restyled installer
+
+Updating from v0.2.0 (once, by hand): v0.2.0's update check can't follow
+the redirect to the release site, so its Cloud OTA won't find v0.2.1.
+1. Web console → System Info → upload firmware.bin (target: firmware).
+   No filesystem update is needed: settings and profiles are kept.
+From v0.2.1 on, Cloud OTA finds new releases again.
+Updating from v0.1.x: as for v0.2.0 (firmware.bin, then littlefs.bin),
+or use the one-click installer.
+
+Fixed
+- Cloud OTA update check follows redirects (v0.2.0 reported "check failed").
+- PDF manual: all screenshots and photos are included, sized to the page.
+- Release ZIP holds only the release files.
+
+New
+- Manual: cover page, appendices (LED colours, flash memory map, building
+  from source, libraries, third-party notices), header and footer, and an
+  accessible tagged PDF.
+- Installer page styled like ham.bharathpalavalli.com, with a link to the
+  QRPickle article.
+- Status LED: writes only when its colour changes.
+
 ## v0.2.0 (2026-10-09)
 
 Web login, full profiles with backup, Cloud OTA via GitHub Pages

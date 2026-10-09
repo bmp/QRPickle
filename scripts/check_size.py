@@ -2,7 +2,8 @@
 # Fails the build when static DRAM headroom < 4 KB or the image exceeds 95% of the
 # OTA app slot; warns above 85%. (Review finding 6.5)
 Import("env")
-import os, subprocess
+import os
+import subprocess
 
 DRAM_SEG_BYTES = 124580       # dram0_0_seg length (ESP32 Arduino 2.x linker script)
 DRAM_MIN_HEADROOM = 4096
@@ -13,7 +14,7 @@ def check(source, target, env):
     elf = str(target[0])
     size_tool = env.subst("$SIZETOOL")
     out = subprocess.run([size_tool, "-A", elf], capture_output=True, text=True).stdout
-    sec = {p[0]: int(p[1]) for p in (l.split() for l in out.splitlines()) if len(p) >= 2 and p[1].isdigit()}
+    sec = {p[0]: int(p[1]) for p in (line.split() for line in out.splitlines()) if len(p) >= 2 and p[1].isdigit()}
     dram = sec.get(".dram0.data", 0) + sec.get(".dram0.bss", 0) + sec.get(".noinit", 0)
     headroom = DRAM_SEG_BYTES - dram
     print(f"[check_size] static DRAM {dram:,} B used, headroom {headroom:,} B (min {DRAM_MIN_HEADROOM:,})")

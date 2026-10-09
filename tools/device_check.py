@@ -10,7 +10,10 @@ Usage: python3 -I tools/device_check.py [--port /dev/ttyUSB0] [--cycles 5] [--se
 Exit code 0 = pass (no panics, WDT resets <= --max-wdt, every boot reached WiFi).
 Requires pyserial (bundled with PlatformIO: ~/.platformio/penv/bin/python).
 """
-import argparse, re, sys, time
+import argparse
+import re
+import sys
+import time
 import serial
 
 MASK = re.compile(r'(appid=|pass(?:word|code)?\s*[:=]\s*)(?!\*\*\*\*)[^ &\s]+', re.I)

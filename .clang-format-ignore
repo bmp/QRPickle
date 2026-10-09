@@ -1,0 +1,7 @@
+# Generated files and library-template configs: never reformatted.
+src/ui/fonts/*
+src/ui/img/*
+include/lv_conf.h
+src/hw/User_Setup.h
+# Hand-aligned constants table edited at every release (FW_VERSION)
+src/core/metadata.h
