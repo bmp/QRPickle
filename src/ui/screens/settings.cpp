@@ -191,13 +191,17 @@ namespace ui {
             lv_label_set_text(lbl_profile, clean_name.c_str());
         }
 
-        services::profile_manager::ProfileData p_data;
-        if (services::profile_manager::read_profile(name.c_str(), p_data)) {
+        config::Config p_data;
+        if (services::profile_manager::read_profile(name.c_str(), p_data, services::profile_manager::Secrets::LiveFallback)) {
             if (ta_call) lv_textarea_set_text(ta_call, p_data.callsign);
             if (ta_grid) lv_textarea_set_text(ta_grid, p_data.grid);
             if (ta_ssid) lv_textarea_set_text(ta_ssid, p_data.wifi_ssid);
             if (ta_pw)   lv_textarea_set_text(ta_pw, p_data.wifi_password);
             if (slider_bright) lv_slider_set_value(slider_bright, p_data.brightness, LV_ANIM_OFF);
+            if (cb_auto_bright) {
+                if (p_data.auto_brightness) lv_obj_add_state(cb_auto_bright, LV_STATE_CHECKED);
+                else lv_obj_remove_state(cb_auto_bright, LV_STATE_CHECKED);
+            }
 
             pending_theme_id = p_data.theme_id;
             if (lbl_theme) lv_label_set_text(lbl_theme, theme_get_name(pending_theme_id));
@@ -264,8 +268,11 @@ namespace ui {
     }
 
     static void save_clicked(lv_event_t*) {
+        // A chosen profile is applied in full (macros, DX servers, ...), then the form on top.
+        const bool applied = current_profile_idx >= 0 &&
+            services::profile_manager::apply_profile_to_live(profile_list[current_profile_idx].c_str());
         const auto& c = config::get();
-        bool modified = false;
+        bool modified = applied;
         bool new_auto_bright = lv_obj_has_state(cb_auto_bright, LV_STATE_CHECKED);
 
         const char* new_call = lv_textarea_get_text(ta_call);
@@ -274,7 +281,7 @@ namespace ui {
         const char* new_pass = lv_textarea_get_text(ta_pw);
         uint8_t new_bright = (uint8_t)lv_slider_get_value(slider_bright);
 
-        if (strcmp(c.callsign, new_call) != 0 ||
+        if (!modified && (strcmp(c.callsign, new_call) != 0 ||
             strcmp(c.grid, new_grid) != 0 ||
             strcmp(c.wifi_ssid, new_ssid) != 0 ||
             strcmp(c.wifi_password, new_pass) != 0 ||
@@ -283,7 +290,7 @@ namespace ui {
             c.brightness != new_bright ||
             c.auto_brightness != new_auto_bright ||
             c.theme_id != pending_theme_id ||
-            c.screen_timeout_min != pending_timeout_min) 
+            c.screen_timeout_min != pending_timeout_min))
         {
             modified = true;
         }

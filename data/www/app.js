@@ -83,92 +83,63 @@ function initTabsEngine() {
     });
 }
 
-// --- SYNC CONFIGURATION READ METHOD ---
-function loadCurrentConfig() {
-    fetch("/api/config")
-        .then(res => res.json())
-        .then(data => {
-            // Update tool matching metadata descriptors if supplied by backend
-            updateDynamicFooter(data);
+// --- SETTINGS FORM ---
+// The Basic/Advanced form edits either the live device settings or, in profile edit mode, a
+// stored profile. Keys are the device's (/api/config and profile files share one field table).
+let editingProfile = null;
 
-            // Basic Panel JSON parameters sync
-            setElementValue("cfg-callsign", data.callsign || "");
-            setElementValue("cfg-grid", data.grid || "");
-            setElementValue("cfg-ssid", data.ssid || "");
-            setElementValue("cfg-password", "");
-            markSaved("cfg-password", data.password_set);
-            setElementValue("cfg-lat", data.lat ?? 12.97);
-            setElementValue("cfg-lon", data.lon ?? 77.59);
-            setElementValue("cfg-offset", (data.offset ?? 5.5) * 2.0 / 2.0); 
-            setElementValue("cfg-brightness", data.brightness ?? 180);
-            setElementValue("cfg-timeout", data.timeout ?? 5);
-            setElementValue("cfg-theme", data.theme_id ?? 0);
+function fillForm(data) {
+    setElementValue("cfg-callsign", data.callsign || "");
+    setElementValue("cfg-grid", data.grid || "");
+    setElementValue("cfg-ssid", data.ssid || "");
+    setElementValue("cfg-lat", data.lat ?? 12.97);
+    setElementValue("cfg-lon", data.lon ?? 77.59);
+    setElementValue("cfg-offset", data.offset ?? 5.5);
+    setElementValue("cfg-brightness", data.brightness ?? 180);
+    setElementValue("cfg-timeout", data.timeout ?? 5);
+    setElementValue("cfg-theme", data.theme_id ?? 0);
 
-            // FIXED: Fallback parser chains map explicit openweather keys strictly matching C++ fields
-            const extractedApiKey = data.openweather_api_key || data.owm_api_key || data.apikey || data.api_key || "";
-            setElementValue("cfg-apikey", extractedApiKey);
-            markSaved("cfg-apikey", data.apikey_set);
-            
-            setElementValue("cfg-hamalert-pass", "");
-            markSaved("cfg-hamalert-pass", data.hamalert_pass_set);
-            setElementValue("cfg-aprs-en", data.aprs_en ? "1" : "0");
-            setElementValue("cfg-aprs-pass", "");
-            markSaved("cfg-aprs-pass", data.aprs_pass_set);
-            setElementValue("cfg-aprs-ssid", data.aprs_ssid ?? 0);
-            setElementValue("cfg-aprs-icon", data.aprs_icn || "/[");
-            setElementValue("cfg-admin-pw", "");
-            setElementValue("cfg-admin-pw2", "");
-            setElementValue("cfg-aprs-cmt", data.aprs_cmt || "");
+    // Secrets are never sent to the browser (review 1.3): blank fields keep the stored value.
+    for (const [id, key] of [["cfg-password", "password"], ["cfg-apikey", "apikey"],
+                             ["cfg-hamalert-pass", "hamalert_pass"], ["cfg-aprs-pass", "aprs_pass"]]) {
+        setElementValue(id, "");
+        markSaved(id, data[key + "_set"]);
+    }
+    setElementValue("cfg-admin-pw", "");
+    setElementValue("cfg-admin-pw2", "");
 
-            // Decode Bitmask integers for Weather slots configuration checkboxes
-            const mask = data.fc_slots ?? 15;
-            for (let i = 0; i < 8; i++) {
-                setElementValue(`fc-bit${i}`, (mask & (1 << i)) !== 0, true);
-            }
+    setElementValue("cfg-aprs-en", data.aprs_en ? "1" : "0");
+    setElementValue("cfg-aprs-ssid", data.aprs_ssid ?? 0);
+    setElementValue("cfg-aprs-icon", data.aprs_icn || "/[");
+    setElementValue("cfg-aprs-cmt", data.aprs_cmt || "");
 
-            // Extract values for dynamic C-String Macro arrays
-            if (data.aprs_macros && Array.isArray(data.aprs_macros)) {
-                for (let i = 0; i < 5; i++) {
-                    setElementValue(`cfg-mac${i}`, data.aprs_macros[i] || "");
-                }
-            }
+    const mask = data.fc_slots ?? 15;
+    for (let i = 0; i < 8; i++) setElementValue(`fc-bit${i}`, (mask & (1 << i)) !== 0, true);
 
-            // DX Node endpoints definitions
-            setElementValue("dx_url_p", data.dx_url_p || "");
-            setElementValue("dx_port_p", data.dx_port_p ?? 7300);
-            setElementValue("dx_url_s", data.dx_url_s || "");
-            setElementValue("dx_port_s", data.dx_port_s ?? 7373);
+    const macros = Array.isArray(data.aprs_macros) ? data.aprs_macros : [];
+    for (let i = 0; i < 5; i++) setElementValue(`cfg-mac${i}`, macros[i] || "");
 
-            // Re-index stored files dropdown elements
-            fetchProfilesList();
-        })
-        .catch(err => console.error("Could not fetch device configuration variables:", err));
+    setElementValue("dx_url_p", data.dx_url_p || "");
+    setElementValue("dx_port_p", data.dx_port_p ?? 7300);
+    setElementValue("dx_url_s", data.dx_url_s || "");
+    setElementValue("dx_port_s", data.dx_port_s ?? 7373);
 }
 
-// --- SYNC CONFIGURATION WRITE METHOD ---
-function saveActiveConfig() {
+// Everything except the admin password, which profiles never hold.
+function collectForm() {
     let forecastMask = 0;
     for (let i = 0; i < 8; i++) {
         if (getElementValue(`fc-bit${i}`, true)) forecastMask |= (1 << i);
     }
+    const macros = [];
+    for (let i = 0; i < 5; i++) macros.push(getElementValue(`cfg-mac${i}`));
 
-    const macrosArray = [];
-    for (let i = 0; i < 5; i++) {
-        macrosArray.push(getElementValue(`cfg-mac${i}`));
-    }
-
-    const activeApiKey = getElementValue("cfg-apikey");
-
-    const payload = {
+    return {
         callsign: getElementValue("cfg-callsign"),
         grid: getElementValue("cfg-grid"),
         ssid: getElementValue("cfg-ssid"),
-        
-        // FIXED: Redundant data descriptors prevent serialization dropouts on backend C++ fields parsing
-        apikey: activeApiKey,
-        openweather_api_key: activeApiKey,
-        owm_api_key: activeApiKey,
-        
+        password: getElementValue("cfg-password"),
+        apikey: getElementValue("cfg-apikey"),
         lat: parseFloat(getElementValue("cfg-lat")),
         lon: parseFloat(getElementValue("cfg-lon")),
         offset: parseFloat(getElementValue("cfg-offset")),
@@ -185,12 +156,25 @@ function saveActiveConfig() {
         aprs_ssid: parseInt(getElementValue("cfg-aprs-ssid")),
         aprs_icn: getElementValue("cfg-aprs-icon"),
         aprs_cmt: getElementValue("cfg-aprs-cmt"),
-        aprs_macros: macrosArray,
+        aprs_macros: macros,
         hamalert_pass: getElementValue("cfg-hamalert-pass")
     };
+}
 
-    const passValue = getElementValue("cfg-password");
-    if (passValue) payload.password = passValue;
+function loadCurrentConfig() {
+    fetch("/api/config")
+        .then(res => res.json())
+        .then(data => {
+            updateDynamicFooter(data);
+            if (!editingProfile) fillForm(data);
+            fetchProfilesList();
+        })
+        .catch(err => console.error("Could not fetch device configuration variables:", err));
+}
+
+function saveActiveConfig() {
+    if (editingProfile) { saveFormToProfile(); return; }
+    const payload = collectForm();
 
     // Same rules as config::sanitize(): 8-16 printable characters, no spaces.
     const adminPw = getElementValue("cfg-admin-pw");
@@ -215,7 +199,6 @@ function saveActiveConfig() {
     .catch(err => alert("Transmission line error saving configuration parameters: " + err));
 }
 
-// --- TELEMETRY READOUT AGENT ---
 function fetchSystemTelemetry() {
     const sysTab = document.getElementById("tab-system");
     if (!sysTab || !sysTab.classList.contains("active")) return;
@@ -321,148 +304,153 @@ function triggerReboot() {
 }
 
 // --- PROFILE LAYOUT MANAGER STORAGE PIPELINE ---
+// --- PROFILES ---
+const PROFILE_NAME_RE = /^[A-Za-z0-9_-]{1,24}$/;
+
 function fetchProfilesList() {
-    fetch("/api/profiles") 
+    return fetch("/api/profiles")
         .then(res => res.json())
         .then(data => {
             const dropdown = document.getElementById("profile-select");
-            if (!dropdown) return;
+            if (!dropdown) return [];
             dropdown.innerHTML = '<option value="">-- No Profile Selected --</option>';
             if (Array.isArray(data)) {
                 data.forEach(pName => {
                     dropdown.innerHTML += `<option value="${esc(pName)}">${esc(pName)}</option>`;
                 });
             }
+            handleProfileSelectionChange();
+            return Array.isArray(data) ? data : [];
         });
 }
 
 function handleProfileSelectionChange() {
-    const pName = document.getElementById("profile-select").value;
-    const inspectPanel = document.getElementById("profile-inspect-panel");
-    
-    if (!pName) {
-        if (inspectPanel) inspectPanel.classList.add("hidden");
-        return;
-    }
+    const selected = !!document.getElementById("profile-select").value;
+    document.querySelectorAll(".profile-needs-selection").forEach(b => b.disabled = !selected);
+}
 
-    fetch(`/api/profiles/get?name=${encodeURIComponent(pName)}`)
-        .then(res => res.json())
-        .then(data => {
-            if (inspectPanel) inspectPanel.classList.remove("hidden");
-            setElementValue("prof-edit-callsign", data.callsign || "");
-            setElementValue("prof-edit-grid", data.grid || "");
-            setElementValue("prof-edit-lat", data.lat ?? 12.97);
-            setElementValue("prof-edit-lon", data.lon ?? 77.59);
-            setElementValue("prof-edit-ssid", data.ssid || "");
-            setElementValue("prof-edit-password", data.password || "");
-            setElementValue("prof-edit-offset", data.offset ?? 0);
-            setElementValue("prof-edit-brightness", data.brightness ?? 180);
-            setElementValue("prof-edit-theme", data.theme_id ?? 0);
-            setElementValue("prof-edit-aprs-en", data.aprs_en ? "1" : "0");
-            setElementValue("prof-edit-aprs-ssid", data.aprs_ssid ?? 0);
-            setElementValue("prof-edit-aprs-icn", data.aprs_icn || "/[");
-            setElementValue("prof-edit-timeout", data.timeout ?? 5); 
-            setElementValue("prof-edit-aprs-cmt", data.aprs_cmt || "");
-            
-            // FIXED: Populate the separate profile key edit field securely
-            const profileKey = data.openweather_api_key || data.owm_api_key || data.apikey || data.api_key || "";
-            setElementValue("prof-edit-apikey", profileKey);
-        });
+function postProfile(name, config, restore = false) {
+    return fetch("/api/profiles/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, config, restore })
+    });
 }
 
 function saveProfile() {
     const pName = document.getElementById("new-profile-name").value.trim();
-    if (!pName) { alert("Please specify a filename identification moniker for the layout template configuration."); return; }
-    
-    const activeApiKey = getElementValue("cfg-apikey");
-
-    const configPayload = {
-        callsign: getElementValue("cfg-callsign"),
-        grid: getElementValue("cfg-grid"),
-        ssid: getElementValue("cfg-ssid"),
-        password: getElementValue("cfg-password"),  // blank = device keeps the saved one
-        
-        // FIXED: Unified profile mapping variations
-        apikey: activeApiKey,
-        openweather_api_key: activeApiKey,
-        owm_api_key: activeApiKey,
-        
-        lat: parseFloat(getElementValue("cfg-lat")),
-        lon: parseFloat(getElementValue("cfg-lon")),
-        offset: parseFloat(getElementValue("cfg-offset")),
-        brightness: parseInt(getElementValue("cfg-brightness")),
-        theme_id: parseInt(getElementValue("cfg-theme")),
-        scr_to: parseInt(getElementValue("cfg-timeout")), 
-        aprs_en: getElementValue("cfg-aprs-en") === "1",
-        aprs_ssid: parseInt(getElementValue("cfg-aprs-ssid")),
-        aprs_pass: getElementValue("cfg-aprs-pass"),
-        aprs_cmt: getElementValue("cfg-aprs-cmt"),
-        aprs_icn: getElementValue("cfg-aprs-icon")
-    };
-
-    const containerPayload = { name: pName, config: configPayload };
-
-    fetch("/api/profiles/save", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(containerPayload)
-    })
-    .then(res => res.ok ? alert("System operational snapshot profile successfully written to disk flash.") : alert("Server rejected profile snapshot operation."))
-    .then(() => {
-        document.getElementById("new-profile-name").value = "";
-        fetchProfilesList();
-    })
-    .catch(err => alert("Error processing background snapshot file sync array: " + err));
+    if (!PROFILE_NAME_RE.test(pName)) { alert("Profile name: 1-24 letters, digits, - or _ (no spaces)."); return; }
+    // Blank secret fields take the device's current ones.
+    postProfile(pName, collectForm())
+        .then(res => res.ok ? alert(`Profile "${pName}" saved.`) : alert("Server rejected the profile."))
+        .then(() => {
+            document.getElementById("new-profile-name").value = "";
+            fetchProfilesList();
+        })
+        .catch(err => alert("Error saving the profile: " + err));
 }
 
 function applySelectedProfile() {
     const pName = document.getElementById("profile-select").value;
-    if (!pName) return;
-    
+    if (!pName || !confirm(`Apply profile "${pName}" to the device now?`)) return;
     fetch(`/api/profiles/load?name=${encodeURIComponent(pName)}`, { method: "POST" })
-        .then(res => res.ok ? alert("Profile configuration applied live! Re-synchronizing console view parameters...") : alert("Profile transition failure."))
+        .then(res => res.ok ? alert("Profile applied. Reloading the settings...") : alert("Profile could not be applied."))
         .then(() => window.location.reload());
 }
 
-function saveProfileChanges() {
+function editSelectedProfile() {
     const pName = document.getElementById("profile-select").value;
     if (!pName) return;
+    fetch(`/api/profiles/get?name=${encodeURIComponent(pName)}`)
+        .then(res => { if (!res.ok) throw new Error("not found"); return res.json(); })
+        .then(data => {
+            editingProfile = pName;
+            fillForm(data);
+            document.getElementById("profile-edit-name").innerText = pName;
+            document.getElementById("profile-edit-banner").classList.remove("hidden");
+            document.querySelectorAll(".admin-pw-group").forEach(el => el.classList.add("hidden"));
+            document.querySelector('.tab-btn[data-tab="basic"]').click();
+        })
+        .catch(err => alert("Could not load the profile: " + err));
+}
 
-    const modifiedProfileKey = getElementValue("prof-edit-apikey");
+function stopEditingProfile() {
+    editingProfile = null;
+    document.getElementById("profile-edit-banner").classList.add("hidden");
+    document.querySelectorAll(".admin-pw-group").forEach(el => el.classList.remove("hidden"));
+    loadCurrentConfig();
+}
 
-    const configPayload = {
-        callsign: getElementValue("prof-edit-callsign"),
-        grid: getElementValue("prof-edit-grid"),
-        ssid: getElementValue("prof-edit-ssid"),
-        password: getElementValue("prof-edit-password"),
-        
-        // FIXED: Sync profile changes strictly matching layout variants
-        apikey: modifiedProfileKey,
-        openweather_api_key: modifiedProfileKey,
-        owm_api_key: modifiedProfileKey,
-        
-        lat: parseFloat(getElementValue("prof-edit-lat")),
-        lon: parseFloat(getElementValue("prof-edit-lon")),
-        offset: parseFloat(getElementValue("prof-edit-offset")),
-        brightness: parseInt(getElementValue("prof-edit-brightness")),
-        theme_id: parseInt(getElementValue("prof-edit-theme")),
-        scr_to: parseInt(getElementValue("prof-edit-timeout")), 
-        aprs_en: getElementValue("prof-edit-aprs-en") === "1",
-        aprs_ssid: parseInt(getElementValue("prof-edit-aprs-ssid")),
-        aprs_pass: getElementValue("prof-edit-aprs-pass"),
-        aprs_cmt: getElementValue("prof-edit-aprs-cmt"),
-        aprs_icn: getElementValue("prof-edit-aprs-icn")
-    };
+function saveFormToProfile() {
+    const pName = editingProfile;
+    // Blank secret fields keep the profile's own ones.
+    postProfile(pName, collectForm())
+        .then(res => {
+            if (!res.ok) { alert("Server rejected the profile changes."); return; }
+            alert(`Profile "${pName}" saved. The device settings are unchanged.`);
+            stopEditingProfile();
+        })
+        .catch(err => alert("Error saving the profile: " + err));
+}
 
-    const containerPayload = { name: pName, config: configPayload };
+function deleteSelectedProfile() {
+    const pName = document.getElementById("profile-select").value;
+    if (!pName || !confirm(`Delete profile "${pName}"?`)) return;
+    fetch(`/api/profiles/delete?name=${encodeURIComponent(pName)}`, { method: "POST" })
+        .then(res => res.ok ? null : alert("Profile could not be deleted."))
+        .then(() => fetchProfilesList());
+}
 
-    fetch("/api/profiles/save", { 
+// Backup: settings + all profiles as the device reports them (secrets masked, review 1.3).
+async function downloadBackup() {
+    try {
+        const settings = await (await fetch("/api/config")).json();
+        for (const k of ["fw_name", "fw_version", "author_call"]) delete settings[k];
+        const profiles = {};
+        for (const name of await fetchProfilesList()) {
+            const res = await fetch(`/api/profiles/get?name=${encodeURIComponent(name)}`);
+            if (res.ok) profiles[name] = await res.json();
+        }
+        const backup = { format: "qrpickle-backup", version: 1, created: new Date().toISOString(), settings, profiles };
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" }));
+        a.download = `qrpickle-backup-${new Date().toISOString().slice(0, 10)}.json`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    } catch (err) {
+        alert("Backup failed: " + err);
+    }
+}
+
+async function restoreBackup(input) {
+    const file = input.files[0];
+    input.value = "";
+    if (!file) return;
+    let backup;
+    try {
+        backup = JSON.parse(await file.text());
+    } catch (err) {
+        alert("This file is not valid JSON."); return;
+    }
+    if (backup.format !== "qrpickle-backup" || !backup.settings || typeof backup.profiles !== "object") {
+        alert("This is not a QRPickle backup file."); return;
+    }
+    const names = Object.keys(backup.profiles).filter(n => PROFILE_NAME_RE.test(n));
+    if (!confirm(`Restore the device settings and ${names.length} profile(s) from this backup? ` +
+                 "Passwords and keys stored on the device are kept.")) return;
+    const failed = [];
+    for (const name of names) {
+        const res = await postProfile(name, backup.profiles[name], true);
+        if (!res.ok) failed.push(name);
+    }
+    const res = await fetch("/api/config/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(containerPayload)
-    })
-    .then(res => res.ok ? alert("Profile changes committed to storage disk file successfully!") : alert("Modifications transaction rejected by target hardware."))
-    .catch(err => alert("Error sending profile save changes configuration: " + err));
+        body: JSON.stringify(backup.settings)
+    });
+    if (!res.ok) failed.push("device settings");
+    alert(failed.length ? "Restore finished with errors: " + failed.join(", ") : "Backup restored.");
+    window.location.reload();
 }
 
 function fetchCloudOTADetails(forceCheck = false) {
@@ -548,7 +536,6 @@ function attachGridAutoCalc(latId, lonId, gridId) {
 // Attach the auto-calculators after the DOM loads
 document.addEventListener("DOMContentLoaded", () => {
     attachGridAutoCalc("cfg-lat", "cfg-lon", "cfg-grid");           // Basic Settings Tab
-    attachGridAutoCalc("prof-edit-lat", "prof-edit-lon", "prof-edit-grid"); // Profiles Tab
 });
 
 // --- APRS MESSAGING WEB CLIENT ---

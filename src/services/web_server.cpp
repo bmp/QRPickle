@@ -8,6 +8,7 @@
 #include "hamalert_manager.h"  
 #include "../config/config.h"
 #include "../config/config_validation.h"
+#include "../config/config_json.h"
 #include "json_copy.h"
 #include <atomic>
 #include "../core/metadata.h"
@@ -23,7 +24,6 @@
 #include <esp_arduino_version.h>
 
 static AsyncWebServer server(80);
-using services::copy_str;
 using services::copy_secret;
 
 static std::atomic<bool> flag_trigger_reboot{false};
@@ -178,36 +178,8 @@ void web_server_init() {
         doc["fw_version"] = meta::FW_VERSION;
         doc["author_call"] = meta::AUTHOR_CALL;
 
-        doc["callsign"] = c.callsign;
-        doc["grid"] = c.grid;
-        doc["ssid"] = c.wifi_ssid;
-        // Secrets are never returned (review 1.3); the UI shows "saved" and sends "" to keep them.
-        doc["password"] = "";      doc["password_set"] = c.wifi_password[0] != '\0';
-        doc["apikey"] = "";        doc["apikey_set"] = c.openweather_api_key[0] != '\0';
-        doc["lat"] = c.lat;
-        doc["lon"] = c.lon;
-        doc["offset"] = (float)c.tz_offset_hh / 2.0f;
-        doc["brightness"] = c.brightness;
-        doc["auto_bright"] = c.auto_brightness;
-        doc["theme_id"] = c.theme_id;
-        doc["timeout"] = c.screen_timeout_min;
-        doc["fc_slots"] = c.forecast_slots;  
-        
-        doc["dx_url_p"]  = c.dx_url_primary;
-        doc["dx_port_p"] = c.dx_port_primary;
-        doc["dx_url_s"]  = c.dx_url_secondary;
-        doc["dx_port_s"] = c.dx_port_secondary;
-        
-        doc["aprs_en"]   = c.aprs_enabled;
-        doc["aprs_pass"] = "";     doc["aprs_pass_set"] = c.aprs_passcode[0] != '\0';
-        doc["aprs_ssid"] = c.aprs_ssid;
-        doc["aprs_cmt"]  = c.aprs_comment;
-        doc["aprs_icn"]  = c.aprs_icon;
-
-        JsonArray mac_arr = doc["aprs_macros"].to<JsonArray>();
-        for(int i=0; i<5; i++) mac_arr.add(c.aprs_macros[i]);
-
-        doc["hamalert_pass"] = ""; doc["hamalert_pass_set"] = c.hamalert_password[0] != '\0';
+        // Secrets are never returned (review 1.3): "" plus "<key>_set"; the UI sends "" to keep them.
+        config::to_json(c, doc.as<JsonObject>(), config::Secrets::Mask);
 
         serializeJson(doc, *response);
         request->send(response);
@@ -217,29 +189,11 @@ void web_server_init() {
         REQUIRE_AUTH(request);
         if (request->hasParam("name") && config::is_valid_profile_name(request->getParam("name")->value().c_str())) {
             String name = request->getParam("name")->value();
-            services::profile_manager::ProfileData p_data;
-            if (services::profile_manager::read_profile(name.c_str(), p_data)) {
+            config::Config p;
+            if (services::profile_manager::read_profile(name.c_str(), p, services::profile_manager::Secrets::Own)) {
                 AsyncResponseStream *response = request->beginResponseStream("application/json");
                 JsonDocument doc;
-                doc["callsign"] = p_data.callsign;
-                doc["grid"] = p_data.grid;
-                doc["ssid"] = p_data.wifi_ssid;
-                doc["password"] = "";  doc["password_set"] = p_data.wifi_password[0] != '\0';
-                doc["apikey"] = "";    doc["apikey_set"] = p_data.openweather_api_key[0] != '\0';
-                doc["lat"] = p_data.lat;
-                doc["lon"] = p_data.lon;
-                doc["offset"] = (float)p_data.tz_offset_hh / 2.0f;
-                doc["brightness"] = p_data.brightness;
-                doc["auto_bright"] = config::get().auto_brightness;
-                doc["theme_id"] = p_data.theme_id;
-                doc["timeout"] = p_data.screen_timeout_min; 
-
-                doc["aprs_en"]   = p_data.aprs_enabled;
-                doc["aprs_pass"] = ""; doc["aprs_pass_set"] = p_data.aprs_passcode[0] != '\0';
-                doc["aprs_ssid"] = p_data.aprs_ssid;
-                doc["aprs_cmt"]  = p_data.aprs_comment;
-                doc["aprs_icn"]  = p_data.aprs_icon;
-
+                config::to_json(p, doc.to<JsonObject>(), config::Secrets::Mask);
                 serializeJson(doc, *response);
                 request->send(response);
                 return;
@@ -257,31 +211,7 @@ void web_server_init() {
                  DeserializationError err = deserializeJson(doc, body, total);
                  if (!err) {
                      auto* c = new config::Config(config::get());
-                     copy_str(c->callsign, doc["callsign"]);
-                     copy_str(c->grid, doc["grid"]);
-                     copy_str(c->wifi_ssid, doc["ssid"]);
-                     copy_secret(c->wifi_password, doc["password"]);
-                     copy_secret(c->openweather_api_key, doc["apikey"]);
-                     if (doc["lat"].is<float>())        c->lat = doc["lat"].as<float>();
-                     if (doc["lon"].is<float>())        c->lon = doc["lon"].as<float>();
-                     if (doc["brightness"].is<int>())   c->brightness = (uint8_t)constrain(doc["brightness"].as<int>(), 0, 255);
-                     if (doc["auto_bright"].is<bool>()) c->auto_brightness = doc["auto_bright"].as<bool>();
-                     if (doc["theme_id"].is<int>())     c->theme_id = (uint8_t)constrain(doc["theme_id"].as<int>(), 0, 255);
-                     if (doc["offset"].is<float>())     c->tz_offset_hh = (int8_t)constrain((int)(doc["offset"].as<float>() * 2.0f), -128, 127);
-                     if (doc["timeout"].is<int>())      c->screen_timeout_min = (uint8_t)constrain(doc["timeout"].as<int>(), 0, 255);
-                     if (doc["fc_slots"].is<int>())     c->forecast_slots = (uint8_t)doc["fc_slots"].as<int>();
-                     copy_str(c->dx_url_primary, doc["dx_url_p"]);
-                     if (doc["dx_port_p"].is<int>())    c->dx_port_primary = (uint16_t)doc["dx_port_p"].as<int>();
-                     copy_str(c->dx_url_secondary, doc["dx_url_s"]);
-                     if (doc["dx_port_s"].is<int>())    c->dx_port_secondary = (uint16_t)doc["dx_port_s"].as<int>();
-                     if (doc["aprs_en"].is<bool>())     c->aprs_enabled = doc["aprs_en"].as<bool>();
-                     copy_secret(c->aprs_passcode, doc["aprs_pass"]);
-                     if (doc["aprs_ssid"].is<int>())    c->aprs_ssid = (int8_t)constrain(doc["aprs_ssid"].as<int>(), -1, 99);
-                     copy_str(c->aprs_comment, doc["aprs_cmt"]);
-                     copy_str(c->aprs_icon, doc["aprs_icn"]);
-                     JsonArrayConst mac_arr = doc["aprs_macros"].as<JsonArrayConst>();
-                     for (size_t i = 0; i < 5 && i < mac_arr.size(); i++) copy_str(c->aprs_macros[i], mac_arr[i]);
-                     copy_secret(c->hamalert_password, doc["hamalert_pass"]);
+                     config::from_json(*c, doc.as<JsonObjectConst>());
                      copy_secret(c->admin_password, doc["admin_pw"]);  // sanitize() keeps the old one unless 8..16 printable chars
                      queue_config(c);
                      request->send(200, "application/json", "{\"status\":\"success\"}");
@@ -310,7 +240,7 @@ void web_server_init() {
                  DeserializationError err = deserializeJson(doc, body, total);
                  if (!err && doc["name"].is<const char*>() && config::is_valid_profile_name(doc["name"].as<const char*>()) && !doc["config"].isNull()) {
                      String p_name = doc["name"].as<String>();
-                     if (services::profile_manager::save_profile_from_json(p_name.c_str(), doc["config"])) {
+                     if (services::profile_manager::save_profile_from_json(p_name.c_str(), doc["config"].as<JsonObjectConst>(), doc["restore"] | false)) {
                          request->send(200, "application/json", "{\"status\":\"success\"}");
                          return;
                      }
@@ -322,14 +252,23 @@ void web_server_init() {
         REQUIRE_AUTH(request);
         if (request->hasParam("name")) {
             String name = request->getParam("name")->value();
-            services::profile_manager::ProfileData probe;
-            if (config::is_valid_profile_name(name.c_str()) && services::profile_manager::read_profile(name.c_str(), probe)) {
+            config::Config probe;
+            if (services::profile_manager::read_profile(name.c_str(), probe, services::profile_manager::Secrets::Own)) {
                 strncpy(pending_profile, name.c_str(), sizeof(pending_profile) - 1);
                 pending_profile[sizeof(pending_profile) - 1] = '\0';
                 pending_profile_flag = true;  // applied on the main loop
                 request->send(200, "application/json", "{\"status\":\"success\"}");
                 return;
             }
+        }
+        request->send(404, "application/json", "{\"status\":\"not_found\"}");
+    });
+
+    server.on("/api/profiles/delete", HTTP_POST, [](AsyncWebServerRequest *request) {
+        REQUIRE_AUTH(request);
+        if (request->hasParam("name") && services::profile_manager::delete_profile(request->getParam("name")->value().c_str())) {
+            request->send(200, "application/json", "{\"status\":\"success\"}");
+            return;
         }
         request->send(404, "application/json", "{\"status\":\"not_found\"}");
     });

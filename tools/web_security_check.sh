@@ -19,6 +19,7 @@ check "POST /api/config/save requires auth"      "$(code -X POST -H 'Content-Typ
 check "POST /api/system/reboot requires auth"    "$(code -X POST "$B/api/system/reboot")" 401
 check "POST /api/system/update requires auth"    "$(code -X POST -F 'f=@/dev/null' "$B/api/system/update?target=firmware")" 401
 check "POST /api/cloud_ota/flash requires auth"  "$(code -X POST "$B/api/cloud_ota/flash")" 401
+check "POST /api/profiles/delete requires auth" "$(code -X POST "$B/api/profiles/delete?name=x")" 401
 check "GET /api/config with auth"                "$(code "${auth[@]}" "$B/api/config")" 200
 
 cfg=$(curl -s -m 10 "${auth[@]}" "$B/api/config")
@@ -34,4 +35,5 @@ up2=$(curl -s -m 10 "${auth[@]}" "$B/api/status" | python3 -c 'import sys,json;p
 check "device did not reboot after bad JSON"     "$([ "${up2:-0}" -ge "${up1:-0}" ] && echo yes || echo no)" yes
 check "path-traversal profile name rejected"     "$(code "${auth[@]}" "$B/api/profiles/get?name=../www/app")" 404
 check "markup profile name rejected"             "$(code "${auth[@]}" -X POST -H 'Content-Type: application/json' -d '{"name":"<img src=x>","config":{}}' "$B/api/profiles/save")" 400
+check "path-traversal profile delete rejected"  "$(code "${auth[@]}" -X POST "$B/api/profiles/delete?name=..%2Fwww%2Findex.html")" 404
 echo "RESULT pass=$pass fail=$fail"; [ "$fail" -eq 0 ]

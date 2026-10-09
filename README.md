@@ -50,7 +50,7 @@ The web console and the `QRPickle-Setup` hotspot are password-protected.
 
 Saved secrets (WiFi password, API keys, passcodes) are never shown again in the web console. Leave those fields blank to keep the stored values.
 
-**Note:** saved profiles store their WiFi credentials on the device's filesystem, so they can switch networks. The flash is not encrypted.
+**Note:** saved profiles store their WiFi credentials on the device's filesystem, so they can switch networks. The flash is not encrypted. A profile without a stored password or key keeps the device's current one when applied. Backups never contain secrets.
 
 ## Core Features & Architecture
 
@@ -59,7 +59,7 @@ Saved secrets (WiFi password, API keys, passcodes) are never shown again in the 
 * **APRS-IS Integration:** Connects to the global APRS-IS network. Features a tactical Radar view, live spotter tracking, custom macros, and direct bidirectional messaging.
 * **Solar & Weather Telemetry:** Pulls active K-Index, A-Index, and SFI from solar endpoints, and maps granular, bitmask-driven 24-hour weather forecasts via OpenWeatherMap API.
 * **Adaptive Power & Wi-Fi Management:** Enforces hardware-level radio power caps (`esp_wifi_set_max_tx_power(52)`) to prevent LDO voltage brownouts on the CYD board. Falls back to an integrated Setup AP (`192.168.4.1`) if routing fails.
-* **Dynamic Staged Profiles:** Save and hot-swap complete configuration layouts (Callsign, Grid, Network, Theme, Settings) via LittleFS for quick transitions between Home, Mobile, and Field ops.
+* **Profiles:** Save and hot-swap complete configurations (every setting except the admin password: callsign, grid, network, theme, APRS, macros, DX servers, HamAlert) for quick transitions between Home, Mobile and Field ops. Edit a profile in the normal settings form, delete it, or download/restore a backup (settings + profiles, without passwords and keys). Profiles are stored on LittleFS, so download a backup before writing a new filesystem image.
 * **Monochrome & Tactical Themes:** Driven by **LVGL 9**, featuring high-contrast modes including Tactical Field Red, GitHub Slate Dark, Terminal Phosphor Green, and pure-binary E-Ink simulations.
 * **OTA:** Manual firmware update through the web dashboard, or **Cloud OTA** (pulls the latest release published on GitHub Pages and checks its SHA-256 before switching). A new image that doesn't come up healthy within 3 boots is rolled back automatically.
 * **Adaptive brightness:** Option to enable adaptive brightness or set it manually.

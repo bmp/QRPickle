@@ -255,3 +255,13 @@ footer {
 
 footer a { color: var(--accent); text-decoration: none; font-weight: 600; }
 footer a:hover { text-decoration: underline; }
+
+.hidden { display: none !important; }
+.hint { font-size: 12px; opacity: 0.8; margin: 0 0 12px; }
+.edit-banner {
+    display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+    padding: 10px 14px; margin-bottom: 12px;
+    border: 1px solid var(--accent); background: rgba(0,0,0,0.3);
+}
+.edit-banner .btn { margin-left: auto; }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }

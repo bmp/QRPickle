@@ -24,6 +24,8 @@ Items that automation could not verify (screen/touch/browser), plus patches for 
 ## Follow-up tasks
 - [x] **Change the web/AP password from the web UI:** Basic Settings → "Admin Password" (8-16 printable characters, no spaces, typed twice). Device-checked on 2026-10-09 via the API: invalid values are ignored, a valid one applies at once (old login 401), reverted afterwards. Also fixed: the APRS symbol chosen on the web page was never saved (`aprs_icon` vs `aprs_icn`).
 - [ ] **Owner check, admin password in the browser:** change it on Basic Settings, Save, confirm the browser asks for the new login and the Network screen shows it. Change it back if you like.
+- [x] **Profiles hold every setting** (except the admin password) through one JSON field table shared with `/api/config` (review 1.9). Editing a profile keeps its own secrets; a profile without secrets keeps the device's when applied; delete and backup/restore added. Device-checked on 2026-10-09 via the API (snapshot, restore-mode, edit, apply with WiFi staying up, delete, path traversal, auth) and `web_security_check.sh` 17/17.
+- [ ] **Owner check, profiles in the browser:** Profiles tab → save a profile, "Edit in Settings Form" (banner shows; Save writes the profile), Apply, Delete, Download Backup, then Restore from it. On the device: Settings → tap the profile button → Save applies the whole profile.
 
 ## Patches
 All five patches were reviewed and applied on 2026-10-07 (0001 test filter, 0002 SHA-256, 0003 platformio.ini, 0004 CI, 0005 tag-only releases).
