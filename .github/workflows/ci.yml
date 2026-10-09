@@ -29,6 +29,9 @@ jobs:
       - name: Python lint (ruff)
         run: ruff check
 
+      - name: Release notes exist for FW_VERSION (CHANGELOG.md)
+        run: python3 scripts/release_notes.py "$(grep FW_VERSION src/core/metadata.h | cut -d'"' -f2)" > /dev/null
+
       # Only lines changed by this push / PR must follow .clang-format (no mass reformat).
       - name: C++ format of changed lines (clang-format)
         env:
