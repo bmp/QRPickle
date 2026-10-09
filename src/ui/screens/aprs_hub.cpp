@@ -162,7 +162,7 @@ namespace ui {
             lv_label_set_text(lbl_b_status, is_conn ? "STATUS: ACTIVE (APRS-IS Secure Link)" : "STATUS: OFFLINE (Reconnecting)");
             lv_obj_set_style_text_color(lbl_b_status, is_conn ? lv_color_hex(0x00FF00) : lv_color_hex(0xFF0000), 0);
 
-            char s_buf[64];
+            char s_buf[128];  // "PAYLOAD: <call>-<ssid>>APRS: <payload up to 95>"
             snprintf(s_buf, sizeof(s_buf), "TX COUNT: %u times", services::AprsManager::get_tx_count());
             lv_label_set_text(lbl_b_txcount, s_buf);
 

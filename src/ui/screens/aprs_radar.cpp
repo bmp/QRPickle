@@ -27,8 +27,8 @@ namespace ui {
         if (idx < services::AprsManager::get_station_count()) {
             lv_label_set_text(lbl_r_call, st[idx].callsign);
             lv_label_set_text(lbl_r_type, st[idx].type);
-            
-            char buf[32];
+
+            char buf[72];  // "Cmt:\n" + comment (up to 63)
             snprintf(buf, sizeof(buf), "Dist: %.1f km", st[idx].distance_km);
             lv_label_set_text(lbl_r_dist, buf);
             

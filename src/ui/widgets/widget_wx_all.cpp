@@ -24,8 +24,8 @@ namespace ui {
     static const char* PATH_ICON_WEB    = "L:/img/icon_web_20x20.bin";
 
     // --- High-Speed RAM Caching Engine ---
-    static lv_image_dsc_t dsc_sensor = {0};
-    static lv_image_dsc_t dsc_web = {0};
+    static lv_image_dsc_t dsc_sensor = {};
+    static lv_image_dsc_t dsc_web = {};
     static bool icons_in_ram = false;
 
     static void cache_bin_to_ram(const char* path, lv_image_dsc_t* dsc) {

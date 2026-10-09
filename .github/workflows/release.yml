@@ -14,14 +14,14 @@ permissions:
 
 jobs:
   build-and-release:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04   # pinned; Ubuntu 26.04 checked with scripts/dev.sh --ubuntu 26.04
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -42,7 +42,7 @@ jobs:
         run: python3 scripts/release_notes.py "$FW_VERSION" > release_notes.txt
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.x'
 
@@ -60,6 +60,8 @@ jobs:
 
       - name: Setup Typst
         uses: typst-community/setup-typst@v5
+        with:
+          typst-version: 0.15.1   # same as Containerfile
 
       - name: Package Assets
         run: |
@@ -81,7 +83,7 @@ jobs:
           zip -j "QRPickle_Release_${{ env.FW_VERSION }}.zip" staging_release/*
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ env.FW_VERSION }}
           body_path: release_notes.txt
@@ -121,12 +123,13 @@ jobs:
           python3 scripts/make_pages_site.py --build-dir .pio/build/cyd --out site \
             --version "$FW_VERSION" --notes-file pages_notes.txt --previous-dir previous
 
-      - uses: actions/configure-pages@v5
+      - uses: actions/configure-pages@v6
 
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: site
+          include-hidden-files: true   # v4+ skip dotfiles by default (.nojekyll)
 
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

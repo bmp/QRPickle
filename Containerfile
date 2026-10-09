@@ -16,7 +16,10 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 RUN python3 -m venv /opt/venv \
  && /opt/venv/bin/pip install --no-cache-dir "platformio==${PLATFORMIO_VERSION}" \
-      "clang-format==${CLANG_FORMAT_VERSION}" "ruff==${RUFF_VERSION}"
+      "clang-format==${CLANG_FORMAT_VERSION}" "ruff==${RUFF_VERSION}" \
+      # esptool's Python helpers: PlatformIO would install them at runtime into this (ephemeral)
+      # venv, while its package cache volume remembers them as installed -> broken on the next run.
+      intelhex pyserial
 RUN curl -sSfL "https://github.com/typst/typst/releases/download/v${TYPST_VERSION}/typst-x86_64-unknown-linux-musl.tar.xz" \
       | tar -xJ -C /tmp && mv /tmp/typst-*/typst /usr/local/bin/ && rm -rf /tmp/typst-*
 
