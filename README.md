@@ -46,6 +46,7 @@ The web console and the `QRPickle-Setup` hotspot are password-protected.
 
 - **Username:** `admin`
 - **Password:** generated on first boot. It's shown on the device's **Network** screen and in the serial boot log. The same password is the WPA2 key for the setup hotspot.
+- **Changing it:** Basic Settings → **Admin Password** (8-16 characters, no spaces), then **Save Configuration**. The browser then asks you to log in again, and the setup hotspot uses the new password.
 
 Saved secrets (WiFi password, API keys, passcodes) are never shown again in the web console. Leave those fields blank to keep the stored values.
 
@@ -60,7 +61,7 @@ Saved secrets (WiFi password, API keys, passcodes) are never shown again in the 
 * **Adaptive Power & Wi-Fi Management:** Enforces hardware-level radio power caps (`esp_wifi_set_max_tx_power(52)`) to prevent LDO voltage brownouts on the CYD board. Falls back to an integrated Setup AP (`192.168.4.1`) if routing fails.
 * **Dynamic Staged Profiles:** Save and hot-swap complete configuration layouts (Callsign, Grid, Network, Theme, Settings) via LittleFS for quick transitions between Home, Mobile, and Field ops.
 * **Monochrome & Tactical Themes:** Driven by **LVGL 9**, featuring high-contrast modes including Tactical Field Red, GitHub Slate Dark, Terminal Phosphor Green, and pure-binary E-Ink simulations.
-* **OTA:** Manual firmware update through the web dashboard and ability to pull from Github.
+* **OTA:** Manual firmware update through the web dashboard, or **Cloud OTA** (pulls the latest release published on GitHub Pages and checks its SHA-256 before switching). A new image that doesn't come up healthy within 3 boots is rolled back automatically.
 * **Adaptive brightness:** Option to enable adaptive brightness or set it manually.
 * **LED Status:** A very elementary notification system is implemented through the LED lights on the backside of the ESP32-CYD. Details are documented in the [LED Colours](docs/LEDColours.md) file in the docs folder.
 
@@ -109,7 +110,7 @@ Here is the exact memory map breakdown:
 | **`nvs`** | `0x009000` | `0x005000` | 20 KB | Core hardware flags, automated network authorization pairs, calibration registers, and ambient settings profiles. |
 | **`otadata`** | `0x00E000` | `0x002000` | 8 KB | Real-time execution targeting registers managed by the ESP32 bootloader tracking loops to determine current stable application selection flags (`app0` vs `app1`). |
 | **`app0`** | `0x010000` | `0x1C0000` | 1.75 MB (1,792 KB) | Primary system firmware image block storage. Expanded to resolve memory boundary overhead limitations from growing graphics frameworks. |
-| **`app1`** | `0x1D0000` | `0x1C0000` | 1.75 MB (1,792 KB) | Mirror staging architecture slot dedicated to downloading incoming firmware packages directly from the GitHub API CDN pipelines without colliding with current live executions. |
+| **`app1`** | `0x1D0000` | `0x1C0000` | 1.75 MB (1,792 KB) | Mirror staging architecture slot dedicated to downloading incoming firmware (web upload or Cloud OTA) without colliding with current live executions. |
 | **`spiffs`** | `0x390000` | `0x070000` | 448 KB | Dedicated LittleFS structural loop containing web console visual layouts (`index.html`, `style.css`, `app.js`), local operator descriptions, and raw static binary user definitions. |
 
 ---
@@ -126,6 +127,7 @@ Before the firmware will function fully (especially the Web UI), you must write 
 ```bash
 pio run --target uploadfs
 ```
+**Warning:** writing the filesystem (by USB, web upload or web installer) replaces the whole LittleFS partition, which **erases saved profiles**. Settings stored in NVS (WiFi, callsign, keys, admin password) are kept, unless you tick "Erase device" in the web installer.
 
 ### 3. Compiling and Flashing the Core Firmware
 Compile the C++ source and burn the binary to the ESP32 via USB.
@@ -166,4 +168,4 @@ You can flash QRPickle directly from your Chrome or Edge web browser using the E
    * **`0x10000`** ➔ `firmware.bin`
    * **`0x390000`** ➔ `littlefs.bin`
 5. Click **Program** and wait for the process to finish. The device will automatically reboot into QRPickle!
-6. And the device should boot up, and create a WiFi access-point called `QRPickle-Setup` which does not require authentication.
+6. And the device should boot up, and create a WiFi access-point called `QRPickle-Setup` protected with the admin password shown on the device's **Network** screen (see [Web Console Login](#web-console-login)).
