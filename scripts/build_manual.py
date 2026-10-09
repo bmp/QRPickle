@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Build the PDF manual shipped in each release ZIP (README + Hardware and Wiring + LED Colours).
+"""Build the PDF manual shipped in each release ZIP.
+
+Body: the README's user sections + Hardware and Wiring. Appendices (each on a new page): LED
+Colours, the README's reference sections (memory map, building from source, libraries) and the
+Third-Party Notices.
 
 Usage (from the repo root; needs pandoc and typst):
     python3 scripts/build_manual.py --version v0.2.1 --repo bmp/QRPickle --out QRPickle_Documentation_v0.2.1.pdf
@@ -91,6 +95,41 @@ def absolute_links(text, repo):
     return re.sub(r"(?<!!)(\[[^\]]*\])\(([^)\s]+)\)", repl, text)
 
 
+# README "## " sections moved to the appendices (title in the README -> appendix title), and
+# sections left out because an appendix replaces them.
+README_APPENDICES = {
+    "Partition System & Memory Map": "Flash Memory Map",
+    "Production Pipeline & Flashing": "Building from Source",
+    "Libraries & Frameworks": "Libraries & Frameworks",
+}
+README_DROPPED = {"Third-Party Licences"}   # replaced by the Third-Party Notices appendix
+PAGEBREAK = "\n\n```{=typst}\n#pagebreak()\n```\n\n"
+
+
+def split_sections(text):
+    """(preamble, [(title, section text incl. its '## ' heading)]) for the '## ' sections."""
+    parts = re.split(r"(?m)^(?=## )", text)
+    sections = []
+    for part in parts[1:]:
+        sections.append((part.splitlines()[0][3:].strip(), part))
+    return parts[0], sections
+
+
+def as_appendix(text, letter, title, top_level):
+    """Retitle a document/section as 'Appendix X: title' at level 1, shifting its sub-headings."""
+    body = text.split("\n", 1)[1] if "\n" in text else ""
+    if top_level == 2:   # a README '## ' section: its '### ' become '## '
+        body = re.sub(r"(?m)^#(#+) ", r"\1 ", body)
+    return f"# Appendix {letter}: {title}\n{body}"
+
+
+def read_doc(name):
+    with open(os.path.join(ROOT, name), encoding="utf-8") as f:
+        text = html_images_to_markdown(f.read())
+    subdir = os.path.dirname(name)
+    return rebase_links(text, subdir) if subdir else text
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--version", required=True)
@@ -98,6 +137,7 @@ def main():
     ap.add_argument("--out", required=True)
     a = ap.parse_args()
 
+    notices_link = "[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)"   # made absolute below
     header = f"""# QRPickle Field Manual & System Documentation
 
 | Project Property | System Specification |
@@ -107,25 +147,34 @@ def main():
 | **Compilation Date** | {datetime.date.today().isoformat()} |
 | **Target Hardware** | ESP32 Cheap Yellow Display (CYD) |
 | **Source Repository** | [{a.repo}](https://github.com/{a.repo}) |
-| **Primary License** | MIT License (third-party components: THIRD_PARTY_NOTICES.md) |
+| **Primary License** | MIT License (third-party components: {notices_link}, Appendix E) |
 
 ---
 
 """
-    with open(os.path.join(ROOT, "README.md"), encoding="utf-8") as f:
-        readme = html_images_to_markdown(f.read())
-    chapters = []
-    for name in ("HARDWARE.md", "LEDColours.md"):
-        with open(os.path.join(ROOT, "docs", name), encoding="utf-8") as f:
-            chapters.append(rebase_links(html_images_to_markdown(f.read()), "docs"))
-    doc = absolute_links(header + readme + "".join("\n\n---\n\n" + c for c in chapters), a.repo)
+    preamble, sections = split_sections(read_doc("README.md"))
+    body = preamble + "".join(t for title, t in sections
+                              if title not in README_APPENDICES and title not in README_DROPPED)
+    body += "\n\n---\n\n" + read_doc("docs/HARDWARE.md")
+
+    appendices = [("LED Colours", read_doc("docs/LEDColours.md"), 1)]
+    by_title = dict(sections)
+    for readme_title, title in README_APPENDICES.items():
+        appendices.append((title, by_title[readme_title], 2))
+    appendices.append(("Third-Party Notices", read_doc("THIRD_PARTY_NOTICES.md"), 1))
+    appendix_text = "".join(PAGEBREAK + as_appendix(text, chr(ord("A") + i), title, level)
+                            for i, (title, text, level) in enumerate(appendices))
+    doc = absolute_links(header + body + appendix_text, a.repo)
 
     with tempfile.TemporaryDirectory(dir=ROOT) as tmp:   # inside the repo, so image paths resolve
         md, typ = os.path.join(tmp, "manual.md"), os.path.join(tmp, "manual.typ")
         with open(md, "w", encoding="utf-8") as f:
             f.write(doc)
-        # GitHub renders a list that directly follows a paragraph; pandoc needs this extension for it.
-        subprocess.run(["pandoc", md, "-f", "markdown+lists_without_preceding_blankline", "-t", "typst", "-o", typ,
+        # Read Markdown the way GitHub does: lists may follow a paragraph directly, and '---' is
+        # only a rule (pandoc would otherwise start YAML metadata or a multiline/simple table).
+        reader = ("markdown+lists_without_preceding_blankline"
+                  "-yaml_metadata_block-multiline_tables-simple_tables")
+        subprocess.run(["pandoc", md, "-f", reader, "-t", "typst", "-o", typ,
                         "--resource-path", ROOT], check=True)
         with open(typ, encoding="utf-8") as f:
             text = f.read().replace("#horizontalrule", "#line(length: 100%, stroke: 0.5pt)")
