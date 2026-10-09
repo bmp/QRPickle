@@ -73,6 +73,14 @@ bool is_valid_profile_name(const char* s) {
     return true;
 }
 
+// Web login and setup-AP WPA2 key: 8..16 printable ASCII, no spaces (shown on the Network screen).
+static bool valid_admin_password(const char* s) {
+    size_t n = strlen(s);
+    if (n < 8) return false;
+    for (size_t i = 0; i < n; i++) if (s[i] < 0x21 || s[i] > 0x7E) return false;
+    return true;
+}
+
 template <size_t N> static void terminate(char (&s)[N]) { s[N - 1] = '\0'; }
 
 void sanitize(Config& c, const Config& prev) {
@@ -93,7 +101,7 @@ void sanitize(Config& c, const Config& prev) {
     if (!(c.lon >= -180.0f && c.lon <= 180.0f))  c.lon = prev.lon;
     if (c.dx_port_primary == 0)   c.dx_port_primary = prev.dx_port_primary;
     if (c.dx_port_secondary == 0) c.dx_port_secondary = prev.dx_port_secondary;
-    if (strlen(c.admin_password) < 8) memcpy(c.admin_password, prev.admin_password, sizeof(c.admin_password));
+    if (!valid_admin_password(c.admin_password)) memcpy(c.admin_password, prev.admin_password, sizeof(c.admin_password));
 }
 
 }  // namespace config

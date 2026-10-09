@@ -282,7 +282,7 @@ void web_server_init() {
                      JsonArrayConst mac_arr = doc["aprs_macros"].as<JsonArrayConst>();
                      for (size_t i = 0; i < 5 && i < mac_arr.size(); i++) copy_str(c->aprs_macros[i], mac_arr[i]);
                      copy_secret(c->hamalert_password, doc["hamalert_pass"]);
-                     copy_secret(c->admin_password, doc["admin_pw"]);  // sanitize() rejects < 8 chars
+                     copy_secret(c->admin_password, doc["admin_pw"]);  // sanitize() keeps the old one unless 8..16 printable chars
                      queue_config(c);
                      request->send(200, "application/json", "{\"status\":\"success\"}");
                  } else {

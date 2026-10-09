@@ -115,7 +115,9 @@ function loadCurrentConfig() {
             setElementValue("cfg-aprs-pass", "");
             markSaved("cfg-aprs-pass", data.aprs_pass_set);
             setElementValue("cfg-aprs-ssid", data.aprs_ssid ?? 0);
-            setElementValue("cfg-aprs-icon", data.aprs_icon || "/[");
+            setElementValue("cfg-aprs-icon", data.aprs_icn || "/[");
+            setElementValue("cfg-admin-pw", "");
+            setElementValue("cfg-admin-pw2", "");
             setElementValue("cfg-aprs-cmt", data.aprs_cmt || "");
 
             // Decode Bitmask integers for Weather slots configuration checkboxes
@@ -181,7 +183,7 @@ function saveActiveConfig() {
         aprs_en: getElementValue("cfg-aprs-en") === "1",
         aprs_pass: getElementValue("cfg-aprs-pass"),
         aprs_ssid: parseInt(getElementValue("cfg-aprs-ssid")),
-        aprs_icon: getElementValue("cfg-aprs-icon"),
+        aprs_icn: getElementValue("cfg-aprs-icon"),
         aprs_cmt: getElementValue("cfg-aprs-cmt"),
         aprs_macros: macrosArray,
         hamalert_pass: getElementValue("cfg-hamalert-pass")
@@ -190,12 +192,25 @@ function saveActiveConfig() {
     const passValue = getElementValue("cfg-password");
     if (passValue) payload.password = passValue;
 
+    // Same rules as config::sanitize(): 8-16 printable characters, no spaces.
+    const adminPw = getElementValue("cfg-admin-pw");
+    if (adminPw || getElementValue("cfg-admin-pw2")) {
+        if (adminPw !== getElementValue("cfg-admin-pw2")) { alert("The two admin passwords do not match."); return; }
+        if (!/^[\x21-\x7E]{8,16}$/.test(adminPw)) { alert("Admin password: 8-16 characters, no spaces."); return; }
+        payload.admin_pw = adminPw;
+    }
+
     fetch("/api/config/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
     })
-    .then(res => res.ok ? alert("Configuration saved successfully to NVS memory!") : alert("Server rejected update payload."))
+    .then(res => {
+        if (!res.ok) { alert("Server rejected update payload."); return; }
+        alert(payload.admin_pw
+            ? "Configuration saved. The admin password has changed: your browser will ask you to log in again (user \"admin\")."
+            : "Configuration saved successfully to NVS memory!");
+    })
     .then(() => loadCurrentConfig())
     .catch(err => alert("Transmission line error saving configuration parameters: " + err));
 }

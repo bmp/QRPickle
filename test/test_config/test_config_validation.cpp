@@ -45,6 +45,16 @@ void test_invalid_fields_revert_or_clamp() {
     TEST_ASSERT_EQUAL_STRING("abcd2345", c.admin_password);
 }
 
+void test_admin_password_rules() {
+    Config prev = base(), c = base();
+    strcpy(c.admin_password, "has space1");
+    sanitize(c, prev);
+    TEST_ASSERT_EQUAL_STRING("abcd2345", c.admin_password);
+    strcpy(c.admin_password, "N3w!Pass#2");
+    sanitize(c, prev);
+    TEST_ASSERT_EQUAL_STRING("N3w!Pass#2", c.admin_password);
+}
+
 void test_unterminated_strings_are_terminated() {
     Config prev = base(), c = base();
     memset(c.wifi_ssid, 'A', sizeof(c.wifi_ssid));
@@ -65,6 +75,7 @@ int main(int, char**) {
     UNITY_BEGIN();
     RUN_TEST(test_valid_config_is_normalised_not_reverted);
     RUN_TEST(test_invalid_fields_revert_or_clamp);
+    RUN_TEST(test_admin_password_rules);
     RUN_TEST(test_unterminated_strings_are_terminated);
     RUN_TEST(test_profile_names);
     return UNITY_END();

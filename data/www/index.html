@@ -76,6 +76,19 @@
                         <option value="6">E-Ink Dark</option>
                     </select>
                 </div>
+
+                <label style="grid-column: span 2; font-weight: bold; border-bottom: 1px solid var(--border); padding-bottom: 5px; color: var(--accent); margin-top: 10px;">Admin Password (web login "admin" and QRPickle-Setup WiFi key)</label>
+                <div class="form-group">
+                    <label>New Admin Password (8-16 characters, no spaces)</label>
+                    <div class="password-wrapper">
+                        <input type="password" id="cfg-admin-pw" placeholder="leave blank to keep" minlength="8" maxlength="16" autocomplete="new-password">
+                        <button class="eye-toggle" type="button" onclick="togglePass('cfg-admin-pw')">👁️</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Repeat New Admin Password</label>
+                    <input type="password" id="cfg-admin-pw2" placeholder="leave blank to keep" maxlength="16" autocomplete="new-password">
+                </div>
             </div>
         </section>
 

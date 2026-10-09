@@ -22,9 +22,10 @@ Items that automation could not verify (screen/touch/browser), plus patches for 
 - [ ] **Plan G, sensor offline:** (optional) unplug the BME280 and boot. The dashboard should show `-- C | --%` and `-- hPa`, and the weather screen `--`.
 
 ## Follow-up tasks
-- [ ] **Change the web/AP password from the web UI:** add an "Admin password" field (min 8 chars) to the web console's settings. The API already accepts `admin_pw` and `config::sanitize()` rejects < 8 chars. Changing it also changes the `QRPickle-Setup` WPA2 key; the browser will ask for the new login.
+- [x] **Change the web/AP password from the web UI:** Basic Settings → "Admin Password" (8-16 printable characters, no spaces, typed twice). Device-checked on 2026-10-09 via the API: invalid values are ignored, a valid one applies at once (old login 401), reverted afterwards. Also fixed: the APRS symbol chosen on the web page was never saved (`aprs_icon` vs `aprs_icn`).
+- [ ] **Owner check, admin password in the browser:** change it on Basic Settings, Save, confirm the browser asks for the new login and the Network screen shows it. Change it back if you like.
 
 ## Patches
 All five patches were reviewed and applied on 2026-10-07 (0001 test filter, 0002 SHA-256, 0003 platformio.ini, 0004 CI, 0005 tag-only releases).
 
-- [ ] **First GitHub run of CI:** the workflow passed every step in a clean `python:3.12` container locally. Confirm it goes green on GitHub after your next push (Actions → "CI").
+- [x] **First GitHub run of CI:** green on GitHub on 2026-10-09 (run 37940002821, branch `public/claude-setup`).
