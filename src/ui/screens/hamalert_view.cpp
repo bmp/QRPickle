@@ -1,4 +1,5 @@
 #include "hamalert_view.h"
+#include "../layout.h"
 #include "../theme.h"
 #include "../fonts.h"
 #include "../ui.h"
@@ -88,7 +89,7 @@ namespace ui {
         Serial.println("[HamAlert-UI] Rendering base scene panel window components wrapper layer.");
         
         scroll_box = lv_obj_create(parent);
-        lv_obj_set_size(scroll_box, 320, 216); 
+        lv_obj_set_size(scroll_box, SCREEN_W, CONTENT_H);
         lv_obj_set_style_bg_color(scroll_box, theme_color(COLOR_BG_APP), 0);
         lv_obj_set_style_border_width(scroll_box, 0, 0);
         lv_obj_set_style_pad_all(scroll_box, 4, 0);

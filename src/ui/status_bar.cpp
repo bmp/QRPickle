@@ -1,4 +1,5 @@
 #include "status_bar.h"
+#include "layout.h"
 #include "theme.h"
 #include "fonts.h"
 #include "../services/display_manager.h" 
@@ -72,7 +73,7 @@ namespace ui {
         callbacks = cb;
 
         bg_panel = lv_obj_create(parent);
-        lv_obj_set_size(bg_panel, 320, 24);
+        lv_obj_set_size(bg_panel, SCREEN_W, STATUS_BAR_H);
         lv_obj_align(bg_panel, LV_ALIGN_TOP_MID, 0, 0);
         lv_obj_set_style_radius(bg_panel, 0, 0);
         lv_obj_set_style_border_width(bg_panel, 0, 0);

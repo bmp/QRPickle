@@ -1,4 +1,5 @@
 #include "splash.h"
+#include "../layout.h"
 #include "../../hw/sensor.h"
 #include "../../services/wifi_manager.h"
 #include "../../config/config.h"
@@ -46,7 +47,7 @@ namespace ui {
 
         // 1. Build Fullscreen Splash Layer Base
         lv_obj_t* page = lv_obj_create(parent);
-        lv_obj_set_size(page, 320, 240);
+        lv_obj_set_size(page, SCREEN_W, SCREEN_H);
         lv_obj_set_style_bg_color(page, lv_color_hex(0x000000), 0);
         lv_obj_set_style_border_width(page, 0, 0);
         lv_obj_set_style_pad_all(page, 0, 0);

@@ -1,4 +1,5 @@
 #include "sidebar.h"
+#include "layout.h"
 #include "theme.h"
 #include "fonts.h"
 #include <lvgl.h>
@@ -40,7 +41,7 @@ namespace ui {
         }
 
         menu_scr = lv_obj_create(lv_layer_top());
-        lv_obj_set_size(menu_scr, 320, 240);
+        lv_obj_set_size(menu_scr, SCREEN_W, SCREEN_H);
         lv_obj_set_style_bg_color(menu_scr, theme_color(COLOR_BG_APP), 0);
         lv_obj_set_style_border_width(menu_scr, 0, 0);
         lv_obj_set_style_pad_all(menu_scr, 0, 0);
@@ -50,7 +51,7 @@ namespace ui {
 
         // --- Header Bar ---
         lv_obj_t* header = lv_obj_create(menu_scr);
-        lv_obj_set_size(header, 320, 30);
+        lv_obj_set_size(header, SCREEN_W, 30);
         lv_obj_set_style_bg_color(header, theme_color(COLOR_BG_PANEL), 0);
         lv_obj_set_style_border_width(header, 0, 0);
         lv_obj_set_style_border_side(header, LV_BORDER_SIDE_BOTTOM, 0);
@@ -82,7 +83,7 @@ namespace ui {
 
         // --- Auto-Scaling Button Grid ---
         lv_obj_t* grid = lv_obj_create(menu_scr);
-        lv_obj_set_size(grid, 320, 210); 
+        lv_obj_set_size(grid, SCREEN_W, 210);
         lv_obj_align(grid, LV_ALIGN_BOTTOM_MID, 0, 0);
         lv_obj_set_style_bg_opa(grid, LV_OPA_TRANSP, 0);
         lv_obj_set_style_border_width(grid, 0, 0);
@@ -91,8 +92,8 @@ namespace ui {
         int rows = (ITEM_COUNT + cols - 1) / cols; 
         int grid_pad = 8;
         int grid_gap = 8;
-        
-        int usable_w = 320 - (grid_pad * 2);
+
+        int usable_w = SCREEN_W - (grid_pad * 2);
         int usable_h = 210 - (grid_pad * 2);
         int btn_w = (usable_w - (grid_gap * (cols - 1))) / cols;
         int btn_h = (usable_h - (grid_gap * (rows - 1))) / rows;

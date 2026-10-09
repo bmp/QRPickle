@@ -1,4 +1,5 @@
 #include "band_cond.h"
+#include "../layout.h"
 #include "../theme.h"
 #include "../fonts.h"
 #include "../ui.h"
@@ -32,7 +33,7 @@ namespace ui {
     void draw_band_cond_page(lv_obj_t* parent) {
         root_layer = lv_obj_create(parent);
         // Correct footprint bounds allowing status bar visibility
-        lv_obj_set_size(root_layer, 320, 216); 
+        lv_obj_set_size(root_layer, SCREEN_W, CONTENT_H);
         lv_obj_set_style_bg_color(root_layer, theme_color(COLOR_BG_APP), 0);
         lv_obj_set_style_border_width(root_layer, 0, 0);
         lv_obj_set_style_pad_all(root_layer, 0, 0);

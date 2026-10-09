@@ -1,4 +1,5 @@
 #include "aprs_hub.h"
+#include "../layout.h"
 #include "../theme.h"
 #include "../fonts.h"
 #include "../ui.h"
@@ -209,14 +210,14 @@ namespace ui {
         status_bar_set_title("APRS-IS Hub");
 
         scr = lv_obj_create(parent);
-        lv_obj_set_size(scr, 320, 216); 
+        lv_obj_set_size(scr, SCREEN_W, CONTENT_H);
         lv_obj_set_style_bg_color(scr, theme_color(COLOR_BG_APP), 0);
         lv_obj_set_style_border_width(scr, 0, 0);
         lv_obj_set_style_pad_all(scr, 0, 0);
         lv_obj_clear_flag(scr, LV_OBJ_FLAG_SCROLLABLE);
 
         lv_obj_t* foot = lv_obj_create(scr);
-        lv_obj_set_size(foot, 320, 36); 
+        lv_obj_set_size(foot, SCREEN_W, 36);
         lv_obj_align(foot, LV_ALIGN_BOTTOM_MID, 0, 0);
         lv_obj_set_style_bg_color(foot, theme_color(COLOR_BG_PANEL), 0);
         lv_obj_set_style_border_side(foot, LV_BORDER_SIDE_TOP, 0);
@@ -249,7 +250,7 @@ namespace ui {
         tabview = lv_tabview_create(scr);
         lv_tabview_set_tab_bar_position(tabview, LV_DIR_TOP);
         lv_tabview_set_tab_bar_size(tabview, 24);
-        lv_obj_set_size(tabview, 320, 180); 
+        lv_obj_set_size(tabview, SCREEN_W, 180);
         lv_obj_align(tabview, LV_ALIGN_TOP_MID, 0, 0);
 
         lv_obj_set_style_bg_color(tabview, theme_color(COLOR_BG_APP), 0);
@@ -274,7 +275,7 @@ namespace ui {
         lv_obj_set_style_bg_color(t3, theme_color(COLOR_BG_APP), 0); lv_obj_set_style_pad_all(t3, 4, 0); lv_obj_clear_flag(t3, LV_OBJ_FLAG_SCROLLABLE);
 
         lv_obj_t* head = lv_obj_create(t1);
-        lv_obj_set_size(head, 320, 22);
+        lv_obj_set_size(head, SCREEN_W, 22);
         lv_obj_align(head, LV_ALIGN_TOP_MID, 0, 0);
         lv_obj_set_style_bg_color(head, theme_color(COLOR_BG_PANEL), 0);
         lv_obj_set_style_border_side(head, LV_BORDER_SIDE_BOTTOM, 0);
@@ -298,7 +299,7 @@ namespace ui {
         lv_obj_t* hl4 = lv_label_create(head); lv_label_set_text(hl4, "BRG / AZM"); lv_obj_set_style_text_font(hl4, &font_jetbrains_10, 0); lv_obj_set_style_text_color(hl4, theme_color(COLOR_TEXT_MUTED), 0); lv_obj_align(hl4, LV_ALIGN_LEFT_MID, 226, 0);
 
         list_container = lv_obj_create(t1);
-        lv_obj_set_size(list_container, 320, 142); 
+        lv_obj_set_size(list_container, SCREEN_W, 142);
         lv_obj_align(list_container, LV_ALIGN_TOP_MID, 0, 22);
         lv_obj_set_style_bg_opa(list_container, 0, 0);
         lv_obj_set_style_border_width(list_container, 0, 0);
@@ -309,7 +310,7 @@ namespace ui {
 
         for(int i=0; i<15; i++) {
             lv_obj_t* r = lv_obj_create(list_container);
-            lv_obj_set_size(r, 320, 21);
+            lv_obj_set_size(r, SCREEN_W, 21);
             lv_obj_set_style_bg_color(r, (i % 2 == 0) ? theme_color(COLOR_BG_PANEL) : theme_color(COLOR_BG_APP), 0);
             lv_obj_set_style_border_width(r, 0, 0);
             lv_obj_set_style_radius(r, 0, 0);

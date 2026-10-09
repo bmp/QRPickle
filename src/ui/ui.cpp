@@ -1,4 +1,5 @@
 #include "ui.h"
+#include "layout.h"
 #include "status_bar.h"
 #include "sidebar.h"
 #include "home_button.h"
@@ -113,7 +114,7 @@ namespace ui {
         lv_obj_set_style_bg_color(main_screen, lv_color_hex(0x000000), 0);
 
         view_container = lv_obj_create(main_screen);
-        lv_obj_set_size(view_container, 320, 240);
+        lv_obj_set_size(view_container, SCREEN_W, SCREEN_H);
         lv_obj_align(view_container, LV_ALIGN_TOP_MID, 0, 0);
         lv_obj_set_style_bg_opa(view_container, 0, 0);
         lv_obj_set_style_border_width(view_container, 0, 0);
@@ -139,7 +140,7 @@ namespace ui {
             lv_obj_clean(view_container);
             lv_obj_clear_flag(status_bar_obj, LV_OBJ_FLAG_HIDDEN);
 
-            lv_obj_set_size(view_container, 320, 216);
+            lv_obj_set_size(view_container, SCREEN_W, CONTENT_H);
             lv_obj_align(view_container, LV_ALIGN_BOTTOM_MID, 0, 0);
 
             global_timer = lv_timer_create(global_ui_timer_cb, 500, nullptr);
@@ -176,8 +177,8 @@ namespace ui {
         if (page == PAGE_APRS_RADAR || page == PAGE_APRS_MSG) {
             if (status_bar_obj) lv_obj_add_flag(status_bar_obj, LV_OBJ_FLAG_HIDDEN);
             if (global_home_btn) lv_obj_add_flag(global_home_btn, LV_OBJ_FLAG_HIDDEN);
-            
-            lv_obj_set_size(view_container, 320, 240);
+
+            lv_obj_set_size(view_container, SCREEN_W, SCREEN_H);
             lv_obj_align(view_container, LV_ALIGN_TOP_MID, 0, 0);
             
             if (page == PAGE_APRS_RADAR) draw_aprs_radar_page(view_container);
@@ -186,7 +187,7 @@ namespace ui {
         }
 
         if (status_bar_obj) lv_obj_clear_flag(status_bar_obj, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_set_size(view_container, 320, 216);
+        lv_obj_set_size(view_container, SCREEN_W, CONTENT_H);
         lv_obj_align(view_container, LV_ALIGN_BOTTOM_MID, 0, 0);
 
         if (page == PAGE_DASHBOARD) {

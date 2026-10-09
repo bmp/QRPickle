@@ -1,4 +1,5 @@
 #include "keyboard.h"
+#include "layout.h"
 #include "theme.h" // Hook into the centralized theme management token stream
 #include <string.h>
 
@@ -34,7 +35,7 @@ namespace ui {
 
         // 1. Instantiate full screen modal overlay matching the current app theme background
         modal = lv_obj_create(lv_layer_top());
-        lv_obj_set_size(modal, 320, 216);
+        lv_obj_set_size(modal, SCREEN_W, CONTENT_H);
         lv_obj_align(modal, LV_ALIGN_BOTTOM_MID, 0, 0);
         lv_obj_set_style_bg_color(modal, bg_app, 0);
         lv_obj_set_style_border_width(modal, 0, 0);

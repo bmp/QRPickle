@@ -1,4 +1,5 @@
 #include "weather.h"
+#include "../layout.h"
 #include "../status_bar.h"
 #include "../theme.h"
 #include "../fonts.h"
@@ -89,7 +90,7 @@ namespace ui {
     static void build_tab_sensors(lv_obj_t* parent) {
         lv_obj_set_style_pad_all(parent, 4, 0);
 
-        int card_w = (320 - 12) / 2;
+        int card_w = (SCREEN_W - 12) / 2;
         int card_h = 76; 
 
         lv_obj_t* c1 = create_grid_card(parent, "TEMPERATURE", &lbl_loc_temp, &font_jetbrains_24, &lbl_unit_temp);
@@ -177,8 +178,9 @@ namespace ui {
         lv_obj_set_style_text_color(lbl_cur_loc, theme_color(COLOR_TEXT_MUTED), 0);
         lv_label_set_text(lbl_cur_loc, "---");
 
-        int q_w = (320 - 12) / 2; int q_h = 42;
-        
+        int q_w = (SCREEN_W - 12) / 2;
+        int q_h = 42;
+
         // Grid Values now use 14pt so they fit beautifully inside the boxes
         lv_obj_t* q1 = create_grid_card(parent, "SUNRISE", &lbl_cur_sr, &font_jetbrains_14);
         lv_obj_set_size(q1, q_w, q_h); lv_obj_align(q1, LV_ALIGN_TOP_LEFT, 2, 54);

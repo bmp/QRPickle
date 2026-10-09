@@ -1,4 +1,5 @@
 #include "cloud_ota.h"
+#include "../layout.h"
 #include "../theme.h"
 #include "../fonts.h"
 #include "../../services/cloud_ota.h"
@@ -47,7 +48,7 @@ namespace ui {
 
     void draw_cloud_ota_page(lv_obj_t* parent) {
         page_container = lv_obj_create(parent);
-        lv_obj_set_size(page_container, 320, 216);
+        lv_obj_set_size(page_container, SCREEN_W, CONTENT_H);
         lv_obj_set_style_bg_color(page_container, theme_color(COLOR_BG_APP), 0);
         lv_obj_set_style_border_width(page_container, 0, 0);
         lv_obj_set_style_pad_all(page_container, 8, 0);

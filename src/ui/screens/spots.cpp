@@ -1,4 +1,5 @@
 #include "spots.h"
+#include "../layout.h"
 #include "../theme.h"
 #include "../fonts.h"
 #include "../../services/dx_manager.h"
@@ -183,7 +184,7 @@ namespace ui {
         lv_obj_set_style_bg_color(status_dot, lv_color_hex(0xFF0000), 0);
 
         lv_obj_t* header_bar = lv_obj_create(scr);
-        lv_obj_set_size(header_bar, 320, 26);
+        lv_obj_set_size(header_bar, SCREEN_W, 26);
         lv_obj_align(header_bar, LV_ALIGN_TOP_MID, 0, 0);
         lv_obj_set_style_bg_color(header_bar, theme_color(COLOR_BG_PANEL), 0);
         lv_obj_set_style_border_side(header_bar, LV_BORDER_SIDE_BOTTOM, 0);
@@ -243,7 +244,7 @@ namespace ui {
         lv_obj_align(l_cmt, LV_ALIGN_LEFT_MID, 274, 0);
 
         lv_obj_t* footer = lv_obj_create(scr);
-        lv_obj_set_size(footer, 320, 24);
+        lv_obj_set_size(footer, SCREEN_W, 24);
         lv_obj_align(footer, LV_ALIGN_BOTTOM_MID, 0, 0);
         lv_obj_set_style_bg_color(footer, theme_color(COLOR_BG_PANEL), 0);
         lv_obj_set_style_border_side(footer, LV_BORDER_SIDE_TOP, 0);
@@ -259,7 +260,7 @@ namespace ui {
         lv_obj_align(lbl_comment, LV_ALIGN_LEFT_MID, 8, 0);
 
         list_container = lv_obj_create(scr);
-        lv_obj_set_size(list_container, 320, 158); 
+        lv_obj_set_size(list_container, SCREEN_W, 158);
         lv_obj_align(list_container, LV_ALIGN_TOP_MID, 0, 26);
         lv_obj_set_style_bg_opa(list_container, LV_OPA_TRANSP, 0);
         lv_obj_set_style_border_width(list_container, 0, 0);
@@ -270,7 +271,7 @@ namespace ui {
 
         for (int i = 0; i < 20; i++) {
             lv_obj_t* row = lv_obj_create(list_container);
-            lv_obj_set_size(row, 320, 21);
+            lv_obj_set_size(row, SCREEN_W, 21);
             lv_obj_set_style_bg_color(row, i % 2 == 0 ? theme_color(COLOR_BG_PANEL) : lv_color_hex(0x000000), 0);
             lv_obj_set_style_border_width(row, 0, 0);
             lv_obj_set_style_radius(row, 0, 0);
