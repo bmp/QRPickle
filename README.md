@@ -78,6 +78,7 @@ QRPickle's own code is MIT-licensed (see `License`). It bundles or links:
 
 | Component | Licence | Notes |
 |---|---|---|
+| CYD pinout image (`docs/pics/third-party/`) | CC BY-NC-ND 4.0 | © Renzo Mischianti, [mischianti.org](https://mischianti.org/esp32-2432s028-cheap-yellow-display-high-resolution-pinout-datasheet-schema-and-specs/). Unmodified; documentation only, not in the firmware. Not MIT. |
 | Atkinson Hyperlegible font | SIL OFL 1.1 | © 2020 Braille Institute of America. `assets/fonts/OFL-AtkinsonHyperlegible.txt` |
 | JetBrains Mono font | SIL OFL 1.1 | © 2020 The JetBrains Mono Project Authors. `assets/fonts/OFL-JetBrainsMono.txt` |
 | LVGL 9.5 | MIT | |

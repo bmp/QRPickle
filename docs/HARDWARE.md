@@ -2,7 +2,13 @@
 
 QRPickle runs on the **ESP32-2432S028R "Cheap Yellow Display" (CYD)**, the 2.8" ILI9341 version with a resistive touch screen. Nothing needs soldering. The only optional extra is a **BME280** sensor for indoor temperature, humidity and pressure.
 
-For the full board pinout, see Renzo Mischianti's **[ESP32-2432S028 (Cheap Yellow Display): high-resolution pinout, datasheet, schema and specs](https://mischianti.org/esp32-2432s028-cheap-yellow-display-high-resolution-pinout-datasheet-schema-and-specs/)** (mischianti.org, CC BY-NC-ND).
+## Board pinout
+
+![ESP32-2432S028 (Cheap Yellow Display) pinout by Renzo Mischianti](pics/third-party/ESP32-2432S028-ili9341-touch-Cheap-Yellow-Display-pinout-high.png)
+
+*"ESP32-2432S028 (Cheap Yellow Display) pinout" by Renzo Mischianti, from [ESP32-2432S028 (Cheap Yellow Display): high-resolution pinout, datasheet, schema and specs](https://mischianti.org/esp32-2432s028-cheap-yellow-display-high-resolution-pinout-datasheet-schema-and-specs/) on [mischianti.org](https://www.mischianti.org). Licensed under [CC BY-NC-ND 4.0](https://creativecommons.org/licenses/by-nc-nd/4.0/); reproduced unmodified. This image is not covered by QRPickle's MIT licence (see [third-party images](pics/third-party/README.md)).*
+
+The BME280 connector is the one labelled **"Temp humidity interface"** (CN1) at the bottom of the image.
 
 > **Not the 3.2" board.** The ESP32-2432S032 ("CYD v2") uses a different display and pin map, so QRPickle doesn't support it.
 
@@ -39,24 +45,24 @@ The dashboard and weather screen show indoor temperature, humidity and pressure 
 
 ### Wiring
 
-| CN1 pin | CYD signal | BME280 pin |
-|---|---|---|
-| 1 | GND | GND |
-| 2 | GPIO22 | SCL |
-| 3 | GPIO27 | SDA |
-| 4 | 3.3V | VIN / VCC |
+| CN1 signal (printed on the board) | BME280 pin |
+|---|---|
+| GND | GND |
+| IO22 (GPIO22) | SCL |
+| IO27 (GPIO27) | SDA |
+| 3.3V | VIN / VCC |
 
 ```
-   CYD connector CN1                    BME280 module
-  +-----+--------+                     +-----------+
-  |  1  |  GND   |---------------------| GND       |
-  |  2  | GPIO22 |---------------------| SCL       |
-  |  3  | GPIO27 |---------------------| SDA       |
-  |  4  |  3.3V  |---------------------| VIN / VCC |
-  +-----+--------+                     +-----------+
+   CYD connector CN1               BME280 module
+  +--------+                      +-----------+
+  |  GND   |----------------------| GND       |
+  |  IO22  |----------------------| SCL       |
+  |  IO27  |----------------------| SDA       |
+  |  3.3V  |----------------------| VIN / VCC |
+  +--------+                      +-----------+
 ```
 
-Check the labels printed next to CN1 on your board before connecting. Wire colours vary between cables, so match by the printed labels, not by colour.
+Match the wires by the labels printed next to CN1, not by position or colour. The pin order looks reversed depending on which side you view the board from (the pinout image shows 3.3V, 27, 22, GND from left to right), and cable colours vary.
 
 ### Notes
 
