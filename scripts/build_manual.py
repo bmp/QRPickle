@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the PDF manual shipped in each release ZIP (README + Hardware and Wiring).
+"""Build the PDF manual shipped in each release ZIP (README + Hardware and Wiring + LED Colours).
 
 Usage (from the repo root; needs pandoc and typst):
     python3 scripts/build_manual.py --version v0.2.1 --repo bmp/QRPickle --out QRPickle_Documentation_v0.2.1.pdf
@@ -24,9 +24,9 @@ def html_images_to_markdown(text):
     def repl(m):
         attrs = dict(ATTR.findall(m.group(1)))
         src, alt = attrs.get("src", ""), attrs.get("alt", "")
-        width = attrs.get("width", "")
-        size = f"{{width={width}px}}" if width.isdigit() else ""
-        return f"![{alt}]({src}){size}"
+        # The README sizes images for a web page (e.g. 400px in two columns), which overflows a PDF
+        # page; in the manual every image fills its table cell / the text width instead.
+        return f"![{alt}]({src}){{width=100%}}"
     return IMG_TAG.sub(repl, text)
 
 
@@ -38,6 +38,29 @@ def rebase_links(text, subdir):
             return m.group(0)
         return f"{m.group(1)}({os.path.normpath(os.path.join(subdir, target))})"
     return re.sub(r"(!?\[[^\]]*\])\(([^)\s]+)\)", repl, text)
+
+
+def metadata(name):
+    """A string constant from src/core/metadata.h (the firmware's single source of identity)."""
+    with open(os.path.join(ROOT, "src", "core", "metadata.h"), encoding="utf-8") as f:
+        m = re.search(rf'\b{name}\s*=\s*"([^"]*)"', f.read())
+    if not m:
+        raise SystemExit(f"{name} not found in src/core/metadata.h")
+    return m.group(1)
+
+
+def typst_str(s):
+    return '"' + s.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
+def page_setup(name, call, version, email):
+    """Header: name left, call sign right. Footer: version left, page x of y centre, email right."""
+    small = "set text(size: 8pt, fill: luma(90))"
+    return f"""#set page(
+  header: context {{ {small}; grid(columns: (1fr, 1fr), align: (left, right), [{name}], [{call}]); v(-4pt); line(length: 100%, stroke: 0.4pt + luma(160)) }},
+  footer: context {{ {small}; line(length: 100%, stroke: 0.4pt + luma(160)); v(-4pt); grid(columns: (1fr, 1fr, 1fr), align: (left, center, right), [{version}], [Page #counter(page).display() of #counter(page).final().first()], [#link("mailto:" + {typst_str(email)})[#{typst_str(email)}]]) }},
+)
+"""
 
 
 def main():
@@ -63,9 +86,11 @@ def main():
 """
     with open(os.path.join(ROOT, "README.md"), encoding="utf-8") as f:
         readme = html_images_to_markdown(f.read())
-    with open(os.path.join(ROOT, "docs", "HARDWARE.md"), encoding="utf-8") as f:
-        hardware = rebase_links(html_images_to_markdown(f.read()), "docs")
-    doc = header + readme + "\n\n---\n\n" + hardware
+    chapters = []
+    for name in ("HARDWARE.md", "LEDColours.md"):
+        with open(os.path.join(ROOT, "docs", name), encoding="utf-8") as f:
+            chapters.append(rebase_links(html_images_to_markdown(f.read()), "docs"))
+    doc = header + readme + "".join("\n\n---\n\n" + c for c in chapters)
 
     with tempfile.TemporaryDirectory(dir=ROOT) as tmp:   # inside the repo, so image paths resolve
         md, typ = os.path.join(tmp, "manual.md"), os.path.join(tmp, "manual.typ")
@@ -75,8 +100,19 @@ def main():
                         "--resource-path", ROOT], check=True)
         with open(typ, encoding="utf-8") as f:
             text = f.read().replace("#horizontalrule", "#line(length: 100%, stroke: 0.5pt)")
+        # Pandoc wraps tables in figures, which never split across pages; let the screenshot and
+        # photo tables continue on the next page instead of running off the bottom.
+        # Don't repeat a table's first row on the next page (in the screenshot tables it holds
+        # captions for the first images only), and keep code blocks (the wiring diagram) together.
+        name, call, email = metadata("FW_NAME"), metadata("AUTHOR_CALL"), metadata("SUPPORT_EMAIL")
+        text = (page_setup(name, call, a.version, email) +
+                "#show figure: set block(breakable: true)\n"
+                "#show raw.where(block: true): set block(breakable: false)\n" + text)
+        text = text.replace("table.header(", "table.header(repeat: false, ")
         # Typst resolves image paths relative to the .typ file; point them at the repo root, using
         # smaller copies (max 1000 px wide, JPEG) so the PDF stays a few MB instead of ~20 MB.
+        # Full-page screenshots are trimmed to their top (at most 1.25x as tall as wide): table rows
+        # can't break across pages, so a 3000 px tall screenshot would run off the page.
         magick = shutil.which("magick") or shutil.which("convert")
         rel_tmp = os.path.relpath(tmp, ROOT)
 
@@ -87,7 +123,8 @@ def main():
             small = os.path.join(rel_tmp, "img", re.sub(r"[^\w.-]", "_", src) + ".jpg")
             os.makedirs(os.path.join(ROOT, rel_tmp, "img"), exist_ok=True)
             subprocess.run([magick, os.path.join(ROOT, src), "-background", "white", "-flatten",
-                            "-resize", "1000x>", "-quality", "82", os.path.join(ROOT, small)], check=True)
+                            "-resize", "1000x>", "-gravity", "North", "-crop", "%[fx:w]x%[fx:min(h,w*1.25)]+0+0",
+                            "+repage", "-quality", "82", os.path.join(ROOT, small)], check=True)
             return f'image("/{small}"'
         text = re.sub(r'image\("(?!/)([^"]+)"', image_path, text)
         with open(typ, "w", encoding="utf-8") as f:
