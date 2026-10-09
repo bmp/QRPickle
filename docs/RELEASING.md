@@ -35,18 +35,20 @@ pio run && pio run -t buildfs      # check_size / check_secrets / check_licenses
 pio run -t upload && pio run -t uploadfs
 ~/.platformio/penv/bin/python -I tools/device_check.py --cycles 10   # expect PASS, wdt=0
 ```
-If the web console changed, also run `QRP_ADMIN_PW=<pw> tools/web_security_check.sh <device-ip>` (expect 17/17).
+If the web console changed, also run `QRP_ADMIN_PW=<pw> tools/web_security_check.sh <device-ip>` (expect 17/17) and the browser end-to-end test `tools/webui_e2e/device_test.mjs` (expect 31/31; see its README).
 
 If the web console's look changed, regenerate the screenshots in `docs/screenshots/` (see `tools/webui_screenshots/README.md`) after the version bump, so they show the new version.
 
 The release build must **not** use the `cyd-debug` environment or `-DQRP_TEST_CRASH_AT_BOOT`.
 
-### 2. Bump the version
+### 2. Update the changelog and bump the version
+Summarise what changed since the last release for users: `git log <last tag>..HEAD --oneline` (the previous tag, e.g. `v0.2.0`). Add a section at the top of `CHANGELOG.md`.
+
 Edit `src/core/metadata.h`:
 ```cpp
 constexpr const char* FW_VERSION = "v0.1.12";
 ```
-Commit it. **The commit message becomes the release notes**, so write it for users:
+Commit both together. **The commit message becomes the release notes** (GitHub release page, and the first 127 characters on devices' Cloud OTA screen), so use the new `CHANGELOG.md` section, with a short first line:
 ```bash
 git commit -am "Release v0.1.12: SOTA spots from the SOTA cluster, faster boot
 

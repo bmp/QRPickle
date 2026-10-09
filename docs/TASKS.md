@@ -2,10 +2,11 @@
 
 The single list of open work: checks that need a person (screen, touch, browser), release steps, and follow-ups. Remove an item once it's done; git history keeps the record.
 
-## Before the v0.2.0 release (owner, on the device and in a browser)
-- [ ] **Admin password:** Basic Settings → set a new password twice → Save. The browser asks for the new login and the device's Network screen shows it. Change it back if you like.
-- [ ] **Profiles:** Profiles tab → save a profile → "Edit in Settings Form" (banner shows, the button says "Save to Profile") → save → Apply → Delete → Download Backup → Restore from it. On the device: Settings → tap the profile button → Save applies the whole profile.
-- [ ] **Setup hotspot:** when the device can't reach WiFi, `QRPickle-Setup` asks for the admin password.
+## Hands-on checks (owner, when convenient)
+The web console checks are automated (`tools/webui_e2e/`, 31/31 on 2026-10-09). These need a person:
+- [ ] **On the device:** Settings → tap the profile button → Save applies the whole profile (e.g. the APRS macros change too).
+- [ ] **Network screen** shows the admin password after changing it in the web console.
+- [ ] **Setup hotspot:** when the device can't reach WiFi, `QRPickle-Setup` asks for the admin password, and the LED stays amber.
 - [ ] **Sensor offline (optional):** unplug the BME280 and boot. The dashboard shows `-- C | --%` and `-- hPa`, the weather screen `--`.
 
 ## Release

@@ -10,4 +10,4 @@
 - [Asset Generation Pipeline](AssetGenerationPipeline.md): fonts and images, and their licences.
 - [Open Tasks](TASKS.md): owner checks, release steps and follow-ups.
 
-Licences: [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md). Guidance for Claude Code: [CLAUDE.md](../CLAUDE.md).
+Release history: [CHANGELOG.md](../CHANGELOG.md). Licences: [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md). Guidance for Claude Code: [CLAUDE.md](../CLAUDE.md).
