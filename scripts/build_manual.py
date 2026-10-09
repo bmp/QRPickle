@@ -56,11 +56,14 @@ def typst_str(s):
 def page_setup(name, call, version, email):
     """Header: name left, call sign right. Footer: version left, page x of y centre, email right."""
     small = "set text(size: 8pt, fill: luma(90))"
-    return f"""#set page(
-  header: context {{ {small}; grid(columns: (1fr, 1fr), align: (left, right), [{name}], [{call}]); v(-4pt); line(length: 100%, stroke: 0.4pt + luma(160)) }},
-  footer: context {{ {small}; line(length: 100%, stroke: 0.4pt + luma(160)); v(-4pt); grid(columns: (1fr, 1fr, 1fr), align: (left, center, right), [{version}], [Page #counter(page).display() of #counter(page).final().first()], [#link("mailto:" + {typst_str(email)})[#{typst_str(email)}]]) }},
-)
-"""
+    rule = "line(length: 100%, stroke: 0.4pt + luma(160))"
+    page_x_of_y = "[Page #counter(page).display() of #counter(page).final().first()]"
+    mail = f'[#link("mailto:" + {typst_str(email)})[#{typst_str(email)}]]'
+    header = (f"context {{ {small}; grid(columns: (1fr, 1fr), align: (left, right), "
+              f"[{name}], [{call}]); v(-4pt); {rule} }}")
+    footer = (f"context {{ {small}; {rule}; v(-4pt); grid(columns: (1fr, 1fr, 1fr), "
+              f"align: (left, center, right), [{version}], {page_x_of_y}, {mail}) }}")
+    return f"#set page(\n  header: {header},\n  footer: {footer},\n)\n"
 
 
 def main():
