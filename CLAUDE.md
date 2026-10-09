@@ -18,6 +18,7 @@ pio device monitor             # serial log @ 115200
 pio test -e native             # host-side unit tests (Unity): test_parsers, test_config, test_led
 pio test -e native -f test_config    # run a single test folder
 ruff check                     # Python lint (scripts/, tools/; config ruff.toml)
+scripts/dev.sh all             # everything above in a container with CI's exact tools (docs/DEVELOPMENT.md)
 scripts/check_format.sh        # clang-format on lines changed vs origin/main (config .clang-format)
 ```
 

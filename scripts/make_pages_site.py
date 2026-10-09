@@ -54,8 +54,8 @@ def write_version(inst, version, files, notes):
 def find_boot_app0(explicit):
     if explicit:
         return explicit
-    hits = glob.glob(os.path.expanduser(
-        "~/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin"))
+    core = os.environ.get("PLATFORMIO_CORE_DIR", os.path.expanduser("~/.platformio"))
+    hits = glob.glob(os.path.join(core, "packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin"))
     if not hits:
         raise SystemExit("boot_app0.bin not found; pass --boot-app0")
     return hits[0]
