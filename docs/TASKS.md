@@ -11,8 +11,6 @@ The web console checks are automated (`tools/webui_e2e/`, 31/31 on 2026-10-09). 
 
 ## Release
 - [ ] **GitHub Pages, one-time:** Settings → Pages → Source: GitHub Actions; Settings → Environments → github-pages → allow tag pattern `v*` ([RELEASING.md](RELEASING.md)).
-- [ ] **After the first Pages release:** https://bmp.github.io/QRPickle/install/ loads.
-- [ ] **Cloud OTA end-to-end:** only testable with the release after v0.2.0. A v0.2.0 device → Cloud OTA → ↻ → flash; the serial log shows `SHA-256 verified.` and then `[OTA Guard] New image healthy` ([RELEASING.md](RELEASING.md) step 5).
 - [ ] **Code review doc:** decide whether to publish `docs/reviews/2026-10-code-review.md` (kept local for now).
 
 ## Licences

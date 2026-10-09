@@ -59,7 +59,7 @@ jobs:
       - name: Install Pandoc
         run: |
           sudo apt-get update
-          sudo apt-get install -y pandoc
+          sudo apt-get install -y pandoc imagemagick
 
       - name: Setup Typst
         uses: typst-community/setup-typst@v5
@@ -67,30 +67,14 @@ jobs:
       - name: Package Assets
         run: |
           mkdir -p staging_release
-          CURRENT_DATE=$(date +'%Y-%m-%d')
-          REPO_NAME="${{ github.repository }}"
-          REPO_URL="${{ github.server_url }}/${{ github.repository }}"
+          # Manual: README + Hardware and Wiring, with images (scripts/build_manual.py).
+          python3 scripts/build_manual.py --version "$FW_VERSION" --repo "${{ github.repository }}" \
+            --out "staging_release/QRPickle_Documentation_${FW_VERSION}.pdf"
 
-          echo "# QRPickle Field Manual & System Documentation" > metadata_header.md
-          echo "" >> metadata_header.md
-          echo "| Project Property | System Specification |" >> metadata_header.md
-          echo "| :--- | :--- |" >> metadata_header.md
-          echo "| **Firmware Package** | QRPickle Tracker Dashboard |" >> metadata_header.md
-          echo "| **Software Version** | ${{ env.FW_VERSION }} |" >> metadata_header.md
-          echo "| **Compilation Date** | ${CURRENT_DATE} |" >> metadata_header.md
-          echo "| **Target Hardware** | ESP32 Cheap Yellow Display (CYD) |" >> metadata_header.md
-          echo "| **Source Repository** | [${REPO_NAME}](${REPO_URL}) |" >> metadata_header.md
-          echo "| **Primary License** | MIT License |" >> metadata_header.md
-          echo "" >> metadata_header.md
-          echo "---" >> metadata_header.md
-          echo "" >> metadata_header.md
-
-          cat metadata_header.md README.md > temp_doc.md
-          pandoc temp_doc.md -o temp_doc.typ
-          sed -i 's/#horizontalrule/#line(length: 100%, stroke: 0.5pt)/g' temp_doc.typ
-          typst compile temp_doc.typ "staging_release/QRPickle_Documentation_${{ env.FW_VERSION }}.pdf"
-
-          find .pio/build/ -name "*.bin" -exec cp {} staging_release/ \;
+          # Only the release images (a find over .pio/build also picked up staged filesystem files).
+          for f in bootloader.bin partitions.bin firmware.bin littlefs.bin; do
+            cp ".pio/build/cyd/$f" staging_release/
+          done
           # All five flash images as separate assets: the installer's version list downloads them.
           cp ~/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin staging_release/
           # Licence texts travel with the binaries (the fonts' OFL requires it).

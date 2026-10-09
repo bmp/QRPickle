@@ -66,6 +66,10 @@ namespace services {
             Transport t;
             HTTPClient http;
             crashlog::mark(crashlog::SLOT_GH_OTA, 2); http.begin(t.for_url(url), url);
+            // <owner>.github.io answers 301 when the owner's user site has a custom domain
+            // (bmp.github.io -> bharathpalavalli.com); v0.2.0 failed its check on that.
+            http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+            http.setRedirectLimit(3);
             http.setTimeout(15000);
             crashlog::mark(crashlog::SLOT_GH_OTA, 3); int code = http.GET();
             if (code != HTTP_CODE_OK) {
