@@ -3,6 +3,8 @@
 #include "cloud_ota.h"
 #include "ota_manager.h"
 #include "version.h"
+#include "hamalert_manager.h"
+#include "aprs_manager.h"
 #include "../core/metadata.h"
 #include <WiFiClientSecure.h>
 #include <HTTPClient.h>
@@ -19,7 +21,38 @@ namespace services {
         static std::atomic<bool> is_flashing_active{false};
         static bool check_complete = false;
 
-        static void fetch_github_metadata() {
+        // Where CI publishes ota.json + firmware.bin: https://<owner>.github.io/<repo>/ota/
+        // (derived from meta::GITHUB_REPO). GitHub's release download host is not reachable with
+        // this mbedTLS (review 2.9). Test builds may override with -DQRP_OTA_BASE_URL=\"http://...\".
+        static String base_url() {
+#ifdef QRP_OTA_BASE_URL
+            return String(QRP_OTA_BASE_URL);
+#else
+            String repo(meta::GITHUB_REPO);
+            int slash = repo.indexOf('/');
+            return "https://" + repo.substring(0, slash) + ".github.io/" + repo.substring(slash + 1) + "/ota/";
+#endif
+        }
+
+        // HTTPS without certificate checking for now (review 2.11: verification is intermittent on
+        // this mbedTLS); integrity comes from the mandatory SHA-256. Plain http only in test builds.
+        struct Transport {
+            WiFiClient plain;
+            WiFiClientSecure tls;
+            WiFiClient& for_url(const String& url) {
+                if (url.startsWith("http://")) return plain;
+                tls.setInsecure();
+                return tls;
+            }
+        };
+
+        static bool valid_sha(const char* s) {
+            if (strlen(s) != 64) return false;
+            for (const char* p = s; *p; p++) if (!isxdigit((unsigned char)*p)) return false;
+            return true;
+        }
+
+        static void fetch_ota_json() {
             int attempts = 0;
             while (WiFi.status() != WL_CONNECTED && attempts < 30) {
                 vTaskDelay(1000 / portTICK_PERIOD_MS);
@@ -29,39 +62,31 @@ namespace services {
 
             NetLock lock;
             if (!lock.held()) return;
-            WiFiClientSecure client;
-            client.setInsecure();  // TLS is not authenticated; see review 2.4 (SHA-256 below)
+            const String url = base_url() + "ota.json";
+            Transport t;
             HTTPClient http;
-
-            char api_url[128];
-            snprintf(api_url, sizeof(api_url), "https://api.github.com/repos/%s/releases/latest", meta::GITHUB_REPO);
-
-            crashlog::mark(crashlog::SLOT_GH_OTA, 2); http.begin(client, api_url);
-            http.addHeader("User-Agent", "QRPickle-ESP32");
-
-            crashlog::mark(crashlog::SLOT_GH_OTA, 3); int httpCode = http.GET();
-            if (httpCode == HTTP_CODE_OK) {
+            crashlog::mark(crashlog::SLOT_GH_OTA, 2); http.begin(t.for_url(url), url);
+            http.setTimeout(15000);
+            crashlog::mark(crashlog::SLOT_GH_OTA, 3); int code = http.GET();
+            if (code != HTTP_CODE_OK) {
+                Serial.printf("[OTA] %s -> HTTP %d (%s), largest block %u B\n", url.c_str(), code,
+                              http.errorToString(code).c_str(), (unsigned)ESP.getMaxAllocHeap());
+            } else {
                 crashlog::mark(crashlog::SLOT_GH_OTA, 4);
-                JsonDocument filter;
-                filter["tag_name"] = true;
-                filter["body"] = true;
-                filter["assets"][0]["browser_download_url"] = true;
-                filter["assets"][0]["name"] = true;
-
                 JsonDocument doc;
-                DeserializationError err = deserializeJson(doc, http.getStream(), DeserializationOption::Filter(filter));
-                if (!err) {
+                DeserializationError err = deserializeJson(doc, http.getStream());
+                if (err) {
+                    Serial.printf("[OTA] ota.json parse error: %s\n", err.c_str());
+                } else {
                     ReleaseInfo info = {false, "", "", "", ""};
-                    strncpy(info.latest_version, doc["tag_name"] | "", sizeof(info.latest_version) - 1);
-                    strncpy(info.release_notes, doc["body"] | "No release notes provided.", sizeof(info.release_notes) - 1);
-                    for (JsonObject asset : doc["assets"].as<JsonArray>()) {
-                        const char* name = asset["name"] | "";
-                        const char* url = asset["browser_download_url"] | "";
-                        if (strcmp(name, "firmware.bin") == 0) strncpy(info.firmware_url, url, sizeof(info.firmware_url) - 1);
-                        if (strcmp(name, "firmware.bin.sha256") == 0) strncpy(info.sha256_url, url, sizeof(info.sha256_url) - 1);
-                    }
-                    // Only newer releases are offered (review 2.7: strcmp offered downgrades).
-                    info.update_available = info.latest_version[0] &&
+                    strncpy(info.latest_version, doc["version"] | "", sizeof(info.latest_version) - 1);
+                    strncpy(info.release_notes, doc["notes"] | "No release notes provided.", sizeof(info.release_notes) - 1);
+                    strncpy(info.sha256, doc["sha256"] | "", sizeof(info.sha256) - 1);
+                    for (char* p = info.sha256; *p; p++) *p = tolower((unsigned char)*p);
+                    String fw = base_url() + (doc["firmware"] | "firmware.bin");
+                    strncpy(info.firmware_url, fw.c_str(), sizeof(info.firmware_url) - 1);
+                    // Only newer releases with a valid hash are offered (reviews 2.4, 2.7).
+                    info.update_available = info.latest_version[0] && valid_sha(info.sha256) &&
                                             compare_versions(info.latest_version, meta::FW_VERSION) > 0;
                     cached_info = info;
                 }
@@ -70,8 +95,23 @@ namespace services {
             crashlog::mark(crashlog::SLOT_GH_OTA, 6); check_complete = true;
         }
 
+        // Quiet window (review 2.10): TLS needs ~33 KB of contiguous heap plus this task's stack,
+        // but with HamAlert/APRS running the largest free block can be too small. Pause them for
+        // the few seconds of the check (as xOTA does), then resume the ones that were running.
         static void background_check_task(void*) {
-            fetch_github_metadata();
+            const bool ham_was = !HamAlertManager::is_stopped();
+            const bool aprs_was = !AprsManager::is_stopped();
+            HamAlertManager::stop();
+            AprsManager::stop();
+            for (int i = 0; i < 80 && !(HamAlertManager::is_stopped() && AprsManager::is_stopped()); i++) {
+                vTaskDelay(pdMS_TO_TICKS(100));  // stop() only requests the exit
+            }
+            fetch_ota_json();
+            Serial.printf("[OTA] Update check %s (latest: %s, local: %s)\n",
+                          cached_info.latest_version[0] ? "OK" : "FAILED",
+                          cached_info.latest_version[0] ? cached_info.latest_version : "-", meta::FW_VERSION);
+            if (ham_was) HamAlertManager::start();
+            if (aprs_was) AprsManager::start();
             check_running = false;
             vTaskDelete(NULL);
         }
@@ -79,7 +119,7 @@ namespace services {
         static void spawn_check() {
             bool expected = false;
             if (is_flashing_active || !check_running.compare_exchange_strong(expected, true)) return;
-            if (xTaskCreatePinnedToCore(background_check_task, "gh_ota_check", 6144, NULL, 1, NULL, 0) != pdPASS) {
+            if (xTaskCreatePinnedToCore(background_check_task, "gh_ota_check", 8192, NULL, 1, NULL, 0) != pdPASS) {
                 check_running = false;
             }
         }
@@ -105,53 +145,18 @@ namespace services {
             ESP.restart();
         }
 
-        // Fetches the 64-hex-digit SHA-256 published next to the firmware. Returns false if
-        // unavailable or malformed.
-        static bool fetch_expected_sha(char out_hex[65]) {
-            if (!cached_info.sha256_url[0]) return false;
-            NetLock lock;
-            if (!lock.held()) return false;
-            WiFiClientSecure client;
-            client.setInsecure();
-            HTTPClient http;
-            http.begin(client, cached_info.sha256_url);
-            http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
-            http.setTimeout(15000);
-            bool ok = false;
-            if (http.GET() == HTTP_CODE_OK) {
-                String body = http.getString();
-                body.trim();
-                if (body.length() >= 64) {
-                    ok = true;
-                    for (int i = 0; i < 64; i++) {
-                        char c = tolower(body[i]);
-                        if (!isxdigit((unsigned char)c)) { ok = false; break; }
-                        out_hex[i] = c;
-                    }
-                    out_hex[64] = '\0';
-                }
-            }
-            http.end();
-            return ok;
-        }
-
         static void ota_worker_task(void*) {
             vTaskDelay(200 / portTICK_PERIOD_MS);
 
-            char expected_hex[65] = {0};
-            bool verify = fetch_expected_sha(expected_hex);
-            if (!verify) {
-                if (cached_info.sha256_url[0]) fail_and_restart("could not read firmware.bin.sha256");
-                Serial.println("[OTA Worker] WARNING: release has no firmware.bin.sha256; integrity not verified.");
-            }
+            if (!valid_sha(cached_info.sha256)) fail_and_restart("ota.json has no valid sha256");
 
             NetLock lock(60000);  // whole download; other services are stopped by the lockdown
             if (!lock.held()) fail_and_restart("network busy");
-            WiFiClientSecure client;
-            client.setInsecure();
+            Transport t;
             HTTPClient http;
-            Serial.printf("[OTA Worker] Downloading %s\n", cached_info.firmware_url);
-            http.begin(client, cached_info.firmware_url);
+            const String fw_url(cached_info.firmware_url);
+            Serial.printf("[OTA Worker] Downloading %s\n", fw_url.c_str());
+            http.begin(t.for_url(fw_url), fw_url);
             http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
             http.setRedirectLimit(3);
             http.setTimeout(15000);
@@ -192,12 +197,10 @@ namespace services {
             mbedtls_sha256_free(&sha);
             if (remaining != 0) fail_and_restart("download incomplete");
 
-            if (verify) {
-                char got[65];
-                for (int i = 0; i < 32; i++) sprintf(got + i * 2, "%02x", digest[i]);
-                if (strcmp(got, expected_hex) != 0) fail_and_restart("SHA-256 mismatch");
-                Serial.println("[OTA Worker] SHA-256 verified.");
-            }
+            char got[65];
+            for (int i = 0; i < 32; i++) sprintf(got + i * 2, "%02x", digest[i]);
+            if (strcmp(got, cached_info.sha256) != 0) fail_and_restart("SHA-256 mismatch");
+            Serial.println("[OTA Worker] SHA-256 verified.");
 
             if (!Update.end(true)) fail_and_restart(Update.errorString());
             ota_manager::arm_rollback_guard();

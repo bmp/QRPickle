@@ -4,15 +4,16 @@
 namespace services {
     namespace cloud_ota {
 
+        // From ota.json, published by CI to GitHub Pages next to firmware.bin (review 2.9).
         struct ReleaseInfo {
             bool update_available;
             char latest_version[16];
             char release_notes[128];
-            char firmware_url[96];
-            char sha256_url[104];   // "firmware.bin.sha256" release asset, if published
+            char firmware_url[112];
+            char sha256[65];        // hex; a release without it is never flashed
         };
 
-        // Starts a background task that checks GitHub for the latest release.
+        // Starts a background task that reads ota.json.
         void start_background_check();
 
         // Re-runs the check in the background (non-blocking; review 2.5). Ignored while a
@@ -23,8 +24,8 @@ namespace services {
         bool is_check_running();
         ReleaseInfo get_release_info();
 
-        // Streams the release firmware into the inactive slot, verifying SHA-256 when the
-        // release publishes it (review 2.4). Restarts on success and on failure (review 2.3).
+        // Streams firmware.bin into the inactive slot and verifies its SHA-256 against ota.json
+        // before switching (review 2.4). Restarts on success and on failure (review 2.3).
         bool execute_firmware_flash();
     }
 }
