@@ -1,3 +1,8 @@
+/*
+ * Converted from AtkinsonHyperlegible-Regular.ttf with lv_font_conv (glyphs 0x20-0x7F).
+ * Copyright 2020 Braille Institute of America, Inc.
+ * Licensed under the SIL Open Font License, Version 1.1: see assets/fonts/OFL-AtkinsonHyperlegible.txt
+ */
 /*******************************************************************************
  * Size: 10 px
  * Bpp: 4

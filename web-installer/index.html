@@ -22,7 +22,11 @@
   <esp-web-install-button manifest="manifest.json"></esp-web-install-button>
   <p>After installing, the device opens a <code>QRPickle-Setup</code> WiFi network. Its password and the web
      console login are shown on the device's Network screen.</p>
-  <p>Already running QRPickle? Update over WiFi instead: sidebar → <strong>Cloud OTA</strong>.</p>
+  <p>Already running QRPickle v0.2.0 or later? Update over WiFi instead: <strong>Cloud OTA</strong> on the device or in the web console.
+     Older versions need this installer once. Erasing also clears your settings and profiles, so download a
+     backup first (web console → Profiles → Download Backup) where available.</p>
+  <p><small>QRPickle is MIT-licensed and includes fonts under the SIL Open Font License 1.1 and other components:
+     see the <a href="https://github.com/bmp/QRPickle/blob/main/THIRD_PARTY_NOTICES.md">third-party notices</a>.</small></p>
   <script>
     fetch("manifest.json").then(r => r.json()).then(m => { document.getElementById("ver").textContent = m.version; });
   </script>

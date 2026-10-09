@@ -74,23 +74,7 @@ QRPickle uses a fixed UTC offset (in half-hour steps), with no automatic dayligh
 
 ## Third-Party Licences
 
-QRPickle's own code is MIT-licensed (see `License`). It bundles or links:
-
-| Component | Licence | Notes |
-|---|---|---|
-| CYD pinout image (`docs/pics/third-party/`) | CC BY-NC-ND 4.0 | © Renzo Mischianti, [mischianti.org](https://mischianti.org/esp32-2432s028-cheap-yellow-display-high-resolution-pinout-datasheet-schema-and-specs/). Unmodified; documentation only, not in the firmware. Not MIT. |
-| Atkinson Hyperlegible font | SIL OFL 1.1 | © 2020 Braille Institute of America. `assets/fonts/OFL-AtkinsonHyperlegible.txt` |
-| JetBrains Mono font | SIL OFL 1.1 | © 2020 The JetBrains Mono Project Authors. `assets/fonts/OFL-JetBrainsMono.txt` |
-| LVGL 9.5 | MIT | |
-| TFT_eSPI 2.5 | MIT (per library.json) | |
-| ArduinoJson 7 | MIT | |
-| ESPAsyncWebServer 3.11, AsyncTCP 3.4 | LGPL-3.0 | Dynamically relinkable from this public source tree |
-| Adafruit BME280 | BSD | |
-| Adafruit Unified Sensor | Apache-2.0 | |
-| Adafruit BusIO | MIT | |
-| XPT2046_Touchscreen | MIT-style | © 2015 Paul Stoffregen |
-
-The fonts are converted to C arrays in `src/ui/fonts/`; the OFL applies to those derived files too.
+QRPickle's own code is MIT-licensed (see [`License`](License)). The fonts are under the SIL Open Font License 1.1, the web server libraries under LGPL-3.0, and the CYD pinout image in the docs under CC BY-NC-ND 4.0. The full list, with copyright holders and licence texts, is in **[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)**; each release zip includes it.
 
 ## Libraries & Frameworks
 

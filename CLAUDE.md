@@ -91,7 +91,7 @@ Out-of-memory panics during HTTPS fetches and OTA are a recurring bug class (see
 
 Generated assets are committed; regenerate them only when the sources change:
 - `assets/img/*.png` → `data/img/*.bin` (LVGL 9 RGB565A8) via `scripts/png_to_bin_lvgl9.py`. Filenames must end in `_WxH.png`.
-- Fonts: `assets/fonts/*.ttf` → `src/ui/fonts/*_raw.c` via `scripts/build_fonts.sh`. This needs `lv_font_conv` and prompts interactively before overwriting.
+- Fonts: `assets/fonts/*.ttf` → `src/ui/fonts/*_raw.c` via `scripts/build_fonts.sh`. This needs `lv_font_conv` and prompts interactively before overwriting. It prepends the OFL copyright header to each generated file. New third-party components go in `THIRD_PARTY_NOTICES.md` (the release zip ships it with the OFL texts).
 
 See `docs/AssetGenerationPipeline.md` for details.
 

@@ -1,3 +1,8 @@
+/*
+ * Converted from JetBrainsMono-Bold.ttf with lv_font_conv (glyphs 0x20-0x7F).
+ * Copyright 2020 The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono)
+ * Licensed under the SIL Open Font License, Version 1.1: see assets/fonts/OFL-JetBrainsMono.txt
+ */
 /*******************************************************************************
  * Size: 24 px
  * Bpp: 4

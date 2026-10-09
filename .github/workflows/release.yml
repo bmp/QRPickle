@@ -91,6 +91,8 @@ jobs:
           typst compile temp_doc.typ "staging_release/QRPickle_Documentation_${{ env.FW_VERSION }}.pdf"
 
           find .pio/build/ -name "*.bin" -exec cp {} staging_release/ \;
+          # Licence texts travel with the binaries (the fonts' OFL requires it).
+          cp License THIRD_PARTY_NOTICES.md assets/fonts/OFL-*.txt staging_release/
           # Checksum for manual verification (devices read theirs from ota.json on Pages).
           sha256sum staging_release/firmware.bin | cut -d' ' -f1 > staging_release/firmware.bin.sha256
           zip -j "QRPickle_Release_${{ env.FW_VERSION }}.zip" staging_release/*
