@@ -81,6 +81,8 @@ def accessibility(name, call, version):
     title = typst_str(f"{name} {version} Field Manual")
     return (f"#set document(title: {title}, author: {typst_str(call)})\n"
             '#set text(lang: "en")\n'
+            # pandoc < 3.2 (Ubuntu 24.04, CI) emits #blockquote[...], defined only in its own template.
+            "#let blockquote(body) = quote(block: true, body)\n"
             '#show link: set text(fill: rgb("#005bb5"))\n'
             "#show link: underline.with(offset: 2pt, stroke: 0.6pt)\n"
             # Tables ("minimal accent"): header in the accent colour with an accent rule under it,
@@ -269,17 +271,28 @@ def main():
         magick = shutil.which("magick") or shutil.which("convert")
         rel_tmp = os.path.relpath(tmp, ROOT)
 
+        # Alt text from the Markdown (pandoc < 3.2 drops it; PDF/UA requires it).
+        alts = {src: alt for alt, src in re.findall(r"!\[([^\]]*)\]\(([^)\s]+)\)", doc)}
+
         def image_path(m):
-            src = m.group(1)
+            src, args = m.group(1), m.group(2)
+            alt = "" if "alt:" in args else f", alt: {typst_str(alts.get(src) or os.path.basename(src))}"
             if not magick or not os.path.isfile(os.path.join(ROOT, src)):
-                return f'image("/{src}"'
+                return f'image("/{src}"{alt}{args})'
             small = os.path.join(rel_tmp, "img", re.sub(r"[^\w.-]", "_", src) + ".jpg")
             os.makedirs(os.path.join(ROOT, rel_tmp, "img"), exist_ok=True)
+            # Crop size computed here: ImageMagick 6 (Ubuntu, CI) has no %[fx:] in -crop geometry.
+            identify = [magick, "identify"] if magick.endswith("magick") else [shutil.which("identify")]
+            w, h = (int(x) for x in subprocess.run(identify + ["-format", "%w %h", os.path.join(ROOT, src)],
+                                                   capture_output=True, text=True, check=True).stdout.split()[:2])
+            new_w = min(w, 1000)
+            new_h = min(round(h * new_w / w), round(new_w * 1.25))
             subprocess.run([magick, os.path.join(ROOT, src), "-background", "white", "-flatten",
-                            "-resize", "1000x>", "-gravity", "North", "-crop", "%[fx:w]x%[fx:min(h,w*1.25)]+0+0",
+                            "-resize", "1000x>", "-gravity", "North", "-crop", f"{new_w}x{new_h}+0+0",
                             "+repage", "-quality", "82", os.path.join(ROOT, small)], check=True)
-            return f'image("/{small}"'
-        text = re.sub(r'image\("(?!/)([^"]+)"', image_path, text)
+            return f'image("/{small}"{alt}{args})'
+        # image("path"<args>) where <args> may hold quoted strings containing ')'.
+        text = re.sub(r'image\("(?!/)([^"]+)"((?:"(?:[^"\\]|\\.)*"|[^)"])*)\)', image_path, text)
         with open(typ, "w", encoding="utf-8") as f:
             f.write(text)
         subprocess.run(["typst", "compile", "--root", ROOT, "--pdf-standard", "ua-1", typ, os.path.abspath(a.out)],
