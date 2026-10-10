@@ -17,7 +17,7 @@ QRPickle's own code is MIT-licensed (see [`License`](License)). The firmware and
 | LVGL 9.6 | MIT | © LVGL Kft, [lvgl/lvgl](https://github.com/lvgl/lvgl) | in the library |
 | TFT_eSPI 2.5 | MIT (per library.json) | Bodmer, [Bodmer/TFT_eSPI](https://github.com/Bodmer/TFT_eSPI) | in the library |
 | ArduinoJson 7 | MIT | © Benoît Blanchon, [arduinojson.org](https://arduinojson.org) | in the library |
-| ESPAsyncWebServer 3.11, AsyncTCP 3.4 | LGPL-3.0 | [ESP32Async](https://github.com/ESP32Async) | in the library; QRPickle's full source is public, so the firmware can be relinked with modified versions |
+| ESPAsyncWebServer 3.12, AsyncTCP 3.5 | LGPL-3.0 | [ESP32Async](https://github.com/ESP32Async) | in the library; QRPickle's full source is public, so the firmware can be relinked with modified versions |
 | Adafruit BME280 Library | BSD | © Adafruit Industries | in the library |
 | Adafruit Unified Sensor | Apache-2.0 | © Adafruit Industries | in the library |
 | Adafruit BusIO | MIT | © Adafruit Industries | in the library |
