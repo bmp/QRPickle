@@ -24,13 +24,31 @@
 #define LV_DRAW_SW_SUPPORT_AL88                 0
 #define LV_DRAW_SW_SUPPORT_I1                   0
 
-/* Widgets never used by QRPickle (~25 KB). lv_arc stays: lv_spinner needs it. */
+/* Widgets and features QRPickle never uses (each also drags in theme styles). Used: label, button,
+ * image, textarea + keyboard (+ buttonmatrix), dropdown, checkbox, slider (+ bar), msgbox, tabview,
+ * flex layout. v0.2.4 size work: the second group below saved 17 KB. */
 #define LV_USE_CHART    0
 #define LV_USE_SCALE    0
 #define LV_USE_CALENDAR 0
 #define LV_USE_TABLE    0
 #define LV_USE_ROLLER   0
 #define LV_USE_SPINBOX  0
+#define LV_USE_ANIMIMG     0
+#define LV_USE_ARC         0
+#define LV_USE_ARCLABEL    0
+#define LV_USE_CANVAS      0
+#define LV_USE_IMAGEBUTTON 0
+#define LV_USE_LED         0
+#define LV_USE_LINE        0
+#define LV_USE_LIST        0
+#define LV_USE_MENU        0
+#define LV_USE_SPAN        0
+#define LV_USE_SPINNER     0
+#define LV_USE_SWITCH      0
+#define LV_USE_TILEVIEW    0
+#define LV_USE_WIN         0
+#define LV_USE_OBSERVER    0
+#define LV_USE_GRID        0
 
 /* Route LVGL memory allocation directly to standard C malloc/free */
 #define LV_USE_BUILTIN_MALLOC 1
@@ -40,8 +58,14 @@
 #define LV_USE_DRAW_ARM2D_SYNC 0
 #define LV_USE_NATIVE_HELIUM_ASM 0
 
-/* LVGL cache for fonts and icons */
-#define LV_CACHE_DEF_SIZE       32768
+/* Layers (semi-transparent or transformed objects) render in chunks of this size, allocated from
+ * the pool: the 24 KB default made boot the pool's peak (v0.2.4 memory work, mem_stats). */
+#define LV_DRAW_LAYER_SIMPLE_BUF_SIZE (8 * 1024)
+
+/* Image cache (decoded icons from LittleFS), allocated from the 64 KB pool. 32 KB let the weather
+ * page's forecast icons fill half the pool; the next busy page (DX cluster) then ran LVGL out of
+ * memory and crashed in lv_draw_add_task (v0.2.4, mem_stats). Icons beyond the cache are re-read. */
+#define LV_CACHE_DEF_SIZE       (16 * 1024)
 
 /*==================
  * FONT USAGE
@@ -49,9 +73,9 @@
 
 /* Montserrat fonts with ASCII range and some symbols using bpp = 4 */
 #define LV_FONT_MONTSERRAT_8  0
-#define LV_FONT_MONTSERRAT_10 1
+#define LV_FONT_MONTSERRAT_10 0  /* replaced by src/ui/fonts/font_symbols_10 (icons only) */
 #define LV_FONT_MONTSERRAT_12 0
-#define LV_FONT_MONTSERRAT_14 1
+#define LV_FONT_MONTSERRAT_14 0  /* replaced by src/ui/fonts/font_symbols_14 (icons only) */
 #define LV_FONT_MONTSERRAT_16 0
 #define LV_FONT_MONTSERRAT_18 0
 #define LV_FONT_MONTSERRAT_20 0

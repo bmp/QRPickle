@@ -2,6 +2,50 @@
 
 User-facing changes per release, newest first. Each section is also the release commit message (see `docs/RELEASING.md`).
 
+## v0.2.4 (2026-10-10)
+
+Real band conditions from HAMQSL.com, privacy masks, screenshots; memory and crash fixes
+
+Updating from v0.2.3: Cloud OTA (device or web console) or upload firmware.bin;
+settings are kept. The new web console settings (own solar data source, band
+groups on the dashboard, "use latitude/longitude") and the About credits also
+need littlefs.bin (web console: System Info, "LittleFS Storage Image").
+Writing the filesystem erases profiles, so back them up first (Profiles,
+Backup and Restore). Without it the device works; those settings are missing.
+
+Fixed
+- The device could restart after opening Weather and then DX Cluster (the
+  display library ran out of memory).
+- The automatic update check often failed at boot and was not tried again
+  until the next restart; it now starts 2 minutes after boot and retries
+  every 10 minutes.
+- A failed OpenWeather update was retried after 2 hours; now after 5 minutes.
+- Forecast temperatures were nearly invisible.
+- Downloads could fail when HamAlert and APRS were restarted in the middle of
+  another download.
+
+New
+- Real solar data (SFI, K, A, X-ray, solar wind, Bz, noise) from HAMQSL.com,
+  courtesy of N0NBH, every 3 hours (hourly in storms), or from your own source.
+  Before, the screens showed fixed start-up values.
+- Band conditions for 11 bands (160 m to 6 m), day and night at your location,
+  with greyline and the next sunrise or sunset. The screen has three tabs:
+  BANDS, SOLAR (each indicator with a scale and what it means) and GUIDE.
+- Dashboard band tile: choose which band groups it shows (web console).
+- Your latitude/longitude (or the grid square) set day and night.
+- Privacy: the admin password is masked on the Network screen (tap the eye
+  to show it for 10 seconds) and in the serial log.
+
+Changed
+- The firmware is 66 KB smaller (81.9 % of the update slot).
+- The web console shows latitude and longitude side by side.
+
+For developers
+- docs/UI_GUIDE.md (also a manual appendix) and docs/MEMORY.md.
+- tools/device_screens.py captures every screen, tabs and menu included;
+  screenshot builds hide network names, addresses and positions.
+- scripts/dev.sh format; /api/status reports memory figures.
+
 ## v0.2.3 (2026-10-10)
 
 Updated LVGL and web server libraries; web console icon

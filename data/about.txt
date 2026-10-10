@@ -8,7 +8,7 @@ Core Features:
 - APRS-IS Hub: Live station tracking, tactical Radar view, custom macros, and direct bidirectional messaging with Auto-ACK via Telnet.
 - xOTA Spotting: Heap-protected HTTP fetching for live POTA & SOTA spots, plus reverse spotting via AP2SOTA and POTAGW.
 - DX Cluster & HamAlert: Stream-buffered asynchronous TCP Telnet sockets for background spot listening and trigger alerts.
-- Solar & Propagation: Live K-Index, A-Index, and SFI evaluation using standard propagation models for HF band conditions.
+- Solar & Propagation: solar data from HAMQSL.com (N0NBH) every 3 hours (hourly in storms); 11 bands from 160 m to 6 m rated for day and night at your location, with greyline, sunrise and sunset.
 - Weather Telemetry: Live local environment data (BME280 sensor) combined with OpenWeatherMap API for bitmask-driven 24-hour forecasting.
 - Dynamic Staged Profiles: Quick hot-swapping of configurations (Callsign, Grid, Lat/Lon, Wi-Fi, Themes) via LittleFS for Home, Mobile, or Field ops.
 - Tactical Themes: Driven by LVGL 9, featuring high-contrast modes including Tactical Field Red, Slate Dark, Terminal Green, and E-Ink simulations.
@@ -19,6 +19,9 @@ Created by VU3GLJ with LLMs.
 
 Attributions:
 ------------
+Data:
+- Solar-terrestrial data courtesy of HAMQSL.com, Paul L Herrman, N0NBH
+  (www.hamqsl.com/solar.html)
 Images:
 - Weather condition icons by OpenWeather (openweathermap.org)
 - Globe and microchip icons: Font Awesome Free by Fonticons, Inc.
@@ -30,5 +33,5 @@ Images:
 Fonts (SIL Open Font License 1.1):
 - Atkinson Hyperlegible, (c) Braille Institute of America
 - JetBrains Mono, (c) The JetBrains Mono Project Authors
-- Montserrat and Font Awesome symbols (LVGL built-in fonts)
+- Font Awesome 5 Free symbols (icons font), (c) Fonticons, Inc.
 Full list: THIRD_PARTY_NOTICES.md (github.com/bmp/QRPickle)

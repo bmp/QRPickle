@@ -1,5 +1,6 @@
 #include "services/ota_manager.h"
 #include "core/crashlog.h"
+#include "core/mem_stats.h"
 #include <Arduino.h>
 #include <esp_task_wdt.h>
 #include "hw/display.h"
@@ -13,6 +14,7 @@
 #include "services/web_server.h"
 #include "services/display_manager.h"
 #include "services/weather_manager.h"
+#include "services/prop_manager.h"
 #include "ui/ui.h"
 #include "ui/fonts.h"
 #ifdef QRP_SCREEN_TOOLS
@@ -92,6 +94,9 @@ void loop() {
     crashlog::mark(crashlog::SLOT_LOOP, 4); web_server_update();
     crashlog::mark(crashlog::SLOT_LOOP, 5); services::display_manager::update();
     crashlog::mark(crashlog::SLOT_LOOP, 6); services::weather_manager::update();
+    crashlog::mark(crashlog::SLOT_LOOP, 8);
+    services::PropagationManager::update();
+    mem_stats::update();
 #ifdef QRP_SCREEN_TOOLS
     screen_tools::update();
 #endif

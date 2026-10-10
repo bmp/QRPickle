@@ -64,7 +64,7 @@ Work happens on a branch per release from `main` (`release/vX.Y.Z`), merged by p
 
 **Threading model.** LVGL isn't thread-safe and only runs in `loop()`. Long or blocking network work runs in FreeRTOS tasks (APRS, HamAlert, Cloud OTA check/flash, the LED engine, xOTA resume), and POTA/SOTA fetches are started with `fetch_async()`. Results reach the UI through a **static manager + dirty-flag** pattern. Managers in `src/services/` (e.g. `PotaManager`) expose `get_*()`, `is_dirty()` and `clear_dirty()`, and screens poll them from LVGL timers. Never call `lv_*` from a background task.
 
-**Memory constraints drive the design.** There is no PSRAM, and a TLS handshake (mbedTLS) needs ~40KB of contiguous heap. Network fetches therefore:
+**Memory constraints drive the design** (budgets and rules: `docs/MEMORY.md`). There is no PSRAM, and a TLS handshake (mbedTLS) needs ~40KB of contiguous heap. Network fetches therefore:
 - use `WiFiClientSecure::setInsecure()`,
 - stream-parse JSON element by element with ArduinoJson,
 - are staggered so that two TLS sessions never overlap.
@@ -73,7 +73,7 @@ Out-of-memory panics during HTTPS fetches and OTA are a recurring bug class (see
 
 **Network sessions:** wrap every DNS+connect or HTTP(S) request in `services::NetLock` (`net_lock.h`); one session at a time, which keeps TLS heap use and lookups serialised. `connect_host()` takes it already.
 
-**DNS:** never call `WiFi.hostByName()` or `WiFiClient::connect(hostname, …)` from tasks. The Arduino 2.0.17 implementation isn't thread-safe and caused boot-time watchdog resets (review 3.14). Use `services::connect_host()` (`src/services/net_connect.h`), which uses `getaddrinfo()`. After an abnormal reset, `[CRASHLOG]` lines at boot show each task's last breadcrumb (`src/core/crashlog.h`). When adding a network feature, check the free and max-alloc heap. Don't start a TLS request while another is in flight.
+**DNS:** never call `WiFi.hostByName()` or `WiFiClient::connect(hostname, …)` from tasks. The Arduino 2.0.17 implementation isn't thread-safe and caused boot-time watchdog resets (review 3.14). Use `services::connect_host()` (`src/services/net_connect.h`), which uses `getaddrinfo()`. After an abnormal reset, `[CRASHLOG]` lines at boot show each task's last breadcrumb (`src/core/crashlog.h`). When adding a network feature, check the heap: TLS needs byte-addressable memory, so use `heap_caps_get_largest_free_block(MALLOC_CAP_8BIT)` (or `mem` in `/api/status`); `ESP.getMaxAllocHeap()` also counts 32-bit-only IRAM and overstates it. Don't start a TLS request while another is in flight.
 
 **Layers:**
 - `src/hw/`: board drivers (display, touch, BME280 sensor, RGB status LED). `User_Setup.h` holds the TFT_eSPI pin config, force-included via `build_flags`. LED state meanings are documented in `docs/LEDColours.md`.

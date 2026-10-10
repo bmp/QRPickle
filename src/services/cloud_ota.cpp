@@ -6,6 +6,7 @@
 #include "version.h"
 #include "hamalert_manager.h"
 #include "aprs_manager.h"
+#include "quiet_window.h"
 #include "../core/metadata.h"
 #include <WiFiClientSecure.h>
 #include "safe_client.h"
@@ -14,6 +15,8 @@
 #include <Update.h>
 #include <atomic>
 #include <mbedtls/sha256.h>
+#include <esp_heap_caps.h>
+#include <time.h>
 
 namespace services {
     namespace cloud_ota {
@@ -68,6 +71,13 @@ namespace services {
                 attempts++;
             }
             if (WiFi.status() != WL_CONNECTED) return;
+            // Certificate verification needs the date: at boot WiFi comes up before NTP has set the
+            // clock, and a handshake started then fails ("X509 - Certificate verification failed").
+            for (int i = 0; i < 30 && time(nullptr) < 1700000000; i++) vTaskDelay(1000 / portTICK_PERIOD_MS);
+            if (time(nullptr) < 1700000000) {
+                Serial.println("[OTA] Update check skipped: clock not set (NTP)");
+                return;
+            }
 
             NetLock lock;
             if (!lock.held()) return;
@@ -82,8 +92,9 @@ namespace services {
             http.setTimeout(15000);
             crashlog::mark(crashlog::SLOT_GH_OTA, 3); int code = http.GET();
             if (code != HTTP_CODE_OK) {
-                Serial.printf("[OTA] %s -> HTTP %d (%s; TLS: %s), largest block %u B\n", url.c_str(), code,
-                              http.errorToString(code).c_str(), t.tls_error().c_str(), (unsigned)ESP.getMaxAllocHeap());
+                Serial.printf("[OTA] %s -> HTTP %d (%s; TLS: %s), largest 8-bit block %u B\n", url.c_str(), code,
+                              http.errorToString(code).c_str(), t.tls_error().c_str(),
+                              (unsigned)heap_caps_get_largest_free_block(MALLOC_CAP_8BIT));
             } else {
                 crashlog::mark(crashlog::SLOT_GH_OTA, 4);
                 JsonDocument doc;
@@ -105,26 +116,22 @@ namespace services {
                 }
             }
             crashlog::mark(crashlog::SLOT_GH_OTA, 5); http.end();
-            crashlog::mark(crashlog::SLOT_GH_OTA, 6); check_complete = true;
+            // Only a successful check is final; a failed one (often heap) is retried by the UI timer.
+            crashlog::mark(crashlog::SLOT_GH_OTA, 6);
+            check_complete = cached_info.latest_version[0] != '\0';
         }
 
         // Quiet window (review 2.10): TLS needs ~33 KB of contiguous heap plus this task's stack,
         // but with HamAlert/APRS running the largest free block can be too small. Pause them for
         // the few seconds of the check (as xOTA does), then resume the ones that were running.
         static void background_check_task(void*) {
-            const bool ham_was = !HamAlertManager::is_stopped();
-            const bool aprs_was = !AprsManager::is_stopped();
-            HamAlertManager::stop();
-            AprsManager::stop();
-            for (int i = 0; i < 80 && !(HamAlertManager::is_stopped() && AprsManager::is_stopped()); i++) {
-                vTaskDelay(pdMS_TO_TICKS(100));  // stop() only requests the exit
+            {
+                quiet::Hold hold;  // quiet window (review 2.10)
+                fetch_ota_json();
             }
-            fetch_ota_json();
             Serial.printf("[OTA] Update check %s (latest: %s, local: %s)\n",
                           cached_info.latest_version[0] ? "OK" : "FAILED",
                           cached_info.latest_version[0] ? cached_info.latest_version : "-", meta::FW_VERSION);
-            if (ham_was) HamAlertManager::start();
-            if (aprs_was) AprsManager::start();
             check_running = false;
             vTaskDelete(NULL);
         }
@@ -148,6 +155,7 @@ namespace services {
 
         bool is_update_available() { return cached_info.update_available; }
         bool is_check_running() { return check_running; }
+        bool is_check_complete() { return check_complete; }
         ReleaseInfo get_release_info() { return cached_info; }
 
         // On any failure the main loop is parked in the OTA lockdown with services stopped,

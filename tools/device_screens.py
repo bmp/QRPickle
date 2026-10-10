@@ -27,7 +27,26 @@ W, H = 320, 240
 PAGES = ["dashboard", "weather", "network", "settings", "spots", "xota", "aprs", "aprs_radar",
          "aprs_msg", "band_cond", "hamalert", "cloud_ota"]
 THEMES = ["classic", "field_red", "slate_dark", "light", "terminal_green", "eink_light", "eink_dark"]
-BAND_ROWS, BANDS = 20, 12
+
+# Screens beyond the pages: (page, taps, settle seconds). Taps are screen coordinates (320 x 240,
+# status bar included) sent to /api/debug/tap. "splash" is special (see capture_splash).
+SHOTS = {
+    "weather_openweather": (1, [(160, 35)], 3),
+    "weather_forecast": (1, [(267, 35)], 3),
+    "xota_sota": (5, [(240, 35)], 8),
+    "aprs_messages": (6, [(160, 35)], 3),
+    "aprs_beacon": (6, [(267, 35)], 3),
+    "band_solar": (9, [(160, 36)], 3),
+    "band_guide": (9, [(267, 36)], 3),
+    "menu": (0, [(14, 12)], 2),  # closed again with its X (CLOSE_MENU) before the next shot
+    "network_scan": (2, [(245, 200)], 10),
+    "settings_keyboard": (3, [(130, 72)], 3),
+    "splash": (None, [], 0),
+}
+CLOSE_MENU = (310, 14)  # the menu's X
+# Pages whose tab (or state) the shots change: reset afterwards so later captures start clean.
+RESETS = [(1, (53, 35)), (5, (80, 35)), (6, (53, 35)), (9, (53, 36))]
+BAND_ROWS, BANDS = 8, 30  # must match src/core/screen_tools.h
 
 
 class Device:
@@ -139,6 +158,28 @@ def compare(a_dir, b_dir, name):
     return sum(1 for i in range(0, len(a), 2) if a[i:i + 2] != b[i:i + 2])
 
 
+def capture_splash(dev, theme):
+    """Reboot into a held splash (/api/debug/splash), capture it, then let startup continue. The
+    splash shows the saved theme (a preview theme does not survive the restart)."""
+    dev.call(f"/api/debug/screen?page=0&theme={theme}", "POST")  # the theme used while booting
+    time.sleep(1)
+    try:
+        dev.call("/api/debug/splash", "POST")
+    except OSError:
+        pass  # the device restarts right after answering
+    time.sleep(15)
+    for _ in range(30):  # wait for WiFi and the web server
+        if dev.healthy():
+            break
+        time.sleep(3)
+    dev.nonce = None  # new boot: new Digest nonce
+    time.sleep(2)
+    px = capture(dev)
+    dev.call("/api/debug/splash?release=1", "POST")
+    time.sleep(8)
+    return px
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--ip", required=True)
@@ -149,6 +190,8 @@ def main():
     # after it would show a stale screen: capture it last.
     ap.add_argument("--pages", default=",".join(str(i) for i in [0, 1, 2] + list(range(4, len(PAGES))) + [3]))
     ap.add_argument("--settle", type=float, default=3.0, help="seconds to wait after opening a page")
+    ap.add_argument("--shots", default="", help="extra screens: comma-separated names from SHOTS, or 'all' "
+                    "(only for new or changed screens; docs/UI_GUIDE.md)")
     ap.add_argument("--max-requests", type=int, default=3000, help="stop after this many HTTP requests")
     a = ap.parse_args()
     password = os.environ.get("QRP_ADMIN_PW") or sys.exit("set QRP_ADMIN_PW")
@@ -157,8 +200,56 @@ def main():
     dev = Device(a.ip, password, max_requests=a.max_requests)
 
     results = []
+    shots = list(SHOTS) if a.shots == "all" else [s for s in a.shots.split(",") if s]
+    for s in shots:
+        if s not in SHOTS:
+            sys.exit(f"unknown shot {s}; known: {', '.join(SHOTS)}")
+    pages = [int(x) for x in a.pages.split(",")] if a.pages else []
     for t in (int(x) for x in a.themes.split(",")):
-        for p in (int(x) for x in a.pages.split(",")):
+        for s in shots:
+            name = f"{t}_{THEMES[t]}__x_{s}"
+            page, taps, settle = SHOTS[s]
+            px = None
+            for attempt in range(1, 4):
+                if not dev.healthy():  # busy (xOTA downloads) or rebooting: wait, as for pages
+                    time.sleep(30)
+                    if not dev.healthy():
+                        continue
+                try:
+                    if s == "splash":
+                        px = capture_splash(dev, t)
+                    else:
+                        dev.call(f"/api/debug/screen?page={page}&theme={t}", "POST")
+                        time.sleep(a.settle)
+                        for x, y in taps:
+                            dev.call(f"/api/debug/tap?x={x}&y={y}", "POST")
+                            time.sleep(settle)
+                        px = capture(dev)
+                        if s == "menu":  # the menu stays open across page changes: close it
+                            dev.call(f"/api/debug/tap?x={CLOSE_MENU[0]}&y={CLOSE_MENU[1]}", "POST")
+                            time.sleep(1)
+                        if s in ("menu", "network_scan", "settings_keyboard"):  # close overlays
+                            dev.call("/api/debug/screen?page=0", "POST")
+                            time.sleep(1)
+                except OSError as e:
+                    print(f"  {name}: {e}; retry {attempt}", flush=True)
+                    time.sleep(20)
+                if px:
+                    break
+            if px:
+                write_png(os.path.join(a.out, name + ".png"), px)
+                results.append((name, True, compare(a.compare, a.out, name) if a.compare else None))
+                print(name, flush=True)
+            else:
+                print(f"FAILED {name}", flush=True)
+                results.append((name, None, None))
+        if shots:
+            for page, (x, y) in RESETS:
+                dev.call(f"/api/debug/screen?page={page}", "POST")
+                time.sleep(1.5)
+                dev.call(f"/api/debug/tap?x={x}&y={y}", "POST")
+                time.sleep(1)
+        for p in pages:
             name = f"{t}_{THEMES[t]}__{p:02d}_{PAGES[p]}"
             if not dev.healthy():                 # never keep hammering a device that stopped answering
                 time.sleep(60)

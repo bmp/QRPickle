@@ -20,6 +20,9 @@ namespace config {
     // Profile file names: [A-Za-z0-9_-], 1..24 chars (no paths, no markup).
     bool is_valid_profile_name(const char* s);
 
+    // Own solar data URL: "" (use hamqsl.com) or http(s)://host/..., printable ASCII without spaces.
+    bool is_valid_solar_url(const char* s);
+
     struct Config;
     // Validate a candidate config in place before it goes live. Invalid callsign/grid/ports/
     // coordinates revert to `previous`; numeric fields are clamped; strings are terminated.

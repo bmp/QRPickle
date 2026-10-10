@@ -1,6 +1,7 @@
 #include "aprs_hub.h"
 #include "../layout.h"
 #include "../theme.h"
+#include "../privacy.h"
 #include "../fonts.h"
 #include "../ui.h"
 #include "../status_bar.h"
@@ -93,6 +94,7 @@ namespace ui {
                     lv_label_set_text(rows[vis].l_type, st[i].type);
 
                     char dbuf[16]; snprintf(dbuf, sizeof(dbuf), "%.1f km", st[i].distance_km);
+                    if (privacy::HIDE_POSITIONS) snprintf(dbuf, sizeof(dbuf), "-- km");  // screenshot builds
                     lv_label_set_text(rows[vis].l_dist, dbuf);
 
                     int brg_val = st[i].bearing_deg;
@@ -102,6 +104,7 @@ namespace ui {
                     if (dir_idx < 0 || dir_idx >= 16) dir_idx = 0;
 
                     char bbuf[16]; snprintf(bbuf, sizeof(bbuf), "%d\xC2\xB0 %s", brg_val, dirs[dir_idx]);
+                    if (privacy::HIDE_POSITIONS) snprintf(bbuf, sizeof(bbuf), "--");
                     lv_label_set_text(rows[vis].l_brg, bbuf);
 
                     lv_obj_set_hidden(rows[vis].base, false);
@@ -182,6 +185,7 @@ namespace ui {
             }
 
             snprintf(s_buf, sizeof(s_buf), "LOCATION: %.4f N / %.4f E [Grid: %s]", cfg.lat, cfg.lon, cfg.grid);
+            if (privacy::HIDE_POSITIONS) snprintf(s_buf, sizeof(s_buf), "LOCATION: (hidden) [Grid: %s]", cfg.grid);
             lv_label_set_text(lbl_b_loc, s_buf);
 
             const char* human_sym = "Observer";
@@ -196,6 +200,7 @@ namespace ui {
             lv_label_set_text(lbl_b_sym, s_buf);
 
             char p_buf[96]; services::AprsManager::get_current_payload(p_buf, sizeof(p_buf));
+            if (privacy::HIDE_POSITIONS) snprintf(p_buf, sizeof(p_buf), "(position hidden)");  // screenshot builds
             snprintf(s_buf, sizeof(s_buf), "PAYLOAD: %s-%d>APRS: %s", cfg.callsign, (int)cfg.aprs_ssid, p_buf);
             lv_label_set_text(lbl_b_payload, s_buf);
         }

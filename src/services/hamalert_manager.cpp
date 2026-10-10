@@ -1,6 +1,7 @@
 #include "net_connect.h"
 #include "../core/crashlog.h"
 #include "hamalert_manager.h"
+#include "hamalert_parse.h"
 #include "../config/config.h"
 #include "../hw/led_rgb.h" // Needed for LED telemetry
 #include <Arduino.h>
@@ -59,17 +60,13 @@ namespace services {
 
         if (strstr(line, "DX de") == nullptr) return;
 
-        char de_call[16] = {0}, freq_str[16] = {0}, spotted[16] = {0};
-        char remainder[80] = {0}; 
-
-        int parsed = sscanf(line, "DX de %15[^:]: %15s %15s %79[^\r\n]", 
-                            de_call, freq_str, spotted, remainder);
-        
-        if (parsed < 3) return;
+        hamalert::SpotFields f;
+        if (hamalert::split_spot(line, f) < 3) return;
+        char* remainder = f.rest;
 
         HamAlertMessage m{};
-        strncpy(m.freq, freq_str, sizeof(m.freq)-1);
-        strncpy(m.callsign, spotted, sizeof(m.callsign)-1);
+        strncpy(m.freq, f.freq, sizeof(m.freq) - 1);
+        strncpy(m.callsign, f.call, sizeof(m.callsign) - 1);
 
         int r_len = strlen(remainder);
         while (r_len > 0 && remainder[r_len - 1] == ' ') {

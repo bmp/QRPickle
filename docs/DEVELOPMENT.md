@@ -10,6 +10,7 @@ scripts/dev.sh test       # native unit tests
 scripts/dev.sh check      # cppcheck (no defects allowed)
 scripts/dev.sh build      # firmware + LittleFS image (size, secret and licence guards run here)
 scripts/dev.sh lint       # ruff, clang-format on changed lines, CHANGELOG section for FW_VERSION
+scripts/dev.sh format     # apply clang-format (CI's version) to the lines you changed
 scripts/dev.sh manual     # PDF manual -> release/QRPickle_Documentation_<version>-container.pdf
 scripts/dev.sh pages      # GitHub Pages site (Cloud OTA + installer) -> release/site
 scripts/dev.sh shell      # a shell inside the container

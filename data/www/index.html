@@ -38,6 +38,21 @@
                     <label>Grid Square Target</label>
                     <input type="text" id="cfg-grid" maxlength="6">
                 </div>
+                <!-- Latitude and longitude stay side by side at any width (own two-column row). -->
+                <div style="grid-column: span 2; display: grid; grid-template-columns: 1fr 1fr; gap: inherit;">
+                    <div class="form-group">
+                        <label>Station Latitude</label>
+                        <input type="number" id="cfg-lat" step="0.00001" min="-90" max="90">
+                    </div>
+                    <div class="form-group">
+                        <label>Station Longitude</label>
+                        <input type="number" id="cfg-lon" step="0.00001" min="-180" max="180">
+                    </div>
+                </div>
+                <div class="form-group" style="grid-column: span 2;">
+                    <label style="margin:0;"><input type="checkbox" id="cfg-latlon-set"> Use latitude/longitude for band conditions (day/night)</label>
+                    <p class="hint">Unticked: the centre of the grid square is used. Typing a latitude or longitude ticks this. <span id="latlon-grid-warn" style="color: var(--warn, #e0a030);"></span></p>
+                </div>
                 <div class="form-group">
                     <label>UTC Offset (Hours)</label>
                     <input type="number" id="cfg-offset" step="0.5" min="-12" max="14">
@@ -52,14 +67,6 @@
                         <input type="password" id="cfg-password" placeholder="••••••••••••" maxlength="63">
                         <button class="eye-toggle" type="button" onclick="togglePass('cfg-password')">👁️</button>
                     </div>
-                </div>
-                <div class="form-group">
-                    <label>Station Latitude</label>
-                    <input type="number" id="cfg-lat" step="0.00001" min="-90" max="90">
-                </div>
-                <div class="form-group">
-                    <label>Station Longitude</label>
-                    <input type="number" id="cfg-lon" step="0.00001" min="-180" max="180">
                 </div>
                 <div class="form-group">
                     <label>TFT Display Backlight PWM</label>
@@ -197,6 +204,24 @@
                 <div class="form-group">
                     <label>Secondary Port:</label>
                     <input type="number" id="dx_port_s" min="1" max="65535">
+                </div>
+
+                <label style="grid-column: span 2; font-weight: bold; border-bottom: 1px solid var(--border); padding-bottom: 5px; color: var(--accent); margin-top: 10px;">Solar Data (Band Conditions)</label>
+                <div class="form-group" style="grid-column: span 2;">
+                    <label>Own Data Source URL:</label>
+                    <input type="url" id="solar_url" maxlength="95" placeholder="Empty: hamqsl.com (N0NBH)">
+                    <p class="hint">Leave empty for hamqsl.com. Your own source must serve the same XML format as https://www.hamqsl.com/solarxml.php. Fetched at most once an hour.</p>
+                </div>
+                <div class="form-group" style="grid-column: span 2;">
+                    <label>Dashboard Band Tile Shows</label>
+                    <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 10px; background: rgba(0,0,0,0.2); padding: 12px; border: 1px solid var(--border);">
+                        <label style="margin:0; font-size:12px;"><input type="checkbox" id="bg-bit0"> 160-60 m</label>
+                        <label style="margin:0; font-size:12px;"><input type="checkbox" id="bg-bit1"> 40-30 m</label>
+                        <label style="margin:0; font-size:12px;"><input type="checkbox" id="bg-bit2"> 20-17 m</label>
+                        <label style="margin:0; font-size:12px;"><input type="checkbox" id="bg-bit3"> 15-10 m</label>
+                        <label style="margin:0; font-size:12px;"><input type="checkbox" id="bg-bit4"> 6 m</label>
+                    </div>
+                    <p class="hint">At least one. The Band Conditions screen always shows every band.</p>
                 </div>
             </div>
         </section>

@@ -7,6 +7,9 @@
 #include "../../core/metadata.h" 
 #include "../fonts.h"
 #include <WiFi.h>
+#ifdef QRP_SCREEN_TOOLS
+#include "../../core/screen_tools.h"
+#endif
 #include <Arduino.h>
 #include <stdio.h>
 #include <string.h>
@@ -22,6 +25,9 @@ namespace ui {
     static constexpr int MAX_WIFI_ATTEMPTS = 20;
 
     static void splash_timer_cb(lv_timer_t* timer) {
+#ifdef QRP_SCREEN_TOOLS
+        if (screen_tools::splash_held()) return;  // being photographed (tools/device_screens.py)
+#endif
         wifi_attempts++;
         Serial.printf("[Splash] Verifying Wi-Fi Link... Attempt %d/%d\n", wifi_attempts, MAX_WIFI_ATTEMPTS);
 

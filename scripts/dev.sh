@@ -5,7 +5,8 @@
 #   test     native unit tests            check   cppcheck (no defects allowed)
 #   build    firmware + filesystem image  lint    ruff + clang-format on changed lines
 #   manual   PDF manual -> release/       pages   Pages site (OTA + installer) -> release/site
-#   shell    interactive shell            all     everything above except shell
+#   format   clang-format changed lines   shell   interactive shell
+#   all      everything above except format and shell
 # Needs podman or docker. The image is built on first use (and when Containerfile changes).
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -47,6 +48,7 @@ case "$CMD" in
     check)  run "$steps_check" ;;
     build)  run "$steps_build" ;;
     lint)   run "$steps_lint" ;;
+    format) run 'git update-index -q --refresh; git clang-format --binary "$CLANG_FORMAT" "$(git merge-base HEAD origin/main)" -- src/ test/ include/' ;;
     manual) run "$steps_manual" ;;
     pages)  run "$steps_build >/dev/null && $steps_pages" ;;
     shell)  run "bash" ;;

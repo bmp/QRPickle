@@ -4,6 +4,9 @@
 #include <SPI.h>
 #include <XPT2046_Touchscreen.h>
 #include <lvgl.h>
+#ifdef QRP_SCREEN_TOOLS
+#include "../core/screen_tools.h"
+#endif
 
 #define TOUCH_MOSI 32
 #define TOUCH_MISO 39
@@ -19,6 +22,18 @@ static XPT2046_Touchscreen ts(TOUCH_CS, 255);
 #define TS_MAX_Y 3800
 
 static void touch_read_cb(lv_indev_t * indev, lv_indev_data_t * data) {
+#ifdef QRP_SCREEN_TOOLS
+    // Taps requested by tools/device_screens.py (screenshot builds only).
+    int16_t tx, ty;
+    bool pressed;
+    if (screen_tools::tap_read(tx, ty, pressed)) {
+        if (services::display_manager::is_sleeping()) services::display_manager::wake();
+        data->point.x = tx;
+        data->point.y = ty;
+        data->state = pressed ? LV_INDEV_STATE_PRESSED : LV_INDEV_STATE_RELEASED;
+        return;
+    }
+#endif
     // Determine the baseline physical hardware contact state
     bool is_contacting = ts.touched();
 

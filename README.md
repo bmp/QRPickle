@@ -1,6 +1,6 @@
 # QRPickle
 
-## A lightweight opinionated field friendly HAM Clock
+## A lightweight, opinionated, field-friendly HAM Clock
 
 **QRPickle** is a simple, lightweight dashboard designed for portable, QRP, and field-day amateur radio operations. Built to run on a standard ESP32 Cheap Yellow Display (CYD) with no external PSRAM, it consolidates real-time tracking data and tools into a clean, easy-to-use touchscreen interface.
 
@@ -19,13 +19,23 @@ This project is inspired by [cburns42/HamClockCYD](https://github.com/cburns42/H
 
 | Boot & Splash | Main Dashboard | App Menu |
 | :---: | :---: | :---: |
-| <img src="docs/pics/Splash.jpeg" alt="Splash Screen" width="250"> | <img src="docs/pics/Dashboard.jpeg" alt="Dashboard" width="250"> | <img src="docs/pics/Menu.jpeg" alt="Menu" width="250"> |
-| **HamAlert & DX Cluster** | **POTA / SOTA Spots** | **Solar Propagation** |
-| <img src="docs/pics/DXCluster.jpeg" alt="DX Cluster" width="250"> | <img src="docs/pics/POTA.jpeg" alt="POTA" width="250"> | <img src="docs/pics/Propogation.jpeg" alt="Propagation" width="250"> |
-| **APRS Radar** | **APRS Messaging** | **APRS Beaconing** |
-| <img src="docs/pics/APRS_Radar.jpeg" alt="APRS Radar" width="250"> | <img src="docs/pics/APRS_Msg.jpeg" alt="APRS Messages" width="250"> | <img src="docs/pics/APRS_Beacon.jpeg" alt="APRS Beacon" width="250"> |
-| **Weather Forecast** | **On-Device Settings** | **Smart Sleep Mode** |
-| <img src="docs/pics/Forecast.jpeg" alt="Forecast" width="250"> | <img src="docs/pics/Settings.jpeg" alt="Settings" width="250"> | <img src="docs/pics/Powersave.jpeg" alt="Powersave" width="250"> |
+| <img src="docs/pics/screens/splash.png" alt="Boot & Splash" width="250"> | <img src="docs/pics/screens/dashboard.png" alt="Main Dashboard" width="250"> | <img src="docs/pics/screens/menu.png" alt="App Menu" width="250"> |
+| **DX Cluster** | **POTA Spots** | **SOTA Spots** |
+| <img src="docs/pics/screens/dx-cluster.png" alt="DX Cluster" width="250"> | <img src="docs/pics/screens/pota.png" alt="POTA Spots" width="250"> | <img src="docs/pics/screens/sota.png" alt="SOTA Spots" width="250"> |
+| **Band Conditions** | **Solar Indicators** | **Reading the Indicators** |
+| <img src="docs/pics/screens/band-conditions.png" alt="Band Conditions" width="250"> | <img src="docs/pics/screens/band-solar.png" alt="Solar Indicators" width="250"> | <img src="docs/pics/screens/band-guide.png" alt="Reading the Indicators" width="250"> |
+| **APRS Traffic** | **APRS Radar** | **APRS Messages** |
+| <img src="docs/pics/screens/aprs-traffic.png" alt="APRS Traffic" width="250"> | <img src="docs/pics/screens/aprs-radar.png" alt="APRS Radar" width="250"> | <img src="docs/pics/screens/aprs-messages.png" alt="APRS Messages" width="250"> |
+| **APRS Quick Messages** | **APRS Beacon** | **HamAlert** |
+| <img src="docs/pics/screens/aprs-compose.png" alt="APRS Quick Messages" width="250"> | <img src="docs/pics/screens/aprs-beacon.png" alt="APRS Beacon" width="250"> | <img src="docs/pics/screens/hamalert.png" alt="HamAlert" width="250"> |
+| **Local Sensor** | **OpenWeather** | **Forecast** |
+| <img src="docs/pics/screens/weather-local.png" alt="Local Sensor" width="250"> | <img src="docs/pics/screens/openweather.png" alt="OpenWeather" width="250"> | <img src="docs/pics/screens/forecast.png" alt="Forecast" width="250"> |
+| **Network** | **WiFi Scan** | **Cloud Updates** |
+| <img src="docs/pics/screens/network.png" alt="Network" width="250"> | <img src="docs/pics/screens/wifi-scan.png" alt="WiFi Scan" width="250"> | <img src="docs/pics/screens/cloud-ota.png" alt="Cloud Updates" width="250"> |
+| **On-Device Settings** | **On-Screen Keyboard** |   |
+| <img src="docs/pics/screens/settings.png" alt="On-Device Settings" width="250"> | <img src="docs/pics/screens/keyboard.png" alt="On-Screen Keyboard" width="250"> |   |
+
+Screenshots are taken on the device (`tools/device_screens.py`, Classic theme); network names, addresses and positions are replaced or hidden in them. **Smart sleep:** after the screen timeout the backlight turns off; a touch wakes it (the first touch only wakes).
 
 
 ## Web Management Console
@@ -49,7 +59,7 @@ When on the same network, navigate to the device's IP address to access the inte
 The web console and the `QRPickle-Setup` hotspot are password-protected.
 
 - **Username:** `admin`
-- **Password:** generated on first boot. It's shown on the device's **Network** screen and in the serial boot log. The same password is the WPA2 key for the setup hotspot.
+- **Password:** generated on first boot. It's shown on the device's **Network** screen (the serial boot log masks it). The same password is the WPA2 key for the setup hotspot.
 - **Changing it:** Basic Settings → **Admin Password** (8-16 characters, no spaces), then **Save Configuration**. The browser then asks you to log in again, and the setup hotspot uses the new password.
 
 Saved secrets (WiFi password, API keys, passcodes) are never shown again in the web console. Leave those fields blank to keep the stored values.
@@ -61,7 +71,8 @@ Saved secrets (WiFi password, API keys, passcodes) are never shown again in the 
 * **Stream-Buffered HamAlert & DX Cluster:** Maintains a persistent, asynchronous TCP Telnet socket to background-listen for targeted DX spots. Uses a custom "Smart Parser" to read arbitrary-length streams without overflowing the FreeRTOS stack.
 * **Heap-Protected POTA & SOTA Fetching:** Standard HTTPS requests require ~40KB of contiguous RAM for RSA encryption (`mbedTLS`). QRPickle uses element-by-element JSON stream deserialization and task-staggering to prevent `BIGNUM` Out-Of-Memory kernel panics.
 * **APRS-IS Integration:** Connects to the global APRS-IS network. Features a tactical Radar view, live spotter tracking, custom macros, and direct bidirectional messaging.
-* **Solar & Weather Telemetry:** Pulls active K-Index, A-Index, and SFI from solar endpoints, and maps granular, bitmask-driven 24-hour weather forecasts via OpenWeatherMap API.
+* **Band Conditions & Solar Data:** Solar-terrestrial data (SFI, K, A, X-ray, solar wind, Bz, noise) from [HAMQSL.com](https://www.hamqsl.com/solar.html) (courtesy of N0NBH), fetched every 3 hours (hourly in storms) or from your own source. Rates 11 bands (160 m to 6 m) for day and night at your location, shows greyline and the next sunrise/sunset, and explains every indicator on the device.
+* **Weather:** Local BME280 sensor plus OpenWeatherMap current conditions and a 24-hour forecast with selectable slots.
 * **Adaptive Power & Wi-Fi Management:** Enforces hardware-level radio power caps (`esp_wifi_set_max_tx_power(60)`, i.e. 15 dBm) to prevent LDO voltage brownouts on the CYD board. Falls back to an integrated Setup AP (`192.168.4.1`) if routing fails.
 * **Profiles:** Save and hot-swap complete configurations (every setting except the admin password: callsign, grid, network, theme, APRS, macros, DX servers, HamAlert) for quick transitions between Home, Mobile and Field ops. Edit a profile in the normal settings form, delete it, or download/restore a backup (settings + profiles, without passwords and keys). Profiles are stored on LittleFS, so download a backup before writing a new filesystem image.
 * **Monochrome & Tactical Themes:** Driven by **LVGL 9**, featuring high-contrast modes including Tactical Field Red, GitHub Slate Dark, Terminal Phosphor Green, and pure-binary E-Ink simulations.

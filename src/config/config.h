@@ -3,6 +3,9 @@
 
 namespace config {
 
+    constexpr float DEFAULT_LAT = 12.97f, DEFAULT_LON = 77.59f;  // factory lat/lon (Bengaluru)
+    constexpr uint8_t BAND_GROUPS_ALL = 0x1F;
+
     struct Config {
         char callsign[12];
         char grid[8];
@@ -19,11 +22,16 @@ namespace config {
         char openweather_api_key[40];
         float lat;
         float lon;
+        bool latlon_set;  // lat/lon entered by the user; else band conditions use the grid square
+        uint8_t band_groups;  // groups on the dashboard band tile, bit 0 = 160-60 m ... bit 4 = 6 m
 
         char dx_url_primary[64];
         uint16_t dx_port_primary;
         char dx_url_secondary[64];
         uint16_t dx_port_secondary;
+
+        // Solar data (propagation): own source in hamqsl.com's solarxml format; "" = hamqsl.com.
+        char solar_url[96];
 
         bool aprs_enabled;
         char aprs_passcode[8];

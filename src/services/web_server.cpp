@@ -1,4 +1,5 @@
 #include "web_server.h"
+#include "../core/mem_stats.h"
 #include "profile_manager.h"  
 #include "ota_manager.h"  
 #include "display_manager.h"
@@ -31,6 +32,9 @@ static AsyncWebServer server(80);
 using services::copy_secret;
 
 static std::atomic<bool> flag_trigger_reboot{false};
+#ifdef QRP_SCREEN_TOOLS
+static std::atomic<bool> flag_debug_splash{false};  // /api/debug/splash: restart into a held splash
+#endif
 static std::atomic<bool> flag_trigger_ui_refresh{false};
 static std::atomic<bool> flag_trigger_ota_flash{false};
 static unsigned long reboot_timer_mark = 0;
@@ -155,6 +159,14 @@ void web_server_init() {
         JsonDocument doc;
         doc["uptime"] = millis() / 1000;
         doc["heap"] = ESP.getFreeHeap();
+        const auto& m = mem_stats::get();  // sampled on the main loop every 5 s
+        JsonObject mem = doc["mem"].to<JsonObject>();
+        mem["heap_min_free"] = m.heap_min_free;
+        mem["largest_block"] = m.largest_block;
+        mem["largest_block_min"] = m.largest_block_min;
+        mem["lvgl_total"] = m.lvgl_total;
+        mem["lvgl_used"] = m.lvgl_used;
+        mem["lvgl_max_used"] = m.lvgl_max_used;
         doc["rssi"] = WiFi.isConnected() ? WiFi.RSSI() : 0;
         doc["ip"] = WiFi.localIP().toString();
         doc["sensor_online"] = sensor_is_online();  // review 5.1: null instead of a fake 0
@@ -340,6 +352,26 @@ void web_server_init() {
         request->send(200, "application/json", "{\"status\":\"ok\"}");
     });
     // Band n of a screenshot: POST renders it, GET downloads it (404 until it's ready).
+    // Tap at x/y (tabs, menu, buttons) and the splash hold, for tools/device_screens.py.
+    server.on("/api/debug/tap", HTTP_POST, [](AsyncWebServerRequest* request) {
+        REQUIRE_AUTH(request);
+        if (!request->hasParam("x") || !request->hasParam("y")) {
+            request->send(400);
+            return;
+        }
+        screen_tools::request_tap(request->getParam("x")->value().toInt(), request->getParam("y")->value().toInt());
+        request->send(200, "application/json", "{\"status\":\"ok\"}");
+    });
+    server.on("/api/debug/splash", HTTP_POST, [](AsyncWebServerRequest* request) {
+        REQUIRE_AUTH(request);
+        if (request->hasParam("release")) {
+            screen_tools::release_splash();
+            request->send(200, "application/json", "{\"status\":\"released\"}");
+            return;
+        }
+        request->send(200, "application/json", "{\"status\":\"rebooting into the splash\"}");
+        flag_debug_splash = true;  // restart from the main loop after the response went out
+    });
     server.on("/api/debug/band", HTTP_POST, [](AsyncWebServerRequest* request) {
         REQUIRE_AUTH(request);
         int n = request->hasParam("n") ? request->getParam("n")->value().toInt() : -1;
@@ -486,6 +518,12 @@ void web_server_update() {
     if (flag_trigger_reboot && (millis() - reboot_timer_mark > 1500)) {
         ESP.restart();
     }
+#ifdef QRP_SCREEN_TOOLS
+    if (flag_debug_splash) {
+        delay(500);  // let the HTTP response go out
+        screen_tools::hold_splash();
+    }
+#endif
 
     // THE INFINITE STASIS TRAP
     // This executes safely inside the main core loop.
