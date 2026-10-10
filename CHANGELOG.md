@@ -2,6 +2,30 @@
 
 User-facing changes per release, newest first. Each section is also the release commit message (see `docs/RELEASING.md`).
 
+## v0.2.3 (2026-10-10)
+
+Updated LVGL and web server libraries; web console icon
+
+Updating from v0.2.2: Cloud OTA (device or web console) or upload firmware.bin.
+Settings and profiles are kept. The new browser icon also needs littlefs.bin
+(web console: System Info, "LittleFS Storage Image"). Writing the filesystem
+erases profiles, so back them up first (Profiles, Backup and Restore).
+Without it everything works; the tab just has no icon.
+
+New
+- The web console shows the International amateur radio symbol as its
+  browser tab icon.
+
+Changed
+- Display library LVGL 9.6 (from 9.5) and web server libraries
+  ESPAsyncWebServer 3.12.1 / AsyncTCP 3.5.0 (from 3.11.0 / 3.4.10). Screens
+  look the same; the WiFi network list is drawn without LVGL's list widget.
+
+For developers
+- CI and scripts/dev.sh run on Ubuntu 26.04.
+- espressif32 7.1.3 was evaluated and not adopted (same Arduino core 2.0.17
+  as 6.13.0; see docs/TASKS.md).
+
 ## v0.2.2 (2026-10-10)
 
 Verified Cloud OTA downloads, theme fixes, correct APRS positions; container-based development
