@@ -82,6 +82,18 @@ namespace config {
         return true;
     }
 
+    bool is_valid_solar_url(const char* s) {
+        if (!s[0]) return true;
+        const char* host;
+        if (strncmp(s, "https://", 8) == 0) host = s + 8;
+        else if (strncmp(s, "http://", 7) == 0) host = s + 7;
+        else return false;
+        if (!*host || *host == '/') return false;
+        for (const char* p = s; *p; p++)
+            if (*p < 0x21 || *p > 0x7E || *p == '"' || *p == '<' || *p == '>') return false;
+        return true;
+    }
+
     template <size_t N> static void terminate(char (&s)[N]) { s[N - 1] = '\0'; }
 
     void sanitize(Config& c, const Config& prev) {
@@ -92,6 +104,7 @@ namespace config {
         terminate(c.openweather_api_key);
         terminate(c.dx_url_primary);
         terminate(c.dx_url_secondary);
+        terminate(c.solar_url);
         terminate(c.aprs_passcode);
         terminate(c.aprs_comment);
         terminate(c.aprs_icon);
@@ -110,6 +123,7 @@ namespace config {
         if (!(c.lon >= -180.0f && c.lon <= 180.0f)) c.lon = prev.lon;
         if (c.dx_port_primary == 0) c.dx_port_primary = prev.dx_port_primary;
         if (c.dx_port_secondary == 0) c.dx_port_secondary = prev.dx_port_secondary;
+        if (!is_valid_solar_url(c.solar_url)) memcpy(c.solar_url, prev.solar_url, sizeof(c.solar_url));
         if (!valid_admin_password(c.admin_password)) memcpy(c.admin_password, prev.admin_password, sizeof(c.admin_password));
     }
 

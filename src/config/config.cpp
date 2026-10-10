@@ -18,6 +18,7 @@ namespace config {
     struct Field { const char* key; Kind kind; size_t offset; size_t size; };
     #define FIELD(key, kind, member) { key, Kind::kind, offsetof(Config, member), sizeof(Config::member) }
     #define FIELD_STR_AT(key, member, idx) { key, Kind::STR, offsetof(Config, member) + (idx) * sizeof(Config::member[0]), sizeof(Config::member[0]) }
+    // clang-format off
     static const Field FIELDS[] = {
         FIELD("callsign",   STR,  callsign),
         FIELD("grid",       STR,  grid),
@@ -37,6 +38,7 @@ namespace config {
         FIELD("dx_port_p",  U16,  dx_port_primary),
         FIELD("dx_url_s",   STR,  dx_url_secondary),
         FIELD("dx_port_s",  U16,  dx_port_secondary),
+        FIELD("solar_url",  STR,  solar_url),
         FIELD("aprs_en",    BOOL, aprs_enabled),
         FIELD("aprs_ssid",  I8,   aprs_ssid),
         FIELD("aprs_pass",  STR,  aprs_passcode),
@@ -52,6 +54,7 @@ namespace config {
     };
     #undef FIELD
     #undef FIELD_STR_AT
+    // clang-format on
 
     static void read_field(Preferences& p, const Field& f) {
         void* dst = reinterpret_cast<uint8_t*>(&cfg) + f.offset;

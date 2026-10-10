@@ -142,6 +142,32 @@ void test_clear_secrets() {
     TEST_ASSERT_EQUAL_STRING("home", c.wifi_ssid);
 }
 
+void test_solar_url() {
+    TEST_ASSERT_TRUE(is_valid_solar_url(""));  // hamqsl.com
+    TEST_ASSERT_TRUE(is_valid_solar_url("https://www.hamqsl.com/solarxml.php"));
+    TEST_ASSERT_TRUE(is_valid_solar_url("http://192.168.0.10:8080/solar.xml"));
+    TEST_ASSERT_FALSE(is_valid_solar_url("ftp://example.com/solar.xml"));
+    TEST_ASSERT_FALSE(is_valid_solar_url("www.hamqsl.com/solarxml.php"));
+    TEST_ASSERT_FALSE(is_valid_solar_url("https://"));
+    TEST_ASSERT_FALSE(is_valid_solar_url("https:///path"));
+    TEST_ASSERT_FALSE(is_valid_solar_url("https://a b.com/x"));
+    TEST_ASSERT_FALSE(is_valid_solar_url("https://x.com/<script>"));
+
+    Config prev = base(), c = base();
+    strcpy(prev.solar_url, "https://ok.example/s.xml");
+    strcpy(c.solar_url, "javascript:alert(1)");
+    sanitize(c, prev);
+    TEST_ASSERT_EQUAL_STRING("https://ok.example/s.xml", c.solar_url);  // invalid -> previous
+
+    Config src = base(), dst{};
+    strcpy(src.solar_url, "https://ok.example/s.xml");
+    JsonDocument doc;
+    to_json(src, doc.to<JsonObject>(), Secrets::Include);
+    TEST_ASSERT_EQUAL_STRING("https://ok.example/s.xml", doc["solar_url"].as<const char*>());
+    from_json(dst, doc.as<JsonObjectConst>());
+    TEST_ASSERT_EQUAL_STRING("https://ok.example/s.xml", dst.solar_url);
+}
+
 int main(int, char**) {
     UNITY_BEGIN();
     RUN_TEST(test_valid_config_is_normalised_not_reverted);
@@ -153,5 +179,6 @@ int main(int, char**) {
     RUN_TEST(test_json_masked_secrets_are_kept_on_input);
     RUN_TEST(test_json_missing_wrong_type_and_range);
     RUN_TEST(test_clear_secrets);
+    RUN_TEST(test_solar_url);
     return UNITY_END();
 }

@@ -4,6 +4,7 @@
 #include "../ui.h"
 #include "../../services/prop_manager.h"
 #include <cstdio>
+#include <cstring>
 
 namespace ui {
 
@@ -24,7 +25,8 @@ namespace ui {
         // Update Solar Text
         if (s_solar_lbl) {
             char sol_buf[32];
-            snprintf(sol_buf, sizeof(sol_buf), "SFI: %u   K-INDEX: %u", tel.sfi, tel.k_index);
+            if (tel.has_data) snprintf(sol_buf, sizeof(sol_buf), "SFI: %u   K-INDEX: %u", tel.sfi, tel.k_index);
+            else strcpy(sol_buf, "SFI: --   K-INDEX: --");
             lv_label_set_text(s_solar_lbl, sol_buf);
         }
 
@@ -73,7 +75,8 @@ namespace ui {
             // Solar Weather Header Readout Summary
             s_solar_lbl = lv_label_create(widget);
             char sol_buf[32];
-            snprintf(sol_buf, sizeof(sol_buf), "SFI: %u   K-INDEX: %u", tel.sfi, tel.k_index);
+            if (tel.has_data) snprintf(sol_buf, sizeof(sol_buf), "SFI: %u   K-INDEX: %u", tel.sfi, tel.k_index);
+            else strcpy(sol_buf, "SFI: --   K-INDEX: --");
             lv_label_set_text(s_solar_lbl, sol_buf);
             lv_obj_set_style_text_font(s_solar_lbl, &font_jetbrains_10, 0);
             lv_obj_set_style_text_color(s_solar_lbl, theme_color(COLOR_TEXT_MUTED), 0);

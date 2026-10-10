@@ -5,6 +5,7 @@
 #include "../ui.h"
 #include "../../services/prop_manager.h"
 #include <cstdio>
+#include <cstring>
 
 namespace ui {
 
@@ -45,6 +46,11 @@ namespace ui {
         snprintf(buf_sfi, sizeof(buf_sfi), "%u", tel.sfi);
         snprintf(buf_k, sizeof(buf_k), "%u", tel.k_index);
         snprintf(buf_a, sizeof(buf_a), "%u", tel.a_index);
+        if (!tel.has_data) {  // until the first fetch
+            strcpy(buf_sfi, "--");
+            strcpy(buf_k, "--");
+            strcpy(buf_a, "--");
+        }
 
         const char* text_sfi_desc = (tel.sfi >= 130) ? "HIGH" : ((tel.sfi >= 95) ? "MED" : "LOW");
         lv_color_t color_sfi_val  = (tel.sfi >= 120) ? theme_color(COLOR_BAND_GOOD) : 
@@ -53,6 +59,10 @@ namespace ui {
         const char* text_k_desc = (tel.k_index >= 5) ? "STORM" : ((tel.k_index >= 3) ? "WARN" : "QUIET");
         lv_color_t color_k_val  = (tel.k_index >= 4) ? theme_color(COLOR_BAND_POOR) : 
                                   ((tel.k_index == 3) ? theme_color(COLOR_BAND_FAIR) : theme_color(COLOR_BAND_GOOD));
+        if (!tel.has_data) {
+            text_sfi_desc = text_k_desc = "";
+            color_sfi_val = color_k_val = theme_color(COLOR_TEXT_MUTED);
+        }
 
         int row_start_y = 12;
         generate_telemetry_row(root_layer, row_start_y + 0,  "SOLAR FLUX INDEX      (SFI)", buf_sfi, text_sfi_desc, color_sfi_val);

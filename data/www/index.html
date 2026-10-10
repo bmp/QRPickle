@@ -198,6 +198,13 @@
                     <label>Secondary Port:</label>
                     <input type="number" id="dx_port_s" min="1" max="65535">
                 </div>
+
+                <label style="grid-column: span 2; font-weight: bold; border-bottom: 1px solid var(--border); padding-bottom: 5px; color: var(--accent); margin-top: 10px;">Solar Data (Band Conditions)</label>
+                <div class="form-group" style="grid-column: span 2;">
+                    <label>Own Data Source URL:</label>
+                    <input type="url" id="solar_url" maxlength="95" placeholder="Empty: hamqsl.com (N0NBH)">
+                    <p class="hint">Leave empty for hamqsl.com. Your own source must serve the same XML format as https://www.hamqsl.com/solarxml.php. Fetched at most once an hour.</p>
+                </div>
             </div>
         </section>
 

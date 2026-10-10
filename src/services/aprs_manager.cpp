@@ -12,7 +12,6 @@
 #include <WiFiClient.h>
 #include <math.h>
 #include <strings.h>
-#include "prop_manager.h"
 
 namespace services {
 
@@ -296,8 +295,6 @@ namespace services {
     }
 
     void AprsManager::process_line(char* line) {
-        services::PropagationManager::parse_cluster_line(line);
-
         char* colon = strchr(line, ':');
         if (!colon) return;
         

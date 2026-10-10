@@ -25,6 +25,9 @@ namespace config {
         char dx_url_secondary[64];
         uint16_t dx_port_secondary;
 
+        // Solar data (propagation): own source in hamqsl.com's solarxml format; "" = hamqsl.com.
+        char solar_url[96];
+
         bool aprs_enabled;
         char aprs_passcode[8];
         int8_t aprs_ssid;  // 0..15; 0 = no -SSID suffix

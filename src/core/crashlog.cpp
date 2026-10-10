@@ -11,7 +11,7 @@ namespace crashlog {
     static const uint32_t MAGIC = 0x4C4B5051;  // "QPKL"
     RTC_NOINIT_ATTR static uint32_t magic;
     RTC_NOINIT_ATTR static Mark marks[SLOT_COUNT];
-    static const char* const NAMES[SLOT_COUNT] = {"loop", "aprs", "hamalert", "gh_ota", "led", "sota", "net"};
+    static const char* const NAMES[SLOT_COUNT] = {"loop", "aprs", "hamalert", "gh_ota", "led", "sota", "net", "solar"};
 
     void mark(Slot slot, uint16_t step) {
         marks[slot] = {millis(), step, (uint16_t)xPortGetCoreID()};

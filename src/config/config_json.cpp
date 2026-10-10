@@ -12,6 +12,7 @@ namespace config {
         #define SECRET(key, member)    { key, key "_set", Kind::SECRET, offsetof(Config, member), sizeof(Config::member) }
 
         // Keys are the ones the web console already uses.
+        // clang-format off
         const Field FIELDS[] = {
             FIELD("callsign",     STR,      callsign),
             FIELD("grid",         STR,      grid),
@@ -30,6 +31,7 @@ namespace config {
             FIELD("dx_port_p",    U16,      dx_port_primary),
             FIELD("dx_url_s",     STR,      dx_url_secondary),
             FIELD("dx_port_s",    U16,      dx_port_secondary),
+            FIELD("solar_url",    STR,      solar_url),
             FIELD("aprs_en",      BOOL,     aprs_enabled),
             SECRET("aprs_pass",         aprs_passcode),
             FIELD("aprs_ssid",    I8,       aprs_ssid),
@@ -40,6 +42,7 @@ namespace config {
         };
         #undef FIELD
         #undef SECRET
+        // clang-format on
 
         constexpr size_t MACRO_COUNT = sizeof(Config::aprs_macros) / sizeof(Config::aprs_macros[0]);
         constexpr size_t MACRO_SIZE = sizeof(Config::aprs_macros[0]);

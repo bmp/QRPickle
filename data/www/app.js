@@ -123,6 +123,7 @@ function fillForm(data) {
     setElementValue("dx_port_p", data.dx_port_p ?? 7300);
     setElementValue("dx_url_s", data.dx_url_s || "");
     setElementValue("dx_port_s", data.dx_port_s ?? 7373);
+    setElementValue("solar_url", data.solar_url || "");
 }
 
 // Everything except the admin password, which profiles never hold.
@@ -151,6 +152,7 @@ function collectForm() {
         dx_port_p: parseInt(getElementValue("dx_port_p")),
         dx_url_s: getElementValue("dx_url_s"),
         dx_port_s: parseInt(getElementValue("dx_port_s")),
+        solar_url: getElementValue("solar_url").trim(),
         aprs_en: getElementValue("cfg-aprs-en") === "1",
         aprs_pass: getElementValue("cfg-aprs-pass"),
         aprs_ssid: parseInt(getElementValue("cfg-aprs-ssid")),
