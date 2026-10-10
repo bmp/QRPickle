@@ -49,7 +49,7 @@ When on the same network, navigate to the device's IP address to access the inte
 The web console and the `QRPickle-Setup` hotspot are password-protected.
 
 - **Username:** `admin`
-- **Password:** generated on first boot. It's shown on the device's **Network** screen and in the serial boot log. The same password is the WPA2 key for the setup hotspot.
+- **Password:** generated on first boot. It's shown on the device's **Network** screen (the serial boot log masks it). The same password is the WPA2 key for the setup hotspot.
 - **Changing it:** Basic Settings → **Admin Password** (8-16 characters, no spaces), then **Save Configuration**. The browser then asks you to log in again, and the setup hotspot uses the new password.
 
 Saved secrets (WiFi password, API keys, passcodes) are never shown again in the web console. Leave those fields blank to keep the stored values.

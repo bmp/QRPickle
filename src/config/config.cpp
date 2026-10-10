@@ -189,8 +189,11 @@ namespace config {
         Serial.printf("         DX Cluster Secondary: %s:%u\n", cfg.dx_url_secondary, cfg.dx_port_secondary);
         Serial.printf("         APRS-IS: %s | SSID: -%d | Passcode: %s | Icon: %s\n", 
                       cfg.aprs_enabled ? "Enabled" : "Disabled", (int)cfg.aprs_ssid, aprs_pw, cfg.aprs_icon);
-        // Shown deliberately (owner decision): needed to log in to the web console / setup AP.
-        Serial.printf("         Web console login: admin / %s\n", cfg.admin_password);
+        // Masked like the other secrets (owner decision 2026-10-10, reversing the earlier one): the
+        // password is shown on the device's Network screen.
+        char admin_pw[16];
+        mask(cfg.admin_password, admin_pw, sizeof(admin_pw));
+        Serial.printf("         Web console login: admin / %s (see the Network screen)\n", admin_pw);
     }
 
 } // namespace config

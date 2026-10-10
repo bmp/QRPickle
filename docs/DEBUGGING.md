@@ -80,7 +80,7 @@ This is how the boot freeze (review 3.14) was traced to a non-thread-safe DNS ca
 | `QRP_ADMIN_PW=<pw> node tools/webui_e2e/device_test.mjs <ip> <devtools-port>` | Web console in a real browser: admin password, profiles, backup/restore; restores the device afterwards | `pass=31 fail=0` |
 | `~/.platformio/penv/bin/python -I tools/serial_soak.py --hours 0.5` | Timestamped serial capture for rare freezes; echoes resets, panics, watchdog and `[CRASHLOG]` lines. Opening the port may reset the board once, so start it before opening the screen under test | `0 alert lines` |
 
-The device's IP and web password are printed at boot (`[Wi-Fi] Network Link Stable! ... IP:` and `Web console login: admin / ...`); the IP can change with DHCP.
+The device's IP is printed at boot (`[Wi-Fi] Network Link Stable! ... IP:`); it can change with DHCP. The web password is masked in the log (`Web console login: admin / ****`); read it on the device's Network screen.
 
 ## Memory
 
