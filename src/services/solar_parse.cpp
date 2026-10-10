@@ -84,15 +84,36 @@ namespace services {
             return era * 146097 + (int32_t)doe - 719468;
         }
 
+        // Reads a whole number after optional spaces; false if there is none.
+        static bool read_int(const char*& p, int& out) {
+            while (*p == ' ') p++;
+            char* end;
+            const long v = strtol(p, &end, 10);
+            if (end == p) return false;
+            out = (int)v;
+            p = end;
+            return true;
+        }
+
         uint32_t parse_updated(const char* s) {
+            // " 10 Oct 2026 0727 GMT"; no sscanf (it adds ~10 KB of scanf code to the firmware).
             static const char* MONTHS = "JanFebMarAprMayJunJulAugSepOctNovDec";
+            if (!s) return 0;
+            const char* p = s;
             int day, year, hhmm;
-            char mon[4];
-            if (!s || sscanf(s, " %d %3s %d %d", &day, mon, &year, &hhmm) != 4) return 0;
+            if (!read_int(p, day)) return 0;
+            while (*p == ' ') p++;
+            char mon[4] = {0};
+            for (int i = 0; i < 3; i++) {
+                if (!isalpha((unsigned char)p[i])) return 0;
+                mon[i] = p[i];
+            }
+            p += 3;
+            if (!read_int(p, year) || !read_int(p, hhmm)) return 0;
             const char* m = strstr(MONTHS, mon);
-            if (!m || strlen(mon) != 3 || (m - MONTHS) % 3) return 0;
+            if (!m || (m - MONTHS) % 3) return 0;
             const int hh = hhmm / 100, mm = hhmm % 100;
-            if (day < 1 || day > 31 || year < 2000 || year > 2100 || hh > 23 || mm > 59) return 0;
+            if (day < 1 || day > 31 || year < 2000 || year > 2100 || hhmm < 0 || hh > 23 || mm > 59) return 0;
             const int32_t days = days_from_civil(year, (unsigned)((m - MONTHS) / 3 + 1), (unsigned)day);
             return (uint32_t)days * 86400u + (uint32_t)(hh * 3600 + mm * 60);
         }

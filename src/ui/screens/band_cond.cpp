@@ -139,18 +139,19 @@ namespace ui {
         // ---- BANDS tab -------------------------------------------------------------------------
 
         void draw_bands_tab(lv_obj_t* body) {
-            lv_label_set_text(text(body, COLOR_TEXT_MUTED, B_NAME_X, 2), "BAND");
-            lv_label_set_text(text(body, COLOR_TEXT_MUTED, B_DAY_X + 13, 2), "DAY");
-            lv_label_set_text(text(body, COLOR_TEXT_MUTED, B_NIGHT_X + 7, 2), "NIGHT");
+            // 11 rows + 4 separators + header must fit the 172 px body (the 6 m row touched the footer).
+            lv_label_set_text(text(body, COLOR_TEXT_MUTED, B_NAME_X, 1), "BAND");
+            lv_label_set_text(text(body, COLOR_TEXT_MUTED, B_DAY_X + 13, 1), "DAY");
+            lv_label_set_text(text(body, COLOR_TEXT_MUTED, B_NIGHT_X + 7, 1), "NIGHT");
             for (int c = 0; c < 2; c++)
-                s.bar[c] = rect(body, c == 0 ? B_DAY_X : B_NIGHT_X, 15, B_COL_W, 2, COLOR_ACCENT_PRIMARY);
-            int y = 19;
+                s.bar[c] = rect(body, c == 0 ? B_DAY_X : B_NIGHT_X, 13, B_COL_W, 2, COLOR_ACCENT_PRIMARY);
+            int y = 17;
             for (int i = 0; i < bands::BAND_COUNT; i++) {
                 const int g = bands::BANDS[i].group;
                 const bool new_group = i == 0 || g != bands::BANDS[i - 1].group;
                 if (i > 0 && new_group) {
-                    rect(body, B_NAME_X - 6, y + 1, SCREEN_W - 2 * (B_NAME_X - 6), 1, COLOR_BORDER);
-                    y += 3;
+                    rect(body, B_NAME_X - 6, y, SCREEN_W - 2 * (B_NAME_X - 6), 1, COLOR_BORDER);
+                    y += 2;
                 }
                 if (new_group) lv_label_set_text(text(body, COLOR_TEXT_MUTED, B_GROUP_X, y), GROUP_LABEL[g]);
                 lv_label_set_text(text(body, COLOR_TEXT_MAIN, B_NAME_X, y), bands::BANDS[i].name);

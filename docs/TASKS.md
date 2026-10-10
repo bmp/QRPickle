@@ -35,5 +35,10 @@ Order: data source -> rating model -> bands -> band-conditions screen -> privacy
 - Note: the `cyd-screens` build has less free heap; on it, HTTPS with certificate checks (Cloud OTA) and the first solar fetch can fail. Release builds are fine (checked 2026-10-10).
 
 ## Planned for v0.2.5
+- [ ] **xOTA: show download failures.** A failed POTA fetch (seen with low heap) leaves an empty list with no message; show "POTA download failed, retrying" and the retry time in the comment bar.
+- [ ] **TLS errors as numeric codes** (~15 KB flash): log mbedTLS's standard negative hex codes instead of `mbedtls_strerror`'s text table, keep text for the few common ones (`-0x7F00` out of memory, `-0x2700` certificate verification failed, timeouts, connection closed) and document them in `docs/DEBUGGING.md`.
+- [ ] **Compressed splash logos** (LVGL RLE): measure the net saving (decoder cost included); the logos stay in the firmware.
 - [ ] **Memory and network coordinator** (findings in `docs/MEMORY.md`, 2026-10-10): the heap's big region fragments within minutes (125 blocks, largest free 18 KB), mostly from stopping and restarting the telnet tasks in quiet windows, so TLS fails intermittently. (1) Fixed stacks for HamAlert, APRS and DX (`xTaskCreateStatic`, ~18 KB, no restart churn); (2) one gate for TLS: NetLock + quiet window + a check of the largest 8-bit block, retrying later instead of failing in mbedTLS; (3) a boot schedule: WiFi, NTP, solar, telnet services, update check, each after the previous has settled. Verify with `/api/status` `mem` over a long soak.
 
+## Later
+- [ ] **Arduino core 3 / ESP-IDF 5 (pioarduino platform) evaluation:** newer GCC (13+), mbedTLS 3, possibly lower memory use; with it, re-evaluate link-time optimisation (not supported by the current IDF 4.4 build) and the flash size. A port, not an upgrade: own release, long device tests.

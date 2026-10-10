@@ -5,6 +5,7 @@
 #include "solar_tests.h"
 #include "sun_tests.h"
 #include "band_tests.h"
+#include "hamalert_tests.h"
 
 using services::sota_cluster::ParsedSpot;
 using services::sota_cluster::parse_line;
@@ -126,5 +127,7 @@ int main(int, char**) {
     RUN_TEST(test_band_6m_es_and_f2);
     RUN_TEST(test_band_model_parts);
     RUN_TEST(test_band_groups_show_best_band);
+    RUN_TEST(test_hamalert_split_spot);
+    RUN_TEST(test_version_parse_edge_cases);
     return UNITY_END();
 }

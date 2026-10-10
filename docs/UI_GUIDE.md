@@ -89,9 +89,12 @@ delete. A stale pointer to a deleted label is the classic crash.
   "dirty" flag (older managers use `is_dirty()/clear_dirty()`).
 - Redraw only what changed: update label texts and colours; don't rebuild the page on every tick.
 
-**Text and fonts.** Use the fonts in `fonts.h`; their glyphs are ASCII only (0x20-0x7E), with LVGL's
-Montserrat as fallback for `LV_SYMBOL_*` icons and the degree sign. Don't use other Unicode
-characters (☀, ⚠, ·): they render as nothing. Use words ("DAY", "GREYLINE") or an `LV_SYMBOL_`.
+**Text and fonts.** Use the fonts in `fonts.h`; their glyphs are ASCII only (0x20-0x7E). The
+fallback is an icons-only font (`font_symbols_10/14`, from Font Awesome 5) holding exactly the
+`LV_SYMBOL_*` icons in use plus the degree sign and the bullet. A new `LV_SYMBOL_` (in our code or a
+newly enabled LVGL widget) needs its code point added to `scripts/build_fonts.sh` and the fonts
+regenerated, or it renders as nothing. Don't use other Unicode characters (☀, ⚠, ·): use words
+("DAY", "GREYLINE") or an `LV_SYMBOL_`.
 
 | Font | Use |
 |------|-----|

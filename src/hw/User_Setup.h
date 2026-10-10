@@ -27,14 +27,15 @@
 // Disabled here to prevent TFT_eSPI from claiming control over the secondary touch bus interface
 // #define TOUCH_CS 33
 
-// Font Asset Allocation: Loads core raster fonts directly into compilation workspace
+// TFT_eSPI's own fonts: QRPickle draws all text with LVGL. Only the small GLCD font (1.3 KB) stays,
+// for the on-device test sketch test/test_hw_led; fonts 2-8 and smooth fonts were ~15 KB of flash.
 #define LOAD_GLCD
-#define LOAD_FONT2
-#define LOAD_FONT4
-#define LOAD_FONT6
-#define LOAD_FONT7
-#define LOAD_FONT8
-#define SMOOTH_FONT           // Compiles support for anti-aliased font processing routines
+// #define LOAD_FONT2
+// #define LOAD_FONT4
+// #define LOAD_FONT6
+// #define LOAD_FONT7
+// #define LOAD_FONT8
+// #define SMOOTH_FONT
 
 // Operating Communication Bus Frequencies
 #define SPI_FREQUENCY       40000000 // SPI clock frequency for writing graphical data frames (40MHz)

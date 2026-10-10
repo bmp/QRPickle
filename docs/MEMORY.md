@@ -77,6 +77,23 @@ big region in 125 blocks with the largest free one 18.4 KB. The lowest free heap
 - Static DRAM: `check_size.py` on every build; `tools/dram_report.py <map>` lists the largest users.
 - The `cyd-screens` build has less free heap than a release build; judge HTTPS behaviour on `cyd`.
 
+## Flash (firmware size)
+
+The app slot is 1,835,008 B; `check_size.py` warns above 85 % and fails above 95 %. The partition
+layout can't grow without breaking OTA for deployed devices, so size is managed in the code. v0.2.4
+went from 85.5 % to 81.9 % (66 KB):
+
+- **No `sscanf`** (~10 KB of scanf code): parse with `strtol`/`strtof` (`version.h`, `solar_parse`,
+  `hamalert_parse`). The libc time-zone code keeps the integer-only scanf engine anyway.
+- **TFT_eSPI fonts 2-8 and smooth fonts off** (`src/hw/User_Setup.h`, ~19 KB): LVGL draws all text.
+- **Unused LVGL widgets off** (`include/lv_conf.h`, ~17 KB): enable a widget there before using it.
+- **Icons-only fallback font** instead of Montserrat 10/14 (~20 KB, see `docs/UI_GUIDE.md`).
+
+In reserve: TLS errors as numeric codes instead of mbedTLS's 15 KB text table (codes are
+standardised in mbedTLS's headers; document the common ones in `docs/DEBUGGING.md`), compressed
+(RLE) splash logos (~5-8 KB net), and link-time optimisation with a newer toolchain (Arduino core 3 /
+ESP-IDF 5, `docs/TASKS.md`).
+
 ## Next
 
 A memory and network coordinator is planned for v0.2.5 (`docs/TASKS.md`): fixed stacks for the

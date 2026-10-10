@@ -8,6 +8,8 @@ extern "C" {
     extern const lv_font_t font_jetbrains_10_raw;
     extern const lv_font_t font_jetbrains_14_raw;
     extern const lv_font_t font_jetbrains_24_raw;
+    extern const lv_font_t font_symbols_10_raw;  // icons-only fallback (Font Awesome 5 + degree/bullet)
+    extern const lv_font_t font_symbols_14_raw;
 
     // Define the actual public RAM allocations
     lv_font_t font_atkinson_10;
@@ -26,12 +28,15 @@ extern "C" {
         font_jetbrains_14 = font_jetbrains_14_raw;
         font_jetbrains_24 = font_jetbrains_24_raw;
 
-        // Step 2: Hotwire fallback pointers to catch missing utility icons and keyboard glyphs
-        font_atkinson_10.fallback = &lv_font_montserrat_10;
-        font_atkinson_14.fallback = &lv_font_montserrat_14;
-        font_atkinson_18.fallback = &lv_font_montserrat_14;
-        font_jetbrains_10.fallback = &lv_font_montserrat_10;
-        font_jetbrains_14.fallback = &lv_font_montserrat_14;
-        font_jetbrains_24.fallback = &lv_font_montserrat_14;
+        // Step 2: fallback for what the ASCII fonts lack: the LV_SYMBOL_* icons (ours and the LVGL
+        // widgets'), the degree sign and the bullet. An icons-only font instead of LVGL's full
+        // Montserrat 10/14 saves ~18 KB of flash (v0.2.4). A new LV_SYMBOL_ needs its code point
+        // added in scripts/build_fonts.sh (else it renders as nothing).
+        font_atkinson_10.fallback = &font_symbols_10_raw;
+        font_atkinson_14.fallback = &font_symbols_14_raw;
+        font_atkinson_18.fallback = &font_symbols_14_raw;
+        font_jetbrains_10.fallback = &font_symbols_10_raw;
+        font_jetbrains_14.fallback = &font_symbols_14_raw;
+        font_jetbrains_24.fallback = &font_symbols_14_raw;
     }
 }
