@@ -22,6 +22,8 @@ namespace services {
 
         bool is_update_available();
         bool is_check_running();
+        // True once an update check has succeeded (boot retries stop then).
+        bool is_check_complete();
         ReleaseInfo get_release_info();
 
         // Streams firmware.bin into the inactive slot and verifies its SHA-256 against ota.json

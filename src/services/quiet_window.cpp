@@ -35,6 +35,9 @@ namespace services {
         Hold::Hold(uint32_t wait_ms) {
             acquire();
             for (uint32_t t = 0; t < wait_ms && !settled(); t += 100) vTaskDelay(pdMS_TO_TICKS(100));
+            // FreeRTOS frees a deleted task's stack later, in the idle task: give it a moment, or the
+            // TLS handshake starts before the 10 KB APRS stack is back.
+            vTaskDelay(pdMS_TO_TICKS(500));
         }
 
         Hold::~Hold() { release(); }

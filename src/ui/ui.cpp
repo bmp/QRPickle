@@ -156,11 +156,16 @@ namespace ui {
 
             // Spread out the boot: WiFi, NTP, the solar fetch and the HamAlert/APRS connects all
             // happen in the first seconds (free heap fell to ~6 KB). The automatic update check (a
-            // 12 KB task plus TLS) starts two minutes later; a manual check runs at once.
+            // 12 KB task plus TLS) starts two minutes later and, if it fails (usually for heap), is
+            // retried every 10 minutes until it succeeds; a manual check runs at once.
             lv_timer_create(
                 [](lv_timer_t* t) {
+                    if (services::cloud_ota::is_check_complete()) {
+                        lv_timer_delete(t);
+                        return;
+                    }
                     services::cloud_ota::start_background_check();
-                    lv_timer_delete(t);
+                    lv_timer_set_period(t, 600000);
                 },
                 120000, nullptr);
 

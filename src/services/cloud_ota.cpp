@@ -15,6 +15,7 @@
 #include <Update.h>
 #include <atomic>
 #include <mbedtls/sha256.h>
+#include <esp_heap_caps.h>
 #include <time.h>
 
 namespace services {
@@ -91,8 +92,9 @@ namespace services {
             http.setTimeout(15000);
             crashlog::mark(crashlog::SLOT_GH_OTA, 3); int code = http.GET();
             if (code != HTTP_CODE_OK) {
-                Serial.printf("[OTA] %s -> HTTP %d (%s; TLS: %s), largest block %u B\n", url.c_str(), code,
-                              http.errorToString(code).c_str(), t.tls_error().c_str(), (unsigned)ESP.getMaxAllocHeap());
+                Serial.printf("[OTA] %s -> HTTP %d (%s; TLS: %s), largest 8-bit block %u B\n", url.c_str(), code,
+                              http.errorToString(code).c_str(), t.tls_error().c_str(),
+                              (unsigned)heap_caps_get_largest_free_block(MALLOC_CAP_8BIT));
             } else {
                 crashlog::mark(crashlog::SLOT_GH_OTA, 4);
                 JsonDocument doc;
@@ -114,7 +116,9 @@ namespace services {
                 }
             }
             crashlog::mark(crashlog::SLOT_GH_OTA, 5); http.end();
-            crashlog::mark(crashlog::SLOT_GH_OTA, 6); check_complete = true;
+            // Only a successful check is final; a failed one (often heap) is retried by the UI timer.
+            crashlog::mark(crashlog::SLOT_GH_OTA, 6);
+            check_complete = cached_info.latest_version[0] != '\0';
         }
 
         // Quiet window (review 2.10): TLS needs ~33 KB of contiguous heap plus this task's stack,
@@ -151,6 +155,7 @@ namespace services {
 
         bool is_update_available() { return cached_info.update_available; }
         bool is_check_running() { return check_running; }
+        bool is_check_complete() { return check_complete; }
         ReleaseInfo get_release_info() { return cached_info; }
 
         // On any failure the main loop is parked in the OTA lockdown with services stopped,

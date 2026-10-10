@@ -13,6 +13,7 @@
 #include <atomic>
 #include <cstring>
 #include <esp_attr.h>
+#include <esp_heap_caps.h>
 #include <time.h>
 
 namespace services {
@@ -70,8 +71,9 @@ namespace services {
         // The own source URL is never logged (it may carry a token).
         const char* src = own_source ? "own source" : "hamqsl.com";
         if (!ok) {
-            Serial.printf("[SOLAR] Fetch from %s failed (HTTP %d), largest block %u B\n", src, http_code,
-                          (unsigned)ESP.getMaxAllocHeap());
+            // The 8-bit heap is what TLS needs; ESP.getMaxAllocHeap() also counts 32-bit-only IRAM.
+            Serial.printf("[SOLAR] Fetch from %s failed (HTTP %d), largest 8-bit block %u B\n", src, http_code,
+                          (unsigned)heap_caps_get_largest_free_block(MALLOC_CAP_8BIT));
             return;
         }
         Serial.printf("[SOLAR] %s: SFI %d SSN %d A %d K %d X-ray %s wind %.0f Bz %.1f geomag %s%s\n", src, d.sfi,
@@ -92,6 +94,7 @@ namespace services {
         if (https) {
             quiet::acquire();
             for (int i = 0; i < 80 && !quiet::settled(); i++) vTaskDelay(pdMS_TO_TICKS(100));
+            vTaskDelay(pdMS_TO_TICKS(500));  // stacks are freed later by the idle task (quiet_window.cpp)
         }
 
         bool ok = false;

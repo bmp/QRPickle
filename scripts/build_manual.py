@@ -208,7 +208,7 @@ def main():
 
     # Cover page: title, the project table (centred by pandoc) and the author's logo; the
     # content starts on page 2. The appendix anchor is pandoc's id for "# Appendix X: ...".
-    subtitle = "A lightweight opinionated field friendly HAM Clock"
+    subtitle = sections[0][0]  # the README's first "## " heading (its subtitle)
     details = [
         ("Firmware Package", "QRPickle Tracker Dashboard"),
         ("Software Version", a.version),

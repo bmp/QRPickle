@@ -1,6 +1,6 @@
 # QRPickle
 
-## A lightweight opinionated field friendly HAM Clock
+## A lightweight, opinionated, field-friendly HAM Clock
 
 **QRPickle** is a simple, lightweight dashboard designed for portable, QRP, and field-day amateur radio operations. Built to run on a standard ESP32 Cheap Yellow Display (CYD) with no external PSRAM, it consolidates real-time tracking data and tools into a clean, easy-to-use touchscreen interface.
 
