@@ -14,21 +14,29 @@ namespace services {
         // registers a stack pointer as the callback target, which corrupted lwIP's DNS table when
         // several tasks resolved at once (review 3.14: silent INT_WDT / panic ~5 s later).
         crashlog::mark(slot, 100 + (1));
+        IPAddress ip;
+        if (!resolve_host(host, ip)) {
+            crashlog::mark(slot, 100 + (2));
+            return false;
+        }
+        crashlog::mark(slot, 100 + (3));
+        bool ok = client.connect(ip, port, timeout_ms);
+        crashlog::mark(slot, 100 + (ok ? 4 : 5));
+        return ok;
+    }
+
+    bool resolve_host(const char* host, IPAddress& out) {
         struct addrinfo hints = {};
         hints.ai_family = AF_INET;
         hints.ai_socktype = SOCK_STREAM;
         struct addrinfo* res = nullptr;
         if (getaddrinfo(host, nullptr, &hints, &res) != 0 || !res) {
-            crashlog::mark(slot, 100 + (2));
             Serial.printf("[Net] DNS failed for %s\n", host);
             return false;
         }
-        IPAddress ip(((struct sockaddr_in*)res->ai_addr)->sin_addr.s_addr);
+        out = IPAddress(((struct sockaddr_in*)res->ai_addr)->sin_addr.s_addr);
         freeaddrinfo(res);
-        crashlog::mark(slot, 100 + (3));
-        bool ok = client.connect(ip, port, timeout_ms);
-        crashlog::mark(slot, 100 + (ok ? 4 : 5));
-        return ok;
+        return true;
     }
 
 }  // namespace services

@@ -4,6 +4,7 @@
 #include "../core/metadata.h" 
 #include <Arduino.h>
 #include <WiFiClientSecure.h>
+#include "safe_client.h"
 #include <HTTPClient.h>
 #include <cstring>
 #include <ctype.h>
@@ -109,8 +110,8 @@ namespace services {
         NetLock lock;
         if (!lock.held()) { fetching = false; return; }
         Serial.println("[POTA] Fetch started.");
-        
-        WiFiClientSecure secureClient;
+
+        SafeTlsClient secureClient;  // thread-safe DNS (safe_client.h)
         secureClient.setInsecure(); 
 
         HTTPClient http;
