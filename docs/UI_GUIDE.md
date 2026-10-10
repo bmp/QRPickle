@@ -189,6 +189,10 @@ shared. (The Network screen gets this in v0.2.4.)
 `tools/device_screens.py` captures pages over WiFi from a `cyd-screens` build (debug only, never
 released). Its `PAGES` list must match `enum LocalPage` in order.
 
+**Capture only new or changed screens**, in the themes the change affects (all seven when colours or
+layout changed), and replace just those images in `docs/pics/` and the README. A full capture of
+every screen is needed only when something shared changes (the shell, fonts, a theme's palette).
+
 ```bash
 pio run -e cyd-screens -t upload
 QRP_ADMIN_PW=... python3 -I tools/device_screens.py \
@@ -212,7 +216,7 @@ checks (Cloud OTA) can fail on it. Judge network behaviour on the `cyd` build.
 4. Data through a manager; no `lv_*` outside the main loop.
 5. Keep the bottom-right corner free for the home button.
 6. Add it to `PAGES` in `tools/device_screens.py`; capture it in all themes; add the screenshot to
-   the README table.
+   the README table. Later changes to the page: recapture only this page.
 
 **New tile**
 1. `src/ui/widgets/widget_x.{h,cpp}` with `widget_x_create(parent, size)`, panel style as above.

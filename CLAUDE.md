@@ -64,7 +64,7 @@ Work happens on a branch per release from `main` (`release/vX.Y.Z`), merged by p
 
 **Threading model.** LVGL isn't thread-safe and only runs in `loop()`. Long or blocking network work runs in FreeRTOS tasks (APRS, HamAlert, Cloud OTA check/flash, the LED engine, xOTA resume), and POTA/SOTA fetches are started with `fetch_async()`. Results reach the UI through a **static manager + dirty-flag** pattern. Managers in `src/services/` (e.g. `PotaManager`) expose `get_*()`, `is_dirty()` and `clear_dirty()`, and screens poll them from LVGL timers. Never call `lv_*` from a background task.
 
-**Memory constraints drive the design.** There is no PSRAM, and a TLS handshake (mbedTLS) needs ~40KB of contiguous heap. Network fetches therefore:
+**Memory constraints drive the design** (budgets and rules: `docs/MEMORY.md`). There is no PSRAM, and a TLS handshake (mbedTLS) needs ~40KB of contiguous heap. Network fetches therefore:
 - use `WiFiClientSecure::setInsecure()`,
 - stream-parse JSON element by element with ArduinoJson,
 - are staggered so that two TLS sessions never overlap.
