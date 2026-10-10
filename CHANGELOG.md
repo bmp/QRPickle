@@ -2,6 +2,37 @@
 
 User-facing changes per release, newest first. Each section is also the release commit message (see `docs/RELEASING.md`).
 
+## v0.2.2 (2026-10-10)
+
+Verified Cloud OTA downloads, theme fixes, correct APRS positions; container-based development
+
+Updating from v0.2.1: Cloud OTA (device or web console) or upload firmware.bin.
+No filesystem update is needed; settings and profiles are kept.
+
+Fixed
+- Cloud OTA could restart the device mid-download when the download took more
+  than 30 seconds (the main-loop watchdog wasn't fed while waiting).
+- Crash or dead network ("connected" but unreachable) when opening xOTA or
+  during other HTTPS downloads (unsafe DNS lookups).
+- APRS position: near a whole degree the minutes became "60.00" (an invalid
+  position); now rounded correctly.
+- "E-Ink Monochrome Dark" can be chosen in the web console and profiles
+  (it was saved as E-Ink Light).
+- DX cluster calls of 12 characters kept their last character; long APRS
+  payloads and comments are no longer cut short on screen.
+- Colours that ignored the selected theme (status dots, buttons, splash
+  screen, list rows) now follow it; the Classic theme looks the same.
+
+New
+- Cloud OTA verifies the HTTPS certificate of the update server, in addition
+  to the SHA-256 check.
+
+For developers
+- scripts/dev.sh runs every check in a container with CI's exact tools
+  (Ubuntu 24.04 and 26.04).
+- Compiler warnings are enabled for QRPickle's code, and CI fails on any.
+- tools/device_screens.py captures every screen in every theme.
+
 ## v0.2.1 (2026-10-10)
 
 Fixes the Cloud OTA update check; manual with images and appendices; restyled installer
