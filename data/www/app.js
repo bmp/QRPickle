@@ -124,6 +124,10 @@ function fillForm(data) {
     setElementValue("dx_url_s", data.dx_url_s || "");
     setElementValue("dx_port_s", data.dx_port_s ?? 7373);
     setElementValue("solar_url", data.solar_url || "");
+    setElementValue("cfg-latlon-set", !!data.latlon_set, true);
+    const groups = data.band_groups ?? 31;
+    for (let i = 0; i < 5; i++) setElementValue(`bg-bit${i}`, (groups & (1 << i)) !== 0, true);
+    checkLatLonGrid();
 }
 
 // Everything except the admin password, which profiles never hold.
@@ -134,6 +138,10 @@ function collectForm() {
     }
     const macros = [];
     for (let i = 0; i < 5; i++) macros.push(getElementValue(`cfg-mac${i}`));
+    let bandGroups = 0;
+    for (let i = 0; i < 5; i++) {
+        if (getElementValue(`bg-bit${i}`, true)) bandGroups |= (1 << i);
+    }
 
     return {
         callsign: getElementValue("cfg-callsign"),
@@ -153,6 +161,8 @@ function collectForm() {
         dx_url_s: getElementValue("dx_url_s"),
         dx_port_s: parseInt(getElementValue("dx_port_s")),
         solar_url: getElementValue("solar_url").trim(),
+        latlon_set: getElementValue("cfg-latlon-set", true),
+        band_groups: bandGroups || 31,  // the device also refuses "none"
         aprs_en: getElementValue("cfg-aprs-en") === "1",
         aprs_pass: getElementValue("cfg-aprs-pass"),
         aprs_ssid: parseInt(getElementValue("cfg-aprs-ssid")),
@@ -536,6 +546,26 @@ function attachGridAutoCalc(latId, lonId, gridId) {
         latEl.addEventListener("input", updateGrid);
         lonEl.addEventListener("input", updateGrid);
 }
+
+// Band conditions use lat/lon only when ticked; typing one ticks it. Warn when lat/lon lie outside
+// the grid square (the grid can also be edited on its own).
+function checkLatLonGrid() {
+    const warn = document.getElementById("latlon-grid-warn");
+    if (!warn) return;
+    const grid = (getElementValue("cfg-grid") || "").trim();
+    const calc = calcGridSquare(parseFloat(getElementValue("cfg-lat")), parseFloat(getElementValue("cfg-lon")));
+    const n = grid.length >= 6 ? 6 : 4;
+    const inside = !calc || grid.length < 4 || calc.slice(0, n).toUpperCase() === grid.slice(0, n).toUpperCase();
+    warn.textContent = inside ? "" : `Latitude/longitude lie outside grid square ${grid}.`;
+}
+document.addEventListener("DOMContentLoaded", () => {
+    for (const id of ["cfg-lat", "cfg-lon"]) {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener("input", () => { setElementValue("cfg-latlon-set", true, true); checkLatLonGrid(); });
+    }
+    const gridEl = document.getElementById("cfg-grid");
+    if (gridEl) gridEl.addEventListener("input", checkLatLonGrid);
+});
 
 // Attach the auto-calculators after the DOM loads
 document.addEventListener("DOMContentLoaded", () => {

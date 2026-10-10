@@ -14,6 +14,7 @@
 #include <Update.h>
 #include <atomic>
 #include <mbedtls/sha256.h>
+#include <time.h>
 
 namespace services {
     namespace cloud_ota {
@@ -68,6 +69,13 @@ namespace services {
                 attempts++;
             }
             if (WiFi.status() != WL_CONNECTED) return;
+            // Certificate verification needs the date: at boot WiFi comes up before NTP has set the
+            // clock, and a handshake started then fails ("X509 - Certificate verification failed").
+            for (int i = 0; i < 30 && time(nullptr) < 1700000000; i++) vTaskDelay(1000 / portTICK_PERIOD_MS);
+            if (time(nullptr) < 1700000000) {
+                Serial.println("[OTA] Update check skipped: clock not set (NTP)");
+                return;
+            }
 
             NetLock lock;
             if (!lock.held()) return;

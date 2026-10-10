@@ -100,6 +100,13 @@ inline void test_solar_fetch_schedule() {
     TEST_ASSERT_FALSE(fetch_due(s, day + 9 * 3600 + 29 * 60));
     TEST_ASSERT_TRUE(fetch_due(s, day + 9 * 3600 + 30 * 60));
 
+    // The clock set back a little after an attempt (NTP correction) must not trigger a retry...
+    s = {0, day + 8 * 3600, false};
+    TEST_ASSERT_FALSE(fetch_due(s, day + 8 * 3600 - 2));
+    // ...but an attempt "in the future" by days (clock wrong at the time) doesn't block forever.
+    s = {0, day + 5 * 86400, false};
+    TEST_ASSERT_TRUE(fetch_due(s, day));
+
     // Midnight slot (00:15) after a fetch at 21:15 the day before.
     s = {day - 3 * 3600 + 15 * 60, day - 3 * 3600 + 15 * 60, false};
     TEST_ASSERT_FALSE(fetch_due(s, day + 14 * 60));
@@ -114,4 +121,7 @@ inline void test_solar_manual_refresh_limit() {
     TEST_ASSERT_TRUE(manual_allowed({t, t, false}, t + 3600));
     TEST_ASSERT_FALSE(manual_allowed({0, t, false}, t + 30));  // failed a moment ago
     TEST_ASSERT_TRUE(manual_allowed({0, t, false}, t + 60));
+    TEST_ASSERT_EQUAL_UINT32(0, manual_unlock_utc({0, 0, false}, t));
+    TEST_ASSERT_EQUAL_UINT32(t + 3600, manual_unlock_utc({t, t, false}, t + 10));
+    TEST_ASSERT_EQUAL_UINT32(t + 60, manual_unlock_utc({0, t, false}, t + 10));
 }

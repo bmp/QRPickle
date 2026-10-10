@@ -52,6 +52,8 @@ namespace services {
         bool fetch_due(const Schedule& s, uint32_t now_utc);
         // Whether a manual refresh is allowed now (same hourly limit).
         bool manual_allowed(const Schedule& s, uint32_t now_utc);
+        // When a manual refresh becomes allowed (0 = now).
+        uint32_t manual_unlock_utc(const Schedule& s, uint32_t now_utc);
 
     }  // namespace solar
 }  // namespace services

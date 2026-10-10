@@ -1,5 +1,6 @@
 #include "solar_parse.h"
 #include <ctype.h>
+#include <stdint.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -100,10 +101,17 @@ namespace services {
             return (d.k_index != NONE && d.k_index >= 5) || d.xray[0] == 'M' || d.xray[0] == 'X';
         }
 
+        // Seconds since t; 0 if the clock has since been set back a little (NTP corrections), a very
+        // large value if t is unset or more than a day in the future (the clock was wrong then).
+        static uint32_t since(uint32_t now, uint32_t t) {
+            if (!t || (t > now && t - now > 86400)) return UINT32_MAX;
+            return now >= t ? now - t : 0;
+        }
+
         bool fetch_due(const Schedule& s, uint32_t now_utc) {
-            if (s.last_attempt_utc && now_utc - s.last_attempt_utc < RETRY_S) return false;
+            if (since(now_utc, s.last_attempt_utc) < RETRY_S) return false;
             if (!s.last_ok_utc) return true;
-            if (now_utc - s.last_ok_utc < MIN_INTERVAL_S) return false;
+            if (since(now_utc, s.last_ok_utc) < MIN_INTERVAL_S) return false;
             if (s.storm) return true;
             if (now_utc < SLOT_OFFSET_S) return false;
             const uint32_t t = now_utc - SLOT_OFFSET_S;
@@ -111,9 +119,16 @@ namespace services {
             return s.last_ok_utc < slot_start;
         }
 
+        uint32_t manual_unlock_utc(const Schedule& s, uint32_t now_utc) {
+            if (manual_allowed(s, now_utc)) return 0;
+            uint32_t t = s.last_ok_utc ? s.last_ok_utc + MIN_INTERVAL_S : 0;
+            if (s.last_attempt_utc && s.last_attempt_utc + 60 > t) t = s.last_attempt_utc + 60;
+            return t;
+        }
+
         bool manual_allowed(const Schedule& s, uint32_t now_utc) {
-            if (s.last_attempt_utc && now_utc - s.last_attempt_utc < 60) return false;
-            return !s.last_ok_utc || now_utc - s.last_ok_utc >= MIN_INTERVAL_S;
+            if (since(now_utc, s.last_attempt_utc) < 60) return false;
+            return since(now_utc, s.last_ok_utc) >= MIN_INTERVAL_S;
         }
 
     }  // namespace solar
