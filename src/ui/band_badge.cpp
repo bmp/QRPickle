@@ -80,6 +80,12 @@ namespace ui {
         }
     }
 
+    bool band_underline(const services::BandView& v, int column) {
+        if (!v.time_valid) return false;
+        if (v.light == services::sun::Light::GREYLINE) return true;
+        return band_now_column(v) == column;
+    }
+
     const char* band_light_text(const services::BandView& v, bool short_form) {
         if (!v.time_valid) return "--";
         switch (v.light) {

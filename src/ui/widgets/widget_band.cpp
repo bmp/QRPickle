@@ -23,10 +23,9 @@ namespace ui {
         struct Tile {
             lv_timer_t* timer;
             lv_obj_t* solar;
-            lv_obj_t* light;
             lv_obj_t* hdr_day;
             lv_obj_t* hdr_night;
-            lv_obj_t* now_bar;
+            lv_obj_t* bar[2];  // underline under DAY / NIGHT
             lv_obj_t* footer;
             int rows;
             uint8_t group[bands::GROUP_COUNT];
@@ -53,17 +52,15 @@ namespace ui {
 
             char buf[40];
             const auto& d = tel.solar;
-            if (tel.has_data) snprintf(buf, sizeof(buf), "SFI %d K %d A %d", d.sfi, d.k_index, d.a_index);
-            else snprintf(buf, sizeof(buf), "SFI -- K -- A --");
+            if (tel.has_data) snprintf(buf, sizeof(buf), "SFI %d   K %d   A %d", d.sfi, d.k_index, d.a_index);
+            else snprintf(buf, sizeof(buf), "SFI --   K --   A --");
             lv_label_set_text(t.solar, buf);
             lv_obj_set_style_text_color(t.solar, theme_color(v.storm ? COLOR_BAND_POOR : COLOR_TEXT_MAIN), 0);
-            lv_label_set_text(t.light, band_light_text(v, true));
-            lv_obj_align(t.light, LV_ALIGN_TOP_RIGHT, -10, 8);
 
             // The "now" column: underlined header, full-colour badges; the other column is dimmed.
+            // Greyline: both underlined, neither dimmed.
             const int now = band_now_column(v);
-            lv_obj_set_hidden(t.now_bar, now < 0);
-            if (now >= 0) lv_obj_set_x(t.now_bar, now == 0 ? COL_DAY_X : COL_NIGHT_X);
+            for (int c = 0; c < 2; c++) lv_obj_set_hidden(t.bar[c], !band_underline(v, c));
             for (int i = 0; i < t.rows; i++) {
                 band_badge_set(t.day[i], v.group_day[t.group[i]], now == 1);
                 band_badge_set(t.night[i], v.group_night[t.group[i]], now == 0);
@@ -78,7 +75,7 @@ namespace ui {
             } else if (const uint32_t retry = PropagationManager::next_retry_utc()) {
                 char hhmm[8];
                 band_local_hhmm(hhmm, sizeof(hhmm), retry);
-                snprintf(buf, sizeof(buf), "Failed, retry %s", hhmm);
+                snprintf(buf, sizeof(buf), "Failed, retry at %s", hhmm);
             } else {
                 snprintf(buf, sizeof(buf), "Waiting for data...");
             }
@@ -104,7 +101,6 @@ namespace ui {
 
         t = Tile{};
         t.solar = text(widget, &font_jetbrains_10, COLOR_TEXT_MAIN, 10, 8);
-        t.light = text(widget, &font_jetbrains_10, COLOR_ACCENT_PRIMARY, 0, 8);
 
         lv_obj_t* hdr = text(widget, &font_jetbrains_10, COLOR_TEXT_MUTED, 10, 30);
         lv_label_set_text(hdr, "BAND");
@@ -112,12 +108,14 @@ namespace ui {
         lv_label_set_text(t.hdr_day, "DAY");
         t.hdr_night = text(widget, &font_jetbrains_10, COLOR_TEXT_MUTED, COL_NIGHT_X, 30);
         lv_label_set_text(t.hdr_night, "NIGHT");
-        t.now_bar = lv_obj_create(widget);
-        lv_obj_set_size(t.now_bar, COL_W, 2);
-        lv_obj_set_pos(t.now_bar, COL_DAY_X, 44);
-        lv_obj_set_style_bg_color(t.now_bar, theme_color(COLOR_ACCENT_PRIMARY), 0);
-        lv_obj_set_style_border_width(t.now_bar, 0, 0);
-        lv_obj_set_style_radius(t.now_bar, 0, 0);
+        for (int c = 0; c < 2; c++) {
+            t.bar[c] = lv_obj_create(widget);
+            lv_obj_set_size(t.bar[c], COL_W, 2);
+            lv_obj_set_pos(t.bar[c], c == 0 ? COL_DAY_X : COL_NIGHT_X, 44);
+            lv_obj_set_style_bg_color(t.bar[c], theme_color(COLOR_ACCENT_PRIMARY), 0);
+            lv_obj_set_style_border_width(t.bar[c], 0, 0);
+            lv_obj_set_style_radius(t.bar[c], 0, 0);
+        }
 
         // Rows for the chosen groups, spread over the space between header and footer.
         const uint8_t mask = config::get().band_groups;

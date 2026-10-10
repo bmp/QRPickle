@@ -21,6 +21,9 @@ namespace ui {
 
     // Which rating column is "now": 0 = day, 1 = night, -1 = both (greyline or clock not set).
     int band_now_column(const services::BandView& v);
+    // Show the underline under the day (column 0) or night (1) header: the current column, both
+    // during greyline, neither without a clock.
+    bool band_underline(const services::BandView& v, int column);
 
     // "DAY", "NIGHT", "GREYLINE" ("GREY" when short; "--" without a clock).
     const char* band_light_text(const services::BandView& v, bool short_form = false);

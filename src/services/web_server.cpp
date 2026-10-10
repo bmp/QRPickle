@@ -1,4 +1,5 @@
 #include "web_server.h"
+#include "../core/mem_stats.h"
 #include "profile_manager.h"  
 #include "ota_manager.h"  
 #include "display_manager.h"
@@ -155,6 +156,14 @@ void web_server_init() {
         JsonDocument doc;
         doc["uptime"] = millis() / 1000;
         doc["heap"] = ESP.getFreeHeap();
+        const auto& m = mem_stats::get();  // sampled on the main loop every 5 s
+        JsonObject mem = doc["mem"].to<JsonObject>();
+        mem["heap_min_free"] = m.heap_min_free;
+        mem["largest_block"] = m.largest_block;
+        mem["largest_block_min"] = m.largest_block_min;
+        mem["lvgl_total"] = m.lvgl_total;
+        mem["lvgl_used"] = m.lvgl_used;
+        mem["lvgl_max_used"] = m.lvgl_max_used;
         doc["rssi"] = WiFi.isConnected() ? WiFi.RSSI() : 0;
         doc["ip"] = WiFi.localIP().toString();
         doc["sensor_online"] = sensor_is_online();  // review 5.1: null instead of a fake 0

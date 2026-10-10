@@ -5,8 +5,9 @@
 #include "../ui.h"
 #include "../../services/pota_manager.h"
 #include "../../services/sota_manager.h"
-#include "../../services/dx_manager.h"       
-#include "../../services/hamalert_manager.h" 
+#include "../../services/dx_manager.h"
+#include "../../services/hamalert_manager.h"
+#include "../../services/quiet_window.h"
 #include "../../services/aprs_manager.h"    // Include to reclaim the 10KB stack
 #include <cstdio>
 #include <cstring>
@@ -250,15 +251,19 @@ namespace ui {
         }
     }
 
+    static bool xota_holds_quiet = false;
+
     static void resume_services_cb(lv_timer_t* t) {
         // Wait until the previous task instances have fully exited, then restart once.
-        if (!services::HamAlertManager::is_stopped() || !services::AprsManager::is_stopped()) {
+        if (!services::quiet::settled()) {
             return;  // try again on the next tick
         }
         Serial.println("[xOTA] Quiet period ended. Re-establishing core TCP sockets...");
         services::DxManager::start();
-        services::HamAlertManager::start();
-        services::AprsManager::start();
+        if (xota_holds_quiet) {
+            services::quiet::release();  // restarts HamAlert/APRS unless a fetch still holds them
+            xota_holds_quiet = false;
+        }
         lv_timer_delete(t);
         resume_timer = nullptr;
     }
@@ -269,8 +274,10 @@ namespace ui {
 
         Serial.println("[xOTA] Entry. Suspending core monitoring sockets to free RAM...");
         services::DxManager::stop();
-        services::HamAlertManager::stop();
-        services::AprsManager::stop(); // Halts 10KB APRS task loop immediately on entry
+        if (!xota_holds_quiet) {  // HamAlert/APRS (the 10 KB APRS task) paused via the shared window
+            services::quiet::acquire();
+            xota_holds_quiet = true;
+        }
 
         if (!rows) {
             rows = (RowX*)calloc(MAX_UI_ROWS, sizeof(RowX));

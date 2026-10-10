@@ -33,7 +33,7 @@ namespace ui {
             lv_obj_t* name[SOLAR_ROWS];
             lv_obj_t* value[SOLAR_ROWS];
             lv_obj_t* desc[SOLAR_ROWS];
-            lv_obj_t* now_bar;
+            lv_obj_t* bar[2];  // underline under DAY / NIGHT
             BandBadge day[bands::BAND_COUNT];
             BandBadge night[bands::BAND_COUNT];
             lv_obj_t* sun;
@@ -160,7 +160,7 @@ namespace ui {
                 snprintf(buf, sizeof(buf), "next %s", hhmm);
             } else if (!tel.has_data && retry) {
                 band_local_hhmm(hhmm, sizeof(hhmm), retry);
-                snprintf(buf, sizeof(buf), "retry %s", hhmm);
+                snprintf(buf, sizeof(buf), "retry at %s", hhmm);
                 warn = true;
             } else if (tel.has_data) {
                 char age[16];
@@ -185,8 +185,7 @@ namespace ui {
 
             draw_solar(tel, v.storm);
             const int now = band_now_column(v);
-            lv_obj_set_hidden(s.now_bar, now < 0);
-            if (now >= 0) lv_obj_set_x(s.now_bar, now == 0 ? COL_DAY_X : COL_NIGHT_X);
+            for (int c = 0; c < 2; c++) lv_obj_set_hidden(s.bar[c], !band_underline(v, c));
             for (int i = 0; i < bands::BAND_COUNT; i++) {
                 band_badge_set(s.day[i], v.band_day[i], now == 1);
                 band_badge_set(s.night[i], v.band_night[i], now == 0);
@@ -225,12 +224,14 @@ namespace ui {
         lv_label_set_text(text(s.root, COLOR_TEXT_MUTED, PANE_X + 4, 6), "BAND");
         lv_label_set_text(text(s.root, COLOR_TEXT_MUTED, COL_DAY_X + 8, 6), "DAY");
         lv_label_set_text(text(s.root, COLOR_TEXT_MUTED, COL_NIGHT_X + 2, 6), "NIGHT");
-        s.now_bar = lv_obj_create(s.root);
-        lv_obj_set_size(s.now_bar, COL_W, 2);
-        lv_obj_set_pos(s.now_bar, COL_DAY_X, 19);
-        lv_obj_set_style_bg_color(s.now_bar, theme_color(COLOR_ACCENT_PRIMARY), 0);
-        lv_obj_set_style_border_width(s.now_bar, 0, 0);
-        lv_obj_set_style_radius(s.now_bar, 0, 0);
+        for (int c = 0; c < 2; c++) {
+            s.bar[c] = lv_obj_create(s.root);
+            lv_obj_set_size(s.bar[c], COL_W, 2);
+            lv_obj_set_pos(s.bar[c], c == 0 ? COL_DAY_X : COL_NIGHT_X, 19);
+            lv_obj_set_style_bg_color(s.bar[c], theme_color(COLOR_ACCENT_PRIMARY), 0);
+            lv_obj_set_style_border_width(s.bar[c], 0, 0);
+            lv_obj_set_style_radius(s.bar[c], 0, 0);
+        }
         int y = 24;
         for (int i = 0; i < bands::BAND_COUNT; i++) {
             if (i > 0 && bands::BANDS[i].group != bands::BANDS[i - 1].group) {

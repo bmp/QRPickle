@@ -2,8 +2,7 @@
 #include "net_lock.h"
 #include "safe_client.h"
 #include "wifi_manager.h"
-#include "aprs_manager.h"
-#include "hamalert_manager.h"
+#include "quiet_window.h"
 #include "../config/config.h"
 #include "../core/crashlog.h"
 #include "../core/metadata.h"
@@ -88,17 +87,11 @@ namespace services {
         const bool own_source = own[0] != '\0';
         const bool https = strncmp(url, "https://", 8) == 0;
 
-        // Quiet window (as the Cloud OTA check): the TLS handshake needs ~40 KB of contiguous heap,
-        // which HamAlert/APRS and open screens can leave short ("start_ssl_client: -1"). Pause them
-        // for the few seconds of the fetch, then resume the ones that were running.
-        const bool ham_was = https && !HamAlertManager::is_stopped();
-        const bool aprs_was = https && !AprsManager::is_stopped();
+        // Quiet window (quiet_window.h): the TLS handshake needs ~40 KB of contiguous heap, which
+        // HamAlert/APRS and open screens can leave short ("start_ssl_client: -1").
         if (https) {
-            HamAlertManager::stop();
-            AprsManager::stop();
-            for (int i = 0; i < 80 && !(HamAlertManager::is_stopped() && AprsManager::is_stopped()); i++) {
-                vTaskDelay(pdMS_TO_TICKS(100));  // stop() only requests the exit
-            }
+            quiet::acquire();
+            for (int i = 0; i < 80 && !quiet::settled(); i++) vTaskDelay(pdMS_TO_TICKS(100));
         }
 
         bool ok = false;
@@ -149,8 +142,7 @@ namespace services {
             }
         }
         crashlog::mark(crashlog::SLOT_SOLAR, 5);
-        if (ham_was) HamAlertManager::start();
-        if (aprs_was) AprsManager::start();
+        if (https) quiet::release();
         log_result(ok, parsed, code, own_source);
         if (ok) hw::led_rgb::trigger_traffic_pulse();  // data ingress (docs/LEDColours.md)
 

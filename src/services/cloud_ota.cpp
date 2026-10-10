@@ -6,6 +6,7 @@
 #include "version.h"
 #include "hamalert_manager.h"
 #include "aprs_manager.h"
+#include "quiet_window.h"
 #include "../core/metadata.h"
 #include <WiFiClientSecure.h>
 #include "safe_client.h"
@@ -120,19 +121,13 @@ namespace services {
         // but with HamAlert/APRS running the largest free block can be too small. Pause them for
         // the few seconds of the check (as xOTA does), then resume the ones that were running.
         static void background_check_task(void*) {
-            const bool ham_was = !HamAlertManager::is_stopped();
-            const bool aprs_was = !AprsManager::is_stopped();
-            HamAlertManager::stop();
-            AprsManager::stop();
-            for (int i = 0; i < 80 && !(HamAlertManager::is_stopped() && AprsManager::is_stopped()); i++) {
-                vTaskDelay(pdMS_TO_TICKS(100));  // stop() only requests the exit
+            {
+                quiet::Hold hold;  // quiet window (review 2.10)
+                fetch_ota_json();
             }
-            fetch_ota_json();
             Serial.printf("[OTA] Update check %s (latest: %s, local: %s)\n",
                           cached_info.latest_version[0] ? "OK" : "FAILED",
                           cached_info.latest_version[0] ? cached_info.latest_version : "-", meta::FW_VERSION);
-            if (ham_was) HamAlertManager::start();
-            if (aprs_was) AprsManager::start();
             check_running = false;
             vTaskDelete(NULL);
         }
