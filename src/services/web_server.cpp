@@ -136,6 +136,13 @@ void web_server_init() {
         else request->send(404, "text/plain", "CSS Missing");
     });
 
+    // Favicon: the International amateur radio symbol (public domain; assets/img/SOURCES.md).
+    server.on("/favicon.svg", HTTP_GET, [](AsyncWebServerRequest* request) {
+        REQUIRE_AUTH(request);
+        if (www_exists("/www/favicon.svg")) request->send(LittleFS, "/www/favicon.svg", "image/svg+xml");
+        else request->send(404, "text/plain", "Icon Missing");
+    });
+
     server.on("/app.js", HTTP_GET, [](AsyncWebServerRequest *request) {
         REQUIRE_AUTH(request);
         if (www_exists("/www/app.js")) request->send(LittleFS, "/www/app.js", "application/javascript");

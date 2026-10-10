@@ -73,9 +73,9 @@ namespace ui {
                 int target_y = 110 - y_offset - 8;
 
                 lv_obj_set_pos(radar_dots[i], target_x, target_y);
-                lv_obj_clear_flag(radar_dots[i], LV_OBJ_FLAG_HIDDEN);
+                lv_obj_set_hidden(radar_dots[i], false);
             } else {
-                lv_obj_add_flag(radar_dots[i], LV_OBJ_FLAG_HIDDEN);
+                lv_obj_set_hidden(radar_dots[i], true);
             }
         }
         services::AprsManager::clear_dirty();
@@ -87,7 +87,7 @@ namespace ui {
         lv_obj_set_style_bg_color(scr, theme_color(COLOR_BG_APP), 0);
         lv_obj_set_style_border_width(scr, 0, 0);
         lv_obj_set_style_pad_all(scr, 0, 0);
-        lv_obj_clear_flag(scr, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_scrollable(scr, false);
 
         radar_scope_panel = lv_obj_create(scr);
         lv_obj_set_size(radar_scope_panel, 220, 220);
@@ -96,7 +96,7 @@ namespace ui {
         lv_obj_set_style_border_color(radar_scope_panel, theme_color(COLOR_BORDER), 0);
         lv_obj_set_style_border_width(radar_scope_panel, 1, 0);
         lv_obj_set_style_radius(radar_scope_panel, LV_RADIUS_CIRCLE, 0);
-        lv_obj_clear_flag(radar_scope_panel, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_scrollable(radar_scope_panel, false);
 
         lv_obj_t* ring50 = lv_obj_create(radar_scope_panel);
         lv_obj_set_size(ring50, 110, 110); lv_obj_center(ring50);
@@ -123,7 +123,7 @@ namespace ui {
         lv_obj_set_style_border_color(r_card, theme_color(COLOR_BORDER), 0);
         lv_obj_set_style_border_width(r_card, 1, 0);
         lv_obj_set_style_pad_all(r_card, 3, 0);
-        lv_obj_clear_flag(r_card, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_scrollable(r_card, false);
 
         lbl_r_call = lv_label_create(r_card); lv_label_set_text(lbl_r_call, "NO TARGET"); lv_obj_set_style_text_font(lbl_r_call, &font_atkinson_14, 0); lv_obj_set_style_text_color(lbl_r_call, theme_color(COLOR_ACCENT_PRIMARY), 0); lv_obj_align(lbl_r_call, LV_ALIGN_TOP_LEFT, 1, 2);
         lbl_r_type = lv_label_create(r_card); lv_label_set_text(lbl_r_type, "--"); lv_obj_set_style_text_font(lbl_r_type, &font_jetbrains_10, 0); lv_obj_set_style_text_color(lbl_r_type, theme_color(COLOR_TEXT_MUTED), 0); lv_obj_align(lbl_r_type, LV_ALIGN_TOP_LEFT, 1, 16);
@@ -152,7 +152,7 @@ namespace ui {
             lv_obj_set_style_shadow_width(radar_dots[i], 0, 0);
             lv_obj_set_style_pad_all(radar_dots[i], 0, 0);
             lv_obj_add_event_cb(radar_dots[i], radar_dot_click_cb, LV_EVENT_CLICKED, (void*)(intptr_t)i);
-            lv_obj_add_flag(radar_dots[i], LV_OBJ_FLAG_HIDDEN);
+            lv_obj_set_hidden(radar_dots[i], true);
 
             lv_obj_t* visual_dot = lv_obj_create(radar_dots[i]);
             lv_obj_set_size(visual_dot, 6, 6);
@@ -160,7 +160,7 @@ namespace ui {
             lv_obj_set_style_bg_color(visual_dot, theme_color(COLOR_ACCENT_PRIMARY), 0);
             lv_obj_set_style_border_width(visual_dot, 0, 0);
             lv_obj_set_style_radius(visual_dot, LV_RADIUS_CIRCLE, 0);
-            lv_obj_remove_flag(visual_dot, LV_OBJ_FLAG_CLICKABLE); 
+            lv_obj_set_clickable(visual_dot, false);
         }
 
         lv_obj_t* btn_back = lv_button_create(r_card);

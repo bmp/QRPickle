@@ -221,11 +221,11 @@ namespace ui {
         pw_visible = visible;
         lv_label_set_text(btn_pw_eye, visible ? LV_SYMBOL_EYE_CLOSE : LV_SYMBOL_EYE_OPEN);
         if (visible) {
-            lv_obj_clear_flag(ta_pw, LV_OBJ_FLAG_HIDDEN);
-            lv_obj_add_flag(lbl_pw_masked, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_set_hidden(ta_pw, false);
+            lv_obj_set_hidden(lbl_pw_masked, true);
         } else {
-            lv_obj_add_flag(ta_pw, LV_OBJ_FLAG_HIDDEN);
-            lv_obj_clear_flag(lbl_pw_masked, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_set_hidden(ta_pw, true);
+            lv_obj_set_hidden(lbl_pw_masked, false);
         }
     }
 
@@ -355,7 +355,7 @@ namespace ui {
         lv_obj_align(scr, LV_ALIGN_BOTTOM_MID, 0, 0);
         lv_obj_set_style_border_width(scr, 0, 0);
         lv_obj_set_style_pad_all(scr, 0, 0);
-        lv_obj_clear_flag(scr, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_scrollable(scr, false);
 
         status_bar_set_title("Settings");
 
@@ -409,7 +409,7 @@ namespace ui {
             lv_textarea_set_text(ta_pw, c.wifi_password);
             lv_obj_set_size(ta_pw, 210, 26); 
             lv_obj_align(ta_pw, LV_ALIGN_BOTTOM_LEFT, 0, 0);
-            lv_obj_add_flag(ta_pw, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_set_hidden(ta_pw, true);
             lv_obj_add_event_cb(ta_pw, [](lv_event_t* e){ open_kb_for((lv_obj_t*)lv_event_get_target(e), KB_TEXT); }, LV_EVENT_FOCUSED, NULL);
 
             lbl_pw_masked = lv_label_create(row);
@@ -420,7 +420,7 @@ namespace ui {
             btn_pw_eye = lv_label_create(row);
             lv_label_set_text(btn_pw_eye, LV_SYMBOL_EYE_OPEN);
             lv_obj_align(btn_pw_eye, LV_ALIGN_BOTTOM_RIGHT, -4, -4);
-            lv_obj_add_flag(btn_pw_eye, LV_OBJ_FLAG_CLICKABLE);
+            lv_obj_set_clickable(btn_pw_eye, true);
             lv_obj_add_event_cb(btn_pw_eye, [](lv_event_t*){ show_pw(!pw_visible); }, LV_EVENT_CLICKED, NULL);
         }
 
@@ -571,7 +571,7 @@ namespace ui {
 
     void settings_destroy() {
         if (scr) {
-            lv_obj_add_flag(scr, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_set_hidden(scr, true);
             lv_obj_delete_async(scr);
 
             scr = nullptr;

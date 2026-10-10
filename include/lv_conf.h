@@ -2,7 +2,8 @@
 #define LV_CONF_H
 
 /* CYD ILI9341 Color depth: 16-bit (RGB565) */
-#define LV_COLOR_DEPTH 16
+/* Colour format of the display buffer (LVGL 9.6 replaced LV_COLOR_DEPTH 16 with this). */
+#define LV_COLOR_FORMAT_DEFAULT LV_COLOR_FORMAT_RGB565
 
 /* LVGL's 64 KB memory pool is allocated from the heap once at lv_init() instead of
  * living in static DRAM (.bss). Static DRAM (dram0_0_seg) had only 64 B headroom; the

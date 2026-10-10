@@ -34,10 +34,10 @@ namespace ui {
     static void switch_messaging_view(int mode_idx) {
         if (!panel_macros || !panel_wizard || !panel_qwerty) return;
 
-        lv_obj_add_flag(panel_macros, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(panel_wizard, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(panel_qwerty, LV_OBJ_FLAG_HIDDEN);
-        if (kb_input) lv_obj_add_flag(kb_input, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_set_hidden(panel_macros, true);
+        lv_obj_set_hidden(panel_wizard, true);
+        lv_obj_set_hidden(panel_qwerty, true);
+        if (kb_input) lv_obj_set_hidden(kb_input, true);
 
         lv_obj_set_style_bg_color(btn_tab_mac, theme_color(COLOR_BG_PANEL), 0);
         lv_obj_set_style_bg_color(btn_tab_wiz, theme_color(COLOR_BG_PANEL), 0);
@@ -45,11 +45,11 @@ namespace ui {
 
         switch (mode_idx) {
             case 0:
-                lv_obj_clear_flag(panel_macros, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_set_hidden(panel_macros, false);
                 lv_obj_set_style_bg_color(btn_tab_mac, theme_color(COLOR_BG_APP), 0);
                 break;
             case 1:
-                lv_obj_clear_flag(panel_wizard, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_set_hidden(panel_wizard, false);
                 lv_obj_set_style_bg_color(btn_tab_wiz, theme_color(COLOR_BG_APP), 0);
                 // Use the industry standard live target gateway callsigns
                 if (dd_wiz_net && ta_target) {
@@ -58,10 +58,10 @@ namespace ui {
                 }
                 break;
             case 2:
-                lv_obj_clear_flag(panel_qwerty, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_set_hidden(panel_qwerty, false);
                 lv_obj_set_style_bg_color(btn_tab_qwr, theme_color(COLOR_BG_APP), 0);
                 if (kb_input && ta_body) {
-                    lv_obj_clear_flag(kb_input, LV_OBJ_FLAG_HIDDEN);
+                    lv_obj_set_hidden(kb_input, false);
                     lv_keyboard_set_textarea(kb_input, ta_body);
                 }
                 break;
@@ -74,8 +74,8 @@ namespace ui {
 
     static void cb_send_click(lv_event_t* e) {
         const char* target = lv_textarea_get_text(ta_target);
-        
-        if (!lv_obj_has_flag(panel_wizard, LV_OBJ_FLAG_HIDDEN)) {
+
+        if (!lv_obj_is_hidden(panel_wizard)) {
             char wiz_payload[80];
             char mode_str[12];
             lv_dropdown_get_selected_str(dd_wiz_mode, mode_str, sizeof(mode_str));
@@ -105,7 +105,7 @@ namespace ui {
                 services::AprsManager::send_message(target, msg);
             }
         }
-        
+
         ui_navigate_local(PAGE_APRS);
     }
 
@@ -130,7 +130,7 @@ namespace ui {
         lv_obj_set_style_bg_color(page_root, theme_color(COLOR_BG_APP), 0);
         lv_obj_set_style_border_width(page_root, 0, 0);
         lv_obj_set_style_pad_all(page_root, 0, 0);
-        lv_obj_clear_flag(page_root, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_scrollable(page_root, false);
 
         lv_obj_t* header = lv_obj_create(page_root);
         lv_obj_set_size(header, SCREEN_W, 35);
@@ -140,7 +140,7 @@ namespace ui {
         lv_obj_set_style_border_color(header, theme_color(COLOR_BORDER), 0);
         lv_obj_set_style_border_width(header, 1, 0);
         lv_obj_set_style_pad_all(header, 3, 0);
-        lv_obj_clear_flag(header, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_scrollable(header, false);
 
         lv_obj_t* btn_back = lv_button_create(header);
         lv_obj_set_size(btn_back, 50, 28);
@@ -171,7 +171,7 @@ namespace ui {
         lv_obj_set_style_border_color(ta_target, theme_color(COLOR_BORDER), 0);
         lv_obj_add_event_cb(ta_target, [](lv_event_t* e){
             if(kb_input && ta_target) {
-                lv_obj_clear_flag(kb_input, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_set_hidden(kb_input, false);
                 lv_keyboard_set_textarea(kb_input, ta_target);
             }
         }, LV_EVENT_FOCUSED, nullptr);
@@ -195,7 +195,7 @@ namespace ui {
         lv_obj_set_style_bg_opa(content_body, 0, 0);
         lv_obj_set_style_border_width(content_body, 0, 0);
         lv_obj_set_style_pad_all(content_body, 0, 0);
-        lv_obj_clear_flag(content_body, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_scrollable(content_body, false);
 
         panel_macros = lv_obj_create(content_body);
         lv_obj_set_size(panel_macros, SCREEN_W, 173);
@@ -205,7 +205,7 @@ namespace ui {
         lv_obj_set_style_pad_all(panel_macros, 4, 0);
         lv_obj_set_flex_flow(panel_macros, LV_FLEX_FLOW_COLUMN);
         lv_obj_set_style_pad_row(panel_macros, 4, 0);
-        lv_obj_add_flag(panel_macros, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_scrollable(panel_macros, true);
 
         for (int i = 0; i < 5; i++) {
             if (strlen(cfg.aprs_macros[i]) == 0) continue;
@@ -232,7 +232,7 @@ namespace ui {
         lv_obj_set_style_bg_opa(panel_wizard, 0, 0);
         lv_obj_set_style_border_width(panel_wizard, 0, 0);
         lv_obj_set_style_pad_all(panel_wizard, 6, 0);
-        lv_obj_clear_flag(panel_wizard, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_scrollable(panel_wizard, false);
 
         lv_obj_t* l_wnet = lv_label_create(panel_wizard);
         lv_label_set_text(l_wnet, "TARGET:");
@@ -259,7 +259,7 @@ namespace ui {
         lv_obj_set_style_text_font(ta_wiz_ref, &font_jetbrains_10, 0);
         lv_obj_add_event_cb(ta_wiz_ref, [](lv_event_t* e){
             if(kb_input && ta_wiz_ref) {
-                lv_obj_clear_flag(kb_input, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_set_hidden(kb_input, false);
                 lv_keyboard_set_textarea(kb_input, ta_wiz_ref);
             }
         }, LV_EVENT_FOCUSED, nullptr);
@@ -277,7 +277,7 @@ namespace ui {
         lv_obj_set_style_text_font(ta_wiz_freq, &font_jetbrains_10, 0);
         lv_obj_add_event_cb(ta_wiz_freq, [](lv_event_t* e){
             if(kb_input && ta_wiz_freq) {
-                lv_obj_clear_flag(kb_input, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_set_hidden(kb_input, false);
                 lv_keyboard_set_textarea(kb_input, ta_wiz_freq);
             }
         }, LV_EVENT_FOCUSED, nullptr);
@@ -307,7 +307,7 @@ namespace ui {
         lv_obj_set_style_text_font(ta_wiz_cmt, &font_jetbrains_10, 0);
         lv_obj_add_event_cb(ta_wiz_cmt, [](lv_event_t* e){
             if(kb_input && ta_wiz_cmt) {
-                lv_obj_clear_flag(kb_input, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_set_hidden(kb_input, false);
                 lv_keyboard_set_textarea(kb_input, ta_wiz_cmt);
             }
         }, LV_EVENT_FOCUSED, nullptr);
@@ -318,7 +318,7 @@ namespace ui {
         lv_obj_set_style_bg_opa(panel_qwerty, 0, 0);
         lv_obj_set_style_border_width(panel_qwerty, 0, 0);
         lv_obj_set_style_pad_all(panel_qwerty, 4, 0);
-        lv_obj_clear_flag(panel_qwerty, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_scrollable(panel_qwerty, false);
 
         ta_body = lv_textarea_create(panel_qwerty);
         lv_obj_set_size(ta_body, 312, 45);
@@ -330,7 +330,7 @@ namespace ui {
         lv_obj_set_style_border_color(ta_body, theme_color(COLOR_BORDER), 0);
         lv_obj_add_event_cb(ta_body, [](lv_event_t* e){
             if(kb_input && ta_body) {
-                lv_obj_clear_flag(kb_input, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_set_hidden(kb_input, false);
                 lv_keyboard_set_textarea(kb_input, ta_body);
             }
         }, LV_EVENT_FOCUSED, nullptr);
@@ -339,7 +339,7 @@ namespace ui {
         lv_obj_set_size(kb_input, SCREEN_W, 93);
         lv_obj_align(kb_input, LV_ALIGN_BOTTOM_MID, 0, -32);
         lv_keyboard_set_mode(kb_input, LV_KEYBOARD_MODE_TEXT_LOWER);
-        lv_obj_add_flag(kb_input, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_set_hidden(kb_input, true);
 
         lv_obj_t* footer_nav = lv_obj_create(page_root);
         lv_obj_set_size(footer_nav, SCREEN_W, 32);
@@ -349,7 +349,7 @@ namespace ui {
         lv_obj_set_style_border_color(footer_nav, theme_color(COLOR_BORDER), 0);
         lv_obj_set_style_border_width(footer_nav, 1, 0);
         lv_obj_set_style_pad_all(footer_nav, 0, 0);
-        lv_obj_clear_flag(footer_nav, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_scrollable(footer_nav, false);
 
         btn_tab_mac = lv_button_create(footer_nav);
         lv_obj_set_size(btn_tab_mac, 106, 30);

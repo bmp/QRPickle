@@ -36,7 +36,7 @@ namespace ui {
 
     lv_obj_t* widget_clock_create(lv_obj_t* parent, WidgetSize size) {
         lv_obj_t* widget = lv_obj_create(parent);
-        lv_obj_clear_flag(widget, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_scrollable(widget, false);
 
         lv_obj_set_style_bg_color(widget, theme_color(COLOR_BG_PANEL), 0);
         lv_obj_set_style_border_color(widget, theme_color(COLOR_BORDER), 0);

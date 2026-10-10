@@ -41,7 +41,7 @@ namespace ui {
         lv_obj_set_style_border_width(card, 1, 0);
         lv_obj_set_style_radius(card, 4, 0);
         lv_obj_set_style_pad_all(card, 4, 0);
-        lv_obj_clear_flag(card, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_scrollable(card, false);
 
         lv_obj_t* lbl_title = lv_label_create(card);
         lv_label_set_text(lbl_title, title);
@@ -111,7 +111,7 @@ namespace ui {
         lv_obj_set_style_bg_color(alt_bar, theme_color(COLOR_BG_PANEL), 0);
         lv_obj_set_style_border_color(alt_bar, theme_color(COLOR_BORDER), 0);
         lv_obj_set_style_border_width(alt_bar, 1, 0);
-        lv_obj_clear_flag(alt_bar, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_scrollable(alt_bar, false);
 
         lbl_loc_alt = lv_label_create(alt_bar);
         lv_label_set_text(lbl_loc_alt, "EST. ALTITUDE: -- m / -- ft"); 
@@ -138,7 +138,7 @@ namespace ui {
         lv_obj_align(top_deck, LV_ALIGN_TOP_MID, 0, 0);
         lv_obj_set_style_bg_color(top_deck, theme_color(COLOR_BG_PANEL), 0);
         lv_obj_set_style_border_width(top_deck, 0, 0);
-        lv_obj_clear_flag(top_deck, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_scrollable(top_deck, false);
 
         // Icon and Temp moved further to the right
         img_cur_icon = lv_image_create(top_deck);
@@ -165,8 +165,8 @@ namespace ui {
         lv_obj_set_style_border_width(text_stack, 0, 0);
         lv_obj_set_style_pad_all(text_stack, 0, 0);
         lv_obj_set_flex_flow(text_stack, LV_FLEX_FLOW_COLUMN);
-        lv_obj_set_flex_align(text_stack, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_END, LV_FLEX_ALIGN_END); 
-        lv_obj_clear_flag(text_stack, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_flex_align(text_stack, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_END, LV_FLEX_ALIGN_END);
+        lv_obj_set_scrollable(text_stack, false);
 
         lbl_cur_desc = lv_label_create(text_stack);
         lv_obj_set_style_text_font(lbl_cur_desc, &font_atkinson_14, 0);
@@ -221,9 +221,9 @@ namespace ui {
         lv_obj_set_style_bg_opa(forecast_scroll_container, LV_OPA_TRANSP, 0);
         lv_obj_set_style_border_width(forecast_scroll_container, 0, 0);
         lv_obj_set_style_pad_all(forecast_scroll_container, 2, 0);
-        lv_obj_set_flex_flow(forecast_scroll_container, LV_FLEX_FLOW_COLUMN); 
-        lv_obj_set_style_pad_row(forecast_scroll_container, 4, 0); 
-        lv_obj_add_flag(forecast_scroll_container, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_flex_flow(forecast_scroll_container, LV_FLEX_FLOW_COLUMN);
+        lv_obj_set_style_pad_row(forecast_scroll_container, 4, 0);
+        lv_obj_set_scrollable(forecast_scroll_container, true);
 
         for (int i = 0; i < 8; i++) {
             lv_obj_t* row = lv_obj_create(forecast_scroll_container);
@@ -233,8 +233,8 @@ namespace ui {
             lv_obj_set_style_border_width(row, 1, 0);
             lv_obj_set_style_radius(row, 6, 0); 
             lv_obj_set_style_pad_all(row, 0, 0);
-            lv_obj_clear_flag(row, LV_OBJ_FLAG_SCROLLABLE);
-            lv_obj_add_flag(row, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_set_scrollable(row, false);
+            lv_obj_set_hidden(row, true);
             dyn_rows[i].base_row = row;
 
             dyn_rows[i].lbl_time = lv_label_create(row);
@@ -264,7 +264,7 @@ namespace ui {
         lv_obj_set_style_bg_color(scr, theme_color(COLOR_BG_APP), 0);
         lv_obj_set_style_border_width(scr, 0, 0);
         lv_obj_set_style_pad_all(scr, 0, 0);
-        lv_obj_clear_flag(scr, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_scrollable(scr, false);
 
         tabview = lv_tabview_create(scr);
         lv_tabview_set_tab_bar_position(tabview, LV_DIR_TOP);
@@ -363,10 +363,10 @@ namespace ui {
                 bool is_enabled = (enabled_mask & (1 << i));
                 if (dyn_rows[i].base_row) {
                     if (!is_enabled) {
-                        lv_obj_add_flag(dyn_rows[i].base_row, LV_OBJ_FLAG_HIDDEN);
+                        lv_obj_set_hidden(dyn_rows[i].base_row, true);
                         continue;
                     }
-                    lv_obj_clear_flag(dyn_rows[i].base_row, LV_OBJ_FLAG_HIDDEN);
+                    lv_obj_set_hidden(dyn_rows[i].base_row, false);
 
                     snprintf(buf, sizeof(buf), "%.0f°C", fore.blocks[i].temp);
                     lv_label_set_text(dyn_rows[i].lbl_temp, buf);

@@ -12,12 +12,12 @@ QRPickle's own code is MIT-licensed (see [`License`](License)). The firmware and
 | Font Awesome 5 Free symbols (in the LVGL built-in fonts) | SIL OFL 1.1 | © Fonticons, Inc. | [`assets/fonts/OFL-LVGL-builtin.txt`](assets/fonts/OFL-LVGL-builtin.txt) |
 | Font Awesome 7 Free icons "globe" and "microchip" (`assets/img/icon_*`), recoloured | CC BY 4.0 | © Fonticons, Inc. | [creativecommons.org/licenses/by/4.0](https://creativecommons.org/licenses/by/4.0/) |
 | Weather condition icons (`assets/img/[0-9]*`) | No published icon licence; attributed | © OpenWeather, [openweathermap.org](https://openweathermap.org/weather-conditions) | [`assets/img/SOURCES.md`](assets/img/SOURCES.md) |
-| International amateur radio symbol (splash screen) | Public domain | Denelson83, [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:International_amateur_radio_symbol.svg) | [`assets/img/SOURCES.md`](assets/img/SOURCES.md) |
+| International amateur radio symbol (splash screen; web console favicon `data/www/favicon.svg`) | Public domain | Denelson83, [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:International_amateur_radio_symbol.svg) | [`assets/img/SOURCES.md`](assets/img/SOURCES.md) |
 | Bangalore Amateur Radio Club (VU2ARC) logo (splash screen) | Not MIT; used with the club's permission | © Bangalore Amateur Radio Club, [barc.in](https://www.barc.in/) | [`assets/img/SOURCES.md`](assets/img/SOURCES.md) |
-| LVGL 9.5 | MIT | © LVGL Kft, [lvgl/lvgl](https://github.com/lvgl/lvgl) | in the library |
+| LVGL 9.6 | MIT | © LVGL Kft, [lvgl/lvgl](https://github.com/lvgl/lvgl) | in the library |
 | TFT_eSPI 2.5 | MIT (per library.json) | Bodmer, [Bodmer/TFT_eSPI](https://github.com/Bodmer/TFT_eSPI) | in the library |
 | ArduinoJson 7 | MIT | © Benoît Blanchon, [arduinojson.org](https://arduinojson.org) | in the library |
-| ESPAsyncWebServer 3.11, AsyncTCP 3.4 | LGPL-3.0 | [ESP32Async](https://github.com/ESP32Async) | in the library; QRPickle's full source is public, so the firmware can be relinked with modified versions |
+| ESPAsyncWebServer 3.12, AsyncTCP 3.5 | LGPL-3.0 | [ESP32Async](https://github.com/ESP32Async) | in the library; QRPickle's full source is public, so the firmware can be relinked with modified versions |
 | Adafruit BME280 Library | BSD | © Adafruit Industries | in the library |
 | Adafruit Unified Sensor | Apache-2.0 | © Adafruit Industries | in the library |
 | Adafruit BusIO | MIT | © Adafruit Industries | in the library |

@@ -145,7 +145,9 @@ def main():
     ap.add_argument("--out", required=True)
     ap.add_argument("--compare", help="directory of an earlier capture to diff against")
     ap.add_argument("--themes", default=",".join(str(i) for i in range(len(THEMES))))
-    ap.add_argument("--pages", default=",".join(str(i) for i in range(len(PAGES))))
+    # Settings (3) opens a separate LVGL screen that stays on top of the main one, so pages captured
+    # after it would show a stale screen: capture it last.
+    ap.add_argument("--pages", default=",".join(str(i) for i in [0, 1, 2] + list(range(4, len(PAGES))) + [3]))
     ap.add_argument("--settle", type=float, default=3.0, help="seconds to wait after opening a page")
     ap.add_argument("--max-requests", type=int, default=3000, help="stop after this many HTTP requests")
     a = ap.parse_args()

@@ -52,7 +52,7 @@ namespace ui {
         lv_obj_set_style_bg_color(page_container, theme_color(COLOR_BG_APP), 0);
         lv_obj_set_style_border_width(page_container, 0, 0);
         lv_obj_set_style_pad_all(page_container, 8, 0);
-        lv_obj_clear_flag(page_container, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_scrollable(page_container, false);
 
         auto info = services::cloud_ota::get_release_info();
 

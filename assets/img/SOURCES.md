@@ -9,3 +9,7 @@ Every file in `assets/img/` (and its converted `data/img/*.bin`) must be listed 
 | icon_sensor_20x20.png | Sensor icon | [Font Awesome 7 Free](https://fontawesome.com) "microchip" (solid) by Fonticons, Inc.; recoloured #1E2E4F and padded | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Credited in About. |
 | logo_splash_left_50x50.png | Bangalore Amateur Radio Club (VU2ARC) logo (splash screen); also compiled in as `src/ui/img/logo_splash_left_50x50.c` | [barc.in](https://www.barc.in/) | © Bangalore Amateur Radio Club; used with the club's permission (confirmed to the owner, 2026-10-10). Not covered by QRPickle's MIT licence. Credited in About. |
 | logo_splash_right_30x60.png | International amateur radio symbol (splash screen); also compiled in as `src/ui/img/logo_splash_right_30x60.c` | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:International_amateur_radio_symbol.svg), by Denelson83 (2007), scaled to 30x60 | Public domain (released by the author) |
+
+Web console files outside `assets/img/`:
+- `data/www/favicon.svg`: the International amateur radio symbol from [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:International_amateur_radio_symbol.svg) by Denelson83 (public domain); editor metadata removed and a square viewBox added, drawing unchanged.
+

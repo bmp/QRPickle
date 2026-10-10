@@ -10,7 +10,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-UBUNTU=24.04
+UBUNTU=26.04
 if [[ "${1:-}" == "--ubuntu" ]]; then UBUNTU=$2; shift 2; fi
 CMD=${1:-all}
 

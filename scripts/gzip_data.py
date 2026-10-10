@@ -1,5 +1,5 @@
 # PlatformIO pre-build script: build the LittleFS image from a staged copy of data/ in which
-# the web console (www/*.html|js|css) is gzip-compressed (56 KB -> ~13 KB). ESPAsyncWebServer
+# the web console (www/*.html|js|css|svg) is gzip-compressed (56 KB -> ~13 KB). ESPAsyncWebServer
 # serves "x.gz" with "Content-Encoding: gzip" when "x" is requested and absent, and browsers
 # decompress transparently. The sources in data/ stay plain text; nothing compressed is committed.
 Import("env")
@@ -7,7 +7,7 @@ import gzip
 import os
 import shutil
 
-COMPRESS = (".html", ".js", ".css")
+COMPRESS = (".html", ".js", ".css", ".svg")
 
 src = env.subst("$PROJECT_DATA_DIR")
 dst = os.path.join(env.subst("$BUILD_DIR"), "data_gz")
