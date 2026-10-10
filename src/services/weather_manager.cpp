@@ -127,12 +127,20 @@ namespace services {
                 }
             }
 
-            if (!initial_fetch_done || (now - last_fetch_ms >= active_interval_ms)) {
+            // A failed fetch (heap is tight at boot) is retried after RETRY_MS, not after the normal
+            // 2-hour interval: the OpenWeather tab showed "Connecting..." for up to 2 hours.
+            constexpr uint32_t RETRY_MS = 300000;
+            const uint32_t interval = (current_wx.valid && forecast_wx.valid) ? active_interval_ms : RETRY_MS;
+            if (!initial_fetch_done || (now - last_fetch_ms >= interval)) {
                 last_fetch_ms = now;
                 initial_fetch_done = true;
                 const auto& cfg = config::get();
+                if (strlen(cfg.openweather_api_key) == 0) return;
                 fetch_current(cfg);
                 fetch_forecast(cfg);
+                Serial.printf("[Weather] OpenWeather: current %s, forecast %s%s\n", current_wx.valid ? "OK" : "failed",
+                              forecast_wx.valid ? "OK" : "failed",
+                              current_wx.valid && forecast_wx.valid ? "" : " (retry in 5 min)");
             }
         }
 
