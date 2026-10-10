@@ -75,9 +75,14 @@ namespace ui {
         int n = WiFi.scanNetworks();
         lv_obj_del(lbl_loading);
 
-        lv_obj_t* list = lv_list_create(modal);
+        // A scrolling flex column (lv_list is deprecated in LVGL 9.6). Each entry is a button with
+        // an icon label (child 0) and the "SSID (RSSI dBm)" label (child 1) that the click handler reads.
+        lv_obj_t* list = lv_obj_create(modal);
         lv_obj_set_size(list, 260, 140);
         lv_obj_align(list, LV_ALIGN_TOP_MID, 0, 0);
+        lv_obj_set_flex_flow(list, LV_FLEX_FLOW_COLUMN);
+        lv_obj_set_style_pad_all(list, 4, 0);
+        lv_obj_set_style_pad_row(list, 2, 0);
 
         // THEMED: Scanning inner list container background
         lv_obj_set_style_bg_color(list, theme_color(COLOR_BG_PANEL), 0);
@@ -85,14 +90,27 @@ namespace ui {
         lv_obj_set_style_border_width(list, 1, 0);
 
         if (n == 0) {
-            lv_obj_t* txt = lv_list_add_text(list, "No Access Points Found");
+            lv_obj_t* txt = lv_label_create(list);
+            lv_label_set_text(txt, "No Access Points Found");
             lv_obj_set_style_text_color(txt, theme_color(COLOR_TEXT_MUTED), 0); // THEMED
         } else {
             for (int i = 0; i < n; ++i) {
                 char buf[64];
                 snprintf(buf, sizeof(buf), "%s (%d dBm)", WiFi.SSID(i).c_str(), WiFi.RSSI(i));
 
-                lv_obj_t* list_btn = lv_list_add_btn(list, LV_SYMBOL_WIFI, buf);
+                lv_obj_t* list_btn = lv_button_create(list);
+                lv_obj_set_width(list_btn, lv_pct(100));
+                lv_obj_set_flex_flow(list_btn, LV_FLEX_FLOW_ROW);
+                lv_obj_set_flex_align(list_btn, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+                lv_obj_set_style_pad_column(list_btn, 8, 0);
+                lv_obj_set_style_bg_color(list_btn, theme_color(COLOR_BG_PANEL), 0);
+                lv_obj_set_style_bg_color(list_btn, theme_color(COLOR_BG_BAR), LV_STATE_PRESSED);
+                lv_obj_set_style_shadow_width(list_btn, 0, 0);
+                lv_obj_set_style_radius(list_btn, 0, 0);
+                lv_obj_t* icon = lv_label_create(list_btn);
+                lv_label_set_text(icon, LV_SYMBOL_WIFI);
+                lv_obj_t* name = lv_label_create(list_btn);
+                lv_label_set_text(name, buf);
                 lv_obj_set_style_text_color(list_btn, theme_color(COLOR_TEXT_MAIN), 0); // THEMED
                 lv_obj_add_event_cb(list_btn, network_list_btn_cb, LV_EVENT_CLICKED, modal);
             }
@@ -120,7 +138,7 @@ namespace ui {
         lv_obj_set_size(page, SCREEN_W, CONTENT_H);
         lv_obj_set_style_bg_opa(page, 0, 0);
         lv_obj_set_style_border_width(page, 0, 0);
-        lv_obj_clear_flag(page, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_scrollable(page, false);
 
         // Stats Panel
         lbl_stats = lv_label_create(page);

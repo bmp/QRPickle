@@ -138,9 +138,9 @@ namespace ui {
         }
 
         if (needs_fetch) {
-            if (list_container) lv_obj_add_flag(list_container, LV_OBJ_FLAG_HIDDEN);
-            if (lbl_loading) lv_obj_clear_flag(lbl_loading, LV_OBJ_FLAG_HIDDEN);
-            
+            if (list_container) lv_obj_set_hidden(list_container, true);
+            if (lbl_loading) lv_obj_set_hidden(lbl_loading, false);
+
             if (lbl_comment) {
                 lv_label_set_text(lbl_comment, "Please wait...");
             }
@@ -193,10 +193,10 @@ namespace ui {
             lv_obj_set_style_bg_color(status_dot, fetching ? theme_color(COLOR_STATUS_BUSY) : theme_color(COLOR_STATUS_OK), 0);
         }
 
-        if (dirty || t == nullptr) { 
-            if (lbl_loading) lv_obj_add_flag(lbl_loading, LV_OBJ_FLAG_HIDDEN);
-            
-            lv_obj_add_flag(list_container, LV_OBJ_FLAG_HIDDEN);
+        if (dirty || t == nullptr) {
+            if (lbl_loading) lv_obj_set_hidden(lbl_loading, true);
+
+            lv_obj_set_hidden(list_container, true);
             int vis = 0;
 
             if (active_tab == TAB_POTA) {
@@ -216,7 +216,7 @@ namespace ui {
                         lv_label_set_text(rows[vis].l_q, spots[i].is_qrp ? "•" : "-");
                         lv_obj_set_style_text_color(rows[vis].l_q, spots[i].is_qrp ? theme_color(COLOR_ACCENT_PRIMARY) : theme_color(COLOR_TEXT_MAIN), 0);
                         rows[vis].spot = i;
-                        lv_obj_clear_flag(rows[vis].base, LV_OBJ_FLAG_HIDDEN);
+                        lv_obj_set_hidden(rows[vis].base, false);
                         vis++;
                     }
                 }
@@ -238,15 +238,15 @@ namespace ui {
                         lv_label_set_text(rows[vis].l_q, spots[i].is_qrp ? "•" : "-");
                         lv_obj_set_style_text_color(rows[vis].l_q, spots[i].is_qrp ? theme_color(COLOR_ACCENT_PRIMARY) : theme_color(COLOR_TEXT_MAIN), 0);
                         rows[vis].spot = i;
-                        lv_obj_clear_flag(rows[vis].base, LV_OBJ_FLAG_HIDDEN);
+                        lv_obj_set_hidden(rows[vis].base, false);
                         vis++;
                     }
                 }
                 services::SotaManager::clear_dirty();
             }
 
-            for(int i=vis; i<MAX_UI_ROWS; i++) lv_obj_add_flag(rows[i].base, LV_OBJ_FLAG_HIDDEN);
-            lv_obj_clear_flag(list_container, LV_OBJ_FLAG_HIDDEN);
+            for (int i = vis; i < MAX_UI_ROWS; i++) lv_obj_set_hidden(rows[i].base, true);
+            lv_obj_set_hidden(list_container, false);
         }
     }
 
@@ -295,8 +295,8 @@ namespace ui {
         lv_obj_set_style_bg_color(tabs, theme_color(COLOR_BG_PANEL), 0);
         lv_obj_set_style_border_width(tabs, 0, 0);
         lv_obj_set_style_pad_all(tabs, 0, 0);
-        lv_obj_clear_flag(tabs, LV_OBJ_FLAG_SCROLLABLE);
-        
+        lv_obj_set_scrollable(tabs, false);
+
         btn_tab_pota = lv_button_create(tabs);
         lv_obj_set_size(btn_tab_pota, 160, 24);
         lv_obj_align(btn_tab_pota, LV_ALIGN_LEFT_MID, 0, 0);
@@ -329,7 +329,7 @@ namespace ui {
         lv_obj_set_style_border_color(head, theme_color(COLOR_BORDER), 0);
         lv_obj_set_style_border_width(head, 1, 0);
         lv_obj_set_style_pad_all(head, 0, 0);
-        lv_obj_clear_flag(head, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_scrollable(head, false);
 
         lv_obj_t* l1 = lv_label_create(head); lv_label_set_text(l1, "TIME"); lv_obj_set_style_text_font(l1, &font_jetbrains_10, 0); lv_obj_set_style_text_color(l1, theme_color(COLOR_TEXT_MUTED), 0); lv_obj_align(l1, LV_ALIGN_LEFT_MID, 4, 0);
         lbl_hdr_ref = lv_label_create(head); lv_label_set_text(lbl_hdr_ref, "PARK"); lv_obj_set_style_text_font(lbl_hdr_ref, &font_jetbrains_10, 0); lv_obj_set_style_text_color(lbl_hdr_ref, theme_color(COLOR_TEXT_MUTED), 0); lv_obj_align(lbl_hdr_ref, LV_ALIGN_LEFT_MID, 40, 0);
@@ -358,8 +358,8 @@ namespace ui {
         lv_obj_set_style_border_side(foot, LV_BORDER_SIDE_TOP, 0);
         lv_obj_set_style_border_color(foot, theme_color(COLOR_BORDER), 0);
         lv_obj_set_style_border_width(foot, 1, 0);
-        lv_obj_clear_flag(foot, LV_OBJ_FLAG_SCROLLABLE);
-        
+        lv_obj_set_scrollable(foot, false);
+
         lbl_comment = lv_label_create(foot);
         lv_label_set_text(lbl_comment, "INITIALIZING...");
         lv_obj_set_style_text_font(lbl_comment, &font_jetbrains_10, 0);
@@ -396,8 +396,8 @@ namespace ui {
         lv_obj_set_style_border_width(list_container, 0, 0);
         lv_obj_set_style_pad_all(list_container, 0, 0);
         lv_obj_set_flex_flow(list_container, LV_FLEX_FLOW_COLUMN);
-        
-        lv_obj_add_flag(list_container, LV_OBJ_FLAG_HIDDEN);
+
+        lv_obj_set_hidden(list_container, true);
 
         lbl_loading = lv_label_create(scr);
         lv_obj_set_style_text_font(lbl_loading, &font_atkinson_14, 0); // Crisp 14px text element
@@ -405,7 +405,7 @@ namespace ui {
         lv_obj_set_style_text_align(lbl_loading, LV_TEXT_ALIGN_CENTER, 0);
         lv_label_set_text(lbl_loading, "SYNCING...\nSecuring network stream connection.");
         lv_obj_align(lbl_loading, LV_ALIGN_CENTER, 0, 10);
-        lv_obj_add_flag(lbl_loading, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_set_hidden(lbl_loading, true);
 
         for(int i=0; i<MAX_UI_ROWS; i++) {
             lv_obj_t* r = lv_obj_create(list_container);
@@ -417,9 +417,9 @@ namespace ui {
             lv_obj_set_style_border_width(r, 0, 0);
             lv_obj_set_style_radius(r, 0, 0);
             lv_obj_set_style_pad_all(r, 0, 0);
-            lv_obj_clear_flag(r, LV_OBJ_FLAG_SCROLLABLE);
-            lv_obj_add_flag(r, LV_OBJ_FLAG_CLICKABLE);
-            lv_obj_add_flag(r, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_set_scrollable(r, false);
+            lv_obj_set_clickable(r, true);
+            lv_obj_set_hidden(r, true);
 
             lv_obj_add_event_cb(r, row_click, LV_EVENT_CLICKED, (void*)(intptr_t)i);
             

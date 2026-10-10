@@ -43,7 +43,7 @@ namespace ui {
             lv_obj_set_style_border_width(card, 1, 0);
             lv_obj_set_style_radius(card, 4, 0);
             lv_obj_set_style_pad_all(card, 3, 0);
-            lv_obj_clear_flag(card, LV_OBJ_FLAG_SCROLLABLE);
+            lv_obj_set_scrollable(card, false);
 
             lv_color_t badge_bg = theme_color(COLOR_TEXT_MUTED);
             if (strcmp(alerts[i].type, "SOTA") == 0) badge_bg = theme_color(COLOR_BAND_GOOD);
@@ -56,7 +56,7 @@ namespace ui {
             lv_obj_set_style_bg_color(badge, badge_bg, 0);
             lv_obj_set_style_border_width(badge, 0, 0);
             lv_obj_set_style_radius(badge, 2, 0);
-            lv_obj_clear_flag(badge, LV_OBJ_FLAG_SCROLLABLE);
+            lv_obj_set_scrollable(badge, false);
 
             lv_obj_t* lbl_b = lv_label_create(badge);
             lv_label_set_text(lbl_b, alerts[i].type);
@@ -95,7 +95,7 @@ namespace ui {
         lv_obj_set_style_pad_all(scroll_box, 4, 0);
         lv_obj_set_flex_flow(scroll_box, LV_FLEX_FLOW_COLUMN);
         lv_obj_set_style_pad_row(scroll_box, 6, 0);
-        lv_obj_add_flag(scroll_box, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_scrollable(scroll_box, true);
 
         lv_obj_add_event_cb(scroll_box, [](lv_event_t*){
             if (refresh_timer) { lv_timer_delete(refresh_timer); refresh_timer = nullptr; }

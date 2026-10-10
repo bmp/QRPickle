@@ -37,7 +37,7 @@ namespace ui {
         lv_obj_set_style_bg_color(root_layer, theme_color(COLOR_BG_APP), 0);
         lv_obj_set_style_border_width(root_layer, 0, 0);
         lv_obj_set_style_pad_all(root_layer, 0, 0);
-        lv_obj_clear_flag(root_layer, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_scrollable(root_layer, false);
 
         const auto& tel = services::PropagationManager::get_telemetry();
         
@@ -78,7 +78,7 @@ namespace ui {
         lv_obj_set_style_border_color(banner_card, theme_color(COLOR_BORDER), 0);
         lv_obj_set_style_border_width(banner_card, 1, 0);
         lv_obj_set_style_pad_all(banner_card, 4, 0);
-        lv_obj_clear_flag(banner_card, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_scrollable(banner_card, false);
 
         lv_obj_t* lbl_f_title = lv_label_create(banner_card);
         lv_label_set_text(lbl_f_title, "NOAA FORECAST: ");

@@ -77,7 +77,7 @@ namespace ui {
         lv_obj_align(bg_panel, LV_ALIGN_TOP_MID, 0, 0);
         lv_obj_set_style_radius(bg_panel, 0, 0);
         lv_obj_set_style_border_width(bg_panel, 0, 0);
-        lv_obj_clear_flag(bg_panel, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_scrollable(bg_panel, false);
 
         btn_menu = lv_btn_create(bg_panel);
         lv_obj_set_size(btn_menu, 24, 24);
@@ -134,7 +134,7 @@ namespace ui {
         lv_label_set_text(lbl_update, LV_SYMBOL_UPLOAD); // Visual up-arrow indicator
         lv_obj_set_style_text_color(lbl_update, theme_color(COLOR_ACCENT_PRIMARY), 0);
         lv_obj_align(lbl_update, LV_ALIGN_RIGHT_MID, -107, 0);
-        lv_obj_add_flag(lbl_update, LV_OBJ_FLAG_HIDDEN); // Hidden by default
+        lv_obj_set_hidden(lbl_update, true);  // Hidden by default
 
         status_bar_refresh_theme();
         return bg_panel;
@@ -157,8 +157,8 @@ namespace ui {
 
     void status_bar_set_update_available(bool available) {
         if (lbl_update) {
-            if (available) lv_obj_clear_flag(lbl_update, LV_OBJ_FLAG_HIDDEN);
-            else lv_obj_add_flag(lbl_update, LV_OBJ_FLAG_HIDDEN);
+            if (available) lv_obj_set_hidden(lbl_update, false);
+            else lv_obj_set_hidden(lbl_update, true);
         }
     }
 

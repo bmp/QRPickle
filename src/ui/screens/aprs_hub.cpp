@@ -80,8 +80,8 @@ namespace ui {
             const auto* st = services::AprsManager::get_stations();
             size_t c = services::AprsManager::get_station_count();
 
-            if (list_container && !lv_obj_has_flag(list_container, LV_OBJ_FLAG_HIDDEN)) {
-                lv_obj_add_flag(list_container, LV_OBJ_FLAG_HIDDEN);
+            if (list_container && !lv_obj_is_hidden(list_container)) {
+                lv_obj_set_hidden(list_container, true);
                 int vis = 0;
                 for(size_t i = 0; i < c && vis < 15; i++) {
                     if (active_type_idx == 1 && strcmp(st[i].type, "Portable") != 0) continue;
@@ -104,11 +104,11 @@ namespace ui {
                     char bbuf[16]; snprintf(bbuf, sizeof(bbuf), "%d\xC2\xB0 %s", brg_val, dirs[dir_idx]);
                     lv_label_set_text(rows[vis].l_brg, bbuf);
 
-                    lv_obj_clear_flag(rows[vis].base, LV_OBJ_FLAG_HIDDEN);
+                    lv_obj_set_hidden(rows[vis].base, false);
                     vis++;
                 }
-                for(int i = vis; i < 15; i++) lv_obj_add_flag(rows[i].base, LV_OBJ_FLAG_HIDDEN);
-                lv_obj_clear_flag(list_container, LV_OBJ_FLAG_HIDDEN);
+                for (int i = vis; i < 15; i++) lv_obj_set_hidden(rows[i].base, true);
+                lv_obj_set_hidden(list_container, false);
 
                 if (lbl_comment && lv_tabview_get_tab_active(tabview) == 0) {
                     if (!services::AprsManager::is_connected()) {
@@ -214,7 +214,7 @@ namespace ui {
         lv_obj_set_style_bg_color(scr, theme_color(COLOR_BG_APP), 0);
         lv_obj_set_style_border_width(scr, 0, 0);
         lv_obj_set_style_pad_all(scr, 0, 0);
-        lv_obj_clear_flag(scr, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_scrollable(scr, false);
 
         lv_obj_t* foot = lv_obj_create(scr);
         lv_obj_set_size(foot, SCREEN_W, 36);
@@ -224,7 +224,7 @@ namespace ui {
         lv_obj_set_style_border_color(foot, theme_color(COLOR_BORDER), 0);
         lv_obj_set_style_border_width(foot, 1, 0);
         lv_obj_set_style_pad_all(foot, 0, 0);
-        lv_obj_clear_flag(foot, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_scrollable(foot, false);
 
         lbl_comment = lv_label_create(foot);
         lv_label_set_text(lbl_comment, "COMMENT: Touch any station row to inspect details.");
@@ -270,9 +270,15 @@ namespace ui {
         lv_obj_t* t2 = lv_tabview_add_tab(tabview, "MESSAGES");
         lv_obj_t* t3 = lv_tabview_add_tab(tabview, "MY BEACON");
 
-        lv_obj_set_style_bg_color(t1, theme_color(COLOR_BG_APP), 0); lv_obj_set_style_pad_all(t1, 0, 0); lv_obj_clear_flag(t1, LV_OBJ_FLAG_SCROLLABLE);
-        lv_obj_set_style_bg_color(t2, theme_color(COLOR_BG_APP), 0); lv_obj_set_style_pad_all(t2, 4, 0); lv_obj_clear_flag(t2, LV_OBJ_FLAG_SCROLLABLE);
-        lv_obj_set_style_bg_color(t3, theme_color(COLOR_BG_APP), 0); lv_obj_set_style_pad_all(t3, 4, 0); lv_obj_clear_flag(t3, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_style_bg_color(t1, theme_color(COLOR_BG_APP), 0);
+        lv_obj_set_style_pad_all(t1, 0, 0);
+        lv_obj_set_scrollable(t1, false);
+        lv_obj_set_style_bg_color(t2, theme_color(COLOR_BG_APP), 0);
+        lv_obj_set_style_pad_all(t2, 4, 0);
+        lv_obj_set_scrollable(t2, false);
+        lv_obj_set_style_bg_color(t3, theme_color(COLOR_BG_APP), 0);
+        lv_obj_set_style_pad_all(t3, 4, 0);
+        lv_obj_set_scrollable(t3, false);
 
         lv_obj_t* head = lv_obj_create(t1);
         lv_obj_set_size(head, SCREEN_W, 22);
@@ -282,7 +288,7 @@ namespace ui {
         lv_obj_set_style_border_color(head, theme_color(COLOR_BORDER), 0);
         lv_obj_set_style_border_width(head, 1, 0);
         lv_obj_set_style_pad_all(head, 0, 0);
-        lv_obj_clear_flag(head, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_scrollable(head, false);
 
         lv_obj_t* hl1 = lv_label_create(head); lv_label_set_text(hl1, "CALL"); lv_obj_set_style_text_font(hl1, &font_jetbrains_10, 0); lv_obj_set_style_text_color(hl1, theme_color(COLOR_TEXT_MUTED), 0); lv_obj_align(hl1, LV_ALIGN_LEFT_MID, 6, 0);
         
@@ -305,8 +311,8 @@ namespace ui {
         lv_obj_set_style_border_width(list_container, 0, 0);
         lv_obj_set_style_pad_all(list_container, 0, 0);
         lv_obj_set_flex_flow(list_container, LV_FLEX_FLOW_COLUMN);
-        lv_obj_add_flag(list_container, LV_OBJ_FLAG_SCROLLABLE);
-        lv_obj_add_flag(list_container, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_set_scrollable(list_container, true);
+        lv_obj_set_hidden(list_container, true);
 
         for(int i=0; i<15; i++) {
             lv_obj_t* r = lv_obj_create(list_container);
@@ -315,9 +321,9 @@ namespace ui {
             lv_obj_set_style_border_width(r, 0, 0);
             lv_obj_set_style_radius(r, 0, 0);
             lv_obj_set_style_pad_all(r, 0, 0);
-            lv_obj_clear_flag(r, LV_OBJ_FLAG_SCROLLABLE);
-            lv_obj_add_flag(r, LV_OBJ_FLAG_CLICKABLE);
-            lv_obj_add_flag(r, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_set_scrollable(r, false);
+            lv_obj_set_clickable(r, true);
+            lv_obj_set_hidden(r, true);
             lv_obj_add_event_cb(r, row_click, LV_EVENT_CLICKED, (void*)(intptr_t)i);
             
             rows[i].base = r;
@@ -326,7 +332,7 @@ namespace ui {
             rows[i].l_dist = lv_label_create(r); lv_obj_set_style_text_font(rows[i].l_dist, &font_jetbrains_10, 0); lv_obj_set_style_text_color(rows[i].l_dist, theme_color(COLOR_ACCENT_PRIMARY), 0); lv_obj_align(rows[i].l_dist, LV_ALIGN_LEFT_MID, 148, 0);
             rows[i].l_brg = lv_label_create(r);  lv_obj_set_style_text_font(rows[i].l_brg, &font_jetbrains_10, 0);  lv_obj_set_style_text_color(rows[i].l_brg, theme_color(COLOR_TEXT_MAIN), 0); lv_obj_align(rows[i].l_brg, LV_ALIGN_LEFT_MID, 226, 0);
         }
-        lv_obj_clear_flag(list_container, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_set_hidden(list_container, false);
 
         msg_container = lv_obj_create(t2);
         lv_obj_set_size(msg_container, 312, 124); 
@@ -336,7 +342,7 @@ namespace ui {
         lv_obj_set_style_pad_all(msg_container, 2, 0);
         lv_obj_set_flex_flow(msg_container, LV_FLEX_FLOW_COLUMN);
         lv_obj_set_style_pad_row(msg_container, 4, 0);
-        lv_obj_add_flag(msg_container, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_scrollable(msg_container, true);
 
         lv_obj_t* btn_compose = lv_button_create(t2);
         lv_obj_set_size(btn_compose, 312, 24);
@@ -360,7 +366,7 @@ namespace ui {
         lv_obj_set_style_border_color(b_card, theme_color(COLOR_BORDER), 0);
         lv_obj_set_style_border_width(b_card, 1, 0);
         lv_obj_set_style_pad_all(b_card, 4, 0);
-        lv_obj_clear_flag(b_card, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_scrollable(b_card, false);
 
         lbl_b_status = lv_label_create(b_card);  lv_obj_set_style_text_font(lbl_b_status, &font_jetbrains_10, 0); lv_obj_align(lbl_b_status, LV_ALIGN_TOP_LEFT, 2, 2);
         lbl_b_txcount = lv_label_create(b_card); lv_obj_set_style_text_font(lbl_b_txcount, &font_jetbrains_10, 0); lv_obj_set_style_text_color(lbl_b_txcount, theme_color(COLOR_TEXT_MAIN), 0); lv_obj_align(lbl_b_txcount, LV_ALIGN_TOP_RIGHT, -2, 2);

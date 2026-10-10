@@ -14,7 +14,7 @@ namespace ui {
         lv_label_set_text(btn, LV_SYMBOL_HOME);
         lv_obj_set_style_text_color(btn, theme_color(COLOR_TEXT_MAIN), 0);
         lv_obj_align(btn, LV_ALIGN_BOTTOM_RIGHT, -8, -8);  // Pin precisely into the bottom-right corner
-        lv_obj_add_flag(btn, LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_set_clickable(btn, true);
         lv_obj_add_event_cb(btn, clicked, LV_EVENT_CLICKED, (void*)on_tap);
 
         return btn;

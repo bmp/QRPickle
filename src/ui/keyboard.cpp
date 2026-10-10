@@ -40,7 +40,7 @@ namespace ui {
         lv_obj_set_style_bg_color(modal, bg_app, 0);
         lv_obj_set_style_border_width(modal, 0, 0);
         lv_obj_set_style_pad_all(modal, 4, 0);
-        lv_obj_clear_flag(modal, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_scrollable(modal, false);
 
         // 2. Text Area input box framing adjustments
         ta = lv_textarea_create(modal);

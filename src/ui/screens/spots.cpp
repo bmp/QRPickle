@@ -113,14 +113,14 @@ namespace ui {
 
         if (!raw_spots) {
             for (size_t i = 0; i < 20; i++) {
-                if (row_pool[i].base_row) lv_obj_add_flag(row_pool[i].base_row, LV_OBJ_FLAG_HIDDEN);
+                if (row_pool[i].base_row) lv_obj_set_hidden(row_pool[i].base_row, true);
             }
             if (lbl_comment) lv_label_set_text(lbl_comment, "STATUS: DX Cluster buffer empty.");
             return;
         }
 
         // Suspend rendering frames during mass layout updates for smoother performance
-        lv_obj_add_flag(list_container, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_set_hidden(list_container, true);
 
         for (size_t i = 0; i < total_raw && match_count < 20; i++) {
             if (match_band(raw_spots[i].freq, active_band_idx) && match_mode(raw_spots[i].mode, active_mode_idx)) {
@@ -138,18 +138,18 @@ namespace ui {
                 lv_label_set_text(rw.lbl_spotter, raw_spots[i].spotter);
                 lv_label_set_text(rw.lbl_cmt, raw_spots[i].comment);
 
-                lv_obj_clear_flag(rw.base_row, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_set_hidden(rw.base_row, false);
                 match_count++;
             }
         }
 
         for (size_t i = match_count; i < 20; i++) {
             if (row_pool[i].base_row) {
-                lv_obj_add_flag(row_pool[i].base_row, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_set_hidden(row_pool[i].base_row, true);
             }
         }
 
-        lv_obj_clear_flag(list_container, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_set_hidden(list_container, false);
 
         // --- NEW UX LOGIC: Dynamic Loading Status ---
         if (lbl_comment) {
@@ -173,7 +173,7 @@ namespace ui {
         lv_obj_set_style_bg_color(scr, theme_color(COLOR_BG_APP), 0);
         lv_obj_set_style_border_width(scr, 0, 0);
         lv_obj_set_style_pad_all(scr, 0, 0);
-        lv_obj_clear_flag(scr, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_scrollable(scr, false);
 
         // Shifted overlay position completely clear of text layout bounds
         status_dot = lv_obj_create(lv_layer_top());
@@ -191,7 +191,7 @@ namespace ui {
         lv_obj_set_style_border_color(header_bar, theme_color(COLOR_BORDER), 0);
         lv_obj_set_style_border_width(header_bar, 1, 0);
         lv_obj_set_style_pad_all(header_bar, 0, 0);
-        lv_obj_clear_flag(header_bar, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_scrollable(header_bar, false);
 
         lv_obj_t* l_call = lv_label_create(header_bar);
         lv_label_set_text(l_call, "CALL");
@@ -251,7 +251,7 @@ namespace ui {
         lv_obj_set_style_border_color(footer, theme_color(COLOR_BORDER), 0);
         lv_obj_set_style_border_width(footer, 1, 0);
         lv_obj_set_style_pad_all(footer, 0, 0);
-        lv_obj_clear_flag(footer, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_scrollable(footer, false);
 
         lbl_comment = lv_label_create(footer);
         lv_label_set_text(lbl_comment, "COMMENT: Tap any row to read full string.");
@@ -267,7 +267,7 @@ namespace ui {
         lv_obj_set_style_pad_all(list_container, 0, 0);
         lv_obj_set_flex_flow(list_container, LV_FLEX_FLOW_COLUMN);
         lv_obj_set_style_pad_row(list_container, 1, 0);
-        lv_obj_add_flag(list_container, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_scrollable(list_container, true);
 
         for (int i = 0; i < 20; i++) {
             lv_obj_t* row = lv_obj_create(list_container);
@@ -276,10 +276,10 @@ namespace ui {
             lv_obj_set_style_border_width(row, 0, 0);
             lv_obj_set_style_radius(row, 0, 0);
             lv_obj_set_style_pad_all(row, 0, 0);
-            lv_obj_clear_flag(row, LV_OBJ_FLAG_SCROLLABLE);
-            lv_obj_add_flag(row, LV_OBJ_FLAG_CLICKABLE);
-            lv_obj_add_flag(row, LV_OBJ_FLAG_HIDDEN); 
-            
+            lv_obj_set_scrollable(row, false);
+            lv_obj_set_clickable(row, true);
+            lv_obj_set_hidden(row, true);
+
             lv_obj_add_event_cb(row, row_clicked_cb, LV_EVENT_CLICKED, (void*)(intptr_t)i);
             row_pool[i].base_row = row;
 

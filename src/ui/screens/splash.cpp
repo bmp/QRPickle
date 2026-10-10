@@ -52,7 +52,7 @@ namespace ui {
         lv_obj_set_style_bg_color(page, theme_color(COLOR_BG_APP), 0);
         lv_obj_set_style_border_width(page, 0, 0);
         lv_obj_set_style_pad_all(page, 0, 0);
-        lv_obj_clear_flag(page, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_scrollable(page, false);
 
         // 2. Main Firmware Identifier Logo Text
         lv_obj_t* lbl_logo = lv_label_create(page);
@@ -92,7 +92,7 @@ namespace ui {
         lv_obj_set_style_border_width(diag_box, 1, 0);
         lv_obj_set_style_radius(diag_box, 4, 0);
         lv_obj_set_style_pad_all(diag_box, 8, 0);
-        lv_obj_clear_flag(diag_box, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_scrollable(diag_box, false);
 
         lv_obj_t* lbl_diag = lv_label_create(diag_box);
         lv_obj_set_style_text_font(lbl_diag, &font_jetbrains_10, 0);

@@ -52,7 +52,7 @@ namespace ui {
 
     lv_obj_t* widget_band_create(lv_obj_t* parent, WidgetSize size) {
         lv_obj_t* widget = lv_obj_create(parent);
-        lv_obj_clear_flag(widget, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_scrollable(widget, false);
 
         lv_obj_set_style_bg_color(widget, theme_color(COLOR_BG_PANEL), 0);
         lv_obj_set_style_border_color(widget, theme_color(COLOR_BORDER), 0);
@@ -63,7 +63,7 @@ namespace ui {
         if (size == WIDGET_SIZE_HALF_VERT) {
             lv_obj_set_size(widget, 154, 212);
 
-            lv_obj_add_flag(widget, LV_OBJ_FLAG_CLICKABLE);
+            lv_obj_set_clickable(widget, true);
             lv_obj_add_event_cb(widget, [](lv_event_t*){
                 ui_navigate_local(PAGE_BAND_COND);
             }, LV_EVENT_CLICKED, nullptr);
@@ -114,7 +114,7 @@ namespace ui {
                 lv_obj_set_style_bg_color(s_blk_day[i], colors_rating[r_day], 0); 
                 lv_obj_set_style_radius(s_blk_day[i], 3, 0);
                 lv_obj_set_style_border_width(s_blk_day[i], 0, 0);
-                lv_obj_clear_flag(s_blk_day[i], LV_OBJ_FLAG_SCROLLABLE);
+                lv_obj_set_scrollable(s_blk_day[i], false);
 
                 s_lbl_day[i] = lv_label_create(s_blk_day[i]);
                 lv_label_set_text(s_lbl_day[i], text_rating[r_day]);
@@ -129,7 +129,7 @@ namespace ui {
                 lv_obj_set_style_bg_color(s_blk_nt[i], colors_rating[r_nt], 0); 
                 lv_obj_set_style_radius(s_blk_nt[i], 3, 0);
                 lv_obj_set_style_border_width(s_blk_nt[i], 0, 0);
-                lv_obj_clear_flag(s_blk_nt[i], LV_OBJ_FLAG_SCROLLABLE);
+                lv_obj_set_scrollable(s_blk_nt[i], false);
 
                 s_lbl_nt[i] = lv_label_create(s_blk_nt[i]);
                 lv_label_set_text(s_lbl_nt[i], text_rating[r_nt]);

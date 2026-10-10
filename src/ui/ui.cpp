@@ -94,7 +94,7 @@ namespace ui {
     static void open_settings_screen() {
         sidebar_hide(); 
         if (global_home_btn) {
-            lv_obj_clear_flag(global_home_btn, LV_OBJ_FLAG_HIDDEN); 
+            lv_obj_set_hidden(global_home_btn, false);
             lv_obj_move_foreground(global_home_btn); 
         }
 
@@ -119,7 +119,7 @@ namespace ui {
         lv_obj_set_style_bg_opa(view_container, 0, 0);
         lv_obj_set_style_border_width(view_container, 0, 0);
         lv_obj_set_style_pad_all(view_container, 0, 0);
-        lv_obj_clear_flag(view_container, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_scrollable(view_container, false);
 
         StatusBarCallbacks sb_cb;
         sb_cb.on_menu = []() { sidebar_toggle(); };
@@ -127,7 +127,7 @@ namespace ui {
         sb_cb.on_network = []() { ui_navigate_local(PAGE_NETWORK); };
 
         status_bar_obj = status_bar_create(main_screen, sb_cb);
-        lv_obj_add_flag(status_bar_obj, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_set_hidden(status_bar_obj, true);
 
         SidebarCallbacks sb_panels;
         sb_panels.on_select = [](DestScreen dest) { sidebar_selection_cb(dest); };
@@ -138,7 +138,7 @@ namespace ui {
 
         draw_splash_screen(view_container, []() {
             lv_obj_clean(view_container);
-            lv_obj_clear_flag(status_bar_obj, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_set_hidden(status_bar_obj, false);
 
             lv_obj_set_size(view_container, SCREEN_W, CONTENT_H);
             lv_obj_align(view_container, LV_ALIGN_BOTTOM_MID, 0, 0);
@@ -175,8 +175,8 @@ namespace ui {
         lv_obj_clean(view_container);
 
         if (page == PAGE_APRS_RADAR || page == PAGE_APRS_MSG) {
-            if (status_bar_obj) lv_obj_add_flag(status_bar_obj, LV_OBJ_FLAG_HIDDEN);
-            if (global_home_btn) lv_obj_add_flag(global_home_btn, LV_OBJ_FLAG_HIDDEN);
+            if (status_bar_obj) lv_obj_set_hidden(status_bar_obj, true);
+            if (global_home_btn) lv_obj_set_hidden(global_home_btn, true);
 
             lv_obj_set_size(view_container, SCREEN_W, SCREEN_H);
             lv_obj_align(view_container, LV_ALIGN_TOP_MID, 0, 0);
@@ -186,12 +186,12 @@ namespace ui {
             return;
         }
 
-        if (status_bar_obj) lv_obj_clear_flag(status_bar_obj, LV_OBJ_FLAG_HIDDEN);
+        if (status_bar_obj) lv_obj_set_hidden(status_bar_obj, false);
         lv_obj_set_size(view_container, SCREEN_W, CONTENT_H);
         lv_obj_align(view_container, LV_ALIGN_BOTTOM_MID, 0, 0);
 
         if (page == PAGE_DASHBOARD) {
-            if (global_home_btn) lv_obj_add_flag(global_home_btn, LV_OBJ_FLAG_HIDDEN); 
+            if (global_home_btn) lv_obj_set_hidden(global_home_btn, true);
 
             char buf[32];
             snprintf(buf, sizeof(buf), "%s @ %s", config::get().callsign, config::get().grid);
@@ -201,7 +201,7 @@ namespace ui {
             draw_dashboard_page(view_container);
         } else {
             if (global_home_btn) {
-                lv_obj_clear_flag(global_home_btn, LV_OBJ_FLAG_HIDDEN); 
+                lv_obj_set_hidden(global_home_btn, false);
                 lv_obj_move_foreground(global_home_btn); 
             }
 

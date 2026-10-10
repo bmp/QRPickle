@@ -45,9 +45,9 @@ namespace ui {
         lv_obj_set_style_bg_color(menu_scr, theme_color(COLOR_BG_APP), 0);
         lv_obj_set_style_border_width(menu_scr, 0, 0);
         lv_obj_set_style_pad_all(menu_scr, 0, 0);
-        lv_obj_clear_flag(menu_scr, LV_OBJ_FLAG_SCROLLABLE);
-        
-        lv_obj_add_flag(menu_scr, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_set_scrollable(menu_scr, false);
+
+        lv_obj_set_hidden(menu_scr, true);
 
         // --- Header Bar ---
         lv_obj_t* header = lv_obj_create(menu_scr);
@@ -58,7 +58,7 @@ namespace ui {
         lv_obj_set_style_border_color(header, theme_color(COLOR_BORDER), 0);
         lv_obj_set_style_border_width(header, 1, 0);
         lv_obj_set_style_pad_all(header, 0, 0);
-        lv_obj_clear_flag(header, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_scrollable(header, false);
 
         lv_obj_t* title = lv_label_create(header);
         lv_label_set_text(title, "MAIN MENU");
@@ -103,7 +103,7 @@ namespace ui {
         lv_obj_set_style_pad_all(grid, grid_pad, 0);
         lv_obj_set_style_pad_row(grid, grid_gap, 0);
         lv_obj_set_style_pad_column(grid, grid_gap, 0);
-        lv_obj_clear_flag(grid, LV_OBJ_FLAG_SCROLLABLE); 
+        lv_obj_set_scrollable(grid, false);
 
         for (int i = 0; i < ITEM_COUNT; i++) {
             lv_obj_t* btn = lv_button_create(grid);
@@ -134,21 +134,21 @@ namespace ui {
 
     void sidebar_show() {
         if (menu_scr) {
-            lv_obj_clear_flag(menu_scr, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_set_hidden(menu_scr, false);
             lv_obj_move_foreground(menu_scr); 
         }
     }
 
     void sidebar_hide() {
         if (menu_scr) {
-            lv_obj_add_flag(menu_scr, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_set_hidden(menu_scr, true);
         }
     }
 
-    bool sidebar_is_visible() { 
-        return menu_scr && !lv_obj_has_flag(menu_scr, LV_OBJ_FLAG_HIDDEN); 
+    bool sidebar_is_visible() {
+        return menu_scr && !lv_obj_is_hidden(menu_scr);
     }
-    
+
     void sidebar_toggle() { 
         sidebar_is_visible() ? sidebar_hide() : sidebar_show(); 
     }

@@ -135,9 +135,9 @@ namespace ui {
         lv_obj_set_style_border_width(base_card, 1, 0);
         lv_obj_set_style_radius(base_card, 4, 0);
         lv_obj_set_style_pad_all(base_card, 2, 0);
-        lv_obj_clear_flag(base_card, LV_OBJ_FLAG_SCROLLABLE);
-        
-        lv_obj_add_flag(base_card, LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_set_scrollable(base_card, false);
+
+        lv_obj_set_clickable(base_card, true);
         lv_obj_add_event_cb(base_card, click_handler, LV_EVENT_CLICKED, nullptr);
 
         lv_obj_t* side_bar = lv_obj_create(base_card);
@@ -146,8 +146,8 @@ namespace ui {
         lv_obj_set_style_bg_opa(side_bar, LV_OPA_TRANSP, 0);
         lv_obj_set_style_border_width(side_bar, 0, 0);
         lv_obj_set_style_pad_all(side_bar, 0, 0);
-        lv_obj_clear_flag(side_bar, LV_OBJ_FLAG_SCROLLABLE); 
-        
+        lv_obj_set_scrollable(side_bar, false);
+
         lv_obj_set_flex_flow(side_bar, LV_FLEX_FLOW_COLUMN);
         lv_obj_set_style_pad_row(side_bar, 4, 0); 
         lv_obj_set_flex_align(side_bar, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
@@ -156,25 +156,25 @@ namespace ui {
         lv_obj_set_size(area_s, 30, 38);
         lv_obj_set_style_bg_opa(area_s, LV_OPA_TRANSP, 0);
         lv_obj_set_style_border_width(area_s, 0, 0);
-        lv_obj_clear_flag(area_s, LV_OBJ_FLAG_SCROLLABLE);
-        lv_obj_add_flag(area_s, LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_set_scrollable(area_s, false);
+        lv_obj_set_clickable(area_s, true);
         lv_obj_add_event_cb(area_s, click_handler, LV_EVENT_CLICKED, nullptr);
 
         img_sensor = lv_image_create(area_s); 
         lv_obj_center(img_sensor);
-        lv_obj_add_flag(img_sensor, LV_OBJ_FLAG_EVENT_BUBBLE); 
+        lv_obj_set_event_bubble(img_sensor, true);
 
         area_w = lv_obj_create(side_bar);
         lv_obj_set_size(area_w, 30, 38);
         lv_obj_set_style_bg_opa(area_w, LV_OPA_TRANSP, 0);
         lv_obj_set_style_border_width(area_w, 0, 0);
-        lv_obj_clear_flag(area_w, LV_OBJ_FLAG_SCROLLABLE);
-        lv_obj_add_flag(area_w, LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_set_scrollable(area_w, false);
+        lv_obj_set_clickable(area_w, true);
         lv_obj_add_event_cb(area_w, click_handler, LV_EVENT_CLICKED, nullptr);
 
         img_owm = lv_image_create(area_w); 
         lv_obj_center(img_owm);
-        lv_obj_add_flag(img_owm, LV_OBJ_FLAG_EVENT_BUBBLE); 
+        lv_obj_set_event_bubble(img_owm, true);
 
         lbl_data = lv_label_create(base_card);
         lv_obj_set_style_text_color(lbl_data, theme_color(COLOR_TEXT_MAIN), 0);
