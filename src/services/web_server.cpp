@@ -511,6 +511,9 @@ void web_server_update() {
         Serial.println("[SYSTEM-LOCKDOWN] Device entering Stasis. Awaiting auto-reboot...");
         const uint32_t parked_at = millis();
         while (millis() - parked_at < 5UL * 60UL * 1000UL) {
+            // The loop watchdog (30 s, main.cpp) would otherwise reboot mid-download: a download
+            // with certificate verification took > 30 s and the device restarted on v0.1.99.
+            feedLoopWDT();
             delay(100);
         }
         Serial.println("[SYSTEM-LOCKDOWN] OTA worker timed out; restarting.");

@@ -1,4 +1,5 @@
 #include "net_lock.h"
+#include "ota_ca_certs.h"
 #include "../core/crashlog.h"
 #include "cloud_ota.h"
 #include "ota_manager.h"
@@ -7,6 +8,7 @@
 #include "aprs_manager.h"
 #include "../core/metadata.h"
 #include <WiFiClientSecure.h>
+#include "safe_client.h"
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <Update.h>
@@ -34,15 +36,22 @@ namespace services {
 #endif
         }
 
-        // HTTPS without certificate checking for now (review 2.11: verification is intermittent on
-        // this mbedTLS); integrity comes from the mandatory SHA-256. Plain http only in test builds.
+        // HTTPS with certificate verification against OTA_CA_BUNDLE (review 2.11), on top of the
+        // mandatory SHA-256. Verification needs >= 12 KB of task stack (see the task sizes below).
+        // Plain http only in test builds (QRP_OTA_BASE_URL).
         struct Transport {
-            WiFiClient plain;
-            WiFiClientSecure tls;
+            SafeClient plain;  // thread-safe DNS (safe_client.h)
+            SafeTlsClient tls;
             WiFiClient& for_url(const String& url) {
                 if (url.startsWith("http://")) return plain;
-                tls.setInsecure();
+                tls.setCACert(OTA_CA_BUNDLE);
                 return tls;
+            }
+            // mbedTLS' reason for a failed HTTPS connection (e.g. "X509 - Certificate verification failed").
+            String tls_error() {
+                char buf[96] = "";
+                tls.lastError(buf, sizeof(buf));
+                return String(buf);
             }
         };
 
@@ -73,8 +82,8 @@ namespace services {
             http.setTimeout(15000);
             crashlog::mark(crashlog::SLOT_GH_OTA, 3); int code = http.GET();
             if (code != HTTP_CODE_OK) {
-                Serial.printf("[OTA] %s -> HTTP %d (%s), largest block %u B\n", url.c_str(), code,
-                              http.errorToString(code).c_str(), (unsigned)ESP.getMaxAllocHeap());
+                Serial.printf("[OTA] %s -> HTTP %d (%s; TLS: %s), largest block %u B\n", url.c_str(), code,
+                              http.errorToString(code).c_str(), t.tls_error().c_str(), (unsigned)ESP.getMaxAllocHeap());
             } else {
                 crashlog::mark(crashlog::SLOT_GH_OTA, 4);
                 JsonDocument doc;
@@ -123,7 +132,8 @@ namespace services {
         static void spawn_check() {
             bool expected = false;
             if (is_flashing_active || !check_running.compare_exchange_strong(expected, true)) return;
-            if (xTaskCreatePinnedToCore(background_check_task, "gh_ota_check", 8192, NULL, 1, NULL, 0) != pdPASS) {
+            // 12 KB: certificate verification overflowed 8 KB (feat/ota-tls findings).
+            if (xTaskCreatePinnedToCore(background_check_task, "gh_ota_check", 12288, NULL, 1, NULL, 0) != pdPASS) {
                 check_running = false;
             }
         }
@@ -166,7 +176,10 @@ namespace services {
             http.setTimeout(15000);
 
             int httpCode = http.GET();
-            if (httpCode != HTTP_CODE_OK) fail_and_restart("HTTP error");
+            if (httpCode != HTTP_CODE_OK) {
+                Serial.printf("[OTA Worker] HTTP %d, TLS: %s\n", httpCode, t.tls_error().c_str());
+                fail_and_restart("HTTP error");
+            }
             int total_len = http.getSize();
             if (total_len <= 0) fail_and_restart("unknown download size");
             if (!Update.begin(UPDATE_SIZE_UNKNOWN, U_FLASH)) fail_and_restart(Update.errorString());
@@ -216,7 +229,7 @@ namespace services {
         bool execute_firmware_flash() {
             if (strlen(cached_info.firmware_url) == 0 || is_flashing_active) return false;
             is_flashing_active = true;
-            if (xTaskCreatePinnedToCore(ota_worker_task, "ota_flash_worker", 8192, NULL, 5, NULL, 0) != pdPASS) {
+            if (xTaskCreatePinnedToCore(ota_worker_task, "ota_flash_worker", 12288, NULL, 5, NULL, 0) != pdPASS) {
                 is_flashing_active = false;
                 return false;
             }
