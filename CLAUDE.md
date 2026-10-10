@@ -20,6 +20,7 @@ pio test -e native -f test_config    # run a single test folder
 ruff check                     # Python lint (scripts/, tools/; config ruff.toml)
 scripts/dev.sh all             # everything above in a container with CI's exact tools (docs/DEVELOPMENT.md)
 scripts/check_format.sh        # clang-format on lines changed vs origin/main (config .clang-format)
+scripts/dev.sh format          # apply CI's clang-format 19.1.7 to your changed lines (host clang-format differs)
 ```
 
 Linters are pinned in CI: `pip install "clang-format==19.1.7" "ruff==0.16.10"` (use the same versions locally; set `CLANG_FORMAT` to that binary). Format only what you change: `git clang-format --binary "$CLANG_FORMAT" origin/main`; never reformat whole files. Generated files and library-template configs are in `.clang-format-ignore`.
@@ -31,7 +32,7 @@ Build guards and tests:
 - `scripts/check_licenses.py` (pre-build, also standalone) fails the build when a library, platform version, font, image or file with a foreign copyright line isn't recorded in `THIRD_PARTY_NOTICES.md`, `assets/img/SOURCES.md` or `docs/pics/third-party/README.md`. It warns while image entries are UNCONFIRMED.
 - `scripts/gzip_data.py` (pre-build) builds the LittleFS image from a staged copy of `data/` with `www/*.html|js|css` gzipped (56KB → 13KB); the server sends the `.gz` files with `Content-Encoding: gzip`. Edit the plain files in `data/`; never commit `.gz`.
 - `scripts/check_size.py` (post-build) fails if static DRAM headroom is under 4KB or the image is over 95% of the OTA slot.
-- Native unit tests (host): `test/test_parsers` (SOTA cluster, APRS parsing, version compare) `test/test_config` (validation, profile names, the JSON field table) and `test/test_led` (status LED colours and timings from `src/hw/led_pattern`). The native env compiles only the host-safe sources in `build_src_filter`; tests may `#include` other host-safe `.cpp` files directly. `test_filter` takes one pattern per line.
+- Native unit tests (host): `test/test_parsers` (SOTA cluster, APRS parsing, version compare, solarxml + fetch schedule, sun/grid, band rating model, HamAlert spot lines) `test/test_config` (validation, profile names, the JSON field table) and `test/test_led` (status LED colours and timings from `src/hw/led_pattern`). The native env compiles only the host-safe sources in `build_src_filter`; tests may `#include` other host-safe `.cpp` files directly. `test_filter` takes one pattern per line.
 - `pio check -e cyd --severity=high --severity=medium` (cppcheck) must report no defects. CI (`.github/workflows/ci.yml`) runs all of the above, plus `ruff check` and `scripts/check_format.sh` (changed lines only).
 
 Open work, owner checks and known gaps: `docs/TASKS.md` (the single tracker; don't add new TODO files).
@@ -42,6 +43,8 @@ Current gaps (don't assume these work):
 ## Device checks and memory budgets
 
 - `python3 -I tools/device_check.py --cycles 5` (run with PlatformIO's Python: `~/.platformio/penv/bin/python`) resets the CYD over USB N times and reports per boot: WiFi, NTP, watchdog resets and panics. It exits 0 on PASS. Expected result: 0 watchdog resets (30/30 boots after the 3.14 fix).
+- Screenshots: `pio run -e cyd-screens -t upload`, then `QRP_ADMIN_PW=... python3 -I tools/device_screens.py --ip <ip> --out <dir> [--themes 0] [--pages 9] [--shots band_solar,...]` (tabs, menu, keyboard, splash via debug taps). Capture only new or changed screens (docs/UI_GUIDE.md). The `cyd-screens` build is short of heap: judge network behaviour on `cyd`.
+- Opening the serial port can reset the board. For a boot log, reset deliberately (pyserial: `rts=True` then `False`) and read; for a running board, `stty -F <port> -hupcl raw` then `cat`. The port may be `/dev/ttyUSB0` or `ttyUSB1`.
 - `tools/dram_report.py <map>` lists the largest static DRAM users. Static DRAM (`dram0_0_seg`, 124,580 B) is separate from heap; PlatformIO's "RAM %" does not show it. Build a map with `PLATFORMIO_BUILD_FLAGS='-Wl,-Map,${BUILD_DIR}/firmware.map' pio run`.
 - **Changes to `include/lv_conf.h` need `pio run -t clean`.** The `LV_CONF_PATH` include isn't dependency-tracked, so LVGL won't rebuild otherwise.
 - LVGL's 64KB pool is heap-allocated at `lv_init()` (`LV_MEM_POOL_ALLOC`). Don't add large static buffers; allocate them at init.
@@ -51,7 +54,7 @@ Current gaps (don't assume these work):
 - Web uploads (`/api/system/update?target=firmware|filesystem`) and Cloud OTA both use the partition sizes.
 - After a firmware update the **trial-boot guard** keeps the previous slot. A new image that doesn't reach 60s with WiFi within 3 boots is rolled back (`ota_manager.h`).
 - Test builds can use `-DQRP_TEST_CRASH_AT_BOOT` (never release these).
-- Cloud OTA reads `https://<owner>.github.io/<repo>/ota/ota.json` (version, notes, sha256) and downloads `firmware.bin` from the same place. GitHub's release download host is unreachable with this mbedTLS (review 2.9). The SHA-256 is mandatory; TLS isn't certificate-checked yet (2.11). Test builds can override the base URL with `-DQRP_OTA_BASE_URL=\"http://...\"` (also export it for `-t upload`, which rebuilds).
+- Cloud OTA reads `https://<owner>.github.io/<repo>/ota/ota.json` (version, notes, sha256) and downloads `firmware.bin` from the same place. GitHub's release download host is unreachable with this mbedTLS (review 2.9). The SHA-256 is mandatory, and since v0.2.2 TLS is verified against ISRG Root X1/X2 (`ota_ca_certs.h`, review 2.11). The automatic check starts 2 minutes after boot and retries every 10 minutes until it succeeds; manual checks run at once. Test builds can override the base URL with `-DQRP_OTA_BASE_URL=\"http://...\"` (also export it for `-t upload`, which rebuilds).
 - `scripts/make_pages_site.py` builds the Pages site (Cloud OTA files + ESP Web Tools installer from `web-installer/index.html`); CI runs it on each release. The installer offers the newest 5 releases from v0.2.0 on (`install/<version>/`, `versions.json`); CI downloads earlier releases' five images from their GitHub release assets. Flash addresses are fixed for all versions.
 
 ## Release process (important)
@@ -62,12 +65,13 @@ Work happens on a branch per release from `main` (`release/vX.Y.Z`), merged by p
 
 **Boot and main loop** (`src/main.cpp`). `setup()` initialises, in order: LED, config (NVS), sensors, display, LVGL filesystem bridge, touch, WiFi, fonts, UI, web server. `loop()` is a cooperative poll on core 1. It calls each subsystem's `update()`, then `delay(5)`. `ui::display_update()` drives `lv_tick_inc` and `lv_timer_handler` from that loop.
 
-**Threading model.** LVGL isn't thread-safe and only runs in `loop()`. Long or blocking network work runs in FreeRTOS tasks (APRS, HamAlert, Cloud OTA check/flash, the LED engine, xOTA resume), and POTA/SOTA fetches are started with `fetch_async()`. Results reach the UI through a **static manager + dirty-flag** pattern. Managers in `src/services/` (e.g. `PotaManager`) expose `get_*()`, `is_dirty()` and `clear_dirty()`, and screens poll them from LVGL timers. Never call `lv_*` from a background task.
+**Threading model.** LVGL isn't thread-safe and only runs in `loop()`. Long or blocking network work runs in FreeRTOS tasks (APRS, HamAlert, Cloud OTA check/flash, the LED engine, xOTA resume), and POTA/SOTA fetches are started with `fetch_async()`. Results reach the UI through a **static manager + dirty-flag** pattern. Managers in `src/services/` (e.g. `PotaManager`) expose `get_*()`, `is_dirty()` and `clear_dirty()`, and screens poll them from LVGL timers. When several screens follow the same data, use a version counter instead of a dirty flag (`PropagationManager::get_view().version`). Never call `lv_*` from a background task.
 
-**Memory constraints drive the design** (budgets and rules: `docs/MEMORY.md`). There is no PSRAM, and a TLS handshake (mbedTLS) needs ~40KB of contiguous heap. Network fetches therefore:
-- use `WiFiClientSecure::setInsecure()`,
-- stream-parse JSON element by element with ArduinoJson,
-- are staggered so that two TLS sessions never overlap.
+**Memory constraints drive the design** (budgets and rules: `docs/MEMORY.md`). There is no PSRAM, and a TLS session (mbedTLS) needs ~40 KB in total, including two ~16.7 KB buffers from the byte-addressable (8-bit) heap, which fragments over time. Network fetches therefore:
+- use `WiFiClientSecure::setInsecure()` (except Cloud OTA, which verifies certificates),
+- stream-parse JSON element by element with ArduinoJson, or parse small bodies in one buffer,
+- are serialised so that two TLS sessions never overlap (`NetLock`), and background TLS takes the quiet window (`services::quiet`, pauses HamAlert/APRS; counted, the last holder restarts them),
+- measure with `heap_caps_get_largest_free_block(MALLOC_CAP_8BIT)` or `/api/status` → `mem`, never `ESP.getMaxAllocHeap()` (it counts 32-bit-only IRAM).
 
 Out-of-memory panics during HTTPS fetches and OTA are a recurring bug class (see git log).
 
