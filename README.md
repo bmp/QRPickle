@@ -19,13 +19,23 @@ This project is inspired by [cburns42/HamClockCYD](https://github.com/cburns42/H
 
 | Boot & Splash | Main Dashboard | App Menu |
 | :---: | :---: | :---: |
-| <img src="docs/pics/Splash.jpeg" alt="Splash Screen" width="250"> | <img src="docs/pics/Dashboard.jpeg" alt="Dashboard" width="250"> | <img src="docs/pics/Menu.jpeg" alt="Menu" width="250"> |
-| **HamAlert & DX Cluster** | **POTA / SOTA Spots** | **Solar Propagation** |
-| <img src="docs/pics/DXCluster.jpeg" alt="DX Cluster" width="250"> | <img src="docs/pics/POTA.jpeg" alt="POTA" width="250"> | <img src="docs/pics/Propogation.jpeg" alt="Propagation" width="250"> |
-| **APRS Radar** | **APRS Messaging** | **APRS Beaconing** |
-| <img src="docs/pics/APRS_Radar.jpeg" alt="APRS Radar" width="250"> | <img src="docs/pics/APRS_Msg.jpeg" alt="APRS Messages" width="250"> | <img src="docs/pics/APRS_Beacon.jpeg" alt="APRS Beacon" width="250"> |
-| **Weather Forecast** | **On-Device Settings** | **Smart Sleep Mode** |
-| <img src="docs/pics/Forecast.jpeg" alt="Forecast" width="250"> | <img src="docs/pics/Settings.jpeg" alt="Settings" width="250"> | <img src="docs/pics/Powersave.jpeg" alt="Powersave" width="250"> |
+| <img src="docs/pics/screens/splash.png" alt="Boot & Splash" width="250"> | <img src="docs/pics/screens/dashboard.png" alt="Main Dashboard" width="250"> | <img src="docs/pics/screens/menu.png" alt="App Menu" width="250"> |
+| **DX Cluster** | **POTA Spots** | **SOTA Spots** |
+| <img src="docs/pics/screens/dx-cluster.png" alt="DX Cluster" width="250"> | <img src="docs/pics/screens/pota.png" alt="POTA Spots" width="250"> | <img src="docs/pics/screens/sota.png" alt="SOTA Spots" width="250"> |
+| **Band Conditions** | **Solar Indicators** | **Reading the Indicators** |
+| <img src="docs/pics/screens/band-conditions.png" alt="Band Conditions" width="250"> | <img src="docs/pics/screens/band-solar.png" alt="Solar Indicators" width="250"> | <img src="docs/pics/screens/band-guide.png" alt="Reading the Indicators" width="250"> |
+| **APRS Traffic** | **APRS Radar** | **APRS Messages** |
+| <img src="docs/pics/screens/aprs-traffic.png" alt="APRS Traffic" width="250"> | <img src="docs/pics/screens/aprs-radar.png" alt="APRS Radar" width="250"> | <img src="docs/pics/screens/aprs-messages.png" alt="APRS Messages" width="250"> |
+| **APRS Quick Messages** | **APRS Beacon** | **HamAlert** |
+| <img src="docs/pics/screens/aprs-compose.png" alt="APRS Quick Messages" width="250"> | <img src="docs/pics/screens/aprs-beacon.png" alt="APRS Beacon" width="250"> | <img src="docs/pics/screens/hamalert.png" alt="HamAlert" width="250"> |
+| **Local Sensor** | **OpenWeather** | **Forecast** |
+| <img src="docs/pics/screens/weather-local.png" alt="Local Sensor" width="250"> | <img src="docs/pics/screens/openweather.png" alt="OpenWeather" width="250"> | <img src="docs/pics/screens/forecast.png" alt="Forecast" width="250"> |
+| **Network** | **WiFi Scan** | **Cloud Updates** |
+| <img src="docs/pics/screens/network.png" alt="Network" width="250"> | <img src="docs/pics/screens/wifi-scan.png" alt="WiFi Scan" width="250"> | <img src="docs/pics/screens/cloud-ota.png" alt="Cloud Updates" width="250"> |
+| **On-Device Settings** | **On-Screen Keyboard** |   |
+| <img src="docs/pics/screens/settings.png" alt="On-Device Settings" width="250"> | <img src="docs/pics/screens/keyboard.png" alt="On-Screen Keyboard" width="250"> |   |
+
+Screenshots are taken on the device (`tools/device_screens.py`, Classic theme); network names, addresses and positions are replaced or hidden in them. **Smart sleep:** after the screen timeout the backlight turns off; a touch wakes it (the first touch only wakes).
 
 
 ## Web Management Console

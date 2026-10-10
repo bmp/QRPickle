@@ -244,6 +244,7 @@ namespace ui {
 
             dyn_rows[i].lbl_temp = lv_label_create(row);
             lv_obj_set_style_text_font(dyn_rows[i].lbl_temp, &font_jetbrains_14, 0);
+            lv_obj_set_style_text_color(dyn_rows[i].lbl_temp, theme_color(COLOR_TEXT_MAIN), 0);  // was unset: dark grey
             lv_obj_align(dyn_rows[i].lbl_temp, LV_ALIGN_LEFT_MID, 75, 0); // Temp position
 
             dyn_rows[i].lbl_rain = lv_label_create(row);
