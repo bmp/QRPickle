@@ -2,6 +2,7 @@
 #include "../../src/services/sota_cluster_parse.h"
 #include "version_tests.h"
 #include "aprs_tests.h"
+#include "solar_tests.h"
 
 using services::sota_cluster::ParsedSpot;
 using services::sota_cluster::parse_line;
@@ -107,5 +108,10 @@ int main(int, char**) {
     RUN_TEST(test_aprs_uncompressed_position);
     RUN_TEST(test_aprs_rejects_compressed_and_garbage);
     RUN_TEST(test_aprs_addressee);
+    RUN_TEST(test_solar_parses_hamqsl_sample);
+    RUN_TEST(test_solar_rejects_garbage_and_missing_fields);
+    RUN_TEST(test_solar_parse_updated);
+    RUN_TEST(test_solar_fetch_schedule);
+    RUN_TEST(test_solar_manual_refresh_limit);
     return UNITY_END();
 }
