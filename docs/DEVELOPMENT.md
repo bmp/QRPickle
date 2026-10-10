@@ -13,10 +13,10 @@ scripts/dev.sh lint       # ruff, clang-format on changed lines, CHANGELOG secti
 scripts/dev.sh manual     # PDF manual -> release/QRPickle_Documentation_<version>-container.pdf
 scripts/dev.sh pages      # GitHub Pages site (Cloud OTA + installer) -> release/site
 scripts/dev.sh shell      # a shell inside the container
-scripts/dev.sh --ubuntu 26.04 all   # the same on another Ubuntu (default 24.04, like CI)
+scripts/dev.sh --ubuntu 24.04 all   # the same on another Ubuntu (default 26.04, like CI)
 ```
 
-What's inside (pinned in `Containerfile`, the same as in `.github/workflows/`): Ubuntu 24.04,
+What's inside (pinned in `Containerfile`, the same as in `.github/workflows/`): Ubuntu 26.04,
 PlatformIO 6.2.0, clang-format 19.1.7, ruff 0.16.10, Typst 0.15.1, and Ubuntu's pandoc and
 ImageMagick (the versions the CI runner installs).
 
@@ -24,10 +24,11 @@ Notes:
 - Build output and PlatformIO's packages live in podman/docker volumes
   (`qrpickle-workspace-<ubuntu>`, `qrpickle-core-<ubuntu>`), not in the source tree, so the
   container never mixes with a local `pio` build. Remove them to start clean:
-  `podman volume rm qrpickle-workspace-24.04 qrpickle-core-24.04`.
+  `podman volume rm qrpickle-workspace-26.04 qrpickle-core-26.04`.
 - The source is mounted with `:z` (SELinux shared label). With `:Z` every run gets a private
   label and files copied into the cache volume become unreadable to the next run.
 - Flashing and device tests run on the host (USB): `pio run -t upload`, `tools/device_check.py`,
   `tools/web_security_check.sh`, `tools/webui_e2e/`.
 - Verified on 2026-10-10: `all` passes on Ubuntu 24.04 and 26.04 and both produce the same
   firmware SHA-256 as each other.
+- CI moved to the `ubuntu-26.04` runner in v0.2.3 (GitHub's `ubuntu-latest` switches from 19 October 2026).

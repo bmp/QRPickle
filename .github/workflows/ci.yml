@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   build-test:
-    runs-on: ubuntu-24.04   # pinned; Ubuntu 26.04 checked with scripts/dev.sh --ubuntu 26.04
+    runs-on: ubuntu-26.04   # pinned; scripts/dev.sh runs the same Ubuntu (--ubuntu 24.04 still works)
     steps:
       - uses: actions/checkout@v7
         with:

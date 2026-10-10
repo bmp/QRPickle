@@ -1,6 +1,6 @@
-# QRPickle development container: the same tools and versions as CI (Ubuntu 24.04 runner).
+# QRPickle development container: the same tools and versions as CI (Ubuntu 26.04 runner).
 # Use it through scripts/dev.sh (podman or docker). See docs/DEVELOPMENT.md.
-ARG UBUNTU=24.04
+ARG UBUNTU=26.04
 FROM docker.io/library/ubuntu:${UBUNTU}
 
 # Pinned like CI (.github/workflows/*.yml); bump both together.
