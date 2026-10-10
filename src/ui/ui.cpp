@@ -111,7 +111,7 @@ namespace ui {
 
     void ui_init() {
         lv_obj_t* main_screen = lv_screen_active();
-        lv_obj_set_style_bg_color(main_screen, lv_color_hex(0x000000), 0);
+        lv_obj_set_style_bg_color(main_screen, theme_color(COLOR_BG_APP), 0);
 
         view_container = lv_obj_create(main_screen);
         lv_obj_set_size(view_container, SCREEN_W, SCREEN_H);

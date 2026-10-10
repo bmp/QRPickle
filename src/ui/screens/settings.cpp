@@ -323,8 +323,8 @@ namespace ui {
             settings_refresh_theme();
 
             lv_label_set_text(lbl, "SAVED!");
-            lv_obj_set_style_bg_color(btn_save, lv_color_hex(0x3FB950), 0);
-            lv_obj_set_style_text_color(lbl, lv_color_hex(0xFFFFFF), 0);
+            lv_obj_set_style_bg_color(btn_save, theme_color(COLOR_SUCCESS), 0);
+            lv_obj_set_style_text_color(lbl, theme_color(COLOR_TEXT_ON_SUCCESS), 0);
         } else {
             lv_label_set_text(lbl, "NO CHANGES");
         }

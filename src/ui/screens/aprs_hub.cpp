@@ -161,7 +161,7 @@ namespace ui {
             auto& cfg = config::get();
             bool is_conn = services::AprsManager::is_connected();
             lv_label_set_text(lbl_b_status, is_conn ? "STATUS: ACTIVE (APRS-IS Secure Link)" : "STATUS: OFFLINE (Reconnecting)");
-            lv_obj_set_style_text_color(lbl_b_status, is_conn ? lv_color_hex(0x00FF00) : lv_color_hex(0xFF0000), 0);
+            lv_obj_set_style_text_color(lbl_b_status, is_conn ? theme_color(COLOR_STATUS_OK) : theme_color(COLOR_STATUS_ERROR), 0);
 
             char s_buf[128];  // "PAYLOAD: <call>-<ssid>>APRS: <payload up to 95>"
             snprintf(s_buf, sizeof(s_buf), "TX COUNT: %u times", services::AprsManager::get_tx_count());
@@ -244,7 +244,7 @@ namespace ui {
         lv_obj_t* lbl_br = lv_label_create(btn_radar);
         lv_label_set_text(lbl_br, LV_SYMBOL_GPS);
         lv_obj_set_style_text_font(lbl_br, &font_jetbrains_10, 0);
-        lv_obj_set_style_text_color(lbl_br, lv_color_hex(0x000000), 0);
+        lv_obj_set_style_text_color(lbl_br, theme_color(COLOR_TEXT_ON_ACCENT), 0);
         lv_obj_center(lbl_br);
 
         tabview = lv_tabview_create(scr);
@@ -350,7 +350,7 @@ namespace ui {
         lv_obj_t* lbl_compose = lv_label_create(btn_compose);
         lv_label_set_text(lbl_compose, "COMPOSE NEW MESSAGE");
         lv_obj_set_style_text_font(lbl_compose, &font_jetbrains_10, 0);
-        lv_obj_set_style_text_color(lbl_compose, lv_color_hex(0x000000), 0);
+        lv_obj_set_style_text_color(lbl_compose, theme_color(COLOR_TEXT_ON_ACCENT), 0);
         lv_obj_center(lbl_compose);
 
         lv_obj_t* b_card = lv_obj_create(t3);

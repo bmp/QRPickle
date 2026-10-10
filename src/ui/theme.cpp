@@ -6,8 +6,38 @@ static_assert(ui::THEME_COUNT - 1 == config::THEME_ID_MAX, "update config::THEME
 
 namespace ui {
 
+    // Semantic tokens: Classic keeps the exact colours these places were hardcoded with; the other
+    // themes use a token from their own palette, so every theme stays consistent with itself.
+    struct Semantic {
+        ThemeToken token;
+        uint32_t classic;
+        ThemeToken other;
+    };
+    static const Semantic SEMANTIC[] = {
+        {COLOR_TEXT_ON_ACCENT, 0x000000, COLOR_BG_APP},
+        {COLOR_TEXT_ON_ALERT, 0xFFFFFF, COLOR_TEXT_MAIN},
+        {COLOR_STATUS_OK, 0x00FF00, COLOR_BAND_GOOD},
+        {COLOR_STATUS_ERROR, 0xFF0000, COLOR_BAND_POOR},
+        {COLOR_STATUS_WARN, 0xFFFF00, COLOR_BAND_FAIR},
+        {COLOR_STATUS_BUSY, 0xFF9900, COLOR_BAND_FAIR},
+        {COLOR_BG_SUNKEN, 0x050505, COLOR_BG_APP},
+        {COLOR_BG_DEEP, 0x0A0A0A, COLOR_BG_APP},
+        {COLOR_BG_INPUT, 0x111111, COLOR_BG_BAR},
+        {COLOR_BG_BUTTON, 0x222222, COLOR_BG_BAR},
+        {COLOR_SUCCESS, 0x3FB950, COLOR_BAND_GOOD},
+        {COLOR_TEXT_ON_SUCCESS, 0xFFFFFF, COLOR_BG_APP},
+        {COLOR_PENDING, 0xD4A373, COLOR_ACCENT_SECONDARY},
+        {COLOR_INFO, 0x58A6FF, COLOR_ACCENT_SECONDARY},
+    };
+
     lv_color_t theme_color(ThemeToken token) {
         uint8_t theme_id = config::get().theme_id;
+        for (const Semantic& s : SEMANTIC) {
+            if (s.token == token) {
+                bool classic = theme_id == THEME_CLASSIC || theme_id >= THEME_COUNT;
+                return classic ? lv_color_hex(s.classic) : theme_color(s.other);
+            }
+        }
 
         switch (theme_id) {
             case THEME_FIELD_RED:
@@ -26,6 +56,7 @@ namespace ui {
                     case COLOR_BAND_FAIR:        return lv_color_hex(0xAA0000);
                     case COLOR_BAND_POOR:        return lv_color_hex(0x550000);
                     case COLOR_BAND_DOWN:        return lv_color_hex(0x220000);
+                    default:                     break;  // semantic tokens are resolved via SEMANTIC above
                 }
                 break;
 
@@ -45,6 +76,7 @@ namespace ui {
                     case COLOR_BAND_FAIR:        return lv_color_hex(0x8B949E);
                     case COLOR_BAND_POOR:        return lv_color_hex(0x30363D);
                     case COLOR_BAND_DOWN:        return lv_color_hex(0x21262D);
+                    default:                     break;  // semantic tokens are resolved via SEMANTIC above
                 }
                 break;
 
@@ -64,6 +96,7 @@ namespace ui {
                     case COLOR_BAND_FAIR:        return lv_color_hex(0x9A6700);
                     case COLOR_BAND_POOR:        return lv_color_hex(0xCF222E);
                     case COLOR_BAND_DOWN:        return lv_color_hex(0x6E7781);
+                    default:                     break;  // semantic tokens are resolved via SEMANTIC above
                 }
                 break;
 
@@ -83,6 +116,7 @@ namespace ui {
                     case COLOR_BAND_FAIR:        return lv_color_hex(0x008800);
                     case COLOR_BAND_POOR:        return lv_color_hex(0x004400);
                     case COLOR_BAND_DOWN:        return lv_color_hex(0x001500);
+                    default:                     break;  // semantic tokens are resolved via SEMANTIC above
                 }
                 break;
 
@@ -102,6 +136,7 @@ namespace ui {
                     case COLOR_BAND_FAIR:        return lv_color_hex(0x555555); // Dark Gray
                     case COLOR_BAND_POOR:        return lv_color_hex(0xAAAAAA); // Light Gray
                     case COLOR_BAND_DOWN:        return lv_color_hex(0xDDDDDD); // Very Light Gray
+                    default:                     break;  // semantic tokens are resolved via SEMANTIC above
                 }
                 break;
 
@@ -121,6 +156,7 @@ namespace ui {
                     case COLOR_BAND_FAIR:        return lv_color_hex(0xAAAAAA); // Light Gray
                     case COLOR_BAND_POOR:        return lv_color_hex(0x555555); // Dark Gray
                     case COLOR_BAND_DOWN:        return lv_color_hex(0x222222); // Very Dark Gray
+                    default:                     break;  // semantic tokens are resolved via SEMANTIC above
                 }
                 break;
 
@@ -140,6 +176,7 @@ namespace ui {
                     case COLOR_BAND_FAIR:        return lv_color_hex(0xDB6D28);
                     case COLOR_BAND_POOR:        return lv_color_hex(0xF85149);
                     case COLOR_BAND_DOWN:        return lv_color_hex(0x8B949E);
+                    default:                     break;  // semantic tokens are resolved via SEMANTIC above
                 }
                 break;
         }

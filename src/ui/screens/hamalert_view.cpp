@@ -61,7 +61,7 @@ namespace ui {
             lv_obj_t* lbl_b = lv_label_create(badge);
             lv_label_set_text(lbl_b, alerts[i].type);
             lv_obj_set_style_text_font(lbl_b, &font_jetbrains_10, 0);
-            lv_obj_set_style_text_color(lbl_b, lv_color_hex(0x000000), 0);
+            lv_obj_set_style_text_color(lbl_b, theme_color(COLOR_TEXT_ON_ACCENT), 0);
             lv_obj_center(lbl_b);
 
             lv_obj_t* l_main = lv_label_create(card);

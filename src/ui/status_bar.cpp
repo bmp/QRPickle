@@ -43,14 +43,14 @@ namespace ui {
         // Darken the background screen overlay behind the dialog box
         lv_obj_t * obj_bg = lv_obj_get_parent(mbox);
         if (obj_bg) {
-            lv_obj_set_style_bg_color(obj_bg, lv_color_hex(0x000000), 0);
+            lv_obj_set_style_bg_color(obj_bg, lv_color_hex(0x000000), 0);  // dimming overlay: black in every theme
             lv_obj_set_style_bg_opa(obj_bg, 180, 0);
         }
 
         // Style the action buttons
         if (btn_ok) {
             lv_obj_set_style_bg_color(btn_ok, alert_col, 0); // Red "Sleep" button
-            lv_obj_set_style_text_color(btn_ok, lv_color_hex(0xFFFFFF), 0);
+            lv_obj_set_style_text_color(btn_ok, theme_color(COLOR_TEXT_ON_ALERT), 0);
         }
         if (btn_cancel) {
             lv_obj_set_style_bg_color(btn_cancel, border_col, 0); // Neutral "Cancel" button

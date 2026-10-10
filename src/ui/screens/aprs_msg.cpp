@@ -145,7 +145,7 @@ namespace ui {
         lv_obj_t* btn_back = lv_button_create(header);
         lv_obj_set_size(btn_back, 50, 28);
         lv_obj_align(btn_back, LV_ALIGN_LEFT_MID, 2, 0);
-        lv_obj_set_style_bg_color(btn_back, lv_color_hex(0x222222), 0);
+        lv_obj_set_style_bg_color(btn_back, theme_color(COLOR_BG_BUTTON), 0);
         lv_obj_set_style_radius(btn_back, 3, 0);
         lv_obj_add_event_cb(btn_back, cb_back_click, LV_EVENT_CLICKED, nullptr);
         
@@ -167,7 +167,7 @@ namespace ui {
         lv_textarea_set_max_length(ta_target, 9);
         lv_textarea_set_text(ta_target, "APSPOT");
         lv_obj_set_style_text_font(ta_target, &font_jetbrains_10, 0);
-        lv_obj_set_style_bg_color(ta_target, lv_color_hex(0x111111), 0);
+        lv_obj_set_style_bg_color(ta_target, theme_color(COLOR_BG_INPUT), 0);
         lv_obj_set_style_border_color(ta_target, theme_color(COLOR_BORDER), 0);
         lv_obj_add_event_cb(ta_target, [](lv_event_t* e){
             if(kb_input && ta_target) {
@@ -186,7 +186,7 @@ namespace ui {
         lv_obj_t* lbl_send = lv_label_create(btn_send);
         lv_label_set_text(lbl_send, "SEND");
         lv_obj_set_style_text_font(lbl_send, &font_jetbrains_10, 0);
-        lv_obj_set_style_text_color(lbl_send, lv_color_hex(0x000000), 0);
+        lv_obj_set_style_text_color(lbl_send, theme_color(COLOR_TEXT_ON_ACCENT), 0);
         lv_obj_center(lbl_send);
 
         content_body = lv_obj_create(page_root);
@@ -326,7 +326,7 @@ namespace ui {
         lv_textarea_set_max_length(ta_body, 60);
         lv_textarea_set_text(ta_body, "");
         lv_obj_set_style_text_font(ta_body, &font_jetbrains_10, 0);
-        lv_obj_set_style_bg_color(ta_body, lv_color_hex(0x050505), 0);
+        lv_obj_set_style_bg_color(ta_body, theme_color(COLOR_BG_SUNKEN), 0);
         lv_obj_set_style_border_color(ta_body, theme_color(COLOR_BORDER), 0);
         lv_obj_add_event_cb(ta_body, [](lv_event_t* e){
             if(kb_input && ta_body) {

@@ -122,7 +122,7 @@ namespace ui {
             lv_obj_set_style_text_font(lbl, &font_jetbrains_14, 0);
             
             lv_obj_set_style_text_color(lbl, theme_color(COLOR_TEXT_MAIN), LV_PART_MAIN | LV_STATE_DEFAULT);
-            lv_obj_set_style_text_color(lbl, lv_color_hex(0x000000), LV_PART_MAIN | LV_STATE_PRESSED); 
+            lv_obj_set_style_text_color(lbl, theme_color(COLOR_TEXT_ON_ACCENT), LV_PART_MAIN | LV_STATE_PRESSED);
             lv_obj_center(lbl);
         }
     }

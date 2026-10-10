@@ -190,7 +190,7 @@ namespace ui {
         bool dirty = (active_tab == TAB_POTA) ? services::PotaManager::is_dirty() : services::SotaManager::is_dirty();
 
         if (status_dot) {
-            lv_obj_set_style_bg_color(status_dot, fetching ? lv_color_hex(0xFF9900) : lv_color_hex(0x00FF00), 0);
+            lv_obj_set_style_bg_color(status_dot, fetching ? theme_color(COLOR_STATUS_BUSY) : theme_color(COLOR_STATUS_OK), 0);
         }
 
         if (dirty || t == nullptr) { 

@@ -227,8 +227,8 @@ namespace ui {
 
         for (int i = 0; i < 8; i++) {
             lv_obj_t* row = lv_obj_create(forecast_scroll_container);
-            lv_obj_set_size(row, lv_pct(100), 34); 
-            lv_obj_set_style_bg_color(row, i % 2 == 0 ? theme_color(COLOR_BG_PANEL) : lv_color_hex(0x050505), 0);
+            lv_obj_set_size(row, lv_pct(100), 34);
+            lv_obj_set_style_bg_color(row, i % 2 == 0 ? theme_color(COLOR_BG_PANEL) : theme_color(COLOR_BG_SUNKEN), 0);
             lv_obj_set_style_border_color(row, theme_color(COLOR_BORDER), 0);
             lv_obj_set_style_border_width(row, 1, 0);
             lv_obj_set_style_radius(row, 6, 0); 
