@@ -40,8 +40,14 @@
 #define LV_USE_DRAW_ARM2D_SYNC 0
 #define LV_USE_NATIVE_HELIUM_ASM 0
 
-/* LVGL cache for fonts and icons */
-#define LV_CACHE_DEF_SIZE       32768
+/* Layers (semi-transparent or transformed objects) render in chunks of this size, allocated from
+ * the pool: the 24 KB default made boot the pool's peak (v0.2.4 memory work, mem_stats). */
+#define LV_DRAW_LAYER_SIMPLE_BUF_SIZE (8 * 1024)
+
+/* Image cache (decoded icons from LittleFS), allocated from the 64 KB pool. 32 KB let the weather
+ * page's forecast icons fill half the pool; the next busy page (DX cluster) then ran LVGL out of
+ * memory and crashed in lv_draw_add_task (v0.2.4, mem_stats). Icons beyond the cache are re-read. */
+#define LV_CACHE_DEF_SIZE       (16 * 1024)
 
 /*==================
  * FONT USAGE

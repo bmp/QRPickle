@@ -67,8 +67,12 @@ namespace ui {
         lv_obj_set_style_text_color(b.label, fg == COLOR_TEXT_ON_ACCENT ? readable_on(theme_color(bg)) : theme_color(fg), 0);
         lv_label_set_text(b.label, text);
         lv_obj_center(b.label);
-        // 60 %: still readable in the dark single-colour themes (Field Red, Terminal Green).
-        lv_obj_set_style_opa(b.box, dimmed ? LV_OPA_60 : LV_OPA_COVER, 0);
+        // 60 %: still readable in the dark single-colour themes (Field Red, Terminal Green). Fade the
+        // background and the text, not the object: object opacity makes LVGL render the badge
+        // through a layer buffer (memory from LVGL's pool).
+        const lv_opa_t opa = dimmed ? LV_OPA_60 : LV_OPA_COVER;
+        lv_obj_set_style_bg_opa(b.box, opa, 0);
+        lv_obj_set_style_text_opa(b.label, opa, 0);
     }
 
     int band_now_column(const services::BandView& v) {

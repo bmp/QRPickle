@@ -38,6 +38,21 @@
                     <label>Grid Square Target</label>
                     <input type="text" id="cfg-grid" maxlength="6">
                 </div>
+                <!-- Latitude and longitude stay side by side at any width (own two-column row). -->
+                <div style="grid-column: span 2; display: grid; grid-template-columns: 1fr 1fr; gap: inherit;">
+                    <div class="form-group">
+                        <label>Station Latitude</label>
+                        <input type="number" id="cfg-lat" step="0.00001" min="-90" max="90">
+                    </div>
+                    <div class="form-group">
+                        <label>Station Longitude</label>
+                        <input type="number" id="cfg-lon" step="0.00001" min="-180" max="180">
+                    </div>
+                </div>
+                <div class="form-group" style="grid-column: span 2;">
+                    <label style="margin:0;"><input type="checkbox" id="cfg-latlon-set"> Use latitude/longitude for band conditions (day/night)</label>
+                    <p class="hint">Unticked: the centre of the grid square is used. Typing a latitude or longitude ticks this. <span id="latlon-grid-warn" style="color: var(--warn, #e0a030);"></span></p>
+                </div>
                 <div class="form-group">
                     <label>UTC Offset (Hours)</label>
                     <input type="number" id="cfg-offset" step="0.5" min="-12" max="14">
@@ -52,18 +67,6 @@
                         <input type="password" id="cfg-password" placeholder="••••••••••••" maxlength="63">
                         <button class="eye-toggle" type="button" onclick="togglePass('cfg-password')">👁️</button>
                     </div>
-                </div>
-                <div class="form-group">
-                    <label>Station Latitude</label>
-                    <input type="number" id="cfg-lat" step="0.00001" min="-90" max="90">
-                </div>
-                <div class="form-group">
-                    <label>Station Longitude</label>
-                    <input type="number" id="cfg-lon" step="0.00001" min="-180" max="180">
-                </div>
-                <div class="form-group" style="grid-column: span 2;">
-                    <label style="margin:0;"><input type="checkbox" id="cfg-latlon-set"> Use latitude/longitude for band conditions (day/night)</label>
-                    <p class="hint">Unticked: the centre of the grid square is used. Typing a latitude or longitude ticks this. <span id="latlon-grid-warn" style="color: var(--warn, #e0a030);"></span></p>
                 </div>
                 <div class="form-group">
                     <label>TFT Display Backlight PWM</label>

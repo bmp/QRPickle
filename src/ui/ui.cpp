@@ -154,7 +154,15 @@ namespace ui {
                 services::AprsManager::start();
             }
 
-            services::cloud_ota::start_background_check();
+            // Spread out the boot: WiFi, NTP, the solar fetch and the HamAlert/APRS connects all
+            // happen in the first seconds (free heap fell to ~6 KB). The automatic update check (a
+            // 12 KB task plus TLS) starts two minutes later; a manual check runs at once.
+            lv_timer_create(
+                [](lv_timer_t* t) {
+                    services::cloud_ota::start_background_check();
+                    lv_timer_delete(t);
+                },
+                120000, nullptr);
 
             // Set Stage 4 -> Turn LED faint green to indicate operational readiness
             hw::led_rgb::set_state(hw::led_rgb::STATE_BOOT_READY);
