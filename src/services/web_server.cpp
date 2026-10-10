@@ -9,6 +9,10 @@
 #include "../config/config.h"
 #include "../config/config_validation.h"
 #include "../config/config_json.h"
+#ifdef QRP_SCREEN_TOOLS
+#include "../core/screen_tools.h"
+#include "../ui/ui.h"
+#endif
 #include "json_copy.h"
 #include <atomic>
 #include "../core/metadata.h"
@@ -310,6 +314,45 @@ void web_server_init() {
         serializeJson(doc, *response);
         request->send(response);
     });
+
+#ifdef QRP_SCREEN_TOOLS
+    // Screenshot build only (cyd-screens): tools/device_screens.py drives these.
+    server.on("/api/debug/screen", HTTP_POST, [](AsyncWebServerRequest* request) {
+        REQUIRE_AUTH(request);
+        if (!request->hasParam("page")) {
+            request->send(400);
+            return;
+        }
+        int page = request->getParam("page")->value().toInt();
+        int theme = request->hasParam("theme") ? request->getParam("theme")->value().toInt() : -1;
+        if (page < 0 || page > ui::PAGE_CLOUD_OTA || theme > config::THEME_ID_MAX) {
+            request->send(400);
+            return;
+        }
+        screen_tools::request_page(page, theme);
+        request->send(200, "application/json", "{\"status\":\"ok\"}");
+    });
+    // Band n of a screenshot: POST renders it, GET downloads it (404 until it's ready).
+    server.on("/api/debug/band", HTTP_POST, [](AsyncWebServerRequest* request) {
+        REQUIRE_AUTH(request);
+        int n = request->hasParam("n") ? request->getParam("n")->value().toInt() : -1;
+        if (!screen_tools::request_band(n)) {
+            request->send(400);
+            return;
+        }
+        request->send(200, "application/json", "{\"status\":\"ok\"}");
+    });
+    server.on("/api/debug/band", HTTP_GET, [](AsyncWebServerRequest* request) {
+        REQUIRE_AUTH(request);
+        int n = request->hasParam("n") ? request->getParam("n")->value().toInt() : -1;
+        const uint8_t* data = screen_tools::band_data(n);
+        if (!data) {
+            request->send(404);
+            return;
+        }
+        request->send(request->beginResponse(200, "application/octet-stream", data, screen_tools::BAND_BYTES));
+    });
+#endif
 
     server.on("/api/about", HTTP_GET, [](AsyncWebServerRequest *request) {
         REQUIRE_AUTH(request);
