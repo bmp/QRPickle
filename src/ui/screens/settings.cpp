@@ -3,6 +3,7 @@
 #include "../keyboard.h"
 #include "../status_bar.h"
 #include "../theme.h"
+#include "../privacy.h"
 #include "../fonts.h"
 #include "../../config/config.h"
 #include "../../config/config_validation.h"
@@ -393,6 +394,7 @@ namespace ui {
         ta_ssid = lv_textarea_create(form);
         lv_textarea_set_one_line(ta_ssid, true);
         lv_textarea_set_text(ta_ssid, c.wifi_ssid);
+        if (privacy::SCREENSHOT_BUILD) lv_textarea_set_password_mode(ta_ssid, true);  // dots, same contents
         lv_obj_set_width(ta_ssid, 250); // Swipe lane clearance
         lv_obj_add_event_cb(ta_ssid, [](lv_event_t* e){ open_kb_for((lv_obj_t*)lv_event_get_target(e), KB_TEXT); }, LV_EVENT_FOCUSED, NULL);
 

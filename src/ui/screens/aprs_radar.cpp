@@ -1,6 +1,7 @@
 #include "aprs_radar.h"
 #include "../layout.h"
 #include "../theme.h"
+#include "../privacy.h"
 #include "../fonts.h"
 #include "../ui.h"
 #include "../../services/aprs_manager.h"
@@ -31,9 +32,11 @@ namespace ui {
 
             char buf[72];  // "Cmt:\n" + comment (up to 63)
             snprintf(buf, sizeof(buf), "Dist: %.1f km", st[idx].distance_km);
+            if (privacy::HIDE_POSITIONS) snprintf(buf, sizeof(buf), "Dist: --");  // screenshot builds
             lv_label_set_text(lbl_r_dist, buf);
             
             snprintf(buf, sizeof(buf), "Azim: %d\xC2\xB0", st[idx].bearing_deg);
+            if (privacy::HIDE_POSITIONS) snprintf(buf, sizeof(buf), "Azim: --");
             lv_label_set_text(lbl_r_brg, buf);
             
             snprintf(buf, sizeof(buf), "Cmt:\n%s", st[idx].comment[0] ? st[idx].comment : "(None)");
