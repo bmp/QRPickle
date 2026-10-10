@@ -34,6 +34,12 @@ def html_images_to_markdown(text):
     return IMG_TAG.sub(repl, text)
 
 
+def outside_code(text, fn):
+    """Apply fn to the text outside fenced and inline code (a C++ lambda `[](x)` looks like a link)."""
+    parts = re.split(r"(```.*?```|`[^`\n]*`)", text, flags=re.S)  # odd indices: code
+    return "".join(p if i % 2 else fn(p) for i, p in enumerate(parts))
+
+
 def rebase_links(text, subdir):
     """Markdown image/link targets in docs/<file> are relative to docs/; make them repo-relative."""
     def repl(m):
@@ -41,7 +47,7 @@ def rebase_links(text, subdir):
         if re.match(r"^(https?:|#|/)", target):
             return m.group(0)
         return f"{m.group(1)}({os.path.normpath(os.path.join(subdir, target))})"
-    return re.sub(r"(!?\[[^\]]*\])\(([^)\s]+)\)", repl, text)
+    return outside_code(text, lambda t: re.sub(r"(!?\[[^\]]*\])\(([^)\s]+)\)", repl, t))
 
 
 def metadata(name):
@@ -139,13 +145,14 @@ def llm_callout(text):
 
 def absolute_links(text, repo):
     """Relative links (README.md, docs/X.md, License) would be dead in a PDF: point them at GitHub.
-    In-page anchors (#...) and images (local files embedded in the PDF) are left alone."""
+    In-page anchors (#...) and images (local files embedded in the PDF) are left alone, and so is
+    code: a C++ lambda such as `[](lv_timer_t*)` looks like a Markdown link."""
     def repl(m):
         label, target = m.group(1), m.group(2)
         if re.match(r"^(https?:|mailto:|#)", target):
             return m.group(0)
         return f"{label}(https://github.com/{repo}/blob/main/{target.lstrip('./')})"
-    return re.sub(r"(?<!!)(\[[^\]]*\])\(([^)\s]+)\)", repl, text)
+    return outside_code(text, lambda t: re.sub(r"(?<!!)(\[[^\]]*\])\(([^)\s]+)\)", repl, t))
 
 
 # README "## " sections moved to the appendices (title in the README -> appendix title), and
@@ -190,8 +197,17 @@ def main():
     ap.add_argument("--out", required=True)
     a = ap.parse_args()
 
+    preamble, sections = split_sections(read_doc("README.md"))
+    appendices = [("LED Colours", read_doc("docs/LEDColours.md"), 1)]
+    by_title = dict(sections)
+    for readme_title, title in README_APPENDICES.items():
+        appendices.append((title, by_title[readme_title], 2))
+    appendices.append(("Screens, Widgets and Themes", read_doc("docs/UI_GUIDE.md"), 1))
+    appendices.append(("Third-Party Notices", read_doc("THIRD_PARTY_NOTICES.md"), 1))
+    notices = chr(ord("A") + len(appendices) - 1)  # the last appendix
+
     # Cover page: title, the project table (centred by pandoc) and the author's logo; the
-    # content starts on page 2. The appendix anchor is pandoc's id for "# Appendix E: ...".
+    # content starts on page 2. The appendix anchor is pandoc's id for "# Appendix X: ...".
     subtitle = "A lightweight opinionated field friendly HAM Clock"
     details = [
         ("Firmware Package", "QRPickle Tracker Dashboard"),
@@ -199,9 +215,10 @@ def main():
         ("Compilation Date", datetime.date.today().isoformat()),
         ("Target Hardware", "ESP32 Cheap Yellow Display (CYD)"),
         ("Source Repository", f'#link("https://github.com/{a.repo}")[{a.repo}]'),
-        # pandoc's id for the "# Appendix E: Third-Party Notices" heading
+        # pandoc's id for the "# Appendix X: Third-Party Notices" heading
         ("Primary License",
-         "MIT License (third-party components: #link(<appendix-e-third-party-notices>)[Appendix E])"),
+         f"MIT License (third-party components: #link(<appendix-{notices.lower()}-third-party-notices>)"
+         f"[Appendix {notices}])"),
     ]
     detail_cells = ", ".join(f"text(fill: luma(90))[{k}], [{v}]" for k, v in details)
     # Cover (report style): accent bar beside a left-aligned title, a borderless details list and
@@ -221,7 +238,6 @@ def main():
 ```
 
 """
-    preamble, sections = split_sections(read_doc("README.md"))
     # The README's title and subtitle are on the cover; its first section becomes "Introduction".
     preamble = re.sub(r"(?m)^# .*\n", "", preamble)
     sections = [("Introduction", "## Introduction\n" + t.split("\n", 1)[1]) if title == subtitle else (title, t)
@@ -233,11 +249,6 @@ def main():
                               if title not in README_APPENDICES and title not in README_DROPPED)
     body += "\n\n---\n\n" + read_doc("docs/HARDWARE.md")
 
-    appendices = [("LED Colours", read_doc("docs/LEDColours.md"), 1)]
-    by_title = dict(sections)
-    for readme_title, title in README_APPENDICES.items():
-        appendices.append((title, by_title[readme_title], 2))
-    appendices.append(("Third-Party Notices", read_doc("THIRD_PARTY_NOTICES.md"), 1))
     appendix_text = "".join(PAGEBREAK + as_appendix(text, chr(ord("A") + i), title, level)
                             for i, (title, text, level) in enumerate(appendices))
     doc = absolute_links(cover + body + appendix_text, a.repo)

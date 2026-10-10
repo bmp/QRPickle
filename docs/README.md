@@ -8,6 +8,7 @@
 - [Releasing](RELEASING.md): version numbers, tagging, what CI publishes, Cloud OTA.
 - [Debugging](DEBUGGING.md): log levels, crash logs, watchdog hangs, device check tools.
 - [Development container](DEVELOPMENT.md): run every check with the same tools as CI (`scripts/dev.sh`).
+- [Screens, Widgets and Themes](UI_GUIDE.md): how the on-device UI is built; checklists for a new page, tile or theme (also a manual appendix).
 - [Asset Generation Pipeline](AssetGenerationPipeline.md): fonts and images, and their licences.
 - [Open Tasks](TASKS.md): owner checks, release steps and follow-ups.
 
