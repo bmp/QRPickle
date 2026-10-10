@@ -4,6 +4,9 @@
 #include <Arduino.h>
 #include <TFT_eSPI.h>
 #include <lvgl.h>
+#ifdef QRP_SCREEN_TOOLS
+#include "../core/screen_tools.h"
+#endif
 
 static TFT_eSPI tft = TFT_eSPI();
 
@@ -13,6 +16,9 @@ alignas(4) static uint8_t draw_buf[DRAW_BUF_SIZE * 2];
 static void flush_cb(lv_display_t * disp, const lv_area_t * area, uint8_t * px_map) {
     int32_t w = lv_area_get_width(area);
     int32_t h = lv_area_get_height(area);
+#ifdef QRP_SCREEN_TOOLS
+    screen_tools::on_flush(area->x1, area->y1, area->x2, area->y2, px_map);
+#endif
 
     tft.startWrite();
     tft.setAddrWindow(area->x1, area->y1, w, h);

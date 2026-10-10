@@ -1,4 +1,5 @@
 #include "settings.h"
+#include "../layout.h"
 #include "../keyboard.h"
 #include "../status_bar.h"
 #include "../theme.h"
@@ -322,8 +323,8 @@ namespace ui {
             settings_refresh_theme();
 
             lv_label_set_text(lbl, "SAVED!");
-            lv_obj_set_style_bg_color(btn_save, lv_color_hex(0x3FB950), 0);
-            lv_obj_set_style_text_color(lbl, lv_color_hex(0xFFFFFF), 0);
+            lv_obj_set_style_bg_color(btn_save, theme_color(COLOR_SUCCESS), 0);
+            lv_obj_set_style_text_color(lbl, theme_color(COLOR_TEXT_ON_SUCCESS), 0);
         } else {
             lv_label_set_text(lbl, "NO CHANGES");
         }
@@ -350,7 +351,7 @@ namespace ui {
         current_profile_idx = -1;
 
         scr = lv_obj_create(lv_screen_active());
-        lv_obj_set_size(scr, 320, 216);
+        lv_obj_set_size(scr, SCREEN_W, CONTENT_H);
         lv_obj_align(scr, LV_ALIGN_BOTTOM_MID, 0, 0);
         lv_obj_set_style_border_width(scr, 0, 0);
         lv_obj_set_style_pad_all(scr, 0, 0);
@@ -359,7 +360,7 @@ namespace ui {
         status_bar_set_title("Settings");
 
         form = lv_obj_create(scr);
-        lv_obj_set_size(form, 320, 216);
+        lv_obj_set_size(form, SCREEN_W, CONTENT_H);
         lv_obj_align(form, LV_ALIGN_BOTTOM_MID, 0, 0);
         lv_obj_set_style_border_width(form, 0, 0);
         lv_obj_set_style_pad_all(form, 8, 0);

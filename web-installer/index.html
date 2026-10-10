@@ -35,6 +35,9 @@
     tbody tr:nth-child(odd) { background:var(--row-odd); }
     .note { background:var(--note-bg); border-left:3px solid var(--note-border); padding:.5em .8em; }
     .hidden { display:none; }
+    .notes { border-left:3px solid var(--link-color); background:var(--row-odd); padding:.6em .9em; margin:.5rem 0 1rem; }
+    .notes h3 { margin:0 0 .4em; font-size:1rem; }
+    .notes pre { margin:0; white-space:pre-wrap; font-family:Garamond,serif; font-size:.95rem; line-height:1.45; }
     esp-web-install-button { display:block; margin:1rem 0; }
     .install-btn { font:inherit; font-size:1.05rem; padding:.45em 1.2em; border-radius:20px; cursor:pointer;
            border:1px solid var(--link-color); background:var(--link-color); color:var(--bg-color); }
@@ -66,7 +69,10 @@
     <label for="ver">Version:</label>
     <select id="ver" onchange="selectVersion()"><option>loading…</option></select>
   </p>
-  <p id="notes"></p>
+  <section id="notes-box" class="notes hidden" aria-labelledby="notes-title">
+    <h3 id="notes-title">Release notes</h3>
+    <pre id="notes"></pre>
+  </section>
   <p id="older" class="note hidden">This is an older version. Installing it replaces the firmware and the
      web console files; with "Erase device" it also clears all settings. Cloud OTA will offer newer
      versions again afterwards.</p>
@@ -118,6 +124,8 @@
       if (!v) return;
       document.getElementById("install").setAttribute("manifest", v.manifest);
       document.getElementById("notes").textContent = v.notes || "";
+      document.getElementById("notes-title").textContent = "Release notes for " + v.version;
+      document.getElementById("notes-box").classList.toggle("hidden", !v.notes);
       document.getElementById("older").classList.toggle("hidden", sel.selectedIndex === 0);
     }
     fetch("versions.json")

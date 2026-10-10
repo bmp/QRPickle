@@ -7,7 +7,9 @@ namespace config {
     // Clamping limits to protect hardware profiles
     uint8_t clamp_brightness(int v);  // Bound between 10 and 255
     int8_t clamp_tz_hh(int v);  // Bound between -24 and +28 (represents half-hour steps)
-    uint8_t clamp_theme_id(int v);  // Bound between 0 and 5 matching our theme table arrays
+    // Highest theme id (ui::THEME_COUNT - 1; theme.cpp static_asserts that they match).
+    constexpr uint8_t THEME_ID_MAX = 6;
+    uint8_t clamp_theme_id(int v);  // 0 .. THEME_ID_MAX
 
     // Sanitizes and upper-cases amateur radio callsigns in place
     bool normalize_callsign(char* s, size_t len);

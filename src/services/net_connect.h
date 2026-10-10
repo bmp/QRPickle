@@ -12,4 +12,8 @@ namespace services {
     bool connect_host(WiFiClient& client, const char* host, uint16_t port, uint32_t timeout_ms,
                       crashlog::Slot slot);
 
+    // Thread-safe DNS (getaddrinfo, inside the lwIP thread). Never use WiFi.hostByName() or a
+    // client's connect(hostname, ...) from a task: see SafeClient / SafeTlsClient (safe_client.h).
+    bool resolve_host(const char* host, IPAddress& out);
+
 }  // namespace services

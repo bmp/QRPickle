@@ -1,4 +1,5 @@
 #include "cloud_ota.h"
+#include "../layout.h"
 #include "../theme.h"
 #include "../fonts.h"
 #include "../../services/cloud_ota.h"
@@ -33,7 +34,7 @@ namespace ui {
             lv_label_set_text(notes_label, "[UPGRADING] Deallocating processes and opening secure connection pipeline to GitHub CDN channels. Please observe console monitor telemetry. Do NOT remove input power lines.");
             lv_label_set_text(btn_lbl, "FLASHING SUB-SYSTEM ACTIVE...");
             lv_obj_add_state(flash_btn, LV_STATE_DISABLED);
-            lv_obj_set_style_bg_color(flash_btn, lv_color_hex(0xD4A373), 0); // Warning Amber Feedback color
+            lv_obj_set_style_bg_color(flash_btn, theme_color(COLOR_PENDING), 0);  // flashing in progress
 
             // 2. Safely launch background execution thread
             services::cloud_ota::execute_firmware_flash();
@@ -47,7 +48,7 @@ namespace ui {
 
     void draw_cloud_ota_page(lv_obj_t* parent) {
         page_container = lv_obj_create(parent);
-        lv_obj_set_size(page_container, 320, 216);
+        lv_obj_set_size(page_container, SCREEN_W, CONTENT_H);
         lv_obj_set_style_bg_color(page_container, theme_color(COLOR_BG_APP), 0);
         lv_obj_set_style_border_width(page_container, 0, 0);
         lv_obj_set_style_pad_all(page_container, 8, 0);
@@ -101,7 +102,7 @@ namespace ui {
         lv_obj_t* notes_area = lv_obj_create(page_container);
         lv_obj_set_size(notes_area, 304, 90);
         lv_obj_align_to(notes_area, header, LV_ALIGN_OUT_BOTTOM_MID, 0, 8);
-        lv_obj_set_style_bg_color(notes_area, lv_color_hex(0x0a0a0a), 0);
+        lv_obj_set_style_bg_color(notes_area, theme_color(COLOR_BG_DEEP), 0);
         lv_obj_set_style_border_color(notes_area, theme_color(COLOR_BORDER), 0);
         lv_obj_set_style_border_width(notes_area, 1, 0);
         
@@ -124,7 +125,7 @@ namespace ui {
         btn_lbl = lv_label_create(flash_btn);
         lv_label_set_text(btn_lbl, "INITIATE FIRMWARE FLASH");
         lv_obj_set_style_text_font(btn_lbl, &font_atkinson_14, 0);
-        lv_obj_set_style_text_color(btn_lbl, lv_color_hex(0x000000), 0);
+        lv_obj_set_style_text_color(btn_lbl, theme_color(COLOR_TEXT_ON_ACCENT), 0);
         lv_obj_center(btn_lbl);
 
         if (!info.update_available) {

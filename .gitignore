@@ -24,3 +24,7 @@ docs/superpowers/
 # Python bytecode
 __pycache__/
 *.pyc
+
+# Private notes (code review etc.): kept on this machine only, never committed
+docs/private/
+docs/reviews/

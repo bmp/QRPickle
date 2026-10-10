@@ -119,7 +119,7 @@ namespace ui {
                 s_lbl_day[i] = lv_label_create(s_blk_day[i]);
                 lv_label_set_text(s_lbl_day[i], text_rating[r_day]);
                 lv_obj_set_style_text_font(s_lbl_day[i], &font_jetbrains_10, 0);
-                lv_obj_set_style_text_color(s_lbl_day[i], lv_color_hex(0x000000), 0);
+                lv_obj_set_style_text_color(s_lbl_day[i], theme_color(COLOR_TEXT_ON_ACCENT), 0);
                 lv_obj_center(s_lbl_day[i]);
 
                 // Night status block
@@ -134,7 +134,7 @@ namespace ui {
                 s_lbl_nt[i] = lv_label_create(s_blk_nt[i]);
                 lv_label_set_text(s_lbl_nt[i], text_rating[r_nt]);
                 lv_obj_set_style_text_font(s_lbl_nt[i], &font_jetbrains_10, 0);
-                lv_obj_set_style_text_color(s_lbl_nt[i], lv_color_hex(0x000000), 0);
+                lv_obj_set_style_text_color(s_lbl_nt[i], theme_color(COLOR_TEXT_ON_ACCENT), 0);
                 lv_obj_center(s_lbl_nt[i]);
             }
 

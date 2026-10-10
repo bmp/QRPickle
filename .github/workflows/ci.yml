@@ -13,13 +13,13 @@ permissions:
 
 jobs:
   build-test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04   # pinned; Ubuntu 26.04 checked with scripts/dev.sh --ubuntu 26.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0   # the format check compares against the base commit
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.x'
 
@@ -28,6 +28,9 @@ jobs:
 
       - name: Python lint (ruff)
         run: ruff check
+
+      - name: Release notes exist for FW_VERSION (CHANGELOG.md)
+        run: python3 scripts/release_notes.py "$(grep FW_VERSION src/core/metadata.h | cut -d'"' -f2)" > /dev/null
 
       # Only lines changed by this push / PR must follow .clang-format (no mass reformat).
       - name: C++ format of changed lines (clang-format)
@@ -47,8 +50,12 @@ jobs:
 
       - name: Release firmware + filesystem (size and secret guards run as build scripts)
         run: |
-          pio run -e cyd
+          pio run -e cyd 2>&1 | tee build.log
           pio run -e cyd -t buildfs
+          # No compiler warnings in QRPickle's own code (libraries and the framework are excluded).
+          if grep -E "^(src|include|test)/[^:]+:[0-9]+:[0-9]+: warning:" build.log; then
+            echo "::error::compiler warnings in src/ (listed above)"; exit 1
+          fi
 
       - name: Debug firmware still builds
         run: pio run -e cyd-debug

@@ -15,6 +15,9 @@
 #include "services/weather_manager.h"
 #include "ui/ui.h"
 #include "ui/fonts.h"
+#ifdef QRP_SCREEN_TOOLS
+#include "core/screen_tools.h"
+#endif
 
 void setup() {
     hw::led_rgb::init();
@@ -89,6 +92,9 @@ void loop() {
     crashlog::mark(crashlog::SLOT_LOOP, 4); web_server_update();
     crashlog::mark(crashlog::SLOT_LOOP, 5); services::display_manager::update();
     crashlog::mark(crashlog::SLOT_LOOP, 6); services::weather_manager::update();
+#ifdef QRP_SCREEN_TOOLS
+    screen_tools::update();
+#endif
     services::ota_manager::mark_healthy_if_ready(wifi_manager_is_connected());
     crashlog::mark(crashlog::SLOT_LOOP, 7); delay(5);
 }

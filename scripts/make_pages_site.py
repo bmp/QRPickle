@@ -33,10 +33,14 @@ def parse_version(v):
     m = VERSION_RE.match(v)
     return tuple(int(x) for x in m.groups()) if m else None
 
-def short_notes(path):
+def full_notes(path, version):
+    """The release notes as written (line breaks kept) for the installer page, without the
+    "vX.Y.Z: " prefix that the device notes (ota.json) carry."""
     if not path or not os.path.isfile(path):
         return ""
-    return " ".join(open(path, encoding="utf-8", errors="replace").read().split())[:127]
+    text = open(path, encoding="utf-8", errors="replace").read().strip()
+    return text[len(version) + 2:] if text.startswith(version + ": ") else text
+
 
 def write_version(inst, version, files, notes):
     """install/<version>/: the five images plus an ESP Web Tools manifest."""
@@ -54,8 +58,8 @@ def write_version(inst, version, files, notes):
 def find_boot_app0(explicit):
     if explicit:
         return explicit
-    hits = glob.glob(os.path.expanduser(
-        "~/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin"))
+    core = os.environ.get("PLATFORMIO_CORE_DIR", os.path.expanduser("~/.platformio"))
+    hits = glob.glob(os.path.join(core, "packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin"))
     if not hits:
         raise SystemExit("boot_app0.bin not found; pass --boot-app0")
     return hits[0]
@@ -92,7 +96,7 @@ def main():
     for path in current.values():
         if not os.path.isfile(path):
             raise SystemExit(f"missing {path}")
-    entries = [write_version(inst, a.version, current, notes)]
+    entries = [write_version(inst, a.version, current, full_notes(a.notes_file, a.version))]
 
     previous = []
     if a.previous_dir and os.path.isdir(a.previous_dir):
@@ -105,7 +109,7 @@ def main():
             if not all(os.path.isfile(f) for f in files.values()):
                 print(f"skipping {name}: incomplete")
                 continue
-            previous.append((ver, name, files, short_notes(os.path.join(folder, "notes.txt"))))
+            previous.append((ver, name, files, full_notes(os.path.join(folder, "notes.txt"), name)))
     for _, name, files, pnotes in sorted(previous, reverse=True)[:max(a.keep - 1, 0)]:
         entries.append(write_version(inst, name, files, pnotes))
     entries[1:] = sorted(entries[1:], key=lambda e: parse_version(e["version"]), reverse=True)

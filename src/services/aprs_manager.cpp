@@ -82,7 +82,7 @@ namespace services {
         if (!connected || !tx_queue) return;
         if (strlen(target) == 0 || strlen(message) == 0) return;
 
-        char src_call[16];
+        char src_call[20];
         if (cfg.aprs_ssid == 0) snprintf(src_call, sizeof(src_call), "%s", cfg.callsign);
         else snprintf(src_call, sizeof(src_call), "%s-%d", cfg.callsign, cfg.aprs_ssid);
         for (int i = 0; src_call[i]; i++) src_call[i] = toupper(src_call[i]);
@@ -163,14 +163,15 @@ namespace services {
         char lat_dir = (lat >= 0) ? 'N' : 'S';
         char lon_dir = (lon >= 0) ? 'E' : 'W';
         lat = fabs(lat); lon = fabs(lon);
-        
-        int lat_deg = (int)lat;
-        float lat_min = (lat - lat_deg) * 60.0f;
-        int lon_deg = (int)lon;
-        float lon_min = (lon - lon_deg) * 60.0f;
-        
-        snprintf(out_str, 24, "%02d%05.2f%c%c%03d%05.2f%c%c",  
-                 lat_deg, lat_min, lat_dir, table, lon_deg, lon_min, lon_dir, symbol);
+
+        // Whole hundredths of a minute, so 59.996' carries into the degrees instead of printing an
+        // invalid "60.00". Config validation keeps lat/lon within +/-90 / +/-180.
+        long lat_h = lroundf(fminf(lat, 90.0f) * 6000.0f);
+        long lon_h = lroundf(fminf(lon, 180.0f) * 6000.0f);
+        int n = snprintf(out_str, 24, "%02ld%02ld.%02ld%c%c%03ld%02ld.%02ld%c%c",
+                         lat_h / 6000, (lat_h % 6000) / 100, lat_h % 100, lat_dir, table,
+                         lon_h / 6000, (lon_h % 6000) / 100, lon_h % 100, lon_dir, symbol);
+        if (n < 0 || n >= 24) out_str[0] = '\0';  // cannot happen for valid coordinates
     }
 
     void AprsManager::get_current_payload(char* buf, size_t max_len) {
@@ -337,7 +338,7 @@ namespace services {
                 crashlog::mark(crashlog::SLOT_APRS, 2);
                 if (connect_host(client, "rotate.aprs.net", 14580, 3000, crashlog::SLOT_APRS)) {
                     char login[128];
-                    char src_call[16];
+                    char src_call[20];
                     if (cfg.aprs_ssid == 0) snprintf(src_call, sizeof(src_call), "%s", cfg.callsign);
                     else snprintf(src_call, sizeof(src_call), "%s-%d", cfg.callsign, cfg.aprs_ssid);
 
@@ -361,7 +362,7 @@ namespace services {
                 char dynamic_cmt[70];
                 get_current_payload(dynamic_cmt, sizeof(dynamic_cmt));
 
-                char src_call[16];
+                char src_call[20];
                 if (cfg.aprs_ssid == 0) snprintf(src_call, sizeof(src_call), "%s", cfg.callsign);
                 else snprintf(src_call, sizeof(src_call), "%s-%d", cfg.callsign, cfg.aprs_ssid);
 

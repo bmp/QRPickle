@@ -1,4 +1,5 @@
 #include "hamalert_view.h"
+#include "../layout.h"
 #include "../theme.h"
 #include "../fonts.h"
 #include "../ui.h"
@@ -60,7 +61,7 @@ namespace ui {
             lv_obj_t* lbl_b = lv_label_create(badge);
             lv_label_set_text(lbl_b, alerts[i].type);
             lv_obj_set_style_text_font(lbl_b, &font_jetbrains_10, 0);
-            lv_obj_set_style_text_color(lbl_b, lv_color_hex(0x000000), 0);
+            lv_obj_set_style_text_color(lbl_b, theme_color(COLOR_TEXT_ON_ACCENT), 0);
             lv_obj_center(lbl_b);
 
             lv_obj_t* l_main = lv_label_create(card);
@@ -88,7 +89,7 @@ namespace ui {
         Serial.println("[HamAlert-UI] Rendering base scene panel window components wrapper layer.");
         
         scroll_box = lv_obj_create(parent);
-        lv_obj_set_size(scroll_box, 320, 216); 
+        lv_obj_set_size(scroll_box, SCREEN_W, CONTENT_H);
         lv_obj_set_style_bg_color(scroll_box, theme_color(COLOR_BG_APP), 0);
         lv_obj_set_style_border_width(scroll_box, 0, 0);
         lv_obj_set_style_pad_all(scroll_box, 4, 0);

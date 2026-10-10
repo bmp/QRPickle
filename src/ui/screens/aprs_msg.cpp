@@ -1,4 +1,5 @@
 #include "aprs_msg.h"
+#include "../layout.h"
 #include "../theme.h"
 #include "../fonts.h"
 #include "../ui.h"
@@ -125,14 +126,14 @@ namespace ui {
         auto& cfg = config::get();
 
         page_root = lv_obj_create(parent);
-        lv_obj_set_size(page_root, 320, 240);
+        lv_obj_set_size(page_root, SCREEN_W, SCREEN_H);
         lv_obj_set_style_bg_color(page_root, theme_color(COLOR_BG_APP), 0);
         lv_obj_set_style_border_width(page_root, 0, 0);
         lv_obj_set_style_pad_all(page_root, 0, 0);
         lv_obj_clear_flag(page_root, LV_OBJ_FLAG_SCROLLABLE);
 
         lv_obj_t* header = lv_obj_create(page_root);
-        lv_obj_set_size(header, 320, 35);
+        lv_obj_set_size(header, SCREEN_W, 35);
         lv_obj_align(header, LV_ALIGN_TOP_MID, 0, 0);
         lv_obj_set_style_bg_color(header, theme_color(COLOR_BG_PANEL), 0);
         lv_obj_set_style_border_side(header, LV_BORDER_SIDE_BOTTOM, 0);
@@ -144,7 +145,7 @@ namespace ui {
         lv_obj_t* btn_back = lv_button_create(header);
         lv_obj_set_size(btn_back, 50, 28);
         lv_obj_align(btn_back, LV_ALIGN_LEFT_MID, 2, 0);
-        lv_obj_set_style_bg_color(btn_back, lv_color_hex(0x222222), 0);
+        lv_obj_set_style_bg_color(btn_back, theme_color(COLOR_BG_BUTTON), 0);
         lv_obj_set_style_radius(btn_back, 3, 0);
         lv_obj_add_event_cb(btn_back, cb_back_click, LV_EVENT_CLICKED, nullptr);
         
@@ -166,7 +167,7 @@ namespace ui {
         lv_textarea_set_max_length(ta_target, 9);
         lv_textarea_set_text(ta_target, "APSPOT");
         lv_obj_set_style_text_font(ta_target, &font_jetbrains_10, 0);
-        lv_obj_set_style_bg_color(ta_target, lv_color_hex(0x111111), 0);
+        lv_obj_set_style_bg_color(ta_target, theme_color(COLOR_BG_INPUT), 0);
         lv_obj_set_style_border_color(ta_target, theme_color(COLOR_BORDER), 0);
         lv_obj_add_event_cb(ta_target, [](lv_event_t* e){
             if(kb_input && ta_target) {
@@ -185,11 +186,11 @@ namespace ui {
         lv_obj_t* lbl_send = lv_label_create(btn_send);
         lv_label_set_text(lbl_send, "SEND");
         lv_obj_set_style_text_font(lbl_send, &font_jetbrains_10, 0);
-        lv_obj_set_style_text_color(lbl_send, lv_color_hex(0x000000), 0);
+        lv_obj_set_style_text_color(lbl_send, theme_color(COLOR_TEXT_ON_ACCENT), 0);
         lv_obj_center(lbl_send);
 
         content_body = lv_obj_create(page_root);
-        lv_obj_set_size(content_body, 320, 173);
+        lv_obj_set_size(content_body, SCREEN_W, 173);
         lv_obj_align(content_body, LV_ALIGN_TOP_MID, 0, 35);
         lv_obj_set_style_bg_opa(content_body, 0, 0);
         lv_obj_set_style_border_width(content_body, 0, 0);
@@ -197,7 +198,7 @@ namespace ui {
         lv_obj_clear_flag(content_body, LV_OBJ_FLAG_SCROLLABLE);
 
         panel_macros = lv_obj_create(content_body);
-        lv_obj_set_size(panel_macros, 320, 173);
+        lv_obj_set_size(panel_macros, SCREEN_W, 173);
         lv_obj_align(panel_macros, LV_ALIGN_TOP_MID, 0, 0);
         lv_obj_set_style_bg_opa(panel_macros, 0, 0);
         lv_obj_set_style_border_width(panel_macros, 0, 0);
@@ -226,7 +227,7 @@ namespace ui {
         }
 
         panel_wizard = lv_obj_create(content_body);
-        lv_obj_set_size(panel_wizard, 320, 173);
+        lv_obj_set_size(panel_wizard, SCREEN_W, 173);
         lv_obj_align(panel_wizard, LV_ALIGN_TOP_MID, 0, 0);
         lv_obj_set_style_bg_opa(panel_wizard, 0, 0);
         lv_obj_set_style_border_width(panel_wizard, 0, 0);
@@ -312,7 +313,7 @@ namespace ui {
         }, LV_EVENT_FOCUSED, nullptr);
 
         panel_qwerty = lv_obj_create(content_body);
-        lv_obj_set_size(panel_qwerty, 320, 173);
+        lv_obj_set_size(panel_qwerty, SCREEN_W, 173);
         lv_obj_align(panel_qwerty, LV_ALIGN_TOP_MID, 0, 0);
         lv_obj_set_style_bg_opa(panel_qwerty, 0, 0);
         lv_obj_set_style_border_width(panel_qwerty, 0, 0);
@@ -325,7 +326,7 @@ namespace ui {
         lv_textarea_set_max_length(ta_body, 60);
         lv_textarea_set_text(ta_body, "");
         lv_obj_set_style_text_font(ta_body, &font_jetbrains_10, 0);
-        lv_obj_set_style_bg_color(ta_body, lv_color_hex(0x050505), 0);
+        lv_obj_set_style_bg_color(ta_body, theme_color(COLOR_BG_SUNKEN), 0);
         lv_obj_set_style_border_color(ta_body, theme_color(COLOR_BORDER), 0);
         lv_obj_add_event_cb(ta_body, [](lv_event_t* e){
             if(kb_input && ta_body) {
@@ -335,13 +336,13 @@ namespace ui {
         }, LV_EVENT_FOCUSED, nullptr);
 
         kb_input = lv_keyboard_create(page_root);
-        lv_obj_set_size(kb_input, 320, 93);
+        lv_obj_set_size(kb_input, SCREEN_W, 93);
         lv_obj_align(kb_input, LV_ALIGN_BOTTOM_MID, 0, -32);
         lv_keyboard_set_mode(kb_input, LV_KEYBOARD_MODE_TEXT_LOWER);
         lv_obj_add_flag(kb_input, LV_OBJ_FLAG_HIDDEN);
 
         lv_obj_t* footer_nav = lv_obj_create(page_root);
-        lv_obj_set_size(footer_nav, 320, 32);
+        lv_obj_set_size(footer_nav, SCREEN_W, 32);
         lv_obj_align(footer_nav, LV_ALIGN_BOTTOM_MID, 0, 0);
         lv_obj_set_style_bg_color(footer_nav, theme_color(COLOR_BG_PANEL), 0);
         lv_obj_set_style_border_side(footer_nav, LV_BORDER_SIDE_TOP, 0);

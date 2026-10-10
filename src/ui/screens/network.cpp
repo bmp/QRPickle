@@ -1,4 +1,5 @@
 #include "network.h"
+#include "../layout.h"
 #include "../fonts.h"
 #include "../ui.h"
 #include "../theme.h"
@@ -116,7 +117,7 @@ namespace ui {
 
     void draw_network_page(lv_obj_t* parent) {
         lv_obj_t* page = lv_obj_create(parent);
-        lv_obj_set_size(page, 320, 216);
+        lv_obj_set_size(page, SCREEN_W, CONTENT_H);
         lv_obj_set_style_bg_opa(page, 0, 0);
         lv_obj_set_style_border_width(page, 0, 0);
         lv_obj_clear_flag(page, LV_OBJ_FLAG_SCROLLABLE);

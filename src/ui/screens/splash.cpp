@@ -1,4 +1,6 @@
 #include "splash.h"
+#include "../layout.h"
+#include "../theme.h"
 #include "../../hw/sensor.h"
 #include "../../services/wifi_manager.h"
 #include "../../config/config.h"
@@ -46,8 +48,8 @@ namespace ui {
 
         // 1. Build Fullscreen Splash Layer Base
         lv_obj_t* page = lv_obj_create(parent);
-        lv_obj_set_size(page, 320, 240);
-        lv_obj_set_style_bg_color(page, lv_color_hex(0x000000), 0);
+        lv_obj_set_size(page, SCREEN_W, SCREEN_H);
+        lv_obj_set_style_bg_color(page, theme_color(COLOR_BG_APP), 0);
         lv_obj_set_style_border_width(page, 0, 0);
         lv_obj_set_style_pad_all(page, 0, 0);
         lv_obj_clear_flag(page, LV_OBJ_FLAG_SCROLLABLE);
@@ -55,7 +57,7 @@ namespace ui {
         // 2. Main Firmware Identifier Logo Text
         lv_obj_t* lbl_logo = lv_label_create(page);
         lv_obj_set_style_text_font(lbl_logo, &font_jetbrains_24, 0);
-        lv_obj_set_style_text_color(lbl_logo, lv_color_hex(0xFFB000), 0);
+        lv_obj_set_style_text_color(lbl_logo, theme_color(COLOR_ACCENT_PRIMARY), 0);
         lv_label_set_text(lbl_logo, meta::FW_NAME); 
         lv_obj_align(lbl_logo, LV_ALIGN_TOP_MID, 0, 25);
 
@@ -72,7 +74,7 @@ namespace ui {
         // 5. Metadata Release Parameters
         lv_obj_t* lbl_meta = lv_label_create(page);
         lv_obj_set_style_text_font(lbl_meta, &font_atkinson_14, 0);
-        lv_obj_set_style_text_color(lbl_meta, lv_color_hex(0x8B949E), 0);
+        lv_obj_set_style_text_color(lbl_meta, theme_color(COLOR_TEXT_MUTED), 0);
 
         char meta_buf[64];
         snprintf(meta_buf, sizeof(meta_buf), "%s | %s", meta::FW_VERSION, meta::AUTHOR_CALL);
@@ -85,8 +87,8 @@ namespace ui {
         lv_obj_set_size(diag_box, 260, 125);
         // Shifted slightly downward to center the larger container beautifully
         lv_obj_align(diag_box, LV_ALIGN_CENTER, 0, 26);
-        lv_obj_set_style_bg_color(diag_box, lv_color_hex(0x1C2128), 0);
-        lv_obj_set_style_border_color(diag_box, lv_color_hex(0x30363D), 0);
+        lv_obj_set_style_bg_color(diag_box, theme_color(COLOR_BG_BAR), 0);
+        lv_obj_set_style_border_color(diag_box, theme_color(COLOR_BORDER), 0);
         lv_obj_set_style_border_width(diag_box, 1, 0);
         lv_obj_set_style_radius(diag_box, 4, 0);
         lv_obj_set_style_pad_all(diag_box, 8, 0);
@@ -94,7 +96,7 @@ namespace ui {
 
         lv_obj_t* lbl_diag = lv_label_create(diag_box);
         lv_obj_set_style_text_font(lbl_diag, &font_jetbrains_10, 0);
-        lv_obj_set_style_text_color(lbl_diag, lv_color_hex(0xE6EDF3), 0);
+        lv_obj_set_style_text_color(lbl_diag, theme_color(COLOR_TEXT_MAIN), 0);
         lv_obj_set_style_text_line_space(lbl_diag, 4, 0);
 
         // Query configuration parameter states
@@ -125,7 +127,7 @@ namespace ui {
         lbl_wifi_status = lv_label_create(page);
         // Dropped the text size to 10 to clean up layout hierarchy
         lv_obj_set_style_text_font(lbl_wifi_status, &font_atkinson_10, 0);
-        lv_obj_set_style_text_color(lbl_wifi_status, lv_color_hex(0x58A6FF), 0);
+        lv_obj_set_style_text_color(lbl_wifi_status, theme_color(COLOR_INFO), 0);
         lv_label_set_text(lbl_wifi_status, "Connecting to Network... [0/20]");
         // Tucked tightly against the bottom bezel to make room for the expanded window
         lv_obj_align(lbl_wifi_status, LV_ALIGN_BOTTOM_MID, 0, -6);

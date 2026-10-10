@@ -18,6 +18,7 @@ pio device monitor             # serial log @ 115200
 pio test -e native             # host-side unit tests (Unity): test_parsers, test_config, test_led
 pio test -e native -f test_config    # run a single test folder
 ruff check                     # Python lint (scripts/, tools/; config ruff.toml)
+scripts/dev.sh all             # everything above in a container with CI's exact tools (docs/DEVELOPMENT.md)
 scripts/check_format.sh        # clang-format on lines changed vs origin/main (config .clang-format)
 ```
 
@@ -55,7 +56,7 @@ Current gaps (don't assume these work):
 
 ## Release process (important)
 
-Releases happen **only** when a `v*` tag matching `FW_VERSION` (`src/core/metadata.h`) is pushed. CI checks the tag, runs the tests, builds, publishes `firmware.bin`, `firmware.bin.sha256` and `littlefs.bin` to the Release, and deploys GitHub Pages (`ota/`, `install/`). Pushing to `main` does not release; `ci.yml` checks every push and PR. Never push tags without explicit confirmation. Full procedure: `docs/RELEASING.md`.
+Work happens on a branch per release from `main` (`release/vX.Y.Z`), merged by pull request; personal notes stay in the gitignored `docs/private/` (never commit them, never rewrite history to hide files). Release notes are the `CHANGELOG.md` section for the version (`scripts/release_notes.py`). Releases happen **only** when a `v*` tag matching `FW_VERSION` (`src/core/metadata.h`) is pushed. CI checks the tag, runs the tests, builds, publishes `firmware.bin`, `firmware.bin.sha256` and `littlefs.bin` to the Release, and deploys GitHub Pages (`ota/`, `install/`). Pushing to `main` does not release; `ci.yml` checks every push and PR. Never push tags without explicit confirmation. Full procedure: `docs/RELEASING.md`.
 
 ## Architecture
 

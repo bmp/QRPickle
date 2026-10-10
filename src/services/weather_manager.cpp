@@ -1,4 +1,5 @@
 #include <WiFiClientSecure.h>
+#include "safe_client.h"
 #include "../hw/led_rgb.h"
 #include "net_lock.h"
 #include "weather_manager.h"
@@ -26,7 +27,7 @@ namespace services {
             NetLock lock;
             if (!lock.held()) return;
             // HTTPS so the API key isn't sent in clear (review 3.5); serialised by NetLock.
-            WiFiClientSecure tls;
+            SafeTlsClient tls;  // thread-safe DNS (safe_client.h)
             tls.setInsecure();
             HTTPClient http;
             http.begin(tls, url);
@@ -75,7 +76,7 @@ namespace services {
             NetLock lock;
             if (!lock.held()) return;
             // HTTPS so the API key isn't sent in clear (review 3.5); serialised by NetLock.
-            WiFiClientSecure tls;
+            SafeTlsClient tls;  // thread-safe DNS (safe_client.h)
             tls.setInsecure();
             HTTPClient http;
             http.begin(tls, url);

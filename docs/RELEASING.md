@@ -26,6 +26,9 @@ Releases also publish to **GitHub Pages**: Cloud OTA files under `/ota/` and the
 
 ## Step by step
 
+### 0. Branch
+Work on one branch per release, made from `main`: `git switch -c release/v0.2.2 origin/main` (or `feat/<topic>` for a single change). Push it and open a pull request into `main`; CI runs on every push. Nothing private is ever committed: personal notes live in the gitignored `docs/private/`.
+
 ### 1. Verify on hardware first
 On your release branch:
 ```bash
@@ -42,29 +45,33 @@ If the web console's look changed, regenerate the screenshots in `docs/screensho
 The release build must **not** use the `cyd-debug` environment or `-DQRP_TEST_CRASH_AT_BOOT`.
 
 ### 2. Update the changelog and bump the version
-Summarise what changed since the last release for users: `git log <last tag>..HEAD --oneline` (the previous tag, e.g. `v0.2.0`). Add a section at the top of `CHANGELOG.md`.
+Summarise what changed since the last release for users: `git log <last tag>..HEAD --oneline`. Add a section at the top of `CHANGELOG.md`:
+```markdown
+## v0.2.2 (2026-10-12)
 
-Edit `src/core/metadata.h`:
+One-line summary of the release (devices show "v0.2.2: <this line> ..." up to 127 characters)
+
+Updating from v0.2.1: ...
+
+Fixed
+- ...
+```
+**This section is the release notes**: the release workflow extracts it with `scripts/release_notes.py` for the GitHub Release and the Cloud OTA notes, and fails if it's missing. CI also checks on every push that the section for the current `FW_VERSION` exists.
+
+Then edit `src/core/metadata.h`:
 ```cpp
-constexpr const char* FW_VERSION = "v0.1.12";
+constexpr const char* FW_VERSION     = "v0.2.2";
 ```
-Commit both together. **The commit message becomes the release notes** (GitHub release page, and the first 127 characters on devices' Cloud OTA screen), so use the new `CHANGELOG.md` section, with a short first line:
-```bash
-git commit -am "Release v0.1.12: SOTA spots from the SOTA cluster, faster boot
+and commit both, e.g. `git commit -am "v0.2.2: changelog and version"`. Push the branch.
 
-- SOTA spots work again (the old SOTA API was retired)
-- Fixes occasional freeze ~12 s after power-on
-- Web console now asks for a login (password on the Network screen)"
-```
-
-### 3. Merge to `main`, then tag and push
+### 3. Merge the PR, then tag `main`
+Merge the pull request on GitHub (any merge style works, since the notes don't come from a commit message). Then tag `main`:
 ```bash
-git checkout main
-git merge --ff-only <your-branch>
-git tag v0.1.12
-git push origin main v0.1.12
+git fetch origin
+git tag v0.2.2 origin/main
+git push origin v0.2.2
 ```
-Only the **tag push** starts the release.
+Only the **tag push** starts the release. CI checks that the tag equals `FW_VERSION`.
 
 ### 4. Watch CI
 On GitHub → **Actions** → "Auto-Build and Release":

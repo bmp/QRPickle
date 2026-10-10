@@ -1,4 +1,5 @@
 #include "xota.h"
+#include "../layout.h"
 #include "../theme.h"
 #include "../fonts.h"
 #include "../ui.h"
@@ -36,7 +37,7 @@ namespace ui {
     static lv_timer_t* resume_timer = nullptr;
 
     // Layout (pixels): tabs 0-24, header 24-50, list, 24 px footer, inside a 216 px content area.
-    static constexpr int CONTENT_H = 216;
+    // CONTENT_H (216 px below the status bar) comes from ui/layout.h.
     static constexpr int LIST_TOP = 50;
     static constexpr int FOOT_H = 24;
     
@@ -189,7 +190,7 @@ namespace ui {
         bool dirty = (active_tab == TAB_POTA) ? services::PotaManager::is_dirty() : services::SotaManager::is_dirty();
 
         if (status_dot) {
-            lv_obj_set_style_bg_color(status_dot, fetching ? lv_color_hex(0xFF9900) : lv_color_hex(0x00FF00), 0);
+            lv_obj_set_style_bg_color(status_dot, fetching ? theme_color(COLOR_STATUS_BUSY) : theme_color(COLOR_STATUS_OK), 0);
         }
 
         if (dirty || t == nullptr) { 
@@ -278,7 +279,7 @@ namespace ui {
 
         scr = lv_obj_create(parent);
         // Drawn inside the content area below the status bar (320x216), not the full screen.
-        lv_obj_set_size(scr, 320, CONTENT_H);
+        lv_obj_set_size(scr, SCREEN_W, CONTENT_H);
         lv_obj_set_style_bg_color(scr, theme_color(COLOR_BG_APP), 0);
         lv_obj_set_style_border_width(scr, 0, 0);
         lv_obj_set_style_pad_all(scr, 0, 0);
@@ -290,7 +291,7 @@ namespace ui {
         lv_obj_set_style_border_width(status_dot, 0, 0);
 
         lv_obj_t* tabs = lv_obj_create(scr);
-        lv_obj_set_size(tabs, 320, 24);
+        lv_obj_set_size(tabs, SCREEN_W, 24);
         lv_obj_set_style_bg_color(tabs, theme_color(COLOR_BG_PANEL), 0);
         lv_obj_set_style_border_width(tabs, 0, 0);
         lv_obj_set_style_pad_all(tabs, 0, 0);
@@ -321,7 +322,7 @@ namespace ui {
         lv_obj_center(lbl_tab_sota);
 
         lv_obj_t* head = lv_obj_create(scr);
-        lv_obj_set_size(head, 320, 26);
+        lv_obj_set_size(head, SCREEN_W, 26);
         lv_obj_align(head, LV_ALIGN_TOP_MID, 0, 24);
         lv_obj_set_style_bg_color(head, theme_color(COLOR_BG_PANEL), 0); 
         lv_obj_set_style_border_side(head, LV_BORDER_SIDE_BOTTOM, 0);
@@ -351,7 +352,7 @@ namespace ui {
         lv_obj_t* l6 = lv_label_create(btn_qrp); lv_label_set_text(l6, QRPS[active_qrp]); lv_obj_set_style_text_font(l6, &font_jetbrains_10, 0); lv_obj_set_style_text_color(l6, theme_color(COLOR_TEXT_MAIN), 0); lv_obj_center(l6);
 
         lv_obj_t* foot = lv_obj_create(scr);
-        lv_obj_set_size(foot, 320, FOOT_H);
+        lv_obj_set_size(foot, SCREEN_W, FOOT_H);
         lv_obj_align(foot, LV_ALIGN_BOTTOM_MID, 0, 0);
         lv_obj_set_style_bg_color(foot, theme_color(COLOR_BG_PANEL), 0);
         lv_obj_set_style_border_side(foot, LV_BORDER_SIDE_TOP, 0);
@@ -389,7 +390,7 @@ namespace ui {
         lv_obj_center(lbl_ref);
 
         list_container = lv_obj_create(scr);
-        lv_obj_set_size(list_container, 320, CONTENT_H - LIST_TOP - FOOT_H);  // between header and footer
+        lv_obj_set_size(list_container, SCREEN_W, CONTENT_H - LIST_TOP - FOOT_H);  // between header and footer
         lv_obj_align(list_container, LV_ALIGN_TOP_MID, 0, LIST_TOP);
         lv_obj_set_style_bg_opa(list_container, 0, 0);
         lv_obj_set_style_border_width(list_container, 0, 0);
@@ -408,8 +409,8 @@ namespace ui {
 
         for(int i=0; i<MAX_UI_ROWS; i++) {
             lv_obj_t* r = lv_obj_create(list_container);
-            lv_obj_set_size(r, 320, 20);
-            
+            lv_obj_set_size(r, SCREEN_W, 20);
+
             lv_color_t bg_c = (i % 2 == 0) ? theme_color(COLOR_BG_PANEL) : theme_color(COLOR_BG_APP);
             lv_obj_set_style_bg_color(r, bg_c, 0);
             

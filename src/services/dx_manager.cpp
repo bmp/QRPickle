@@ -184,7 +184,7 @@ namespace services {
     void DxManager::parse_dx_line(const char* line) {
         if (strlen(line) < 60 || !spots) return;
 
-        DxSpot spot{0};
+        DxSpot spot{};
 
         snprintf(spot.spotter, sizeof(spot.spotter), "%.9s", line + 6);
         char* colon = strchr(spot.spotter, ':');
@@ -195,7 +195,7 @@ namespace services {
         snprintf(freq_buf, sizeof(freq_buf), "%.9s", line + 16);
         spot.freq = strtof(freq_buf, nullptr);
 
-        snprintf(spot.dx_call, sizeof(spot.dx_call), "%.12s", line + 26);
+        snprintf(spot.dx_call, sizeof(spot.dx_call), "%.*s", (int)sizeof(spot.dx_call) - 1, line + 26);
         for (int i = strlen(spot.dx_call) - 1; i >= 0 && spot.dx_call[i] == ' '; i--) spot.dx_call[i] = '\0';
 
         snprintf(spot.comment, sizeof(spot.comment), "%.29s", line + 39);

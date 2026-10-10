@@ -4,6 +4,7 @@
 #include "../core/metadata.h" 
 #include <Arduino.h>
 #include <WiFiClientSecure.h>
+#include "safe_client.h"
 #include <HTTPClient.h>
 #include <cstring>
 #include <ctype.h>
@@ -109,8 +110,8 @@ namespace services {
         NetLock lock;
         if (!lock.held()) { fetching = false; return; }
         Serial.println("[POTA] Fetch started.");
-        
-        WiFiClientSecure secureClient;
+
+        SafeTlsClient secureClient;  // thread-safe DNS (safe_client.h)
         secureClient.setInsecure(); 
 
         HTTPClient http;
@@ -138,7 +139,7 @@ namespace services {
                 while (spot_count < 30) {
                     if (!read_next_json_object(stream, chunk, sizeof(chunk))) break;
 
-                    PotaSpot s{0};
+                    PotaSpot s{};
                     char time_buf[24] = {0};
                     extract_json_value(chunk, "spotTime", time_buf, sizeof(time_buf));
                     if (strlen(time_buf) >= 16) snprintf(s.time, sizeof(s.time), "%.5s", time_buf + 11);

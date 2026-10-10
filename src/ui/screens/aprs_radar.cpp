@@ -1,4 +1,5 @@
 #include "aprs_radar.h"
+#include "../layout.h"
 #include "../theme.h"
 #include "../fonts.h"
 #include "../ui.h"
@@ -27,8 +28,8 @@ namespace ui {
         if (idx < services::AprsManager::get_station_count()) {
             lv_label_set_text(lbl_r_call, st[idx].callsign);
             lv_label_set_text(lbl_r_type, st[idx].type);
-            
-            char buf[32];
+
+            char buf[72];  // "Cmt:\n" + comment (up to 63)
             snprintf(buf, sizeof(buf), "Dist: %.1f km", st[idx].distance_km);
             lv_label_set_text(lbl_r_dist, buf);
             
@@ -82,7 +83,7 @@ namespace ui {
 
     void draw_aprs_radar_page(lv_obj_t* parent) {
         scr = lv_obj_create(parent);
-        lv_obj_set_size(scr, 320, 240);
+        lv_obj_set_size(scr, SCREEN_W, SCREEN_H);
         lv_obj_set_style_bg_color(scr, theme_color(COLOR_BG_APP), 0);
         lv_obj_set_style_border_width(scr, 0, 0);
         lv_obj_set_style_pad_all(scr, 0, 0);
