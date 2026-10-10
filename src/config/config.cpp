@@ -34,6 +34,8 @@ namespace config {
         FIELD("ow_key",     STR,  openweather_api_key),
         FIELD("lat",        F32,  lat),
         FIELD("lon",        F32,  lon),
+        FIELD("ll_set",     BOOL, latlon_set),
+        FIELD("band_grp",   U8,   band_groups),
         FIELD("dx_url_p",   STR,  dx_url_primary),
         FIELD("dx_port_p",  U16,  dx_port_primary),
         FIELD("dx_url_s",   STR,  dx_url_secondary),
@@ -105,9 +107,11 @@ namespace config {
         cfg.wifi_ssid[0] = '\0';
         cfg.wifi_password[0] = '\0';
         cfg.openweather_api_key[0] = '\0';
-        cfg.lat = 12.97f;
-        cfg.lon = 77.59f;
-        
+        cfg.lat = DEFAULT_LAT;
+        cfg.lon = DEFAULT_LON;
+        cfg.latlon_set = false;
+        cfg.band_groups = BAND_GROUPS_ALL;
+
         strncpy(cfg.dx_url_primary, "dxspider.co.uk", sizeof(cfg.dx_url_primary) - 1);
         cfg.dx_port_primary = 7300;
         strncpy(cfg.dx_url_secondary, "dxc.w6bgr.com", sizeof(cfg.dx_url_secondary) - 1);
@@ -139,6 +143,8 @@ namespace config {
             bool is_admin = strcmp(f.key, "admin_pw") == 0;
             if ((has_settings || is_admin) && p.isKey(f.key)) read_field(p, f);
         }
+        // Upgrade from v0.2.3 (no marker yet): lat/lon other than the factory values were entered.
+        if (has_settings && !p.isKey("ll_set")) cfg.latlon_set = cfg.lat != DEFAULT_LAT || cfg.lon != DEFAULT_LON;
         p.end();
 
         // First boot (or upgrade): generate the web/AP password and persist it on its own.

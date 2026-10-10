@@ -168,6 +168,31 @@ void test_solar_url() {
     TEST_ASSERT_EQUAL_STRING("https://ok.example/s.xml", dst.solar_url);
 }
 
+void test_location_marker_and_band_groups() {
+    Config prev = base(), c = base();
+    prev.band_groups = 0x0E;
+    c.band_groups = 0xE0;  // no valid bit -> previous choice
+    sanitize(c, prev);
+    TEST_ASSERT_EQUAL_HEX8(0x0E, c.band_groups);
+    c.band_groups = 0xFF;  // extra bits dropped
+    sanitize(c, prev);
+    TEST_ASSERT_EQUAL_HEX8(BAND_GROUPS_ALL, c.band_groups);
+    prev.band_groups = 0;
+    c.band_groups = 0;  // nothing anywhere -> all
+    sanitize(c, prev);
+    TEST_ASSERT_EQUAL_HEX8(BAND_GROUPS_ALL, c.band_groups);
+
+    Config src = base(), dst{};
+    src.latlon_set = true;
+    src.band_groups = 0x06;
+    JsonDocument doc;
+    to_json(src, doc.to<JsonObject>(), Secrets::Include);
+    TEST_ASSERT_TRUE(doc["latlon_set"].as<bool>());
+    from_json(dst, doc.as<JsonObjectConst>());
+    TEST_ASSERT_TRUE(dst.latlon_set);
+    TEST_ASSERT_EQUAL_HEX8(0x06, dst.band_groups);
+}
+
 int main(int, char**) {
     UNITY_BEGIN();
     RUN_TEST(test_valid_config_is_normalised_not_reverted);
@@ -180,5 +205,6 @@ int main(int, char**) {
     RUN_TEST(test_json_missing_wrong_type_and_range);
     RUN_TEST(test_clear_secrets);
     RUN_TEST(test_solar_url);
+    RUN_TEST(test_location_marker_and_band_groups);
     return UNITY_END();
 }

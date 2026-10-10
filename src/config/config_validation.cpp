@@ -121,6 +121,8 @@ namespace config {
         if (c.aprs_ssid < 0 || c.aprs_ssid > 15) c.aprs_ssid = prev.aprs_ssid;
         if (!(c.lat >= -90.0f && c.lat <= 90.0f)) c.lat = prev.lat;  // also rejects NaN
         if (!(c.lon >= -180.0f && c.lon <= 180.0f)) c.lon = prev.lon;
+        c.band_groups &= BAND_GROUPS_ALL;
+        if (!c.band_groups) c.band_groups = prev.band_groups ? prev.band_groups : BAND_GROUPS_ALL;  // at least one
         if (c.dx_port_primary == 0) c.dx_port_primary = prev.dx_port_primary;
         if (c.dx_port_secondary == 0) c.dx_port_secondary = prev.dx_port_secondary;
         if (!is_valid_solar_url(c.solar_url)) memcpy(c.solar_url, prev.solar_url, sizeof(c.solar_url));

@@ -21,6 +21,8 @@ namespace config {
             SECRET("apikey",            openweather_api_key),
             FIELD("lat",          F32,      lat),
             FIELD("lon",          F32,      lon),
+            FIELD("latlon_set",   BOOL,     latlon_set),
+            FIELD("band_groups",  U8,       band_groups),
             FIELD("offset",       TZ_HOURS, tz_offset_hh),
             FIELD("brightness",   U8,       brightness),
             FIELD("auto_bright",  BOOL,     auto_brightness),

@@ -3,6 +3,8 @@
 #include "version_tests.h"
 #include "aprs_tests.h"
 #include "solar_tests.h"
+#include "sun_tests.h"
+#include "band_tests.h"
 
 using services::sota_cluster::ParsedSpot;
 using services::sota_cluster::parse_line;
@@ -113,5 +115,16 @@ int main(int, char**) {
     RUN_TEST(test_solar_parse_updated);
     RUN_TEST(test_solar_fetch_schedule);
     RUN_TEST(test_solar_manual_refresh_limit);
+    RUN_TEST(test_grid_to_latlon);
+    RUN_TEST(test_station_location);
+    RUN_TEST(test_sun_elevation);
+    RUN_TEST(test_next_sun_event);
+    RUN_TEST(test_band_ratings_snapshot);
+    RUN_TEST(test_band_ratings_unknown_until_data);
+    RUN_TEST(test_band_ratings_monotonic);
+    RUN_TEST(test_band_daytime_absorption_and_noise);
+    RUN_TEST(test_band_6m_es_and_f2);
+    RUN_TEST(test_band_model_parts);
+    RUN_TEST(test_band_groups_show_best_band);
     return UNITY_END();
 }
