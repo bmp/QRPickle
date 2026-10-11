@@ -1,4 +1,5 @@
 #include "net_lock.h"
+#include "../core/mem_stats.h"
 #include "ota_ca_certs.h"
 #include "../core/crashlog.h"
 #include "cloud_ota.h"
@@ -25,6 +26,9 @@ namespace services {
         static std::atomic<bool> check_running{false};
         static std::atomic<bool> is_flashing_active{false};
         static bool check_complete = false;
+        static std::atomic<bool> last_ok{false};
+        static std::atomic<uint32_t> last_check_ms{0};  // when the last check finished (0 = none yet)
+        static char last_error[96] = "";  // why the last check failed ("" = it didn't)
 
         // Where CI publishes ota.json + firmware.bin: https://<owner>.github.io/<repo>/ota/
         // (derived from meta::GITHUB_REPO). GitHub's release download host is not reachable with
@@ -95,6 +99,8 @@ namespace services {
                 Serial.printf("[OTA] %s -> HTTP %d (%s; TLS: %s), largest 8-bit block %u B\n", url.c_str(), code,
                               http.errorToString(code).c_str(), t.tls_error().c_str(),
                               (unsigned)heap_caps_get_largest_free_block(MALLOC_CAP_8BIT));
+                snprintf(last_error, sizeof(last_error), "HTTP %d (%s); TLS: %s", code, http.errorToString(code).c_str(),
+                         t.tls_error().c_str());
             } else {
                 crashlog::mark(crashlog::SLOT_GH_OTA, 4);
                 JsonDocument doc;
@@ -119,6 +125,9 @@ namespace services {
             // Only a successful check is final; a failed one (often heap) is retried by the UI timer.
             crashlog::mark(crashlog::SLOT_GH_OTA, 6);
             check_complete = cached_info.latest_version[0] != '\0';
+            last_ok = code == HTTP_CODE_OK && check_complete;
+            if (last_ok) last_error[0] = '\0';
+            last_check_ms = millis();
         }
 
         // Quiet window (review 2.10): TLS needs ~33 KB of contiguous heap plus this task's stack,
@@ -133,6 +142,7 @@ namespace services {
                           cached_info.latest_version[0] ? "OK" : "FAILED",
                           cached_info.latest_version[0] ? cached_info.latest_version : "-", meta::FW_VERSION);
             check_running = false;
+            mem_stats::note_stack(mem_stats::STK_OTA_CHECK);
             vTaskDelete(NULL);
         }
 
@@ -156,6 +166,9 @@ namespace services {
         bool is_update_available() { return cached_info.update_available; }
         bool is_check_running() { return check_running; }
         bool is_check_complete() { return check_complete; }
+        bool last_check_ok() { return last_ok; }
+        const char* last_check_error() { return last_error; }
+        uint32_t last_check_age_s() { return last_check_ms ? (millis() - last_check_ms) / 1000 : 0; }
         ReleaseInfo get_release_info() { return cached_info; }
 
         // On any failure the main loop is parked in the OTA lockdown with services stopped,

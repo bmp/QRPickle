@@ -167,6 +167,11 @@ void web_server_init() {
         mem["lvgl_total"] = m.lvgl_total;
         mem["lvgl_used"] = m.lvgl_used;
         mem["lvgl_max_used"] = m.lvgl_max_used;
+        JsonObject stk = mem["stack_free"].to<JsonObject>();  // bytes never used, lowest seen
+        for (int i = 0; i < mem_stats::STK_COUNT; i++) {
+            const auto slot = (mem_stats::StackSlot)i;
+            if (mem_stats::stack_free(slot)) stk[mem_stats::stack_name(slot)] = mem_stats::stack_free(slot);
+        }
         doc["rssi"] = WiFi.isConnected() ? WiFi.RSSI() : 0;
         doc["ip"] = WiFi.localIP().toString();
         doc["sensor_online"] = sensor_is_online();  // review 5.1: null instead of a fake 0
@@ -477,6 +482,9 @@ void web_server_init() {
         doc["latest_ver"] = info.latest_version;
         doc["notes"] = info.release_notes;
         doc["local_ver"] = meta::FW_VERSION;
+        doc["last_ok"] = services::cloud_ota::last_check_ok();
+        doc["last_age_s"] = services::cloud_ota::last_check_age_s();
+        doc["last_error"] = services::cloud_ota::last_check_error();
 
         serializeJson(doc, *response);
         request->send(response);

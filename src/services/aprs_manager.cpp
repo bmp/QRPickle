@@ -1,4 +1,5 @@
 #include "aprs_parse.h"
+#include "../core/mem_stats.h"
 #include "net_connect.h"
 #include "../core/crashlog.h"
 #include "aprs_manager.h"
@@ -25,9 +26,11 @@ namespace services {
     bool AprsManager::msg_dirty = false;
     bool AprsManager::running = false;
 
-    // Set before the task is created, cleared by the task as its last action.
+    // Created once, then parked (socket closed, 10 KB stack kept) instead of deleted when stopped,
+    // so quiet windows don't move the stack around the heap (docs/MEMORY.md, v0.2.5 coordinator).
     static std::atomic<bool> task_alive{false};
-    
+    static std::atomic<bool> parked{false};
+
     uint32_t AprsManager::tx_count = 0;
     uint32_t AprsManager::last_tx_time = 0;
     static uint32_t loop_last_beacon_millis = 0;
@@ -37,21 +40,28 @@ namespace services {
     static const size_t TX_LEN = 160;
 
     void AprsManager::start() {
-        if (running || task_alive || !config::get().aprs_enabled) return;  // previous task may still be exiting
-        
+        if (running || !config::get().aprs_enabled) return;
+
         if (!stations) stations = (AprsStation*)calloc(30, sizeof(AprsStation));
         if (!messages) messages = (AprsMessage*)calloc(10, sizeof(AprsMessage));
         if (!tx_queue) tx_queue = xQueueCreate(4, TX_LEN);
         
         if (!stations || !messages || !tx_queue) return;
 
+        if (task_alive) {  // parked: wake it
+            running = true;
+            return;
+        }
         running = true;
         task_alive = true;
-        if (xTaskCreate(task_loop, "aprs_task", 10240, NULL, 1, NULL) != pdPASS) {
+        TaskHandle_t handle = nullptr;
+        // 4 KB: measured high-water ~2.3 KB used of the former 10 KB (mem_stats, 2026-10-11).
+        if (xTaskCreate(task_loop, "aprs_task", 4096, NULL, 1, &handle) != pdPASS) {
             running = false;
             task_alive = false;
             Serial.println("[APRS] Task creation failed (heap).");
         }
+        if (handle) mem_stats::watch_stack(mem_stats::STK_APRS, handle);
     }
 
     void AprsManager::stop() {
@@ -59,7 +69,7 @@ namespace services {
         connected = false;
     }
 
-    bool AprsManager::is_stopped() { return !task_alive; }
+    bool AprsManager::is_stopped() { return !task_alive || parked; }
 
     const AprsStation* AprsManager::get_stations() { return stations; }
     size_t AprsManager::get_station_count() { return station_count; }
@@ -323,80 +333,93 @@ namespace services {
         char buffer[256];
         size_t buf_idx = 0;
 
-        while (running) {
-            auto& cfg = config::get();
-            if (!WiFi.isConnected() || strlen(cfg.aprs_passcode) == 0) {
-                vTaskDelay(pdMS_TO_TICKS(4000));
-                continue;
-            }
+        for (;;) {
+            while (running) {
+                auto& cfg = config::get();
+                if (!WiFi.isConnected() || strlen(cfg.aprs_passcode) == 0) {
+                    vTaskDelay(pdMS_TO_TICKS(4000));
+                    continue;
+                }
 
-            if (!client.connected()) {
-                connected = false;
-                crashlog::mark(crashlog::SLOT_APRS, 2);
-                if (connect_host(client, "rotate.aprs.net", 14580, 3000, crashlog::SLOT_APRS)) {
-                    char login[128];
+                if (!client.connected()) {
+                    connected = false;
+                    crashlog::mark(crashlog::SLOT_APRS, 2);
+                    if (connect_host(client, "rotate.aprs.net", 14580, 3000, crashlog::SLOT_APRS)) {
+                        char login[128];
+                        char src_call[20];
+                        if (cfg.aprs_ssid == 0) snprintf(src_call, sizeof(src_call), "%s", cfg.callsign);
+                        else snprintf(src_call, sizeof(src_call), "%s-%d", cfg.callsign, cfg.aprs_ssid);
+
+                        // DYNAMIC VERSION INSERTION
+                        snprintf(login, sizeof(login), "user %s pass %s vers %s %s filter r/%.2f/%.2f/50 p/%s\r\n",
+                                 src_call, cfg.aprs_passcode, meta::FW_NAME, meta::FW_VERSION, cfg.lat, cfg.lon, cfg.callsign);
+
+                        crashlog::mark(crashlog::SLOT_APRS, 3);
+                        client.print(login);
+                        connected = true;
+                        // No beacon on every reconnect (quiet windows reconnect often): the first
+                        // connect beacons (timer still 0), then every 30 min as usual.
+                    } else {
+                        vTaskDelay(pdMS_TO_TICKS(5000));
+                        continue;
+                    }
+                }
+
+                if (millis() - loop_last_beacon_millis > (30 * 60 * 1000) || loop_last_beacon_millis == 0) {
+                    char coord_str[24];
+                    char table_c;
+                    char symbol_c;
+                    convert_decimal_to_aprs(cfg.lat, cfg.lon, coord_str, table_c, symbol_c);
+
+                    char dynamic_cmt[70];
+                    get_current_payload(dynamic_cmt, sizeof(dynamic_cmt));
+
                     char src_call[20];
                     if (cfg.aprs_ssid == 0) snprintf(src_call, sizeof(src_call), "%s", cfg.callsign);
                     else snprintf(src_call, sizeof(src_call), "%s-%d", cfg.callsign, cfg.aprs_ssid);
 
-                    // DYNAMIC VERSION INSERTION
-                    snprintf(login, sizeof(login), "user %s pass %s vers %s %s filter r/%.2f/%.2f/50 p/%s\r\n",
-                             src_call, cfg.aprs_passcode, meta::FW_NAME, meta::FW_VERSION, cfg.lat, cfg.lon, cfg.callsign);
-                             
-                    crashlog::mark(crashlog::SLOT_APRS, 3); client.print(login);
-                    connected = true;
-                    loop_last_beacon_millis = 0;  
-                } else {
-                    vTaskDelay(pdMS_TO_TICKS(5000));
-                    continue;
+                    char beacon[160];
+                    snprintf(beacon, sizeof(beacon), "%s>APRS,TCPIP*:=%s%s\r\n",
+                             src_call, coord_str, dynamic_cmt);
+
+                    crashlog::mark(crashlog::SLOT_APRS, 4);
+                    client.print(beacon);
+                    tx_count++;
+                    last_tx_time = millis();
+                    loop_last_beacon_millis = millis();
+                    if (loop_last_beacon_millis == 0) loop_last_beacon_millis = 1;
                 }
-            }
 
-            if (millis() - loop_last_beacon_millis > (30 * 60 * 1000) || loop_last_beacon_millis == 0) {
-                char coord_str[24]; char table_c; char symbol_c;
-                convert_decimal_to_aprs(cfg.lat, cfg.lon, coord_str, table_c, symbol_c);
-                
-                char dynamic_cmt[70];
-                get_current_payload(dynamic_cmt, sizeof(dynamic_cmt));
-
-                char src_call[20];
-                if (cfg.aprs_ssid == 0) snprintf(src_call, sizeof(src_call), "%s", cfg.callsign);
-                else snprintf(src_call, sizeof(src_call), "%s-%d", cfg.callsign, cfg.aprs_ssid);
-
-                char beacon[160];
-                snprintf(beacon, sizeof(beacon), "%s>APRS,TCPIP*:=%s%s\r\n",  
-                         src_call, coord_str, dynamic_cmt);
-                
-                crashlog::mark(crashlog::SLOT_APRS, 4); client.print(beacon);
-                tx_count++;
-                last_tx_time = millis();
-                loop_last_beacon_millis = millis();
-                if (loop_last_beacon_millis == 0) loop_last_beacon_millis = 1;
-            }
-
-            char out[TX_LEN];
-            while (connected && xQueueReceive(tx_queue, out, 0) == pdTRUE) {
-                client.print(out);
-                client.flush();
-                Serial.printf("[APRS-TX] Sent: %s", out);
-            }
-
-            while (client.available() && running) {
-                char c = client.read();
-                if (c == '\n') {
-                    buffer[buf_idx] = '\0';
-                    if (buf_idx > 0 && buffer[buf_idx - 1] == '\r') buffer[buf_idx - 1] = '\0';
-                    if (buffer[0] != '#') { crashlog::mark(crashlog::SLOT_APRS, 7); process_line(buffer); }
-                    buf_idx = 0;
-                } else if (buf_idx < sizeof(buffer) - 1) {
-                    buffer[buf_idx++] = c;
+                char out[TX_LEN];
+                while (connected && xQueueReceive(tx_queue, out, 0) == pdTRUE) {
+                    client.print(out);
+                    client.flush();
+                    Serial.printf("[APRS-TX] Sent: %s", out);
                 }
+
+                while (client.available() && running) {
+                    char c = client.read();
+                    if (c == '\n') {
+                        buffer[buf_idx] = '\0';
+                        if (buf_idx > 0 && buffer[buf_idx - 1] == '\r') buffer[buf_idx - 1] = '\0';
+                        if (buffer[0] != '#') {
+                            crashlog::mark(crashlog::SLOT_APRS, 7);
+                            process_line(buffer);
+                        }
+                        buf_idx = 0;
+                    } else if (buf_idx < sizeof(buffer) - 1) {
+                        buffer[buf_idx++] = c;
+                    }
+                }
+                crashlog::mark(crashlog::SLOT_APRS, 8);
+                vTaskDelay(pdMS_TO_TICKS(30));
             }
-            crashlog::mark(crashlog::SLOT_APRS, 8); vTaskDelay(pdMS_TO_TICKS(30));
+            client.stop();
+            connected = false;
+            parked = true;  // socket closed: quiet::settled() may go ahead
+            while (!running) vTaskDelay(pdMS_TO_TICKS(200));
+            parked = false;
+            buf_idx = 0;
         }
-        client.stop();
-        connected = false;
-        task_alive = false;
-        vTaskDelete(NULL);
     }
 } // namespace services

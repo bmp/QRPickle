@@ -5,6 +5,7 @@
 #include "quiet_window.h"
 #include "../config/config.h"
 #include "../core/crashlog.h"
+#include "../core/mem_stats.h"
 #include "../core/metadata.h"
 #include "../hw/led_rgb.h"
 #include <Arduino.h>
@@ -157,6 +158,7 @@ namespace services {
         portEXIT_CRITICAL(&result_mux);
         fetching = false;
         crashlog::mark(crashlog::SLOT_SOLAR, 6);
+        mem_stats::note_stack(mem_stats::STK_SOLAR);
         vTaskDelete(NULL);
     }
 

@@ -110,6 +110,26 @@ Count before adding text to a crowded row; the band screen's footer keeps each h
 tile must not swallow the tap: `lv_obj_set_clickable(obj, false)` and
 `lv_obj_set_event_bubble(obj, true)` (see `band_badge_create()`).
 
+## LVGL: what is switched on
+
+To save flash, QRPickle builds only the LVGL parts it uses (`include/lv_conf.h`).
+`scripts/check_lvgl_usage.py` runs before every build and stops it when code uses a part that is
+switched off, or an `LV_SYMBOL_*` the icons font lacks.
+
+| Available | Switched off |
+|---|---|
+| label, button, image, textarea, keyboard (+ buttonmatrix), dropdown, checkbox, slider (+ bar), msgbox, tabview | arc, spinner, switch, list, menu, win, tileview, LED, line, canvas, span, imagebutton, animimg, arclabel, chart, scale, calendar, table, roller, spinbox |
+| flex layout | grid layout, observer (subjects) |
+| fonts in `fonts.h` + icons-only fallback (`font_symbols_10/14`) | LVGL's Montserrat fonts |
+| RGB565 screen, RGB565A8 images, A8 masks | other colour formats (ARGB8888 layers among them) |
+| image cache 16 KB, layer buffer 8 KB | larger caches |
+
+**Before using a switched-off part:** set its `LV_USE_*` to 1 in `include/lv_conf.h`, run
+`pio run -t clean`, then check the flash size (`check_size.py`) and the LVGL peak on the device
+(`/api/status` → `mem`, `docs/MEMORY.md`). A widget often brings theme styles and icons with it:
+the guard tells you which icons to add to `scripts/build_fonts.sh`. Prefer composing the
+available parts (a "switch" can be a checkbox; a "list" a flex column of buttons, as the WiFi scan does).
+
 ## Dashboard and tiles
 
 The dashboard (`screens/dashboard.cpp`) places tiles from `src/ui/widgets/`. A tile is

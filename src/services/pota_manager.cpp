@@ -1,4 +1,5 @@
 #include "net_lock.h"
+#include "../core/mem_stats.h"
 #include "../hw/led_rgb.h"
 #include "pota_manager.h"
 #include "../core/metadata.h" 
@@ -103,6 +104,7 @@ namespace services {
 
     void PotaManager::fetch_task(void*) {
         run_fetch();
+        mem_stats::note_stack(mem_stats::STK_POTA);
         vTaskDelete(NULL);
     }
 
