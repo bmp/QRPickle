@@ -5,6 +5,7 @@
   <out>/install/index.html + versions.json       -> browser installer (ESP Web Tools) with a version list
   <out>/install/<version>/manifest.json + *.bin  -> full-flash images at their flash addresses
   <out>/install/manifest.json + *.bin            -> the latest version (stable links)
+  <out>/space/index.html                          -> about the satellite feed (space-feed branch)
 
 Usage: python3 scripts/make_pages_site.py --build-dir .pio/build/cyd --out site \
            --version v0.2.1 --notes-file notes.txt [--boot-app0 PATH] [--previous-dir DIR] [--keep 5]
@@ -121,6 +122,12 @@ def main():
         shutil.copy(os.path.join(inst, a.version, name), os.path.join(inst, name))
     shutil.copy(os.path.join(inst, a.version, "manifest.json"), os.path.join(inst, "manifest.json"))
     shutil.copy(a.installer_page, os.path.join(inst, "index.html"))
+
+    # About the satellite feed; the feed itself is on the space-feed branch (space-feed.yml).
+    space_page = os.path.join(os.path.dirname(a.installer_page), "space.html")
+    if os.path.isfile(space_page):
+        os.makedirs(os.path.join(a.out, "space"), exist_ok=True)
+        shutil.copy(space_page, os.path.join(a.out, "space", "index.html"))
 
     with open(os.path.join(a.out, "index.html"), "w") as f:
         f.write('<!doctype html><meta http-equiv="refresh" content="0; url=install/">'
