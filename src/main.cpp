@@ -44,7 +44,7 @@ void setup() {
     config::load();
     config::log_summary();
     Serial.flush();
-    services::SpaceManager::init();  // allocate the satellite records early, once
+    services::SpaceManager::init();
 
     Serial.println("[Boot Check] Initializing Sensors...");
     Serial.flush();

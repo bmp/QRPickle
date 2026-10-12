@@ -41,9 +41,24 @@ inline void test_space_parse_event() {
     TEST_ASSERT_FALSE(parse_event(doc.as<JsonObjectConst>(), e));  // ends before it starts
 }
 
+inline void test_space_insert_pass_keeps_earliest() {
+    using namespace services::space;
+    Pass list[3];
+    size_t n = 0;
+    for (uint32_t aos : {500u, 100u, 300u, 200u, 900u, 50u}) {
+        Pass p = {};
+        p.aos = aos;
+        n = insert_pass(list, n, 3, p);
+    }
+    TEST_ASSERT_EQUAL(3, n);
+    TEST_ASSERT_EQUAL_UINT32(50, list[0].aos);
+    TEST_ASSERT_EQUAL_UINT32(100, list[1].aos);
+    TEST_ASSERT_EQUAL_UINT32(200, list[2].aos);
+}
+
 inline void test_space_event_passes_and_alert() {
     using namespace services::space;
-    Sat sats[2] = {};
+    SatInfo sats[2] = {};
     sats[0].norad = ISS;
     sats[1].norad = 27607;
     Event ev[2] = {};

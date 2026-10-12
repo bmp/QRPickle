@@ -64,7 +64,15 @@ namespace services {
             return true;
         }
 
-        void mark_event_passes(Pass* passes, size_t n, const Sat* sats, const Event* events, size_t n_events) {
+        size_t insert_pass(Pass* list, size_t n, size_t cap, const Pass& p) {
+            if (!cap || (n == cap && p.aos >= list[n - 1].aos)) return n;
+            size_t i = n < cap ? n : cap - 1;  // when full the latest pass drops out
+            for (; i > 0 && list[i - 1].aos > p.aos; i--) list[i] = list[i - 1];
+            list[i] = p;
+            return n < cap ? n + 1 : n;
+        }
+
+        void mark_event_passes(Pass* passes, size_t n, const SatInfo* sats, const Event* events, size_t n_events) {
             for (size_t i = 0; i < n; i++) {
                 Pass& p = passes[i];
                 p.flags = 0;

@@ -38,6 +38,7 @@ and follow the rules at the end. Measured on a CYD with v0.2.4 on 2026-10-10.
 | TLS session (mbedTLS) | ~40 KB in total | heap | two ~16.7 KB buffers plus contexts; certificate checks add more |
 | Task stacks | 2-12 KB each | heap | sized from measurements (below): APRS 4 KB, HamAlert 4 KB, AsyncTCP 8 KB, Cloud OTA check 12 KB, solar/POTA fetch 8 KB, DX dial/SOTA 4 KB, LED 2 KB, loopTask 8 KB |
 | WiFi, lwIP, web server | varies | heap | buffers come and go with traffic |
+| Satellites (`space_manager`) | ~3.3 KB static; ~15 KB while passes are computed | static, heap | the feed (~13 KB) lives in LittleFS (`/space.json`), read one object at a time |
 
 Measured after 2 minutes of normal running in v0.2.4: about 98 KB free, the largest 8-bit block
 swinging between 19 and 35 KB, the lowest free heap since boot 0.1-1.8 KB, and the Cloud OTA check
@@ -82,6 +83,9 @@ Stack use, from `/api/status` → `mem.stack_free` (bytes never used, lowest see
    change). Keep the number of distinct images on a page small (the image cache is 16 KB).
 9. **Measure before and after** a change that adds memory (below), and keep the LVGL peak below
    ~56 KB (8 KB margin in the pool).
+10. **Bulky data goes to LittleFS, not RAM.** Holding the satellite feed in RAM (10 KB) was enough
+    to make the Cloud OTA certificate check fail on every boot (2026-10-12, A/B tested). Stream
+    downloads to a file and keep only what screens show; read the rest on demand.
 
 ## Measuring
 

@@ -132,6 +132,7 @@ int main(int, char**) {
     RUN_TEST(test_version_parse_edge_cases);
     RUN_TEST(test_space_parse_sat);
     RUN_TEST(test_space_parse_event);
+    RUN_TEST(test_space_insert_pass_keeps_earliest);
     RUN_TEST(test_space_event_passes_and_alert);
     return UNITY_END();
 }

@@ -57,8 +57,11 @@ namespace ui {
                 const int next = (index + step) % SCREEN_COUNT;
                 if (cfg.cycle_screens & (1u << next)) {
                     index = next;
-                    Serial.printf("[Cycle] screen %d\n", next);
                     show(static_cast<Screen>(next));
+                    lv_mem_monitor_t mon;
+                    lv_mem_monitor(&mon);
+                    Serial.printf("[Cycle] screen %d, LVGL pool %u%% used (peak %u B, largest free %u B)\n", next,
+                                  mon.used_pct, (unsigned)mon.max_used, (unsigned)mon.free_biggest_size);
                     break;
                 }
             }

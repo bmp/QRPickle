@@ -96,9 +96,11 @@ namespace services {
             http.setTimeout(15000);
             crashlog::mark(crashlog::SLOT_GH_OTA, 3); int code = http.GET();
             if (code != HTTP_CODE_OK) {
-                Serial.printf("[OTA] %s -> HTTP %d (%s; TLS: %s), largest 8-bit block %u B\n", url.c_str(), code,
-                              http.errorToString(code).c_str(), t.tls_error().c_str(),
-                              (unsigned)heap_caps_get_largest_free_block(MALLOC_CAP_8BIT));
+                Serial.printf("[OTA] %s -> HTTP %d (%s; TLS: %s), largest 8-bit block %u B, free %u B (min %u B)\n",
+                              url.c_str(), code, http.errorToString(code).c_str(), t.tls_error().c_str(),
+                              (unsigned)heap_caps_get_largest_free_block(MALLOC_CAP_8BIT),
+                              (unsigned)heap_caps_get_free_size(MALLOC_CAP_8BIT),
+                              (unsigned)heap_caps_get_minimum_free_size(MALLOC_CAP_8BIT));
                 snprintf(last_error, sizeof(last_error), "HTTP %d (%s); TLS: %s", code, http.errorToString(code).c_str(),
                          t.tls_error().c_str());
             } else {

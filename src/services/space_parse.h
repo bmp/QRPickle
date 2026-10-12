@@ -29,6 +29,12 @@ namespace services {
             Tx tx[MAX_TX];
             uint8_t tx_count;
         };
+        // What stays in RAM per satellite; the orbits and frequencies stay in the cached feed file.
+        struct SatInfo {
+            uint32_t norad;
+            char name[16];
+            uint8_t categories;
+        };
         enum EventKind : uint8_t { EVENT_CONTACT, EVENT_SSTV };
         struct Event {
             EventKind kind;
@@ -53,8 +59,11 @@ namespace services {
         bool parse_sat(JsonObjectConst o, Sat& out);
         bool parse_event(JsonObjectConst o, Event& out);
 
+        // Adds p to a list sorted by rise time that keeps the earliest cap passes; returns the new size.
+        size_t insert_pass(Pass* list, size_t n, size_t cap, const Pass& p);
+
         // Marks ISS passes that fall in an SSTV event window or carry a school contact.
-        void mark_event_passes(Pass* passes, size_t n, const Sat* sats, const Event* events, size_t n_events);
+        void mark_event_passes(Pass* passes, size_t n, const SatInfo* sats, const Event* events, size_t n_events);
 
         // LED pass alert (docs/LEDColours.md): before an event pass within lead_s, during it, or none.
         enum class Alert : uint8_t { NONE, SOON, NOW };
