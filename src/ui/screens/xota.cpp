@@ -215,8 +215,7 @@ namespace ui {
         // A failed POTA download used to leave an empty list without a word.
         const bool failed = active_tab == TAB_POTA && !fetching && services::PotaManager::last_fetch_failed();
         if (status_dot) {
-            lv_obj_set_style_bg_color(status_dot, fetching ? theme_color(COLOR_STATUS_BUSY)
-                                                  : theme_color(failed ? COLOR_STATUS_ERROR : COLOR_STATUS_OK), 0);
+            lv_obj_set_style_bg_color(status_dot, fetching ? theme_color(COLOR_STATUS_BUSY) : theme_color(failed ? COLOR_STATUS_ERROR : COLOR_STATUS_OK), 0);
         }
         if (lbl_comment && failed != failed_shown) {
             failed_shown = failed;

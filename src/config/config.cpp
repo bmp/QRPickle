@@ -109,7 +109,7 @@ namespace config {
         cfg.theme_id     = 0;
         cfg.tz_offset_hh = 11; 
         cfg.screen_timeout_min = 5;
-        cfg.forecast_slots = 0x0F; 
+        cfg.forecast_slots = 0x0F;
         cfg.wifi_ssid[0] = '\0';
         cfg.wifi_password[0] = '\0';
         cfg.openweather_api_key[0] = '\0';
