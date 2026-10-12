@@ -91,6 +91,15 @@ def check(root):
                                   "(switch it on there, then `pio run -t clean`; docs/UI_GUIDE.md)")
                     break
 
+    # The generated icon fonts must hold the code points listed in the script (regenerated).
+    script = open(os.path.join(root, "scripts", "build_fonts.sh"), encoding="utf-8").read()
+    m = re.search(r'SYMBOLS="([^"]+)"', script)
+    for path in sorted(glob.glob(os.path.join(root, "src", "ui", "fonts", "font_symbols_*_raw.c"))):
+        opts = re.search(r"Opts:.*?-r (\S+)", open(path, encoding="utf-8").read())
+        if m and (not opts or opts.group(1) != m.group(1)):
+            errors.append(f"{os.path.relpath(path, root)} does not match SYMBOLS in scripts/build_fonts.sh: "
+                          "regenerate the icon fonts (scripts/build_fonts.sh)")
+
     lvgl = lvgl_dir(root)
     if not lvgl:
         print("[check_lvgl_usage] note: LVGL not installed yet; symbol check skipped")

@@ -157,6 +157,24 @@ Tile rules:
   `band_groups`), offer it in the web console, and let the tile spread the chosen rows over its
   height (the band tile uses taller rows and the 14 px font for three groups or fewer).
 
+## Screen cycling
+
+`src/ui/screen_cycle.cpp` shows the screens chosen in the settings (`cycle_enabled`,
+`cycle_screens`, `cycle_seconds`; default off, all seven screens, 10 s) one after another.
+
+- It pauses while LVGL has seen a touch in the last 2 minutes (`lv_display_get_inactive_time()`;
+  at boot this also means it starts 2 minutes after the UI), while the backlight sleeps, and while
+  Settings, the menu or APRS messages are open. The loop icon in the status bar (next to sleep and
+  WiFi) is accent-coloured while cycling, muted while paused; tapping it holds the current screen
+  until tapped again.
+- **A screen that starts network work on open needs a passive visit for cycling.** xOTA:
+  `xota_open_for_cycle()` shows the spots already held, pauses nothing and refreshes only old data
+  (POTA 5 min, SOTA 10 min). DX: while it is cycled the cluster stays connected and the cycle
+  reads its socket (`cycle::keeps_dx_connected()`), instead of a new login every round.
+- **Adding a screen to the cycle:** a value in `cycle::Screen` (keep the order: it is the bit in
+  `config::cycle_screens`), raise `CYCLE_SCREENS_ALL`, a case in `show()`, a tick box in the web
+  console, and a passive visit if the screen fetches or connects when opened.
+
 ## Themes
 
 Every colour comes from the theme: `theme_color(TOKEN)` (`theme.h`). Never write `lv_color_hex()`

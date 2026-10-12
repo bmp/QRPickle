@@ -5,6 +5,10 @@ namespace config {
 
     constexpr float DEFAULT_LAT = 12.97f, DEFAULT_LON = 77.59f;  // factory lat/lon (Bengaluru)
     constexpr uint8_t BAND_GROUPS_ALL = 0x1F;
+    // Screen cycling (ui/screen_cycle.h): bit i = cycle screen i (Dashboard, Band Conditions,
+    // Weather, DX Cluster, POTA, SOTA, APRS Radar).
+    constexpr uint16_t CYCLE_SCREENS_ALL = 0x7F;
+    constexpr uint16_t CYCLE_SECONDS_MIN = 10, CYCLE_SECONDS_MAX = 600, CYCLE_SECONDS_DEFAULT = 10;
 
     struct Config {
         char callsign[12];
@@ -24,6 +28,9 @@ namespace config {
         float lon;
         bool latlon_set;  // lat/lon entered by the user; else band conditions use the grid square
         uint8_t band_groups;  // groups on the dashboard band tile, bit 0 = 160-60 m ... bit 4 = 6 m
+        bool cycle_enabled;  // show the chosen screens one after another (off by default)
+        uint16_t cycle_screens;  // CYCLE_SCREENS_* bits
+        uint16_t cycle_seconds;  // per screen, CYCLE_SECONDS_MIN..MAX
 
         char dx_url_primary[64];
         uint16_t dx_port_primary;

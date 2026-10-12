@@ -193,6 +193,32 @@ void test_location_marker_and_band_groups() {
     TEST_ASSERT_EQUAL_HEX8(0x06, dst.band_groups);
 }
 
+void test_screen_cycling_settings() {
+    Config prev = base(), c = base();
+    prev.cycle_screens = 0x15;
+    c.cycle_screens = 0x80;  // no valid bit -> previous choice
+    c.cycle_seconds = 3;  // below the minimum
+    sanitize(c, prev);
+    TEST_ASSERT_EQUAL_HEX16(0x15, c.cycle_screens);
+    TEST_ASSERT_EQUAL_UINT16(CYCLE_SECONDS_MIN, c.cycle_seconds);
+    c.cycle_screens = 0xFFFF;
+    c.cycle_seconds = 5000;
+    sanitize(c, prev);
+    TEST_ASSERT_EQUAL_HEX16(CYCLE_SCREENS_ALL, c.cycle_screens);
+    TEST_ASSERT_EQUAL_UINT16(CYCLE_SECONDS_MAX, c.cycle_seconds);
+
+    Config src = base(), dst{};
+    src.cycle_enabled = true;
+    src.cycle_screens = 0x31;
+    src.cycle_seconds = 45;
+    JsonDocument doc;
+    to_json(src, doc.to<JsonObject>(), Secrets::Include);
+    from_json(dst, doc.as<JsonObjectConst>());
+    TEST_ASSERT_TRUE(dst.cycle_enabled);
+    TEST_ASSERT_EQUAL_HEX16(0x31, dst.cycle_screens);
+    TEST_ASSERT_EQUAL_UINT16(45, dst.cycle_seconds);
+}
+
 int main(int, char**) {
     UNITY_BEGIN();
     RUN_TEST(test_valid_config_is_normalised_not_reverted);
@@ -206,5 +232,6 @@ int main(int, char**) {
     RUN_TEST(test_clear_secrets);
     RUN_TEST(test_solar_url);
     RUN_TEST(test_location_marker_and_band_groups);
+    RUN_TEST(test_screen_cycling_settings);
     return UNITY_END();
 }

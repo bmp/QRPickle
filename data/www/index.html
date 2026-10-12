@@ -88,6 +88,21 @@
                         <option value="6">E-Ink Dark</option>
                     </select>
                 </div>
+                <div class="form-group" style="grid-column: span 2;">
+                    <label style="margin:0;"><input type="checkbox" id="cfg-cycle-en"> Cycle through screens automatically</label>
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; background: rgba(0,0,0,0.2); padding: 12px; border: 1px solid var(--border);">
+                        <label style="margin:0; font-size:12px;"><input type="checkbox" id="cyc-bit0"> Dashboard</label>
+                        <label style="margin:0; font-size:12px;"><input type="checkbox" id="cyc-bit1"> Band Conditions</label>
+                        <label style="margin:0; font-size:12px;"><input type="checkbox" id="cyc-bit2"> Weather</label>
+                        <label style="margin:0; font-size:12px;"><input type="checkbox" id="cyc-bit3"> DX Cluster</label>
+                        <label style="margin:0; font-size:12px;"><input type="checkbox" id="cyc-bit4"> POTA</label>
+                        <label style="margin:0; font-size:12px;"><input type="checkbox" id="cyc-bit5"> SOTA</label>
+                        <label style="margin:0; font-size:12px;"><input type="checkbox" id="cyc-bit6"> APRS Radar</label>
+                    </div>
+                    <label style="margin-top:10px;">Seconds per screen (10-600)</label>
+                    <input type="number" id="cfg-cycle-s" min="10" max="600" step="1">
+                    <p class="hint">A touch pauses cycling on that screen; it resumes after 2 minutes without a touch. The loop icon in the device's status bar shows it and pauses or resumes it. While cycling, POTA and SOTA show the spots already loaded and refresh every 5 or 10 minutes, and the DX cluster stays connected.</p>
+                </div>
 
                 <label class="admin-pw-group" style="grid-column: span 2; font-weight: bold; border-bottom: 1px solid var(--border); padding-bottom: 5px; color: var(--accent); margin-top: 10px;">Admin Password (web login "admin" and QRPickle-Setup WiFi key)</label>
                 <div class="form-group admin-pw-group">

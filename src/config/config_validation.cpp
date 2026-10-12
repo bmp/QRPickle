@@ -123,6 +123,10 @@ namespace config {
         if (!(c.lon >= -180.0f && c.lon <= 180.0f)) c.lon = prev.lon;
         c.band_groups &= BAND_GROUPS_ALL;
         if (!c.band_groups) c.band_groups = prev.band_groups ? prev.band_groups : BAND_GROUPS_ALL;  // at least one
+        c.cycle_screens &= CYCLE_SCREENS_ALL;
+        if (!c.cycle_screens) c.cycle_screens = prev.cycle_screens ? prev.cycle_screens : CYCLE_SCREENS_ALL;
+        if (c.cycle_seconds < CYCLE_SECONDS_MIN) c.cycle_seconds = CYCLE_SECONDS_MIN;
+        if (c.cycle_seconds > CYCLE_SECONDS_MAX) c.cycle_seconds = CYCLE_SECONDS_MAX;
         if (c.dx_port_primary == 0) c.dx_port_primary = prev.dx_port_primary;
         if (c.dx_port_secondary == 0) c.dx_port_secondary = prev.dx_port_secondary;
         if (!is_valid_solar_url(c.solar_url)) memcpy(c.solar_url, prev.solar_url, sizeof(c.solar_url));

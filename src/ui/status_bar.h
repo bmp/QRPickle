@@ -18,5 +18,7 @@ namespace ui {
     void status_bar_set_wifi(bool connected);
     void status_bar_set_update_available(bool available);
     void status_bar_refresh_theme();
+    // Screen-cycling icon: 0 off (hidden), 1 running, 2/3 paused (ui::cycle::State).
+    void status_bar_set_cycle(int state);
 
 }  // namespace ui

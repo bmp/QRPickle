@@ -18,6 +18,7 @@ namespace ui {
 
     void ui_init();
     void ui_navigate_local(LocalPage page);
+    LocalPage ui_active_page();
     void display_update();
 
 }  // namespace ui

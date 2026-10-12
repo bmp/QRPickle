@@ -10,9 +10,9 @@
 #include "../config/config.h"
 #include "../config/config_validation.h"
 #include "../config/config_json.h"
+#include "../ui/ui.h"
 #ifdef QRP_SCREEN_TOOLS
 #include "../core/screen_tools.h"
-#include "../ui/ui.h"
 #endif
 #include "json_copy.h"
 #include <atomic>
@@ -158,6 +158,7 @@ void web_server_init() {
         AsyncResponseStream *response = request->beginResponseStream("application/json");
         JsonDocument doc;
         doc["uptime"] = millis() / 1000;
+        doc["ui_page"] = static_cast<int>(ui::ui_active_page());  // ui::LocalPage (tests, screen cycling)
         doc["heap"] = ESP.getFreeHeap();
         const auto& m = mem_stats::get();  // sampled on the main loop every 5 s
         JsonObject mem = doc["mem"].to<JsonObject>();

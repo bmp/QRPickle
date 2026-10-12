@@ -1,16 +1,12 @@
 /*
- * Icons-only fallback font (LV_SYMBOL_* used by QRPickle and its LVGL widgets, plus degree sign
- * and bullet), converted with lv_font_conv by scripts/build_fonts.sh.
- * Font Awesome 5 Free glyphs: Copyright Fonticons, Inc. (https://fontawesome.com)
- * Degree sign and bullet: Copyright 2020 The JetBrains Mono Project Authors
- * (https://github.com/JetBrains/JetBrainsMono)
- * Licensed under the SIL Open Font License, Version 1.1: see assets/fonts/OFL-LVGL-builtin.txt and
- * assets/fonts/OFL-JetBrainsMono.txt
+ * Converted from $(basename "$font_path") with lv_font_conv (glyphs 0x20-0x7F).
+ * $copyright
+ * Licensed under the SIL Open Font License, Version 1.1: see $licence_file
  */
 /*******************************************************************************
  * Size: 14 px
  * Bpp: 4
- * Opts: --no-compress --no-prefilter --bpp 4 --size 14 --font assets/fonts/FontAwesome5-Solid+Brands+Regular.woff -r 0xf00b,0xf00c,0xf00d,0xf013,0xf015,0xf021,0xf043,0xf053,0xf054,0xf06e,0xf070,0xf078,0xf093,0xf11c,0xf124,0xf1eb,0xf55a,0xf8a2 --font assets/fonts/JetBrainsMono-Bold.ttf -r 0xB0,0x2022 --format lvgl --lv-include lvgl.h -o src/ui/fonts/font_symbols_14_raw.c
+ * Opts: --no-compress --no-prefilter --bpp 4 --size 14 --font assets/fonts/FontAwesome5-Solid+Brands+Regular.woff -r 0xf00b,0xf00c,0xf00d,0xf013,0xf015,0xf021,0xf043,0xf053,0xf054,0xf06e,0xf070,0xf078,0xf079,0xf093,0xf11c,0xf124,0xf1eb,0xf55a,0xf8a2 --font assets/fonts/JetBrainsMono-Bold.ttf -r 0xB0,0x2022 --format lvgl --lv-include lvgl.h -o src/ui/fonts/font_symbols_14_raw.c
  ******************************************************************************/
 
 #ifdef LV_LVGL_H_INCLUDE_SIMPLE
@@ -193,6 +189,21 @@ static LV_ATTRIBUTE_LARGE_CONST const uint8_t glyph_bitmap[] = {
     0x0, 0x2e, 0xf4, 0x0, 0x0, 0x0, 0x0, 0x0,
     0x13, 0x0, 0x0, 0x0,
 
+    /* U+F079 "" */
+    0x0, 0x8, 0x30, 0x0, 0x0, 0x0, 0x0, 0x0,
+    0x0, 0x0, 0xbf, 0xf3, 0x8, 0xbb, 0xbb, 0xbb,
+    0x90, 0x0, 0xb, 0xff, 0xff, 0x39, 0xff, 0xff,
+    0xff, 0xf1, 0x0, 0x8f, 0xcf, 0xcf, 0xf0, 0x0,
+    0x0, 0xa, 0xf1, 0x0, 0x38, 0x2f, 0x94, 0x80,
+    0x0, 0x0, 0xa, 0xf1, 0x0, 0x0, 0x2f, 0x90,
+    0x0, 0x0, 0x0, 0xa, 0xf1, 0x0, 0x0, 0x2f,
+    0x90, 0x0, 0x0, 0x3, 0xa, 0xf1, 0x30, 0x0,
+    0x2f, 0x90, 0x0, 0x0, 0x1f, 0xcb, 0xf8, 0xf8,
+    0x0, 0x2f, 0xeb, 0xbb, 0xbb, 0x39, 0xff, 0xff,
+    0xe2, 0x0, 0x1f, 0xff, 0xff, 0xff, 0xb0, 0x9f,
+    0xfd, 0x20, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+    0x8, 0xd1, 0x0,
+
     /* U+F093 "" */
     0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
     0x0, 0x1, 0xdd, 0x10, 0x0, 0x0, 0x0, 0x0,
@@ -305,12 +316,13 @@ static const lv_font_fmt_txt_glyph_dsc_t glyph_dsc[] = {
     {.bitmap_index = 753, .adv_w = 252, .box_w = 16, .box_h = 11, .ofs_x = 0, .ofs_y = 0},
     {.bitmap_index = 841, .adv_w = 280, .box_w = 18, .box_h = 15, .ofs_x = 0, .ofs_y = -2},
     {.bitmap_index = 976, .adv_w = 196, .box_w = 13, .box_h = 8, .ofs_x = 0, .ofs_y = 1},
-    {.bitmap_index = 1028, .adv_w = 224, .box_w = 14, .box_h = 15, .ofs_x = 0, .ofs_y = -2},
-    {.bitmap_index = 1133, .adv_w = 252, .box_w = 16, .box_h = 11, .ofs_x = 0, .ofs_y = 0},
-    {.bitmap_index = 1221, .adv_w = 224, .box_w = 16, .box_h = 15, .ofs_x = -1, .ofs_y = -2},
-    {.bitmap_index = 1341, .adv_w = 280, .box_w = 18, .box_h = 13, .ofs_x = 0, .ofs_y = -1},
-    {.bitmap_index = 1458, .adv_w = 280, .box_w = 18, .box_h = 11, .ofs_x = 0, .ofs_y = 0},
-    {.bitmap_index = 1557, .adv_w = 225, .box_w = 15, .box_h = 10, .ofs_x = 0, .ofs_y = 0}
+    {.bitmap_index = 1028, .adv_w = 280, .box_w = 18, .box_h = 11, .ofs_x = 0, .ofs_y = 0},
+    {.bitmap_index = 1127, .adv_w = 224, .box_w = 14, .box_h = 15, .ofs_x = 0, .ofs_y = -2},
+    {.bitmap_index = 1232, .adv_w = 252, .box_w = 16, .box_h = 11, .ofs_x = 0, .ofs_y = 0},
+    {.bitmap_index = 1320, .adv_w = 224, .box_w = 16, .box_h = 15, .ofs_x = -1, .ofs_y = -2},
+    {.bitmap_index = 1440, .adv_w = 280, .box_w = 18, .box_h = 13, .ofs_x = 0, .ofs_y = -1},
+    {.bitmap_index = 1557, .adv_w = 280, .box_w = 18, .box_h = 11, .ofs_x = 0, .ofs_y = 0},
+    {.bitmap_index = 1656, .adv_w = 225, .box_w = 15, .box_h = 10, .ofs_x = 0, .ofs_y = 0}
 };
 
 /*---------------------
@@ -319,8 +331,8 @@ static const lv_font_fmt_txt_glyph_dsc_t glyph_dsc[] = {
 
 static const uint16_t unicode_list_0[] = {
     0x0, 0x1f72, 0xef5b, 0xef5c, 0xef5d, 0xef63, 0xef65, 0xef71,
-    0xef93, 0xefa3, 0xefa4, 0xefbe, 0xefc0, 0xefc8, 0xefe3, 0xf06c,
-    0xf074, 0xf13b, 0xf4aa, 0xf7f2
+    0xef93, 0xefa3, 0xefa4, 0xefbe, 0xefc0, 0xefc8, 0xefc9, 0xefe3,
+    0xf06c, 0xf074, 0xf13b, 0xf4aa, 0xf7f2
 };
 
 /*Collect the unicode lists and glyph_id offsets*/
@@ -328,7 +340,7 @@ static const lv_font_fmt_txt_cmap_t cmaps[] =
 {
     {
         .range_start = 176, .range_length = 63475, .glyph_id_start = 1,
-        .unicode_list = unicode_list_0, .glyph_id_ofs_list = NULL, .list_length = 20, .type = LV_FONT_FMT_TXT_CMAP_SPARSE_TINY
+        .unicode_list = unicode_list_0, .glyph_id_ofs_list = NULL, .list_length = 21, .type = LV_FONT_FMT_TXT_CMAP_SPARSE_TINY
     }
 };
 

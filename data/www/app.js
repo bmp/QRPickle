@@ -97,6 +97,10 @@ function fillForm(data) {
     setElementValue("cfg-offset", data.offset ?? 5.5);
     setElementValue("cfg-brightness", data.brightness ?? 180);
     setElementValue("cfg-timeout", data.timeout ?? 5);
+    setElementValue("cfg-cycle-en", !!data.cycle_en, true);
+    setElementValue("cfg-cycle-s", data.cycle_s ?? 10);
+    const cycleMask = data.cycle_screens ?? 127;
+    for (let i = 0; i < 7; i++) setElementValue(`cyc-bit${i}`, (cycleMask & (1 << i)) !== 0, true);
     setElementValue("cfg-theme", data.theme_id ?? 0);
 
     // Secrets are never sent to the browser (review 1.3): blank fields keep the stored value.
@@ -155,6 +159,9 @@ function collectForm() {
         brightness: parseInt(getElementValue("cfg-brightness")),
         theme_id: parseInt(getElementValue("cfg-theme")),
         timeout: parseInt(getElementValue("cfg-timeout")),
+        cycle_en: getElementValue("cfg-cycle-en", true),
+        cycle_s: parseInt(getElementValue("cfg-cycle-s")) || 10,
+        cycle_screens: [0, 1, 2, 3, 4, 5, 6].reduce((m, i) => m | (getElementValue(`cyc-bit${i}`, true) ? 1 << i : 0), 0) || 127,
         fc_slots: forecastMask,
         dx_url_p: getElementValue("dx_url_p"),
         dx_port_p: parseInt(getElementValue("dx_port_p")),

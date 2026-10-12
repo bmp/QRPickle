@@ -1,6 +1,7 @@
 #include "ui.h"
 #include "layout.h"
 #include "status_bar.h"
+#include "screen_cycle.h"
 #include "sidebar.h"
 #include "home_button.h"
 #include "theme.h"
@@ -150,6 +151,8 @@ namespace ui {
                 ui_navigate_local(PAGE_DASHBOARD);
             });
 
+            cycle::init();  // screen cycling (off unless enabled in the settings)
+
             if (config::get().aprs_enabled) {
                 services::AprsManager::start();
             }
@@ -244,6 +247,8 @@ namespace ui {
             }
         }
     }
+
+    LocalPage ui_active_page() { return active_page; }
 
     void display_update() {
         static uint32_t last_tick = millis();
