@@ -52,7 +52,12 @@
     <p>Settings (<code>nvs</code>, <code>0x9000</code>) are kept unless you erase the device.</p>
   </details>
   <p>After installing, the device opens a <code>QRPickle-Setup</code> WiFi network. Its password and the web
-     console login are shown on the device's Network screen.</p>
+     console login are shown on the device's Network screen. Join it, open <code>http://192.168.4.1</code> (user
+   <code>admin</code>, the same password) and enter your WiFi network, callsign and grid square; the device then
+   joins your network.</p>
+<p>The CYD has no battery-backed clock: at every start it sets its time from the internet (NTP) as soon as it is
+   on WiFi, and the clock shows <code>--:--</code> until then. UTC is always right; for local time set your UTC
+   offset in Settings (half-hour steps, no automatic daylight saving).</p>
   <p>Already running QRPickle v0.2.0 or later? Update over WiFi instead: <strong>Cloud OTA</strong> on the device or in the web console.
      Older versions need this installer once. Erasing also clears your settings and profiles, so download a
      backup first (web console → Profiles → Download Backup) where available.</p>
