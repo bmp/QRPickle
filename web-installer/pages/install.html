@@ -55,6 +55,16 @@
     <li>Connect the CYD with a USB <em>data</em> cable.</li>
     <li>Click <strong>Install QRPickle</strong> and pick the serial port.</li>
   </ol>
+  <div class="msg msg-info small">
+    <strong>"Failed to initialize"?</strong> Hold the CYD's <strong>BOOT</strong> button, click Install QRPickle, pick
+    the port, and release BOOT once installing starts. Still failing: replug the cable, close other programs using the
+    serial port, or try another USB data cable.<br>
+    <strong>On Linux</strong>, Chromium 154 (and possibly other Chromium-based browsers) leaves the port at its previous
+    speed, which is 9600 after plugging in, so no installer can talk to the board. Before installing, run
+    <code>stty -F /dev/ttyUSB0 115200</code> (your board's port), or add the udev rule from the manual so it is
+    set automatically. Then hold BOOT as above. Or flash from a terminal with <code>esptool</code>
+    (<a href="../manual/#downloading-pre-compiled-releases">commands and the rule in the manual</a>).
+  </div>
   <esp-web-install-button id="install" manifest="manifest.json">
     <button slot="activate" class="install-btn">Install QRPickle</button>
     <span slot="unsupported" class="note">This browser can't access USB serial ports. Use Chrome or Edge on a computer.</span>
@@ -77,18 +87,18 @@
     // addresses (from partitions.csv). Each mode is a manifest built here for ESP Web Tools.
     let versions = [], parts = [], manifestUrl = null;
     const MODES = [
-      {id: "full", label: "Full install",
+      {id: "full", label: "Full install", dialog: "QRPickle (full install)",
        desc: "Everything: bootloader, partition table, firmware and web console files. Writing the web console " +
              "files deletes saved profiles (download a backup first); settings stay. You will be asked " +
              "\"Erase device\": tick it for a clean start, which also clears settings. For a new board.",
        files: ["bootloader.bin", "partitions.bin", "boot_app0.bin", "firmware.bin", "littlefs.bin"]},
-      {id: "firmware", label: "Firmware only",
+      {id: "firmware", label: "Firmware only", dialog: "QRPickle (firmware only; settings and profiles kept)",
        desc: "Only the firmware (and the record of which slot to start from). Settings, profiles and the web " +
              "console files stay: leave \"Erase device\" unticked when asked. The board must already run " +
              "QRPickle v0.2.0 or later; the web console files stay at their old version until a full install " +
              "or a filesystem upload.",
        files: ["boot_app0.bin", "firmware.bin"]},
-      {id: "custom", label: "Custom",
+      {id: "custom", label: "Custom", dialog: "QRPickle (custom: chosen images only)",
        desc: "Pick the images and their addresses (from the partition table). Writing the web console files " +
              "erases saved profiles. Leave \"Erase device\" unticked when asked, unless you want the whole " +
              "chip cleared. Only change an address if you know why.",
@@ -211,7 +221,8 @@
       // Always ask about erasing. Without the question, ESP Web Tools ERASES THE WHOLE CHIP on boards that
       // don't speak Improv Serial (QRPickle doesn't): "Firmware only" would then wipe settings and leave no
       // bootloader. With the question, an unticked "Erase device" writes only the chosen images.
-      const manifest = {name: "QRPickle", version: v.version, new_install_prompt_erase: true,
+      // The dialogs show the manifest name ("Do you want to install <name> <version>?"): it names the mode.
+      const manifest = {name: m.dialog, version: v.version, new_install_prompt_erase: true,
                         builds: [{chipFamily: "ESP32", parts: chosen.map(p => ({path: new URL(p.path, base).href, offset: p.offset}))}]};
       if (manifestUrl) URL.revokeObjectURL(manifestUrl);
       manifestUrl = URL.createObjectURL(new Blob([JSON.stringify(manifest)], {type: "application/json"}));

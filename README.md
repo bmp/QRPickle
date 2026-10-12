@@ -183,6 +183,35 @@ The release folder contains the following files:
 * `littlefs.bin` (The Web UI and filesystem data)
 * `bootloader.bin` & `partitions.bin` (Low-level ESP32 boot structures)
 * `License`, `THIRD_PARTY_NOTICES.md` and the font licences (`OFL-*.txt`) (in the ZIP)
+* `boot_app0.bin` (marks the first app slot as the one to start)
+
+**Flashing from a terminal** (when a browser can't connect): install
+`esptool` (`pipx install esptool`, or use PlatformIO's copy), connect the CYD and run, from the folder with
+the downloaded files:
+
+```bash
+# Firmware only: settings, profiles and the web console files stay
+esptool --chip esp32 --port /dev/ttyUSB0 write_flash 0xe000 boot_app0.bin 0x10000 firmware.bin
+# Everything (a new board); add "erase_flash" first for a clean start, which also clears settings
+esptool --chip esp32 --port /dev/ttyUSB0 write_flash 0x1000 bootloader.bin 0x8000 partitions.bin \
+  0xe000 boot_app0.bin 0x10000 firmware.bin 0x390000 littlefs.bin
+```
+
+The port is `/dev/ttyUSB0` on Linux, `/dev/cu.usbserial-…` on macOS, `COM3` (or similar) on Windows. Older
+`esptool` versions are called `esptool.py`.
+
+**Web installer on Linux.** Chromium 154 on Linux (seen with the Flatpak and Fedora builds) doesn't set the serial
+port's speed: the port keeps its previous speed, 9600 after plugging in, and the installer reports "Failed to
+initialize". Run `stty -F /dev/ttyUSB0 115200` before installing, or set it automatically whenever a CH340 board
+is plugged in with a udev rule (`/etc/udev/rules.d/99-ch340.rules`, then `sudo udevadm control --reload-rules`
+and replug):
+
+```
+SUBSYSTEM=="tty", ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="7523", MODE="0660", TAG+="uaccess", RUN+="/usr/bin/stty -F /dev/%k 115200"
+```
+
+Then hold **BOOT** while clicking Install and release it once installing starts (the browser can't switch the CYD
+into download mode by itself there). Other Chromium-based browsers on Linux may behave the same.
 
 ---
 
