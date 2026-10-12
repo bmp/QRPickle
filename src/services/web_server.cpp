@@ -161,6 +161,7 @@ void web_server_init() {
         doc["heap"] = ESP.getFreeHeap();
         const auto& m = mem_stats::get();  // sampled on the main loop every 5 s
         JsonObject mem = doc["mem"].to<JsonObject>();
+        mem["heap_free"] = m.heap_free;  // 8-bit (byte-addressable); "heap" above also counts IRAM
         mem["heap_min_free"] = m.heap_min_free;
         mem["largest_block"] = m.largest_block;
         mem["largest_block_min"] = m.largest_block_min;

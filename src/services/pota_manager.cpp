@@ -110,7 +110,10 @@ namespace services {
 
     void PotaManager::run_fetch() {
         NetLock lock;
-        if (!lock.held()) { fetching = false; return; }
+        if (!lock.held() || !tls_heap_ready("POTA fetch")) {
+            fetching = false;
+            return;
+        }
         Serial.println("[POTA] Fetch started.");
 
         SafeTlsClient secureClient;  // thread-safe DNS (safe_client.h)

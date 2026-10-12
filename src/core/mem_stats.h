@@ -6,7 +6,7 @@
 namespace mem_stats {
 
     struct Stats {
-        uint32_t heap_free;  // now
+        uint32_t heap_free;  // now (8-bit)
         uint32_t heap_min_free;  // lowest since boot
         uint32_t largest_block;  // now
         uint32_t largest_block_min;  // lowest since boot

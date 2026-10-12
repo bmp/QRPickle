@@ -84,7 +84,7 @@ namespace services {
             }
 
             NetLock lock;
-            if (!lock.held()) return;
+            if (!lock.held() || !tls_heap_ready("Update check")) return;
             const String url = base_url() + "ota.json";
             Transport t;
             HTTPClient http;

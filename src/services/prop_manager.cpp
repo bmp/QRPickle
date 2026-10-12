@@ -103,7 +103,7 @@ namespace services {
         solar::SolarData parsed;
         {
             NetLock lock;
-            if (lock.held()) {
+            if (lock.held() && (!https || tls_heap_ready("Solar fetch"))) {
                 crashlog::mark(crashlog::SLOT_SOLAR, 2);
                 SafeClient plain;  // thread-safe DNS (safe_client.h)
                 SafeTlsClient tls;
