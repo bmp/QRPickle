@@ -47,7 +47,6 @@ nav a.active { font-weight:bold; text-decoration:none; }
 .readme table img { width:100%; max-width:250px; }
 .readme pre { background:var(--code-bg); color:var(--code-color); padding:.6em; overflow-x:auto; }
 .readme pre code { background:none; padding:0; }
-.details > h1:first-child { display:none; }  /* the README's "QRPickle": the site title says it */
 .manual h1 { font-size:1.5rem; border-top:1px solid var(--td-border); padding-top:1rem; margin-top:2rem; }
 .toc { border-left:3px solid var(--link-color); background:var(--row-odd); padding:.4em 1em; margin:1rem 0 2rem; }
 .toc h2 { font-size:1.1rem; margin:.3em 0; }

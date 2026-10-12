@@ -3,7 +3,7 @@ name: Pages
 # Rebuilds the website (microsite pages, installer, Cloud OTA files) without a firmware release:
 # after site or docs changes on main, or by hand (Actions -> Pages -> Run workflow). The firmware
 # files come from the latest GitHub release, so ota/ and install/ stay exactly as released; only
-# the pages around them (home, details, manual, space feed) follow main. A version tag still
+# the pages around them (home, manual, space feed) follow main. A version tag still
 # rebuilds everything through release.yml.
 
 on:

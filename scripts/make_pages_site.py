@@ -5,8 +5,8 @@
   <out>/install/index.html + versions.json       -> browser installer (ESP Web Tools) with a version list
   <out>/install/<version>/manifest.json + *.bin  -> full-flash images at their flash addresses
   <out>/install/manifest.json + *.bin            -> the latest version (stable links)
-  <out>/index.html, details/, manual/, space/     -> the microsite: home with a screen tour, the README
-                                                     ("Details"), the manual as one page, the satellite feed
+  <out>/index.html, manual/, space/              -> the microsite: home with a screen tour, the manual
+                                                     as one page, the satellite feed
 
 Usage: python3 scripts/make_pages_site.py --build-dir .pio/build/cyd --out site \
            --version v0.2.1 --notes-file notes.txt [--boot-app0 PATH] [--previous-dir DIR] [--keep 5]
@@ -72,8 +72,7 @@ def find_boot_app0(explicit):
 SITE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "web-installer")
 REPO_ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 # The microsite's pages: (fragment in web-installer/pages, output folder, menu label).
-PAGES = [("home.html", "", "Home"), ("details.html", "details", "Details"),
-         ("install.html", "install", "Install"), ("manual.html", "manual", "Manual"),
+PAGES = [("home.html", "", "Home"), ("install.html", "install", "Install"), ("manual.html", "manual", "Manual"),
          ("space.html", "space", "Space feed")]
 # mailto with the address as HTML entities, as on bharathpalavalli.com (fewer harvesters).
 CONTACT = "".join(f"&#{ord(c)};" for c in "mailto:vu3glj@disroot.org")
@@ -105,15 +104,6 @@ def manual_html(ref):
         return absolute_repo_links(open(out, encoding="utf-8").read(), ref)
 
 
-def readme_html(ref):
-    """README.md as an HTML fragment (pandoc), its repository links made absolute for `ref`."""
-    md = open(os.path.join(REPO_ROOT, "README.md"), encoding="utf-8").read()
-    if not shutil.which("pandoc"):
-        raise SystemExit("pandoc is needed for the README page")
-    html = subprocess.run(["pandoc", "-f", "gfm", "-t", "html"], input=md, capture_output=True,
-                          text=True, check=True).stdout
-    return absolute_repo_links(html, ref)
-
 
 def render_pages(out, ref):
     """Every page = web-installer/layout.html around a fragment from web-installer/pages."""
@@ -127,8 +117,6 @@ def render_pages(out, ref):
         if m:
             head, text = m.group(1).rstrip(), text.replace(m.group(0), "")
         body, _, scripts = text.partition("<!-- scripts -->\n")
-        if "{{README}}" in body:
-            body = body.replace("{{README}}", readme_html(ref))
         if "{{MANUAL}}" in body:
             body = body.replace("{{MANUAL}}", manual_html(ref))
         root = "../" if folder else ""
@@ -156,7 +144,7 @@ def main():
     ap.add_argument("--notes-file", required=True)
     ap.add_argument("--boot-app0")
     ap.add_argument("--previous-dir")
-    ap.add_argument("--ref", help="git ref for the README/manual images and links (default: --version)")
+    ap.add_argument("--ref", help="git ref for the manual's images and links (default: --version)")
     ap.add_argument("--keep", type=int, default=5, help="versions offered by the installer, incl. this one")
     a = ap.parse_args()
     if parse_version(a.version) is None:
@@ -203,7 +191,7 @@ def main():
     for name, _ in PARTS:
         shutil.copy(os.path.join(inst, a.version, name), os.path.join(inst, name))
     shutil.copy(os.path.join(inst, a.version, "manifest.json"), os.path.join(inst, "manifest.json"))
-    # The microsite pages (home, details, install, manual, space); images come from this tag.
+    # The microsite pages (home, install, manual, space); images come from this ref.
     render_pages(a.out, a.ref or a.version)
     open(os.path.join(a.out, ".nojekyll"), "w").close()
     print(f"site: {a.out}  version {a.version}  firmware sha256 {sha}")
