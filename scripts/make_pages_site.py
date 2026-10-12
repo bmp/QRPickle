@@ -76,7 +76,9 @@ def write_version(inst, version, files, notes):
     with open(os.path.join(vdir, "manifest.json"), "w") as f:
         json.dump({"name": "QRPickle", "version": version, "new_install_prompt_erase": True,
                    "builds": [{"chipFamily": "ESP32", "parts": parts}]}, f, indent=2)
-    return {"version": version, "manifest": f"{version}/manifest.json", "notes": notes}
+    # Sizes let the installer's custom mode check that images don't overlap or leave the flash.
+    sizes = {name: os.path.getsize(os.path.join(vdir, name)) for name, _ in PARTS}
+    return {"version": version, "manifest": f"{version}/manifest.json", "notes": notes, "sizes": sizes}
 
 def find_boot_app0(explicit):
     if explicit:

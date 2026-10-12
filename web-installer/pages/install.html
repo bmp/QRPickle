@@ -37,19 +37,40 @@
       <tbody id="custom-rows"></tbody>
     </table>
     <p class="small"><a href="#" onclick="resetAddresses(); return false;">Reset addresses</a> to the partition table's.</p>
-    <p id="custom-error" class="note hidden"></p>
+  </div>
+  <div id="errors" class="msg msg-error hidden" role="alert">
+    <strong>Can't install yet:</strong>
+    <ul id="error-list"></ul>
+  </div>
+  <div id="warnings" class="msg msg-warn hidden">
+    <strong>Check before installing:</strong>
+    <ul id="warning-list"></ul>
+  </div>
+  <div id="effect" class="msg msg-info">
+    <strong>This install will:</strong>
+    <ul id="effect-list"></ul>
   </div>
   <ol>
     <li>Use <strong>Chrome or Edge</strong> on a computer (Web Serial is required).</li>
     <li>Connect the CYD with a USB <em>data</em> cable.</li>
     <li>Click <strong>Install QRPickle</strong> and pick the serial port.</li>
   </ol>
+  <div class="msg msg-info small">
+    <strong>"Failed to initialize"?</strong> Hold the CYD's <strong>BOOT</strong> button, click Install QRPickle, pick
+    the port, and release BOOT once installing starts. Still failing: replug the cable, close other programs using the
+    serial port, or try another USB data cable.<br>
+    <strong>On Linux</strong>, Chromium 154 (and possibly other Chromium-based browsers) leaves the port at its previous
+    speed, which is 9600 after plugging in, so no installer can talk to the board. Before installing, run
+    <code>stty -F /dev/ttyUSB0 115200</code> (your board's port), or add the udev rule from the manual so it is
+    set automatically. Then hold BOOT as above. Or flash from a terminal with <code>esptool</code>
+    (<a href="../manual/#downloading-pre-compiled-releases">commands and the rule in the manual</a>).
+  </div>
   <esp-web-install-button id="install" manifest="manifest.json">
     <button slot="activate" class="install-btn">Install QRPickle</button>
     <span slot="unsupported" class="note">This browser can't access USB serial ports. Use Chrome or Edge on a computer.</span>
     <span slot="not-allowed" class="note">The installer needs a secure (https) page.</span>
   </esp-web-install-button>
-  <p class="small">Settings live in <code>nvs</code> at <code>0x9000</code>: only "Erase device" (full install) clears them.</p>
+  <p class="small">Settings live in <code>nvs</code> at <code>0x9000</code>: Full install and Firmware only never write there, so they keep your settings unless you tick "Erase device".</p>
   <p>After installing, the device opens a <code>QRPickle-Setup</code> WiFi network. Its password and the web
      console login are shown on the device's Network screen. Join it, open <code>http://192.168.4.1</code> (user
    <code>admin</code>, the same password) and enter your WiFi network, callsign and grid square; the device then
@@ -66,19 +87,22 @@
     // addresses (from partitions.csv). Each mode is a manifest built here for ESP Web Tools.
     let versions = [], parts = [], manifestUrl = null;
     const MODES = [
-      {id: "full", label: "Full install",
-       desc: "Everything: bootloader, partition table, firmware and web console files. You will be offered " +
-             "\"Erase device\": tick it for a clean start (it also clears settings and profiles). For a new board.",
-       files: ["bootloader.bin", "partitions.bin", "boot_app0.bin", "firmware.bin", "littlefs.bin"], erase: true},
-      {id: "firmware", label: "Firmware only",
+      {id: "full", label: "Full install", dialog: "QRPickle (full install)",
+       desc: "Everything: bootloader, partition table, firmware and web console files. Writing the web console " +
+             "files deletes saved profiles (download a backup first); settings stay. You will be asked " +
+             "\"Erase device\": tick it for a clean start, which also clears settings. For a new board.",
+       files: ["bootloader.bin", "partitions.bin", "boot_app0.bin", "firmware.bin", "littlefs.bin"]},
+      {id: "firmware", label: "Firmware only", dialog: "QRPickle (firmware only; settings and profiles kept)",
        desc: "Only the firmware (and the record of which slot to start from). Settings, profiles and the web " +
-             "console files stay. The board must already run QRPickle v0.2.0 or later; the web console " +
-             "files stay at their old version until a full install or a filesystem upload.",
-       files: ["boot_app0.bin", "firmware.bin"], erase: false},
-      {id: "custom", label: "Custom",
+             "console files stay: leave \"Erase device\" unticked when asked. The board must already run " +
+             "QRPickle v0.2.0 or later; the web console files stay at their old version until a full install " +
+             "or a filesystem upload.",
+       files: ["boot_app0.bin", "firmware.bin"]},
+      {id: "custom", label: "Custom", dialog: "QRPickle (custom: chosen images only)",
        desc: "Pick the images and their addresses (from the partition table). Writing the web console files " +
-             "erases saved profiles. Only change an address if you know why.",
-       files: null, erase: false},
+             "erases saved profiles. Leave \"Erase device\" unticked when asked, unless you want the whole " +
+             "chip cleared. Only change an address if you know why.",
+       files: null},
     ];
     function mode() { return document.getElementById("mode").value; }
 
@@ -101,21 +125,66 @@
       update();
     }
 
-    // The chosen images and addresses, or an error text.
-    function chosenParts() {
+    // The flash areas (partitions.csv; the bootloader and partition table at the ESP32's fixed places).
+    const AREAS = [
+      {name: "bootloader", start: 0x1000, end: 0x8000},
+      {name: "partition table", start: 0x8000, end: 0x9000},
+      {name: "settings (nvs)", start: 0x9000, end: 0xE000, keep: "your settings (WiFi, callsign, keys)", guard: true},
+      {name: "start-slot record (otadata)", start: 0xE000, end: 0x10000, guard: true, owner: "boot_app0.bin"},
+      {name: "firmware slot app0", start: 0x10000, end: 0x1D0000},
+      {name: "firmware slot app1", start: 0x1D0000, end: 0x390000, keep: "the second firmware slot (app1)"},
+      {name: "web console files (LittleFS)", start: 0x390000, end: 0x400000,
+       keep: "the web console files and your saved profiles"},
+    ];
+    const hex = n => "0x" + n.toString(16).toUpperCase();
+    const range = (a, b) => `${hex(a)}–${hex(b - 1)}`;
+    const areasOf = (a, b) => AREAS.filter(r => a < r.end && b > r.start);
+
+    // What the chosen mode would write: {parts: [{path, offset, end}], errors: [], warnings: []}.
+    // Each image is written to whole 4 KB sectors from its address; nothing else on the chip is erased
+    // unless "Erase device" is ticked in the installer's dialog.
+    function plan(v) {
       const m = MODES.find(x => x.id === mode());
-      if (m.files) return parts.filter(p => m.files.includes(p.path)).map(p => ({path: p.path, offset: parseInt(p.offset, 16)}));
-      const out = [];
-      for (let i = 0; i < parts.length; i++) {
-        if (!document.getElementById("c" + i).checked) continue;
-        const text = document.getElementById("a" + i).value.trim();
-        const off = /^0x[0-9a-f]+$/i.test(text) ? parseInt(text, 16) : NaN;
-        if (isNaN(off) || off % 0x1000 || off >= 0x400000)
-          return `${parts[i].path}: the address must be hex (0x...), a multiple of 0x1000 and inside the 4 MB flash.`;
-        if (out.some(p => p.offset === off)) return `${parts[i].path}: another image already goes to ${text}.`;
-        out.push({path: parts[i].path, offset: off});
+      const out = {parts: [], errors: [], warnings: []};
+      const sizes = v.sizes || {};
+      const picks = m.files
+        ? parts.filter(p => m.files.includes(p.path)).map(p => ({path: p.path, text: p.offset}))
+        : parts.map((p, i) => ({path: p.path, text: document.getElementById("a" + i).value.trim(),
+                                ticked: document.getElementById("c" + i).checked})).filter(x => x.ticked);
+      if (!picks.length) out.errors.push("Tick at least one image.");
+      for (const x of picks) {
+        const off = /^0x[0-9a-f]+$/i.test(x.text) ? parseInt(x.text, 16) : NaN;
+        if (isNaN(off) || off % 0x1000) {
+          out.errors.push(`${x.path}: "${x.text}" is not a valid address. Use hex such as 0x10000, in steps of 0x1000.`);
+          continue;
+        }
+        const size = sizes[x.path];
+        if (!size) {
+          out.errors.push(`${x.path}: its size isn't known for ${v.version}. Use Full install or Firmware only.`);
+          continue;
+        }
+        const end = off + Math.ceil(size / 0x1000) * 0x1000;
+        if (end > 0x400000) {
+          out.errors.push(`${x.path} needs ${range(off, end)}, past the end of the 4 MB flash (0x3FFFFF). Use a lower address.`);
+          continue;
+        }
+        const clash = out.parts.find(q => off < q.end && end > q.offset);
+        if (clash) {
+          out.errors.push(`${x.path} (${range(off, end)}) overlaps ${clash.path} (${range(clash.offset, clash.end)}). Move one of them.`);
+          continue;
+        }
+        for (const r of areasOf(off, end))
+          if (r.guard && r.owner !== x.path)
+            out.warnings.push(`${x.path} will overwrite the ${r.name} area (${range(r.start, r.end)}).`);
+        out.parts.push({path: x.path, offset: off, end});
       }
-      return out.length ? out : "Tick at least one image.";
+      return out;
+    }
+
+    function fillList(id, items) {
+      const ul = document.getElementById(id);
+      ul.textContent = "";
+      for (const t of items) { const li = document.createElement("li"); li.textContent = t; ul.appendChild(li); }
     }
 
     function update() {
@@ -132,16 +201,28 @@
         const changed = parseInt(document.getElementById("a" + i).value, 16) !== parseInt(p.offset, 16);
         document.getElementById("d" + i).classList.toggle("changed", changed);
       });
-      const chosen = chosenParts();
-      const err = document.getElementById("custom-error");
-      err.classList.toggle("hidden", typeof chosen !== "string");
-      err.textContent = typeof chosen === "string" ? chosen : "";
+      const pl = plan(v);
+      fillList("error-list", pl.errors);
+      fillList("warning-list", pl.warnings);
+      document.getElementById("errors").classList.toggle("hidden", !pl.errors.length);
+      document.getElementById("warnings").classList.toggle("hidden", !pl.warnings.length);
+      const effect = pl.parts.map(q => `Write ${q.path} to ${range(q.offset, q.end)} (${areasOf(q.offset, q.end).map(r => r.name).join(", ")}).`);
+      const kept = AREAS.filter(r => r.keep && !pl.parts.some(q => q.offset < r.end && q.end > r.start)).map(r => r.keep);
+      if (kept.length) effect.push("Keep " + kept.join("; ") + ", as long as \"Erase device\" stays unticked.");
+      effect.push("Ticking \"Erase device\" clears the whole chip first, including everything above.");
+      fillList("effect-list", pl.errors.length ? [] : effect);
+      document.getElementById("effect").classList.toggle("hidden", !!pl.errors.length);
       const button = document.getElementById("install");
-      button.classList.toggle("disabled", typeof chosen === "string");
-      if (typeof chosen === "string") return;
+      button.classList.toggle("disabled", !!pl.errors.length);
+      if (pl.errors.length) return;
+      const chosen = pl.parts;
       // Absolute image URLs: the manifest is a blob, so relative paths would have nothing to resolve against.
       const base = new URL(v.manifest, location.href);
-      const manifest = {name: "QRPickle", version: v.version, new_install_prompt_erase: m.erase,
+      // Always ask about erasing. Without the question, ESP Web Tools ERASES THE WHOLE CHIP on boards that
+      // don't speak Improv Serial (QRPickle doesn't): "Firmware only" would then wipe settings and leave no
+      // bootloader. With the question, an unticked "Erase device" writes only the chosen images.
+      // The dialogs show the manifest name ("Do you want to install <name> <version>?"): it names the mode.
+      const manifest = {name: m.dialog, version: v.version, new_install_prompt_erase: true,
                         builds: [{chipFamily: "ESP32", parts: chosen.map(p => ({path: new URL(p.path, base).href, offset: p.offset}))}]};
       if (manifestUrl) URL.revokeObjectURL(manifestUrl);
       manifestUrl = URL.createObjectURL(new Blob([JSON.stringify(manifest)], {type: "application/json"}));
