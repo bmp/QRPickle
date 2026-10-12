@@ -351,7 +351,7 @@ void web_server_init() {
         }
         int page = request->getParam("page")->value().toInt();
         int theme = request->hasParam("theme") ? request->getParam("theme")->value().toInt() : -1;
-        if (page < 0 || page > ui::PAGE_CLOUD_OTA || theme > config::THEME_ID_MAX) {
+        if (page < 0 || page > ui::PAGE_SATELLITES || theme > config::THEME_ID_MAX) {
             request->send(400);
             return;
         }

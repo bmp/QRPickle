@@ -19,6 +19,5 @@ namespace hw {
 
         // Satellite pass alert overlay (services/space_manager; docs/LEDColours.md).
         void set_pass_alert(PassAlert alert);
-        
     }
 }

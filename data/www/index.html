@@ -238,6 +238,33 @@
                     </div>
                     <p class="hint">At least one. The Band Conditions screen always shows every band.</p>
                 </div>
+
+                <label style="grid-column: span 2; font-weight: bold; border-bottom: 1px solid var(--border); padding-bottom: 5px; color: var(--accent); margin-top: 10px;">Satellites</label>
+                <div class="form-group" style="grid-column: span 2;">
+                    <label>Show Passes Of</label>
+                    <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 10px; background: rgba(0,0,0,0.2); padding: 12px; border: 1px solid var(--border);">
+                        <label style="margin:0; font-size:12px;"><input type="checkbox" id="sat-bit0"> FM</label>
+                        <label style="margin:0; font-size:12px;"><input type="checkbox" id="sat-bit1"> Linear (SSB/CW)</label>
+                        <label style="margin:0; font-size:12px;"><input type="checkbox" id="sat-bit2"> SSTV</label>
+                        <label style="margin:0; font-size:12px;"><input type="checkbox" id="sat-bit3"> Voice beacons</label>
+                        <label style="margin:0; font-size:12px;"><input type="checkbox" id="sat-bit4"> APRS digipeaters</label>
+                    </div>
+                    <p class="hint">At least one. The ISS counts as FM, SSTV and APRS.</p>
+                </div>
+                <div class="form-group">
+                    <label>Minimum Elevation (degrees, 0-60)</label>
+                    <input type="number" id="sat-min-el" min="0" max="60" step="1">
+                </div>
+                <div class="form-group">
+                    <label>LED Alert Before An Event Pass (minutes, 1-120)</label>
+                    <input type="number" id="pass-alert-min" min="1" max="120" step="1">
+                    <label style="margin-top:6px;"><input type="checkbox" id="pass-alert-en"> LED alerts for ISS SSTV and school-contact passes</label>
+                </div>
+                <div class="form-group" style="grid-column: span 2;">
+                    <label>Own Satellite Feed URL:</label>
+                    <input type="url" id="space_url" maxlength="95" placeholder="Empty: the QRPickle feed on GitHub">
+                    <p class="hint">Leave empty for the feed built on GitHub every 6 hours (SatNOGS DB, CelesTrak, ARISS). Your own source must serve the same JSON (tools/space_feed). Passes are computed on the device: your location is never sent.</p>
+                </div>
             </div>
         </section>
 

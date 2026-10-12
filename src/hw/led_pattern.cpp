@@ -41,6 +41,5 @@ namespace hw {
                     return Rgb{0, 0, 0};
             }
         }
-
     }
 }

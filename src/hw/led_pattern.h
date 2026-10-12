@@ -24,7 +24,9 @@ namespace hw {
 
         // Satellite pass alert (services/space_manager): an ISS pass with an SSTV event or school
         // contact is coming (SOON: purple double blink every 10 s) or under way (NOW: slow purple breathing).
-        enum class PassAlert : uint8_t { NONE, SOON, NOW };
+        enum class PassAlert : uint8_t { NONE,
+                                         SOON,
+                                         NOW };
         constexpr uint32_t PASS_SOON_PERIOD_MS = 10000;
         constexpr uint32_t PASS_NOW_PERIOD_MS = 4000;
 

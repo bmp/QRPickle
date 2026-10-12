@@ -39,6 +39,7 @@ namespace ui {
     static lv_obj_t* cb_auto_bright = nullptr;
     static lv_obj_t* cb_aprs = nullptr;  // APRS on/off
     static lv_obj_t* cb_cycle = nullptr;  // screen cycling on/off
+    static lv_obj_t* cb_pass = nullptr;  // LED satellite pass alerts on/off
     static bool pending_auto_brightness = false;
     
     // Layout bindings for timeout modifier row
@@ -108,7 +109,7 @@ namespace ui {
         if (btn_profile)   { lv_obj_set_style_bg_color(btn_profile, bg_panel, 0); lv_obj_set_style_border_color(btn_profile, border, 0); }
         if (lbl_profile)   lv_obj_set_style_text_color(lbl_profile, txt_main, 0);
 
-        for (lv_obj_t* cb : {cb_auto_bright, cb_aprs, cb_cycle}) {
+        for (lv_obj_t* cb : {cb_auto_bright, cb_aprs, cb_cycle, cb_pass}) {
             if (!cb) continue;
             lv_obj_set_style_text_color(cb, txt_main, 0);
             lv_obj_set_style_bg_color(cb, bg_panel, LV_PART_INDICATOR);
@@ -210,6 +211,7 @@ namespace ui {
             }
             if (cb_aprs) lv_obj_set_state(cb_aprs, LV_STATE_CHECKED, p_data.aprs_enabled);
             if (cb_cycle) lv_obj_set_state(cb_cycle, LV_STATE_CHECKED, p_data.cycle_enabled);
+            if (cb_pass) lv_obj_set_state(cb_pass, LV_STATE_CHECKED, p_data.pass_alert_enabled);
 
             pending_theme_id = p_data.theme_id;
             if (lbl_theme) lv_label_set_text(lbl_theme, theme_get_name(pending_theme_id));
@@ -284,6 +286,7 @@ namespace ui {
         bool new_auto_bright = lv_obj_has_state(cb_auto_bright, LV_STATE_CHECKED);
         const bool new_aprs = lv_obj_has_state(cb_aprs, LV_STATE_CHECKED);
         const bool new_cycle = lv_obj_has_state(cb_cycle, LV_STATE_CHECKED);
+        const bool new_pass_alert = lv_obj_has_state(cb_pass, LV_STATE_CHECKED);
 
         const char* new_call = lv_textarea_get_text(ta_call);
         const char* new_grid = lv_textarea_get_text(ta_grid);
@@ -301,6 +304,7 @@ namespace ui {
                           c.auto_brightness != new_auto_bright ||
                           c.aprs_enabled != new_aprs ||
                           c.cycle_enabled != new_cycle ||
+                          c.pass_alert_enabled != new_pass_alert ||
                           c.theme_id != pending_theme_id ||
                           c.screen_timeout_min != pending_timeout_min)) {
             modified = true;
@@ -327,6 +331,7 @@ namespace ui {
             const bool aprs_changed = mc.aprs_enabled != new_aprs;
             mc.aprs_enabled = new_aprs;
             mc.cycle_enabled = new_cycle;  // ui/screen_cycle.cpp follows the setting
+            mc.pass_alert_enabled = new_pass_alert;  // space_manager follows it within 5 s
             mc.theme_id = pending_theme_id;
             mc.screen_timeout_min = pending_timeout_min; 
 
@@ -525,20 +530,25 @@ namespace ui {
 
         // Services: switched in the field without the web console.
         lv_obj_t* svc_row = lv_obj_create(form);
-        lv_obj_set_size(svc_row, 250, 24);
+        lv_obj_set_size(svc_row, 250, 52);
         lv_obj_set_style_bg_opa(svc_row, LV_OPA_TRANSP, 0);
         lv_obj_set_style_border_width(svc_row, 0, 0);
         lv_obj_set_style_pad_all(svc_row, 0, 0);
         cb_aprs = lv_checkbox_create(svc_row);
         lv_checkbox_set_text(cb_aprs, " APRS");
         lv_obj_set_style_text_font(cb_aprs, &font_atkinson_14, 0);
-        lv_obj_align(cb_aprs, LV_ALIGN_LEFT_MID, 0, 0);
+        lv_obj_align(cb_aprs, LV_ALIGN_TOP_LEFT, 0, 2);
         lv_obj_set_state(cb_aprs, LV_STATE_CHECKED, c.aprs_enabled);
         cb_cycle = lv_checkbox_create(svc_row);
         lv_checkbox_set_text(cb_cycle, " Cycle screens");
         lv_obj_set_style_text_font(cb_cycle, &font_atkinson_14, 0);
-        lv_obj_align(cb_cycle, LV_ALIGN_RIGHT_MID, 0, 0);
+        lv_obj_align(cb_cycle, LV_ALIGN_TOP_RIGHT, 0, 2);
         lv_obj_set_state(cb_cycle, LV_STATE_CHECKED, c.cycle_enabled);
+        cb_pass = lv_checkbox_create(svc_row);
+        lv_checkbox_set_text(cb_pass, " Satellite pass alerts (LED)");
+        lv_obj_set_style_text_font(cb_pass, &font_atkinson_14, 0);
+        lv_obj_align(cb_pass, LV_ALIGN_BOTTOM_LEFT, 0, -2);
+        lv_obj_set_state(cb_pass, LV_STATE_CHECKED, c.pass_alert_enabled);
 
         make_label(form, "UI Theme");
         btn_theme = lv_btn_create(form);
@@ -616,6 +626,7 @@ namespace ui {
             btn_timeout_minus = nullptr;
             cb_aprs = nullptr;
             cb_cycle = nullptr;
+            cb_pass = nullptr;
             btn_timeout_plus = nullptr;
             lbl_timeout = nullptr;
             btn_exit = nullptr;

@@ -11,7 +11,7 @@ namespace services {
                 case 's': return CAT_SSTV;
                 case 'v': return CAT_VOICE;
                 case 'a': return CAT_APRS;
-                default: return 0;
+                default:  return 0;
             }
         }
 

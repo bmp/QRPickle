@@ -92,6 +92,5 @@ namespace hw {
         }
 
         void set_pass_alert(PassAlert alert) { pass_alert = alert; }
-
     }
 }

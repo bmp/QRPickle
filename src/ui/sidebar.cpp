@@ -11,17 +11,17 @@ namespace ui {
 
     struct Item { const char* label; DestScreen dest; };
     static const Item ITEMS[] = {
-        {"Dashboard",   DEST_DASHBOARD},
-        {"Weather",     DEST_WEATHER},
-        {"Network",     DEST_NETWORK},
-        {"Settings",    DEST_SETTINGS},
-        {"DX Cluster",  DEST_SPOTS},
-        {"xOTA",        DEST_XOTA},
-        {"APRS",        DEST_APRS},// Now routes to unified module
+        {"Dashboard", DEST_DASHBOARD},
+        {"Weather", DEST_WEATHER},
+        {"Network", DEST_NETWORK},
+        {"Settings", DEST_SETTINGS},
+        {"DX Cluster", DEST_SPOTS},
+        {"xOTA", DEST_XOTA},
+        {"APRS", DEST_APRS},  // Now routes to unified module
         {"Propagation", DEST_PROP},
-        {"HamAlert",    DEST_HAMALERT},
-        {"Cloud OTA",   DEST_CLOUD_OTA}
-    };
+        {"HamAlert", DEST_HAMALERT},
+        {"Cloud OTA", DEST_CLOUD_OTA},
+        {"Satellites", DEST_SATELLITES}};
     static constexpr int ITEM_COUNT = sizeof(ITEMS) / sizeof(ITEMS[0]);
 
     static void item_clicked(lv_event_t* e) {
@@ -91,7 +91,7 @@ namespace ui {
         int cols = 2;
         int rows = (ITEM_COUNT + cols - 1) / cols; 
         int grid_pad = 8;
-        int grid_gap = 8;
+        int grid_gap = rows > 5 ? 6 : 8;
 
         int usable_w = SCREEN_W - (grid_pad * 2);
         int usable_h = 210 - (grid_pad * 2);

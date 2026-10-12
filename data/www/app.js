@@ -131,6 +131,12 @@ function fillForm(data) {
     setElementValue("cfg-latlon-set", !!data.latlon_set, true);
     const groups = data.band_groups ?? 31;
     for (let i = 0; i < 5; i++) setElementValue(`bg-bit${i}`, (groups & (1 << i)) !== 0, true);
+    const satCats = data.sat_categories ?? 15;
+    for (let i = 0; i < 5; i++) setElementValue(`sat-bit${i}`, (satCats & (1 << i)) !== 0, true);
+    setElementValue("sat-min-el", data.sat_min_el ?? 10);
+    setElementValue("pass-alert-en", data.pass_alert_en ?? true, true);
+    setElementValue("pass-alert-min", data.pass_alert_min ?? 30);
+    setElementValue("space_url", data.space_url || "");
     checkLatLonGrid();
 }
 
@@ -170,6 +176,11 @@ function collectForm() {
         solar_url: getElementValue("solar_url").trim(),
         latlon_set: getElementValue("cfg-latlon-set", true),
         band_groups: bandGroups || 31,  // the device also refuses "none"
+        sat_categories: [0, 1, 2, 3, 4].reduce((m, i) => m | (getElementValue(`sat-bit${i}`, true) ? 1 << i : 0), 0) || 15,
+        sat_min_el: parseInt(getElementValue("sat-min-el")) || 0,
+        pass_alert_en: getElementValue("pass-alert-en", true),
+        pass_alert_min: parseInt(getElementValue("pass-alert-min")) || 30,
+        space_url: getElementValue("space_url").trim(),
         aprs_en: getElementValue("cfg-aprs-en") === "1",
         aprs_pass: getElementValue("cfg-aprs-pass"),
         aprs_ssid: parseInt(getElementValue("cfg-aprs-ssid")),

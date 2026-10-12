@@ -25,7 +25,7 @@ import zlib
 
 W, H = 320, 240
 PAGES = ["dashboard", "weather", "network", "settings", "spots", "xota", "aprs", "aprs_radar",
-         "aprs_msg", "band_cond", "hamalert", "cloud_ota"]
+         "aprs_msg", "band_cond", "hamalert", "cloud_ota", "satellites"]
 THEMES = ["classic", "field_red", "slate_dark", "light", "terminal_green", "eink_light", "eink_dark"]
 
 # Screens beyond the pages: (page, taps, settle seconds). Taps are screen coordinates (320 x 240,
