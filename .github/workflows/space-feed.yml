@@ -1,0 +1,57 @@
+name: Space feed
+
+# Builds the satellite/ARISS feed the CYD downloads (tools/space_feed/build_feed.py) and publishes
+# it as the single commit of the `space-feed` branch:
+#   https://raw.githubusercontent.com/<owner>/<repo>/space-feed/space.json
+# Sources: SatNOGS DB (CC BY-SA 4.0), CelesTrak, ARISS; the feed itself is CC BY-SA 4.0.
+# The branch is replaced on every run (one commit), so it doesn't grow.
+
+on:
+  schedule:
+    - cron: '17 */6 * * *'   # every 6 hours, off the full hour
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: space-feed
+  cancel-in-progress: false
+
+jobs:
+  feed:
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.x'
+
+      - name: Builder tests
+        run: python3 -m unittest discover -s tools/space_feed
+
+      - name: Build the feed
+        run: python3 tools/space_feed/build_feed.py --out "$RUNNER_TEMP/space.json"
+
+      - name: Publish to the space-feed branch
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          rm -rf feed && mkdir feed && cd feed
+          git init -q -b space-feed
+          cp "$RUNNER_TEMP/space.json" space.json
+          cat > README.md <<'TXT'
+          # QRPickle space feed
+
+          Built every 6 hours by `.github/workflows/space-feed.yml` from `tools/space_feed/build_feed.py`
+          on the main branch. Amateur satellites (orbits, transmitters) and ARISS events for the CYD,
+          which computes passes itself and sends no location. Sources: SatNOGS DB (CC BY-SA 4.0),
+          CelesTrak, ARISS. This feed is licensed CC BY-SA 4.0.
+          TXT
+          sed -i 's/^          //' README.md
+          git add space.json README.md
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "space feed $(date -u +%Y-%m-%dT%H:%MZ)"
+          git push -q --force "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" space-feed
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
