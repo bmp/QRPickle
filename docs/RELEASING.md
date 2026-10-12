@@ -9,6 +9,8 @@ Devices on the field pick up new releases through **Cloud OTA** (sidebar menu �
 Releases also publish to **GitHub Pages**: Cloud OTA files under `/ota/` and the browser installer under `/install/` (https://bmp.github.io/QRPickle/install/, also at https://quixotic.bharathpalavalli.com/QRPickle/install/, the address the README gives).
 
 The same site is also published to **Quixotic Pursuits** (https://quixotic.bharathpalavalli.com/QRPickle/, repo `bmp/quixotic`): the release workflow force-pushes it as the single commit of that repo's `qrpickle-site` branch and asks its Pages workflow to rebuild. The step is skipped until the `QUIXOTIC_TOKEN` secret exists (fine-grained token, repository `bmp/quixotic` only, permissions Contents and Actions: read and write). Devices keep using `bmp.github.io/QRPickle/ota/`, so both sites stay.
+
+**Site or docs only (no firmware change):** merge to `main`; `.github/workflows/pages.yml` rebuilds the site (home, Details, Manual, Space feed) from `main` around the latest release's files, which stay byte-identical, and publishes both sites. It runs on pushes that touch `web-installer/`, `README.md`, `docs/` or the two site scripts, or by hand (Actions → Pages → Run workflow). No version bump or tag.
 1. Repository **Settings → Pages → Build and deployment → Source: GitHub Actions**.
 2. **Settings → Environments → github-pages → Deployment branches and tags → Add rule → Tag, pattern `v*`.** By default only the default branch may deploy, and releases run from tags.
 

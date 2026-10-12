@@ -1,0 +1,100 @@
+name: Pages
+
+# Rebuilds the website (microsite pages, installer, Cloud OTA files) without a firmware release:
+# after site or docs changes on main, or by hand (Actions -> Pages -> Run workflow). The firmware
+# files come from the latest GitHub release, so ota/ and install/ stay exactly as released; only
+# the pages around them (home, details, manual, space feed) follow main. A version tag still
+# rebuilds everything through release.yml.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "web-installer/**"
+      - "README.md"
+      - "docs/**"
+      - "THIRD_PARTY_NOTICES.md"
+      - "scripts/make_pages_site.py"
+      - "scripts/build_manual.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  pages:
+    runs-on: ubuntu-26.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.x'
+
+      - name: Install Pandoc
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq pandoc
+
+      # The latest release's five images and notes, and earlier ones for the installer's list.
+      - name: Download releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          LATEST=$(gh release view --json tagName -q .tagName)
+          echo "LATEST=$LATEST" >> "$GITHUB_ENV"
+          mkdir -p latest previous
+          gh release download "$LATEST" -D latest -p bootloader.bin -p partitions.bin \
+            -p boot_app0.bin -p firmware.bin -p littlefs.bin
+          { printf '%s: ' "$LATEST"; gh release view "$LATEST" --json body -q .body; } > latest/notes.txt
+          gh release list --limit 30 --json tagName -q '.[].tagName' | while read -r tag; do
+            [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || continue
+            [ "$tag" = "$LATEST" ] && continue
+            mkdir -p "previous/$tag"
+            if gh release download "$tag" -D "previous/$tag" -p bootloader.bin -p partitions.bin \
+                 -p boot_app0.bin -p firmware.bin -p littlefs.bin; then
+              gh release view "$tag" --json body -q .body > "previous/$tag/notes.txt"
+            else
+              rm -rf "previous/$tag"   # releases before v0.2.0 lack some files
+            fi
+          done
+
+      - name: Build Pages site
+        run: |
+          python3 scripts/make_pages_site.py --build-dir latest --boot-app0 latest/boot_app0.bin \
+            --out site --version "$LATEST" --notes-file latest/notes.txt --previous-dir previous --ref main
+
+      - uses: actions/configure-pages@v6
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: site
+          include-hidden-files: true
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
+
+      # Same as in release.yml: the site also appears at quixotic.bharathpalavalli.com/QRPickle/.
+      - name: Publish to Quixotic Pursuits
+        env:
+          QUIXOTIC_TOKEN: ${{ secrets.QUIXOTIC_TOKEN }}
+        if: env.QUIXOTIC_TOKEN != ''
+        run: |
+          cd site
+          git init -q -b qrpickle-site
+          git config user.name "github-actions[bot]"
+          git config user.email "41898333+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "QRPickle site (${LATEST}, main ${GITHUB_SHA::7})"
+          git push -f "https://x-access-token:${QUIXOTIC_TOKEN}@github.com/bmp/quixotic.git" qrpickle-site
+          rm -rf .git
+          curl -fsS -X POST -H "Authorization: Bearer ${QUIXOTIC_TOKEN}" -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/bmp/quixotic/actions/workflows/pages.yml/dispatches -d '{"ref":"main"}'

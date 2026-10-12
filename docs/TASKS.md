@@ -4,7 +4,7 @@ The single list of open work: checks that need a person (screen, touch, browser)
 
 ## Hands-on checks (owner, after v0.2.2)
 The web console checks are automated (`tools/webui_e2e/`, 31/31 on 2026-10-09). These need a person:
-- [ ] **Theme colours (v0.2.2):** review `release/shots/after/index.html` (7 changed screens in the 6 non-Classic themes; Classic is unchanged by construction). Noted: in E-Ink Light the grey "P" (poor) band badge has white text, which is low contrast.
+- [ ] **Theme colours (v0.2.2):** review the themes on the device (the v0.2.2 capture in `release/shots/after/` was cleaned up 2026-10-12; recapture with `tools/device_screens.py` if needed) (7 changed screens in the 6 non-Classic themes; Classic is unchanged by construction). Noted: in E-Ink Light the grey "P" (poor) band badge has white text, which is low contrast.
 - [ ] **On the device:** Settings → tap the profile button → Save applies the whole profile (e.g. the APRS macros change too).
 - [ ] **Network screen** shows the admin password after changing it in the web console.
 - [ ] **Setup hotspot:** when the device can't reach WiFi, `QRPickle-Setup` asks for the admin password, and the LED stays amber.
