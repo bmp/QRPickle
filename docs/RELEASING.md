@@ -48,6 +48,24 @@ If the web console's look changed, regenerate the screenshots in `docs/screensho
 
 The release build must **not** use the `cyd-debug` environment or `-DQRP_TEST_CRASH_AT_BOOT`.
 
+### 1b. Features, screenshots and the website
+Nothing here is automatic; tick each one that applies before the version bump.
+
+**Features** (whenever one is added, changed or removed in this release):
+- [ ] `README.md` → **Features and Data Sources**: the screen's row (what it shows, where its data comes from) and the bullets under the table. The manual (PDF and the website's Manual page) is built from the README, so it follows.
+- [ ] `web-installer/pages/home.html` → **Features** list on the website's home page.
+- [ ] A new data source or library: `THIRD_PARTY_NOTICES.md` (the build's licence check catches libraries, not web services).
+- [ ] `web-installer/pages/install.html` → **What you need**, only if the hardware changes.
+
+**Screenshots** (only new or changed screens, docs/UI_GUIDE.md):
+- [ ] Capture them: `pio run -e cyd-screens -t upload`, then `tools/device_screens.py --themes 0 --pages … --shots …` (flash `cyd` back afterwards).
+- [ ] Copy the chosen ones into `docs/pics/screens/` (same file name to replace one), and add a row or cell to the README's **Device Interface** gallery for a new screen.
+- [ ] Rebuild the website's screen tour: `python3 scripts/make_screens_gif.py` (add a new screen's file name to its `ORDER` list), and commit `docs/pics/qrpickle-tour.gif`.
+
+**Website**
+- [ ] After the release: both sites show the new version (`/QRPickle/install/` lists it, `ota/ota.json` has it).
+- [ ] Publishing to Quixotic Pursuits works: the release run's "Publish to Quixotic Pursuits" step is green, not skipped with a warning.
+
 ### 2. Update the changelog and bump the version
 Summarise what changed since the last release for users: `git log <last tag>..HEAD --oneline`. Add a section at the top of `CHANGELOG.md`:
 ```markdown
@@ -87,7 +105,9 @@ On GitHub → **Actions** → "Auto-Build and Release":
    - `firmware.bin`, `firmware.bin.sha256`, `littlefs.bin`
    - `bootloader.bin`, `partitions.bin`, `boot_app0.bin` (for the installer's version list)
    - a ZIP containing everything, plus the licence texts
-6. Downloads the images of earlier releases (v0.2.0 and later) and publishes **GitHub Pages**: `ota/ota.json` + `ota/firmware.bin` (what devices update from) and the `install/` page with a version list (built by `scripts/make_pages_site.py`).
+6. Downloads the images of earlier releases (v0.2.0 and later) and publishes **GitHub Pages**: `ota/ota.json` + `ota/firmware.bin` (what devices update from), the `install/` page with a version list, and the microsite pages (built by `scripts/make_pages_site.py`).
+
+Merging the release PR also starts `pages.yml` (site-only rebuilds); it sees that `main` already says the new version and skips itself ("the release workflow publishes the site"), so it can't publish the old release over the new one.
 
 ### 5. Verify the release on a device
 On a CYD running the previous version, open the sidebar menu → **Cloud OTA**, tap ↻, then **INITIATE FIRMWARE FLASH**. On the serial log, expect:

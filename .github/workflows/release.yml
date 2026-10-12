@@ -140,6 +140,12 @@ jobs:
       # workflow puts it under /QRPickle/. Skipped until the QUIXOTIC_TOKEN secret exists (a
       # fine-grained token for bmp/quixotic only: Contents and Actions, read and write). The Pages above stay: devices
       # read bmp.github.io/QRPickle/ota/ota.json.
+      - name: Quixotic Pursuits token missing
+        env:
+          QUIXOTIC_TOKEN: ${{ secrets.QUIXOTIC_TOKEN }}
+        if: env.QUIXOTIC_TOKEN == ''
+        run: echo "::warning::QUIXOTIC_TOKEN is not set; quixotic.bharathpalavalli.com/QRPickle/ was not updated (docs/RELEASING.md)."
+
       - name: Publish to Quixotic Pursuits
         env:
           QUIXOTIC_TOKEN: ${{ secrets.QUIXOTIC_TOKEN }}

@@ -23,8 +23,11 @@ permissions:
   pages: write
   id-token: write
 
+# Site-only rebuilds queue behind each other. Not shared with release.yml on purpose: GitHub keeps
+# one waiting run per group, so a docs push could cancel a waiting release. The version check below
+# keeps the two apart instead.
 concurrency:
-  group: pages
+  group: pages-site
   cancel-in-progress: false
 
 jobs:
@@ -50,6 +53,15 @@ jobs:
         run: |
           LATEST=$(gh release view --json tagName -q .tagName)
           echo "LATEST=$LATEST" >> "$GITHUB_ENV"
+          # A release PR merged before its tag: main already says the new version. Building now
+          # would publish the old release as the latest (ota.json included); the tag's release
+          # workflow publishes the site instead.
+          MAIN_VERSION=$(grep 'FW_VERSION' src/core/metadata.h | cut -d'"' -f2)
+          if [ "$MAIN_VERSION" != "$LATEST" ]; then
+            echo "::notice::main is $MAIN_VERSION, the latest release $LATEST: the release workflow publishes the site."
+            echo "SKIP=1" >> "$GITHUB_ENV"
+            exit 0
+          fi
           mkdir -p latest previous
           gh release download "$LATEST" -D latest -p bootloader.bin -p partitions.bin \
             -p boot_app0.bin -p firmware.bin -p littlefs.bin
@@ -67,26 +79,36 @@ jobs:
           done
 
       - name: Build Pages site
+        if: env.SKIP != '1'
         run: |
           python3 scripts/make_pages_site.py --build-dir latest --boot-app0 latest/boot_app0.bin \
             --out site --version "$LATEST" --notes-file latest/notes.txt --previous-dir previous --ref main
 
       - uses: actions/configure-pages@v6
+        if: env.SKIP != '1'
 
       - uses: actions/upload-pages-artifact@v5
+        if: env.SKIP != '1'
         with:
           path: site
           include-hidden-files: true
 
       - name: Deploy to GitHub Pages
+        if: env.SKIP != '1'
         id: deployment
         uses: actions/deploy-pages@v5
 
       # Same as in release.yml: the site also appears at quixotic.bharathpalavalli.com/QRPickle/.
+      - name: Quixotic Pursuits token missing
+        env:
+          QUIXOTIC_TOKEN: ${{ secrets.QUIXOTIC_TOKEN }}
+        if: env.SKIP != '1' && env.QUIXOTIC_TOKEN == ''
+        run: echo "::warning::QUIXOTIC_TOKEN is not set; quixotic.bharathpalavalli.com/QRPickle/ was not updated (docs/RELEASING.md)."
+
       - name: Publish to Quixotic Pursuits
         env:
           QUIXOTIC_TOKEN: ${{ secrets.QUIXOTIC_TOKEN }}
-        if: env.QUIXOTIC_TOKEN != ''
+        if: env.SKIP != '1' && env.QUIXOTIC_TOKEN != ''
         run: |
           cd site
           git init -q -b qrpickle-site
