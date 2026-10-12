@@ -62,3 +62,8 @@ nav a.active { font-weight:bold; text-decoration:none; }
 .parts .default { font-size:.85rem; opacity:.7; white-space:nowrap; }
 .parts .default.changed { color:var(--note-border); opacity:1; font-weight:bold; }
 esp-web-install-button.disabled { opacity:.4; pointer-events:none; }
+.msg { border-left:3px solid; padding:.4em .9em; margin:.6rem 0; font-size:.95rem; }
+.msg ul { margin:.3em 0 .1em; padding-left:1.2em; }
+.msg-error { border-color:#d9534f; background:rgba(217,83,79,.12); }
+.msg-warn { border-color:var(--note-border); background:var(--note-bg); }
+.msg-info { border-color:var(--link-color); background:var(--row-odd); }
