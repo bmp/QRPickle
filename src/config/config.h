@@ -23,7 +23,6 @@ namespace config {
         int8_t tz_offset_hh;  // UTC offset in HALF-hours (e.g. 11 = +5:30); no DST
         uint8_t screen_timeout_min;  // backlight sleep after N minutes idle; 0 = manual sleep only
         uint8_t forecast_slots;  // bitmask of forecast slots shown (set in the web UI; default 0x0F)
-        bool web_enabled;
 
         char wifi_ssid[33];
         char wifi_password[64];

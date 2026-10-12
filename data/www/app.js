@@ -96,6 +96,7 @@ function fillForm(data) {
     setElementValue("cfg-lon", data.lon ?? 77.59);
     setElementValue("cfg-offset", data.offset ?? 5.5);
     setElementValue("cfg-brightness", data.brightness ?? 180);
+    setElementValue("cfg-auto-bright", !!data.auto_bright, true);
     setElementValue("cfg-timeout", data.timeout ?? 5);
     setElementValue("cfg-cycle-en", !!data.cycle_en, true);
     setElementValue("cfg-cycle-s", data.cycle_s ?? 10);
@@ -163,6 +164,7 @@ function collectForm() {
         lon: parseFloat(getElementValue("cfg-lon")),
         offset: parseFloat(getElementValue("cfg-offset")),
         brightness: parseInt(getElementValue("cfg-brightness")),
+        auto_bright: getElementValue("cfg-auto-bright", true),
         theme_id: parseInt(getElementValue("cfg-theme")),
         timeout: parseInt(getElementValue("cfg-timeout")),
         cycle_en: getElementValue("cfg-cycle-en", true),

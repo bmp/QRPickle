@@ -25,12 +25,15 @@ New
   pauses it; it resumes after 2 minutes. An icon in the status bar shows it
   and pauses or resumes it.
 - Device Settings: APRS, screen cycling and pass alerts on/off.
+- Web console: automatic brightness (light sensor) on/off.
 - A page about the satellite feed on the project site.
 
 Fixed
 - The automatic update check failed for lack of memory; about 16 KB more
   memory is free while running.
 - APRS sent a position beacon on every reconnect.
+- xOTA showed an empty POTA list without a word when the download failed.
+- The APRS beacon tab's status line ran into the beacon count.
 
 
 

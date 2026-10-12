@@ -18,6 +18,7 @@ namespace services {
     bool PotaManager::fetching = false;
     bool PotaManager::dirty = false;
     uint32_t PotaManager::last_fetch_time = 0;
+    bool PotaManager::failed = false;
 
     void PotaManager::deduce_mode(float freq, const char* comment, char* out_mode, size_t max_len) {
         if (strcasestr(comment, "FT8"))   { strncpy(out_mode, "FT8", max_len); return; }
@@ -109,6 +110,7 @@ namespace services {
     }
 
     void PotaManager::run_fetch() {
+        failed = true;  // until a list arrives
         NetLock lock;
         if (!lock.held() || !tls_heap_ready("POTA fetch")) {
             fetching = false;
@@ -169,6 +171,7 @@ namespace services {
                     spots[spot_count++] = s;
                 }
                 dirty = true;
+                failed = false;
                 hw::led_rgb::trigger_traffic_pulse();  // data ingress (docs/LEDColours.md)
                 Serial.printf("[POTA] Success. Mapped %u spots.\n", spot_count);
             }

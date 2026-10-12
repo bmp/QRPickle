@@ -33,6 +33,7 @@ namespace ui {
     static lv_obj_t* btn_qrp = nullptr;
     static lv_obj_t* list_container = nullptr;
     static lv_obj_t* lbl_comment = nullptr;
+    static bool failed_shown = false;  // the comment bar shows the POTA download failure
     static lv_obj_t* lbl_loading = nullptr; 
     static lv_obj_t* status_dot = nullptr;
     static lv_timer_t* ui_timer = nullptr;
@@ -211,8 +212,16 @@ namespace ui {
                         (active_tab == TAB_POTA ? services::PotaManager::is_fetching() : services::SotaManager::is_fetching());
         bool dirty = (active_tab == TAB_POTA) ? services::PotaManager::is_dirty() : services::SotaManager::is_dirty();
 
+        // A failed POTA download used to leave an empty list without a word.
+        const bool failed = active_tab == TAB_POTA && !fetching && services::PotaManager::last_fetch_failed();
         if (status_dot) {
-            lv_obj_set_style_bg_color(status_dot, fetching ? theme_color(COLOR_STATUS_BUSY) : theme_color(COLOR_STATUS_OK), 0);
+            lv_obj_set_style_bg_color(status_dot, fetching ? theme_color(COLOR_STATUS_BUSY)
+                                                  : theme_color(failed ? COLOR_STATUS_ERROR : COLOR_STATUS_OK), 0);
+        }
+        if (lbl_comment && failed != failed_shown) {
+            failed_shown = failed;
+            lv_label_set_text(lbl_comment, failed ? "POTA download failed. Tap refresh to retry." : "COMMENT: Tap a row to read.");
+            lv_obj_set_style_text_color(lbl_comment, theme_color(failed ? COLOR_STATUS_WARN : COLOR_TEXT_MUTED), 0);
         }
 
         if (dirty || t == nullptr) {
@@ -391,6 +400,7 @@ namespace ui {
         lv_obj_set_scrollable(foot, false);
 
         lbl_comment = lv_label_create(foot);
+        failed_shown = false;
         lv_label_set_text(lbl_comment, "INITIALIZING...");
         lv_obj_set_style_text_font(lbl_comment, &font_jetbrains_10, 0);
         lv_obj_set_style_text_color(lbl_comment, theme_color(COLOR_TEXT_MUTED), 0);
