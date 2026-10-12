@@ -2,7 +2,7 @@
 
 User-facing changes per release, newest first. Each section is also the release commit message (see `docs/RELEASING.md`).
 
-## v0.2.5 (unreleased)
+## v0.2.5 (2026-10-12)
 
 Satellites and SSTV, screen cycling, more settings on the device; more free memory
 
