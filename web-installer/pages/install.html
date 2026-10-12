@@ -60,7 +60,7 @@
     <span slot="unsupported" class="note">This browser can't access USB serial ports. Use Chrome or Edge on a computer.</span>
     <span slot="not-allowed" class="note">The installer needs a secure (https) page.</span>
   </esp-web-install-button>
-  <p class="small">Settings live in <code>nvs</code> at <code>0x9000</code>: no mode writes there, so only ticking "Erase device" clears them.</p>
+  <p class="small">Settings live in <code>nvs</code> at <code>0x9000</code>: Full install and Firmware only never write there, so they keep your settings unless you tick "Erase device".</p>
   <p>After installing, the device opens a <code>QRPickle-Setup</code> WiFi network. Its password and the web
      console login are shown on the device's Network screen. Join it, open <code>http://192.168.4.1</code> (user
    <code>admin</code>, the same password) and enter your WiFi network, callsign and grid square; the device then
