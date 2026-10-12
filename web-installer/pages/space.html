@@ -1,0 +1,38 @@
+<!-- title: QRPickle space feed -->
+  <h2>QRPickle space feed</h2>
+  <p>QRPickle's Satellites screen lists the next passes of amateur satellites over your station, ISS SSTV
+     events and ARISS school contacts. The orbits and the event list come from a small file that GitHub
+     builds every 6 hours; the passes are computed on the CYD itself, so your location never leaves it.</p>
+  <p id="feed-status" class="notes">Checking the current feed...</p>
+  <table>
+    <tbody>
+      <tr><td>Address</td><td><code>https://raw.githubusercontent.com/bmp/QRPickle/space-feed/space.json</code></td></tr>
+      <tr><td>Updated</td><td>every 6 hours by <a href="https://github.com/bmp/QRPickle/blob/main/.github/workflows/space-feed.yml">a GitHub workflow</a> (the branch holds only the latest file)</td></tr>
+      <tr><td>Contents</td><td>up to 40 satellites (FM, linear, SSTV, voice beacons, APRS) with orbits (TLE) and frequencies; announced ISS SSTV events and school contacts</td></tr>
+      <tr><td>Size</td><td>about 13 KB</td></tr>
+      <tr><td>Builder</td><td><a href="https://github.com/bmp/QRPickle/tree/main/tools/space_feed">tools/space_feed</a> (Python, with tests)</td></tr>
+    </tbody>
+  </table>
+  <h3>Using your own feed</h3>
+  <p>In the web console (Advanced → Satellites) you can point the device at another address serving the same
+     JSON, for example a copy built by <code>tools/space_feed/build_feed.py</code> on your own machine.
+     Leave it empty for this feed.</p>
+  <h3>Sources and licence</h3>
+  <p>Satellite list and frequencies: <a href="https://db.satnogs.org/">SatNOGS DB</a> (Libre Space Foundation),
+     CC BY-SA 4.0. Orbits: <a href="https://celestrak.org/">CelesTrak</a>. SSTV events and school contacts:
+     <a href="https://www.ariss.org/">ARISS</a>. The feed is a derived work and is shared under
+     <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>.</p>
+<!-- scripts -->
+  <script>
+
+    // The feed's age and counts (raw.githubusercontent.com allows cross-origin reads).
+    fetch("https://raw.githubusercontent.com/bmp/QRPickle/space-feed/space.json", {cache: "no-store"})
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(d => {
+        const built = new Date(d.generated * 1000);
+        const hours = Math.round((Date.now() - built) / 360000) / 10;
+        document.getElementById("feed-status").textContent =
+          `Current feed: built ${built.toUTCString()} (${hours} h ago), ${d.sats.length} satellites, ${d.events.length} events.`;
+      })
+      .catch(() => { document.getElementById("feed-status").textContent = "The current feed could not be read just now."; });
+  </script>

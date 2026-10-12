@@ -7,6 +7,8 @@ Third-Party Notices.
 
 Usage (from the repo root; needs pandoc and typst):
     python3 scripts/build_manual.py --version v0.2.1 --repo bmp/QRPickle --out QRPickle_Documentation_v0.2.1.pdf
+The same document as one HTML page (body and contents only, for the website; needs pandoc):
+    python3 scripts/build_manual.py --version v0.2.1 --html-out manual.html
 
 Pandoc drops raw HTML when writing Typst, so the README's <img> tags (screenshot tables) are
 rewritten as Markdown images first, and image paths are made relative to the repo root.
@@ -194,8 +196,11 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--version", required=True)
     ap.add_argument("--repo", default="bmp/QRPickle")
-    ap.add_argument("--out", required=True)
+    ap.add_argument("--out", help="the PDF")
+    ap.add_argument("--html-out", help="the same document as an HTML fragment (contents + body)")
     a = ap.parse_args()
+    if not a.out and not a.html_out:
+        raise SystemExit("give --out (PDF) and/or --html-out")
 
     preamble, sections = split_sections(read_doc("README.md"))
     appendices = [("LED Colours", read_doc("docs/LEDColours.md"), 1),
@@ -243,16 +248,23 @@ def main():
     preamble = re.sub(r"(?m)^# .*\n", "", preamble)
     sections = [("Introduction", "## Introduction\n" + t.split("\n", 1)[1]) if title == subtitle else (title, t)
                 for title, t in sections]
-    sections = [(title, llm_callout(t)) for title, t in sections]
+    pdf_sections = [(title, llm_callout(t)) for title, t in sections]
     # README sections are '## '; in the manual they are chapters ('# '), like Hardware and the
     # appendices (PDF/UA also requires the first heading to be level 1).
-    body = preamble + "".join(re.sub(r"(?m)^#(#+) ", r"\1 ", t) for title, t in sections
-                              if title not in README_APPENDICES and title not in README_DROPPED)
-    body += "\n\n---\n\n" + read_doc("docs/HARDWARE.md")
+    def chapters(secs):
+        return (preamble + "".join(re.sub(r"(?m)^#(#+) ", r"\1 ", t) for title, t in secs
+                                   if title not in README_APPENDICES and title not in README_DROPPED)
+                + "\n\n---\n\n" + read_doc("docs/HARDWARE.md"))
 
-    appendix_text = "".join(PAGEBREAK + as_appendix(text, chr(ord("A") + i), title, level)
-                            for i, (title, text, level) in enumerate(appendices))
-    doc = absolute_links(cover + body + appendix_text, a.repo)
+    def appendix_text(pagebreak):
+        return "".join(pagebreak + as_appendix(text, chr(ord("A") + i), title, level)
+                       for i, (title, text, level) in enumerate(appendices))
+
+    if a.html_out:
+        write_html(absolute_links(chapters(sections) + appendix_text("\n\n"), a.repo), a.html_out)
+    if not a.out:
+        return
+    doc = absolute_links(cover + chapters(pdf_sections) + appendix_text(PAGEBREAK), a.repo)
 
     with tempfile.TemporaryDirectory(dir=ROOT) as tmp:   # inside the repo, so image paths resolve
         md, typ = os.path.join(tmp, "manual.md"), os.path.join(tmp, "manual.typ")
@@ -310,6 +322,23 @@ def main():
         subprocess.run(["typst", "compile", "--root", ROOT, "--pdf-standard", "ua-1", typ, os.path.abspath(a.out)],
                        check=True)
     print(f"manual: {a.out}")
+
+
+def write_html(doc, out):
+    """The manual as one HTML page for the website: a table of contents, then the body. Image
+    paths stay relative to the repository root (the website points them at the release)."""
+    reader = ("markdown+lists_without_preceding_blankline"
+              "-yaml_metadata_block-multiline_tables-simple_tables")
+    with tempfile.TemporaryDirectory() as tmp:
+        template = os.path.join(tmp, "fragment.html")
+        with open(template, "w", encoding="utf-8") as f:
+            f.write('<nav class="toc" aria-label="Contents">\n<h2>Contents</h2>\n$toc$\n</nav>\n$body$\n')
+        html = subprocess.run(["pandoc", "-f", reader, "-t", "html", "--toc", "--toc-depth=2",
+                               "--template", template], input=doc, capture_output=True, text=True,
+                              check=True).stdout
+    with open(out, "w", encoding="utf-8") as f:
+        f.write(html)
+    print(f"manual (html): {out}")
 
 
 if __name__ == "__main__":

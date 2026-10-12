@@ -1,0 +1,94 @@
+<!-- title: Install QRPickle -->
+<!-- head -->
+  <!-- ESP Web Tools, pinned (https://esphome.github.io/esp-web-tools/) -->
+  <script type="module" src="https://unpkg.com/esp-web-tools@10.4.0/dist/web/install-button.js?module"></script>
+<!-- /head -->
+  <h2>Install QRPickle on a Cheap Yellow Display</h2>
+<h3>What you need</h3>
+<ul>
+  <li>An <strong>ESP32-2432S028R "Cheap Yellow Display"</strong>: the 2.8" version with a resistive touch screen
+      (ESP32, 4 MB flash, ILI9341 display, XPT2046 touch). Nothing needs soldering. The 3.2" ESP32-2432S032 is
+      <em>not</em> supported (different display and pins).</li>
+  <li>A USB <em>data</em> cable (some cables only charge) and a computer with Chrome or Edge.</li>
+  <li>Optional: a <strong>BME280</strong> sensor on the CN1 connector for indoor temperature, humidity and pressure.</li>
+  <li>A 2.4 GHz WiFi network.</li>
+</ul>
+<p>Pins, wiring and board details: <a href="../manual/#hardware-and-wiring">Hardware and Wiring</a> in the manual.</p>
+<h3>Install</h3>
+  <p>
+    <label for="ver">Version:</label>
+    <select id="ver" onchange="selectVersion()"><option>loading…</option></select>
+  </p>
+  <section id="notes-box" class="notes hidden" aria-labelledby="notes-title">
+    <h3 id="notes-title">Release notes</h3>
+    <pre id="notes"></pre>
+  </section>
+  <p id="older" class="note hidden">This is an older version. Installing it replaces the firmware and the
+     web console files; with "Erase device" it also clears all settings. Cloud OTA will offer newer
+     versions again afterwards.</p>
+  <ol>
+    <li>Use <strong>Chrome or Edge</strong> on a computer (Web Serial is required).</li>
+    <li>Connect the CYD with a USB <em>data</em> cable.</li>
+    <li>Click <strong>Install QRPickle</strong>, pick the serial port, and allow erasing for a clean install.</li>
+  </ol>
+  <esp-web-install-button id="install" manifest="manifest.json">
+    <button slot="activate" class="install-btn">Install QRPickle</button>
+    <span slot="unsupported" class="note">This browser can't access USB serial ports. Use Chrome or Edge on a computer.</span>
+    <span slot="not-allowed" class="note">The installer needs a secure (https) page.</span>
+  </esp-web-install-button>
+  <details>
+    <summary>What gets written where</summary>
+    <p>Every version uses the same flash layout:</p>
+    <table>
+      <thead><tr><th>Address</th><th>File</th><th>Contents</th></tr></thead>
+      <tbody>
+      <tr><td><code>0x1000</code></td><td><code>bootloader.bin</code></td><td>ESP32 bootloader</td></tr>
+      <tr><td><code>0x8000</code></td><td><code>partitions.bin</code></td><td>Partition table</td></tr>
+      <tr><td><code>0xE000</code></td><td><code>boot_app0.bin</code></td><td>otadata: boot from app0</td></tr>
+      <tr><td><code>0x10000</code></td><td><code>firmware.bin</code></td><td>Firmware (app0)</td></tr>
+      <tr><td><code>0x390000</code></td><td><code>littlefs.bin</code></td><td>Web console files (LittleFS)</td></tr>
+      </tbody>
+    </table>
+    <p>Settings (<code>nvs</code>, <code>0x9000</code>) are kept unless you erase the device.</p>
+  </details>
+  <p>After installing, the device opens a <code>QRPickle-Setup</code> WiFi network. Its password and the web
+     console login are shown on the device's Network screen. Join it, open <code>http://192.168.4.1</code> (user
+   <code>admin</code>, the same password) and enter your WiFi network, callsign and grid square; the device then
+   joins your network.</p>
+<p>The CYD has no battery-backed clock: at every start it sets its time from the internet (NTP) as soon as it is
+   on WiFi, and the clock shows <code>--:--</code> until then. UTC is always right; for local time set your UTC
+   offset in Settings (half-hour steps, no automatic daylight saving).</p>
+  <p>Already running QRPickle v0.2.0 or later? Update over WiFi instead: <strong>Cloud OTA</strong> on the device or in the web console.
+     Older versions need this installer once. Erasing also clears your settings and profiles, so download a
+     backup first (web console → Profiles → Download Backup) where available.</p>
+<!-- scripts -->
+  <script>
+    // versions.json is written by scripts/make_pages_site.py: newest first, each with its own manifest.
+    let versions = [];
+    function selectVersion() {
+      const sel = document.getElementById("ver");
+      const v = versions[sel.selectedIndex];
+      if (!v) return;
+      document.getElementById("install").setAttribute("manifest", v.manifest);
+      document.getElementById("notes").textContent = v.notes || "";
+      document.getElementById("notes-title").textContent = "Release notes for " + v.version;
+      document.getElementById("notes-box").classList.toggle("hidden", !v.notes);
+      document.getElementById("older").classList.toggle("hidden", sel.selectedIndex === 0);
+    }
+    fetch("versions.json")
+      .then(r => r.json())
+      .then(data => {
+        versions = data.versions;
+        const sel = document.getElementById("ver");
+        sel.textContent = "";
+        versions.forEach((v, i) => sel.add(new Option(v.version + (i === 0 ? " (latest)" : ""), v.version)));
+        selectVersion();
+      })
+      .catch(() => {  // older site without versions.json: the latest manifest only
+        fetch("manifest.json").then(r => r.json()).then(m => {
+          const sel = document.getElementById("ver");
+          sel.textContent = "";
+          sel.add(new Option(m.version + " (latest)", m.version));
+        });
+      });
+  </script>

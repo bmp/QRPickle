@@ -5,7 +5,8 @@
   <out>/install/index.html + versions.json       -> browser installer (ESP Web Tools) with a version list
   <out>/install/<version>/manifest.json + *.bin  -> full-flash images at their flash addresses
   <out>/install/manifest.json + *.bin            -> the latest version (stable links)
-  <out>/space/index.html                          -> about the satellite feed (space-feed branch)
+  <out>/index.html, manual/, space/              -> the microsite: home with a screen tour, the manual
+                                                     as one page, the satellite feed
 
 Usage: python3 scripts/make_pages_site.py --build-dir .pio/build/cyd --out site \
            --version v0.2.1 --notes-file notes.txt [--boot-app0 PATH] [--previous-dir DIR] [--keep 5]
@@ -21,6 +22,9 @@ import json
 import os
 import re
 import shutil
+import subprocess
+import sys
+import tempfile
 
 # Flash addresses: bootloader and partition table at their fixed places, then the start of the
 # otadata, app0 and spiffs partitions from partitions.csv (README "Partition System").
@@ -65,6 +69,76 @@ def find_boot_app0(explicit):
         raise SystemExit("boot_app0.bin not found; pass --boot-app0")
     return hits[0]
 
+SITE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "web-installer")
+REPO_ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
+# The microsite's pages: (fragment in web-installer/pages, output folder, menu label).
+PAGES = [("home.html", "", "Home"), ("install.html", "install", "Install"), ("manual.html", "manual", "Manual"),
+         ("space.html", "space", "Space feed")]
+# mailto with the address as HTML entities, as on bharathpalavalli.com (fewer harvesters).
+CONTACT = "".join(f"&#{ord(c)};" for c in "mailto:vu3glj@disroot.org")
+EXTERNAL_NAV = [("Releases", "https://github.com/bmp/QRPickle/releases"),
+                ("Source", "https://github.com/bmp/QRPickle"),
+                ("Getting On The Air", "https://ham.bharathpalavalli.com/"),
+                ("Contact", CONTACT)]
+
+
+def absolute_repo_links(html, ref):
+    """Relative links and images (README.md, docs/...) point at the repository as of `ref`."""
+    raw = f"https://raw.githubusercontent.com/bmp/QRPickle/{ref}/"
+    blob = f"https://github.com/bmp/QRPickle/blob/{ref}/"
+
+    def absolute(m):
+        attr, url = m.group(1), m.group(2)
+        if re.match(r"^(https?:|mailto:|#|/|&#)", url):
+            return m.group(0)
+        return f'{attr}="{(raw if attr == "src" else blob) + url}"'
+    return re.sub(r'\b(src|href)="([^"]*)"', absolute, html)
+
+
+def manual_html(ref):
+    """The manual (scripts/build_manual.py) as one HTML page."""
+    with tempfile.TemporaryDirectory() as tmp:
+        out = os.path.join(tmp, "manual.html")
+        subprocess.run([sys.executable, os.path.join(REPO_ROOT, "scripts", "build_manual.py"),
+                        "--version", ref, "--html-out", out], check=True)
+        return absolute_repo_links(open(out, encoding="utf-8").read(), ref)
+
+
+
+def render_pages(out, ref):
+    """Every page = web-installer/layout.html around a fragment from web-installer/pages."""
+    layout = open(os.path.join(SITE, "layout.html"), encoding="utf-8").read()
+    # The subtitle is the README's first "## " heading, as on the manual's cover.
+    readme = open(os.path.join(REPO_ROOT, "README.md"), encoding="utf-8").read()
+    layout = layout.replace("{{SUBTITLE}}", re.search(r"(?m)^## (.+)$", readme).group(1).strip())
+    for frag, folder, _ in PAGES:
+        text = open(os.path.join(SITE, "pages", frag), encoding="utf-8").read()
+        title = re.search(r"<!-- title: (.*?) -->", text).group(1)
+        text = re.sub(r"<!-- title: .*? -->\n", "", text)
+        head = ""
+        m = re.search(r"<!-- head -->\n(.*?)<!-- /head -->\n", text, re.S)
+        if m:
+            head, text = m.group(1).rstrip(), text.replace(m.group(0), "")
+        body, _, scripts = text.partition("<!-- scripts -->\n")
+        if "{{MANUAL}}" in body:
+            body = body.replace("{{MANUAL}}", manual_html(ref))
+        root = "../" if folder else ""
+        active = ' class="active"'
+        nav = [f'      <a href="{root}{f + "/" if f else ""}"{active if f == folder else ""}>{label}</a>'
+               for _, f, label in PAGES]
+        nav += [f'      <a href="{url}">{label}</a>' for label, url in EXTERNAL_NAV]
+        page = (layout.replace("{{TITLE}}", title).replace("{{ROOT}}", root).replace("{{HEAD}}", head)
+                .replace("{{NAV}}", "\n".join(nav)).replace("{{BODY}}", body.rstrip())
+                .replace("{{SCRIPTS}}", scripts.rstrip()))
+        dest = os.path.join(out, folder) if folder else out
+        os.makedirs(dest, exist_ok=True)
+        with open(os.path.join(dest, "index.html"), "w", encoding="utf-8") as f:
+            f.write(page)
+    for name in ("site.css", "site.js"):
+        shutil.copy(os.path.join(SITE, name), os.path.join(out, name))
+    shutil.copy(os.path.join(REPO_ROOT, "docs", "pics", "qrpickle-tour.gif"), os.path.join(out, "tour.gif"))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--build-dir", required=True)
@@ -73,9 +147,8 @@ def main():
     ap.add_argument("--notes-file", required=True)
     ap.add_argument("--boot-app0")
     ap.add_argument("--previous-dir")
+    ap.add_argument("--ref", help="git ref for the manual's images and links (default: --version)")
     ap.add_argument("--keep", type=int, default=5, help="versions offered by the installer, incl. this one")
-    ap.add_argument("--installer-page",
-                    default=os.path.join(os.path.dirname(__file__), "..", "web-installer", "index.html"))
     a = ap.parse_args()
     if parse_version(a.version) is None:
         raise SystemExit(f"--version must look like v1.2.3, got {a.version!r}")
@@ -121,17 +194,8 @@ def main():
     for name, _ in PARTS:
         shutil.copy(os.path.join(inst, a.version, name), os.path.join(inst, name))
     shutil.copy(os.path.join(inst, a.version, "manifest.json"), os.path.join(inst, "manifest.json"))
-    shutil.copy(a.installer_page, os.path.join(inst, "index.html"))
-
-    # About the satellite feed; the feed itself is on the space-feed branch (space-feed.yml).
-    space_page = os.path.join(os.path.dirname(a.installer_page), "space.html")
-    if os.path.isfile(space_page):
-        os.makedirs(os.path.join(a.out, "space"), exist_ok=True)
-        shutil.copy(space_page, os.path.join(a.out, "space", "index.html"))
-
-    with open(os.path.join(a.out, "index.html"), "w") as f:
-        f.write('<!doctype html><meta http-equiv="refresh" content="0; url=install/">'
-                '<a href="install/">Install QRPickle</a>\n')
+    # The microsite pages (home, install, manual, space); images come from this ref.
+    render_pages(a.out, a.ref or a.version)
     open(os.path.join(a.out, ".nojekyll"), "w").close()
     print(f"site: {a.out}  version {a.version}  firmware sha256 {sha}")
     print("installer versions: " + ", ".join(e["version"] for e in entries))

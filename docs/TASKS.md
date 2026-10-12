@@ -4,13 +4,14 @@ The single list of open work: checks that need a person (screen, touch, browser)
 
 ## Hands-on checks (owner, after v0.2.2)
 The web console checks are automated (`tools/webui_e2e/`, 31/31 on 2026-10-09). These need a person:
-- [ ] **Theme colours (v0.2.2):** review `release/shots/after/index.html` (7 changed screens in the 6 non-Classic themes; Classic is unchanged by construction). Noted: in E-Ink Light the grey "P" (poor) band badge has white text, which is low contrast.
+- [ ] **Theme colours (v0.2.2):** review the themes on the device (the v0.2.2 capture in `release/shots/after/` was cleaned up 2026-10-12; recapture with `tools/device_screens.py` if needed) (7 changed screens in the 6 non-Classic themes; Classic is unchanged by construction). Noted: in E-Ink Light the grey "P" (poor) band badge has white text, which is low contrast.
 - [ ] **On the device:** Settings → tap the profile button → Save applies the whole profile (e.g. the APRS macros change too).
 - [ ] **Network screen** shows the admin password after changing it in the web console.
 - [ ] **Setup hotspot:** when the device can't reach WiFi, `QRPickle-Setup` asks for the admin password, and the LED stays amber.
 - [ ] **Sensor offline (optional):** unplug the BME280 and boot. The dashboard shows `-- C | --%` and `-- hPa`, the weather screen `--`.
 
 ## Watching
+- [ ] **Renew the `QUIXOTIC_TOKEN` (owner) before it expires** (created 2026-10-12, at most one year: renew by **2027-10-01**, or the date GitHub shows under Settings → Developer settings → Fine-grained tokens). Renew: regenerate the token (same settings: `bmp/quixotic` only, Contents and Actions read/write) and replace the secret in `bmp/QRPickle` → Settings → Secrets → Actions. Until then, an expired token turns the release/Pages run red at "Publish to Quixotic Pursuits"; bharathpalavalli.com/QRPickle keeps working.
 - [ ] **DX screen freeze (review 4.6): probably fixed, keep an eye on it.** Likely cause found 2026-10-10: unsafe DNS in the HTTPS fetches corrupted lwIP (crash in dns_tmr, or a dead network while "connected"); fixed with SafeClient/SafeTlsClient. Verified: xOTA opened 10x and a 5-min DX-screen test with an HTTPS fetch every 15 s (20/20, no crash, no reboot). If a freeze is ever seen again, capture with `tools/serial_soak.py` and decode the backtrace.
 
 ## Planned for v0.2.3

@@ -1,0 +1,56 @@
+/* QRPickle microsite (scripts/make_pages_site.py): Garamond, 720px column, dark by default with a
+   light toggle, as on ham.bharathpalavalli.com. */
+:root { --bg-color:#1d1f27; --text-color:#c9d1d9; --heading-color:#eee; --link-color:#8cc2dd;
+        --toggle-border:#444; --code-bg:#282a36; --code-color:#f8f8f2; --td-border:#444;
+        --th-border:#8cc2dd; --row-odd:rgba(255,255,255,.03); --note-bg:#2a2a1d; --note-border:#eba613;
+        --input-bg:#252525; --input-color:#ddd; }
+[data-theme=light] { --bg-color:#fdfdfd; --text-color:#2c3338; --heading-color:#111; --link-color:#005bb5;
+        --toggle-border:#ccc; --code-bg:#e8e8e8; --code-color:#c92a2a; --td-border:#ddd;
+        --th-border:#005bb5; --row-odd:rgba(0,0,0,.03); --note-bg:#fff7e0; --note-border:#d11;
+        --input-bg:#f4f4f4; --input-color:#333; }
+body { font-family:Garamond,serif; margin:auto; padding:20px; max-width:720px; line-height:1.5;
+       background-color:var(--bg-color); color:var(--text-color); overflow-wrap:break-word; }
+h1, h2, h3, strong, b { color:var(--heading-color); }
+a { color:var(--link-color); }
+nav a { margin-right:10px; }
+.header-row { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+.title { text-decoration:none; border:0; }
+.subtitle { margin:-12px 0 8px; font-style:italic; }
+.title h1 { font-size:24px; margin:19.92px 0; }
+.theme-toggle-btn { margin-left:auto; background:none; border:1px solid var(--toggle-border); border-radius:20px;
+       cursor:pointer; padding:2px 8px; font-size:.8rem; color:var(--text-color); }
+.theme-toggle-btn:hover { border-color:var(--link-color); }
+code { font-family:"courier new",monospace; background:var(--code-bg); color:var(--code-color); padding:0 .3em; border-radius:3px; }
+select { font:inherit; padding:.2em .4em; background:var(--input-bg); color:var(--input-color); border:1px solid var(--td-border); }
+table { border-collapse:collapse; font-size:.9rem; margin:1rem 0; }
+th { text-align:left; border-bottom:2px solid var(--th-border); padding:8px 12px; color:var(--heading-color); }
+td { border-bottom:1px solid var(--td-border); padding:8px 12px; }
+tbody tr:nth-child(odd) { background:var(--row-odd); }
+.note { background:var(--note-bg); border-left:3px solid var(--note-border); padding:.5em .8em; }
+.hidden { display:none; }
+.notes { border-left:3px solid var(--link-color); background:var(--row-odd); padding:.6em .9em; margin:.5rem 0 1rem; }
+.notes h3 { margin:0 0 .4em; font-size:1rem; }
+.notes pre { margin:0; white-space:pre-wrap; font-family:Garamond,serif; font-size:.95rem; line-height:1.45; }
+esp-web-install-button { display:block; margin:1rem 0; }
+.install-btn { font:inherit; font-size:1.05rem; padding:.45em 1.2em; border-radius:20px; cursor:pointer;
+       border:1px solid var(--link-color); background:var(--link-color); color:var(--bg-color); }
+.install-btn:hover { filter:brightness(1.1); }
+footer { margin-top:2rem; }
+nav a.active { font-weight:bold; text-decoration:none; }
+.hero { text-align:center; margin:1.5rem 0; }
+.hero img { max-width:100%; width:480px; image-rendering:pixelated; border:1px solid var(--td-border); border-radius:6px; }
+.hero p { margin:.4rem 0; }
+.actions { display:flex; gap:.8rem; justify-content:center; flex-wrap:wrap; margin:1.2rem 0; }
+.btn-link { display:inline-block; padding:.45em 1.2em; border-radius:20px; border:1px solid var(--link-color); text-decoration:none; }
+.btn-link.primary { background:var(--link-color); color:var(--bg-color); }
+.features { padding-left:1.2em; }
+.readme img { max-width:100%; height:auto; }
+.readme table img { width:100%; max-width:250px; }
+.readme pre { background:var(--code-bg); color:var(--code-color); padding:.6em; overflow-x:auto; }
+.readme pre code { background:none; padding:0; }
+.manual h1 { font-size:1.5rem; border-top:1px solid var(--td-border); padding-top:1rem; margin-top:2rem; }
+.toc { border-left:3px solid var(--link-color); background:var(--row-odd); padding:.4em 1em; margin:1rem 0 2rem; }
+.toc h2 { font-size:1.1rem; margin:.3em 0; }
+.toc ul { margin:.2em 0; padding-left:1.2em; }
+.toc > ul > li { margin:.15em 0; }
+

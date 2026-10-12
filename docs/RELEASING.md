@@ -9,6 +9,8 @@ Devices on the field pick up new releases through **Cloud OTA** (sidebar menu �
 Releases also publish to **GitHub Pages**: Cloud OTA files under `/ota/` and the browser installer under `/install/` (https://bmp.github.io/QRPickle/install/, also at https://quixotic.bharathpalavalli.com/QRPickle/install/, the address the README gives).
 
 The same site is also published to **Quixotic Pursuits** (https://quixotic.bharathpalavalli.com/QRPickle/, repo `bmp/quixotic`): the release workflow force-pushes it as the single commit of that repo's `qrpickle-site` branch and asks its Pages workflow to rebuild. The step is skipped until the `QUIXOTIC_TOKEN` secret exists (fine-grained token, repository `bmp/quixotic` only, permissions Contents and Actions: read and write). Devices keep using `bmp.github.io/QRPickle/ota/`, so both sites stay.
+
+**Site or docs only (no firmware change):** merge to `main`; `.github/workflows/pages.yml` rebuilds the site (home, Install, Manual, Space feed) from `main` around the latest release's files, which stay byte-identical, and publishes both sites. It runs on pushes that touch `web-installer/`, `README.md`, `docs/` or the two site scripts, or by hand (Actions → Pages → Run workflow). No version bump or tag.
 1. Repository **Settings → Pages → Build and deployment → Source: GitHub Actions**.
 2. **Settings → Environments → github-pages → Deployment branches and tags → Add rule → Tag, pattern `v*`.** By default only the default branch may deploy, and releases run from tags.
 
@@ -45,6 +47,24 @@ If the web console changed, also run `QRP_ADMIN_PW=<pw> tools/web_security_check
 If the web console's look changed, regenerate the screenshots in `docs/screenshots/` (see `tools/webui_screenshots/README.md`) after the version bump, so they show the new version.
 
 The release build must **not** use the `cyd-debug` environment or `-DQRP_TEST_CRASH_AT_BOOT`.
+
+### 1b. Features, screenshots and the website
+Nothing here is automatic; tick each one that applies before the version bump.
+
+**Features** (whenever one is added, changed or removed in this release):
+- [ ] `README.md` → **Features and Data Sources**: the screen's row (what it shows, where its data comes from) and the bullets under the table. The manual (PDF and the website's Manual page) is built from the README, so it follows.
+- [ ] `web-installer/pages/home.html` → **Features** list on the website's home page.
+- [ ] A new data source or library: `THIRD_PARTY_NOTICES.md` (the build's licence check catches libraries, not web services).
+- [ ] `web-installer/pages/install.html` → **What you need**, only if the hardware changes.
+
+**Screenshots** (only new or changed screens, docs/UI_GUIDE.md):
+- [ ] Capture them: `pio run -e cyd-screens -t upload`, then `tools/device_screens.py --themes 0 --pages … --shots …` (flash `cyd` back afterwards).
+- [ ] Copy the chosen ones into `docs/pics/screens/` (same file name to replace one), and add a row or cell to the README's **Device Interface** gallery for a new screen.
+- [ ] Rebuild the website's screen tour: `python3 scripts/make_screens_gif.py` (add a new screen's file name to its `ORDER` list), and commit `docs/pics/qrpickle-tour.gif`.
+
+**Website**
+- [ ] After the release: both sites show the new version (`/QRPickle/install/` lists it, `ota/ota.json` has it).
+- [ ] Publishing to Quixotic Pursuits works: the release run's "Publish to Quixotic Pursuits" step is green, not skipped with a warning.
 
 ### 2. Update the changelog and bump the version
 Summarise what changed since the last release for users: `git log <last tag>..HEAD --oneline`. Add a section at the top of `CHANGELOG.md`:
@@ -85,7 +105,9 @@ On GitHub → **Actions** → "Auto-Build and Release":
    - `firmware.bin`, `firmware.bin.sha256`, `littlefs.bin`
    - `bootloader.bin`, `partitions.bin`, `boot_app0.bin` (for the installer's version list)
    - a ZIP containing everything, plus the licence texts
-6. Downloads the images of earlier releases (v0.2.0 and later) and publishes **GitHub Pages**: `ota/ota.json` + `ota/firmware.bin` (what devices update from) and the `install/` page with a version list (built by `scripts/make_pages_site.py`).
+6. Downloads the images of earlier releases (v0.2.0 and later) and publishes **GitHub Pages**: `ota/ota.json` + `ota/firmware.bin` (what devices update from), the `install/` page with a version list, and the microsite pages (built by `scripts/make_pages_site.py`).
+
+Merging the release PR also starts `pages.yml` (site-only rebuilds); it sees that `main` already says the new version and skips itself ("the release workflow publishes the site"), so it can't publish the old release over the new one.
 
 ### 5. Verify the release on a device
 On a CYD running the previous version, open the sidebar menu → **Cloud OTA**, tap ↻, then **INITIATE FIRMWARE FLASH**. On the serial log, expect:

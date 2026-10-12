@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{TITLE}}</title>
+  <meta name="description" content="QRPickle: a field-friendly ham radio dashboard for the ESP32 Cheap Yellow Display">
+  <link rel="stylesheet" href="{{ROOT}}site.css">
+  <script>  // theme before first paint (no flash): dark unless set to light
+    if (localStorage.getItem("theme") === "light") document.documentElement.setAttribute("data-theme", "light");
+  </script>
+{{HEAD}}
+</head>
+<body>
+  <header>
+    <div class="header-row">
+      <div>
+        <a href="{{ROOT}}" class="title"><h1>QRPickle</h1></a>
+        <p class="subtitle">{{SUBTITLE}}</p>
+      </div>
+      <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle light/dark mode" onclick="toggleTheme()">☀️ | 🌙</button>
+    </div>
+    <nav>
+{{NAV}}
+    </nav>
+  </header>
+  <main>
+{{BODY}}
+  </main>
+  <footer><small>QRPickle by VU3GLJ is MIT-licensed and includes fonts under the SIL Open Font License 1.1 and other
+     components: see the <a href="https://github.com/bmp/QRPickle/blob/main/THIRD_PARTY_NOTICES.md">third-party notices</a>.
+     Part of <a href="https://quixotic.bharathpalavalli.com/">Quixotic Pursuits</a>.</small></footer>
+  <script src="{{ROOT}}site.js"></script>
+{{SCRIPTS}}
+</body>
+</html>
