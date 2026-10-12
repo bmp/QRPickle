@@ -26,10 +26,28 @@ import subprocess
 import sys
 import tempfile
 
-# Flash addresses: bootloader and partition table at their fixed places, then the start of the
-# otadata, app0 and spiffs partitions from partitions.csv (README "Partition System").
-PARTS = [("bootloader.bin", 0x1000), ("partitions.bin", 0x8000), ("boot_app0.bin", 0xE000),
-         ("firmware.bin", 0x10000), ("littlefs.bin", 0x390000)]
+PARTITIONS_CSV = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "partitions.csv")
+
+
+def partition_offsets(path=PARTITIONS_CSV):
+    """{name: offset} from partitions.csv (otadata, app0, spiffs, ...)."""
+    out = {}
+    for line in open(path, encoding="utf-8"):
+        cols = [c.strip() for c in line.split("#")[0].split(",")]
+        if len(cols) >= 4 and cols[3]:
+            out[cols[0]] = int(cols[3], 0)
+    return out
+
+
+_P = partition_offsets()
+# The five images and where they go. The bootloader and the partition table sit at the ESP32's fixed
+# addresses; the rest come from partitions.csv (the same for every version since v0.2.0).
+PARTS = [("bootloader.bin", 0x1000), ("partitions.bin", 0x8000), ("boot_app0.bin", _P["otadata"]),
+         ("firmware.bin", _P["app0"]), ("littlefs.bin", _P["spiffs"])]
+# What each image is, for the installer's custom mode.
+PART_INFO = {"bootloader.bin": "ESP32 bootloader", "partitions.bin": "Partition table",
+             "boot_app0.bin": "otadata: start from app0", "firmware.bin": "Firmware (app0)",
+             "littlefs.bin": "Web console files (LittleFS); erases saved profiles"}
 # The first release with the web login and this installer; older ones are never offered.
 MIN_VERSION = (0, 2, 0)
 VERSION_RE = re.compile(r"^v(\d+)\.(\d+)\.(\d+)$")
@@ -189,7 +207,9 @@ def main():
     entries[1:] = sorted(entries[1:], key=lambda e: parse_version(e["version"]), reverse=True)
 
     with open(os.path.join(inst, "versions.json"), "w") as f:
-        json.dump({"latest": a.version, "versions": entries}, f, indent=2)
+        json.dump({"latest": a.version, "versions": entries,
+                   "parts": [{"path": n, "offset": f"0x{o:X}", "what": PART_INFO[n]} for n, o in PARTS]},
+                  f, indent=2)
     # Stable links to the latest version (install/manifest.json and its files).
     for name, _ in PARTS:
         shutil.copy(os.path.join(inst, a.version, name), os.path.join(inst, name))
