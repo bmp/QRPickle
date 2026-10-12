@@ -15,6 +15,7 @@ a { color:var(--link-color); }
 nav a { margin-right:10px; }
 .header-row { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; }
 .title { text-decoration:none; border:0; }
+.subtitle { margin:-12px 0 8px; font-style:italic; }
 .title h1 { font-size:24px; margin:19.92px 0; }
 .theme-toggle-btn { margin-left:auto; background:none; border:1px solid var(--toggle-border); border-radius:20px;
        cursor:pointer; padding:2px 8px; font-size:.8rem; color:var(--text-color); }

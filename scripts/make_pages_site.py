@@ -108,6 +108,9 @@ def manual_html(ref):
 def render_pages(out, ref):
     """Every page = web-installer/layout.html around a fragment from web-installer/pages."""
     layout = open(os.path.join(SITE, "layout.html"), encoding="utf-8").read()
+    # The subtitle is the README's first "## " heading, as on the manual's cover.
+    readme = open(os.path.join(REPO_ROOT, "README.md"), encoding="utf-8").read()
+    layout = layout.replace("{{SUBTITLE}}", re.search(r"(?m)^## (.+)$", readme).group(1).strip())
     for frag, folder, _ in PAGES:
         text = open(os.path.join(SITE, "pages", frag), encoding="utf-8").read()
         title = re.search(r"<!-- title: (.*?) -->", text).group(1)
