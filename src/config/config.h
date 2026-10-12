@@ -9,6 +9,10 @@ namespace config {
     // Weather, DX Cluster, POTA, SOTA, APRS Radar).
     constexpr uint16_t CYCLE_SCREENS_ALL = 0x7F;
     constexpr uint16_t CYCLE_SECONDS_MIN = 10, CYCLE_SECONDS_MAX = 600, CYCLE_SECONDS_DEFAULT = 10;
+    // Satellites (services/space_parse.h): category bits FM 1, linear 2, SSTV 4, voice 8, APRS 16.
+    constexpr uint8_t SAT_CATEGORIES_ALL = 0x1F, SAT_CATEGORIES_DEFAULT = 0x0F;
+    constexpr uint8_t SAT_MIN_EL_MAX = 60, SAT_MIN_EL_DEFAULT = 10;
+    constexpr uint8_t PASS_ALERT_MIN_MAX = 120, PASS_ALERT_MIN_DEFAULT = 30;
 
     struct Config {
         char callsign[12];
@@ -31,6 +35,13 @@ namespace config {
         bool cycle_enabled;  // show the chosen screens one after another (off by default)
         uint16_t cycle_screens;  // CYCLE_SCREENS_* bits
         uint16_t cycle_seconds;  // per screen, CYCLE_SECONDS_MIN..MAX
+
+        // Satellites and ARISS events (services/space_manager.h).
+        char space_url[96];  // own feed in the same format; "" = the project's space-feed branch
+        uint8_t sat_categories;  // SAT_CATEGORIES_* bits shown and predicted
+        uint8_t sat_min_el;  // degrees; lower passes are not listed
+        bool pass_alert_enabled;  // LED before ISS passes with an SSTV event or school contact
+        uint8_t pass_alert_min;  // minutes ahead, 1..PASS_ALERT_MIN_MAX
 
         char dx_url_primary[64];
         uint16_t dx_port_primary;

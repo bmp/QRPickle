@@ -39,6 +39,11 @@ namespace config {
         FIELD("cyc_en",     BOOL, cycle_enabled),
         FIELD("cyc_scr",    U16,  cycle_screens),
         FIELD("cyc_s",      U16,  cycle_seconds),
+        FIELD("space_url",  STR,  space_url),
+        FIELD("sat_cat",    U8,   sat_categories),
+        FIELD("sat_minel",  U8,   sat_min_el),
+        FIELD("pass_al_en", BOOL, pass_alert_enabled),
+        FIELD("pass_al_m",  U8,   pass_alert_min),
         FIELD("dx_url_p",   STR,  dx_url_primary),
         FIELD("dx_port_p",  U16,  dx_port_primary),
         FIELD("dx_url_s",   STR,  dx_url_secondary),
@@ -117,6 +122,10 @@ namespace config {
         cfg.cycle_enabled = false;
         cfg.cycle_screens = CYCLE_SCREENS_ALL;
         cfg.cycle_seconds = CYCLE_SECONDS_DEFAULT;
+        cfg.sat_categories = SAT_CATEGORIES_DEFAULT;
+        cfg.sat_min_el = SAT_MIN_EL_DEFAULT;
+        cfg.pass_alert_enabled = true;
+        cfg.pass_alert_min = PASS_ALERT_MIN_DEFAULT;
 
         strncpy(cfg.dx_url_primary, "dxspider.co.uk", sizeof(cfg.dx_url_primary) - 1);
         cfg.dx_port_primary = 7300;

@@ -24,9 +24,12 @@ namespace hw {
         }
 
         // How long to hold a colour before re-evaluating (unchanged from the original loop).
-        static uint32_t hold_ms(LEDState state, bool strobe, bool pulse) {
+        static volatile PassAlert pass_alert = PassAlert::NONE;
+
+        static uint32_t hold_ms(LEDState state, bool strobe, bool pulse, PassAlert pass) {
             if (strobe) return 20;
             if (pulse) return 5;
+            if (pass != PassAlert::NONE) return 40;  // smooth breathing, crisp 120 ms blinks
             switch (state) {
                 case STATE_BOOT_HW:
                 case STATE_BOOT_WIFI:  return 50;
@@ -48,14 +51,15 @@ namespace hw {
                 if (pulse_age > (int32_t)PULSE_MS) { traffic_pulse_active = false; pulse_age = -1; }
 
                 const LEDState state = current_state;
-                const Rgb c = pattern_color(state, now, strobe_age, pulse_age);
+                const PassAlert pass = pass_alert;
+                const Rgb c = pattern_color(state, now, strobe_age, pulse_age, pass);
                 // Only touch the PWM channels when the colour changes (review 5.3): in standby the
                 // task used to rewrite all three every 100 ms forever.
                 if (c.r != shown.r || c.g != shown.g || c.b != shown.b) {
                     write_raw_rgb(c.r, c.g, c.b);
                     shown = c;
                 }
-                vTaskDelay(pdMS_TO_TICKS(hold_ms(state, strobe_age >= 0, pulse_age >= 0)));
+                vTaskDelay(pdMS_TO_TICKS(hold_ms(state, strobe_age >= 0, pulse_age >= 0, pass)));
 
                 // "Ready" green is shown for one hold (1 s), then the LED goes dark.
                 if (strobe_age < 0 && pulse_age < 0 && state == STATE_BOOT_READY && current_state == STATE_BOOT_READY) {
@@ -86,6 +90,8 @@ namespace hw {
             priority_strobe_start = millis();
             priority_strobe_active = true;
         }
+
+        void set_pass_alert(PassAlert alert) { pass_alert = alert; }
 
     }
 }

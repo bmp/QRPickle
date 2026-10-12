@@ -6,6 +6,7 @@
 #include "sun_tests.h"
 #include "band_tests.h"
 #include "hamalert_tests.h"
+#include "space_tests.h"
 
 using services::sota_cluster::ParsedSpot;
 using services::sota_cluster::parse_line;
@@ -129,5 +130,8 @@ int main(int, char**) {
     RUN_TEST(test_band_groups_show_best_band);
     RUN_TEST(test_hamalert_split_spot);
     RUN_TEST(test_version_parse_edge_cases);
+    RUN_TEST(test_space_parse_sat);
+    RUN_TEST(test_space_parse_event);
+    RUN_TEST(test_space_event_passes_and_alert);
     return UNITY_END();
 }

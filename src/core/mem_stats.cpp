@@ -9,7 +9,7 @@ namespace mem_stats {
     static uint32_t last_ms = 0;
     static uint32_t stack_min[STK_COUNT] = {};
     static void* watched[STK_COUNT] = {};
-    static const char* const STACK_NAMES[STK_COUNT] = {"aprs", "hamalert", "ota_check", "solar", "pota", "async_tcp", "loop"};
+    static const char* const STACK_NAMES[STK_COUNT] = {"aprs", "hamalert", "ota_check", "solar", "pota", "async_tcp", "loop", "space_fetch", "space_passes"};
 
     static void record(StackSlot slot, uint32_t free_bytes) {
         if (!stack_min[slot] || free_bytes < stack_min[slot]) stack_min[slot] = free_bytes;

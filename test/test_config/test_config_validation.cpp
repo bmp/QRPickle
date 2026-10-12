@@ -219,6 +219,39 @@ void test_screen_cycling_settings() {
     TEST_ASSERT_EQUAL_UINT16(45, dst.cycle_seconds);
 }
 
+void test_satellite_settings() {
+    Config prev = base(), c = base();
+    prev.sat_categories = 0x05;
+    c.sat_categories = 0xE0;  // nothing valid -> previous
+    c.sat_min_el = 90;
+    c.pass_alert_min = 0;
+    strcpy(c.space_url, "file:///etc/passwd");
+    strcpy(prev.space_url, "");
+    sanitize(c, prev);
+    TEST_ASSERT_EQUAL_HEX8(0x05, c.sat_categories);
+    TEST_ASSERT_EQUAL_UINT8(SAT_MIN_EL_MAX, c.sat_min_el);
+    TEST_ASSERT_EQUAL_UINT8(1, c.pass_alert_min);
+    TEST_ASSERT_EQUAL_STRING("", c.space_url);  // invalid URL -> previous
+    c.pass_alert_min = 200;
+    sanitize(c, prev);
+    TEST_ASSERT_EQUAL_UINT8(PASS_ALERT_MIN_MAX, c.pass_alert_min);
+
+    Config src = base(), dst{};
+    strcpy(src.space_url, "http://192.168.0.10:8770/space.json");
+    src.sat_categories = 0x06;
+    src.sat_min_el = 15;
+    src.pass_alert_enabled = true;
+    src.pass_alert_min = 45;
+    JsonDocument doc;
+    to_json(src, doc.to<JsonObject>(), Secrets::Include);
+    from_json(dst, doc.as<JsonObjectConst>());
+    TEST_ASSERT_EQUAL_STRING("http://192.168.0.10:8770/space.json", dst.space_url);
+    TEST_ASSERT_EQUAL_HEX8(0x06, dst.sat_categories);
+    TEST_ASSERT_EQUAL_UINT8(15, dst.sat_min_el);
+    TEST_ASSERT_TRUE(dst.pass_alert_enabled);
+    TEST_ASSERT_EQUAL_UINT8(45, dst.pass_alert_min);
+}
+
 int main(int, char**) {
     UNITY_BEGIN();
     RUN_TEST(test_valid_config_is_normalised_not_reverted);
@@ -233,5 +266,6 @@ int main(int, char**) {
     RUN_TEST(test_solar_url);
     RUN_TEST(test_location_marker_and_band_groups);
     RUN_TEST(test_screen_cycling_settings);
+    RUN_TEST(test_satellite_settings);
     return UNITY_END();
 }

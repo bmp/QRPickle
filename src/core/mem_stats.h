@@ -27,6 +27,8 @@ namespace mem_stats {
         STK_POTA,
         STK_ASYNC_TCP,  // the web server's network task (AsyncTCP)
         STK_LOOP,  // Arduino's loopTask (LVGL, UI)
+        STK_SPACE,  // space feed download
+        STK_SPACE_PASS,  // SGP4 pass calculation
         STK_COUNT
     };
     // Long-lived tasks: sampled by update() through their handle.
