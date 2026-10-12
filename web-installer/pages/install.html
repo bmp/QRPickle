@@ -67,8 +67,9 @@
     let versions = [], parts = [], manifestUrl = null;
     const MODES = [
       {id: "full", label: "Full install",
-       desc: "Everything: bootloader, partition table, firmware and web console files. You will be offered " +
-             "\"Erase device\": tick it for a clean start (it also clears settings and profiles). For a new board.",
+       desc: "Everything: bootloader, partition table, firmware and web console files. Writing the web console " +
+             "files deletes saved profiles (download a backup first); settings stay. You will be asked " +
+             "\"Erase device\": tick it for a clean start, which also clears settings. For a new board.",
        files: ["bootloader.bin", "partitions.bin", "boot_app0.bin", "firmware.bin", "littlefs.bin"]},
       {id: "firmware", label: "Firmware only",
        desc: "Only the firmware (and the record of which slot to start from). Settings, profiles and the web " +
@@ -103,9 +104,17 @@
       update();
     }
 
-    // The chosen images and addresses, or an error text.
-    function chosenParts() {
+    // Flash areas an image must not run into unless that is its job (partitions.csv).
+    const PROTECTED = [{name: "settings (nvs)", start: 0x9000, end: 0xE000, owner: null},
+                       {name: "slot selection (otadata)", start: 0xE000, end: 0x10000, owner: "boot_app0.bin"}];
+    const hex = n => "0x" + n.toString(16).toUpperCase();
+    let warning = "";
+
+    // The chosen images and addresses, or an error text. Each image is written to whole 4 KB sectors
+    // from its address; nothing else on the chip is erased (unless "Erase device" is ticked).
+    function chosenParts(v) {
       const m = MODES.find(x => x.id === mode());
+      warning = "";
       if (m.files) return parts.filter(p => m.files.includes(p.path)).map(p => ({path: p.path, offset: parseInt(p.offset, 16)}));
       const out = [];
       for (let i = 0; i < parts.length; i++) {
@@ -114,10 +123,18 @@
         const off = /^0x[0-9a-f]+$/i.test(text) ? parseInt(text, 16) : NaN;
         if (isNaN(off) || off % 0x1000 || off >= 0x400000)
           return `${parts[i].path}: the address must be hex (0x...), a multiple of 0x1000 and inside the 4 MB flash.`;
-        if (out.some(p => p.offset === off)) return `${parts[i].path}: another image already goes to ${text}.`;
-        out.push({path: parts[i].path, offset: off});
+        const size = (v.sizes || {})[parts[i].path];
+        if (!size) return `${parts[i].path}: its size isn't known for ${v.version}; use Full install or Firmware only.`;
+        const end = off + Math.ceil(size / 0x1000) * 0x1000;  // sectors erased and written
+        if (end > 0x400000) return `${parts[i].path} (${size} B) at ${text} runs past the end of the 4 MB flash.`;
+        const clash = out.find(p => off < p.end && end > p.offset);
+        if (clash) return `${parts[i].path} (${hex(off)}-${hex(end - 1)}) overlaps ${clash.path} (${hex(clash.offset)}-${hex(clash.end - 1)}).`;
+        for (const r of PROTECTED)
+          if (r.owner !== parts[i].path && off < r.end && end > r.start)
+            warning += `${parts[i].path} would overwrite the ${r.name} area (${hex(r.start)}-${hex(r.end - 1)}). `;
+        out.push({path: parts[i].path, offset: off, end});
       }
-      return out.length ? out : "Tick at least one image.";
+      return out.length ? out.map(p => ({path: p.path, offset: p.offset})) : "Tick at least one image.";
     }
 
     function update() {
@@ -134,10 +151,11 @@
         const changed = parseInt(document.getElementById("a" + i).value, 16) !== parseInt(p.offset, 16);
         document.getElementById("d" + i).classList.toggle("changed", changed);
       });
-      const chosen = chosenParts();
+      const chosen = chosenParts(v);
       const err = document.getElementById("custom-error");
-      err.classList.toggle("hidden", typeof chosen !== "string");
-      err.textContent = typeof chosen === "string" ? chosen : "";
+      const problem = typeof chosen === "string" ? chosen : (warning ? "Careful: " + warning : "");
+      err.classList.toggle("hidden", !problem);
+      err.textContent = problem;
       const button = document.getElementById("install");
       button.classList.toggle("disabled", typeof chosen === "string");
       if (typeof chosen === "string") return;
