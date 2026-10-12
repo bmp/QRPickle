@@ -2,7 +2,37 @@
 
 User-facing changes per release, newest first. Each section is also the release commit message (see `docs/RELEASING.md`).
 
-## v0.2.4 (2026-10-10)
+## v0.2.5 (unreleased)
+
+Satellites and SSTV, screen cycling, more settings on the device; more free memory
+
+Updating from v0.2.4: Cloud OTA (device or web console) or upload firmware.bin;
+settings are kept. The new web console settings (screen cycling, satellites)
+also need littlefs.bin (web console: System Info, "LittleFS Storage Image").
+Writing the filesystem erases profiles, so back them up first (Profiles,
+Backup and Restore).
+
+New
+- Satellites screen: the next passes of popular amateur satellites over your
+  station (FM, linear, SSTV, voice beacons, optionally APRS), with times,
+  directions and frequencies; ISS SSTV events and ARISS school contacts, with
+  whether the ISS is above your horizon for a contact. Passes are computed on
+  the device from orbits updated every 6 hours; your location is not sent.
+- The status LED blinks purple before an ISS SSTV or school-contact pass (30
+  minutes ahead by default) and breathes during it. Configurable in the web
+  console, switchable on the device.
+- Screen cycling: chosen screens in turn (10 seconds each by default). A touch
+  pauses it; it resumes after 2 minutes. An icon in the status bar shows it
+  and pauses or resumes it.
+- Device Settings: APRS, screen cycling and pass alerts on/off.
+- A page about the satellite feed on the project site.
+
+Fixed
+- The automatic update check failed for lack of memory; about 16 KB more
+  memory is free while running.
+- APRS sent a position beacon on every reconnect.
+
+
 
 Real band conditions from HAMQSL.com, privacy masks, screenshots; memory and crash fixes
 
