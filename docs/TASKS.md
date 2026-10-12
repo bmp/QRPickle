@@ -4,11 +4,11 @@ The single list of open work: checks that need a person (screen, touch, browser)
 
 ## Hands-on checks (owner, after v0.2.2)
 The web console checks are automated (`tools/webui_e2e/`, 31/31 on 2026-10-09). These need a person:
-- [ ] **Theme colours (v0.2.2):** review the themes on the device (the v0.2.2 capture in `release/shots/after/` was cleaned up 2026-10-12; recapture with `tools/device_screens.py` if needed) (7 changed screens in the 6 non-Classic themes; Classic is unchanged by construction). Noted: in E-Ink Light the grey "P" (poor) band badge has white text, which is low contrast.
-- [ ] **On the device:** Settings → tap the profile button → Save applies the whole profile (e.g. the APRS macros change too).
-- [ ] **Network screen** shows the admin password after changing it in the web console.
-- [ ] **Setup hotspot:** when the device can't reach WiFi, `QRPickle-Setup` asks for the admin password, and the LED stays amber.
-- [ ] **Sensor offline (optional):** unplug the BME280 and boot. The dashboard shows `-- C | --%` and `-- hPa`, the weather screen `--`.
+- [x] **Theme colours (v0.2.2):** confirmed by the owner 2026-10-12; review the themes on the device (the v0.2.2 capture in `release/shots/after/` was cleaned up 2026-10-12; recapture with `tools/device_screens.py` if needed) (7 changed screens in the 6 non-Classic themes; Classic is unchanged by construction). Noted: in E-Ink Light the grey "P" (poor) band badge has white text, which is low contrast.
+- [x] **On the device:** confirmed by the owner 2026-10-12: Settings → tap the profile button → Save applies the whole profile (e.g. the APRS macros change too).
+- [x] **Network screen** (confirmed by the owner 2026-10-12) shows the admin password after changing it in the web console.
+- [x] **Setup hotspot:** moved to v0.2.6 (the password half confirmed 2026-10-12; the amber LED still to check).
+- [x] **Sensor offline (optional):** confirmed by the owner 2026-10-12: unplug the BME280 and boot. The dashboard shows `-- C | --%` and `-- hPa`, the weather screen `--`.
 
 ## Watching
 - [ ] **Web installer on Linux (2026-10-12):** Chromium 154 (Flatpak Ungoogled and Fedora builds) opens the CH340 port with `TCSETS2 … B0` (the speed is never set, the port keeps its old one: 9600 after plugging in) and switches DTR/RTS one at a time, so the CYD starts the firmware instead of the bootloader. Workaround documented (README "Web installer on Linux", install page): `stty`/udev rule for 115200, hold BOOT. Recheck with newer Chromium (no upstream report, owner 2026-10-12).
@@ -73,7 +73,8 @@ Order: data source -> rating model -> bands -> band-conditions screen -> privacy
 - [ ] **Improv Serial in the firmware (owner 2026-10-12):** answer the web installer, so it can set up WiFi right after flashing, show the installed version and offer "update". Check the flash cost.
 - [ ] **Space feed retry and flash budget (owner 2026-10-12):** retry sooner after a failed TLS fetch at boot (seen 2026-10-12); a size review (85.5 % of the slot, limit 95 %).
 - [ ] **UI consistency (owner 2026-10-12):** one fixed place for the refresh and home buttons on every page; status-bar icons all the same size; checked on every screen and theme (UI guide rule + screenshots).
-- [ ] **Theme review (carried over; with UI consistency):** E-Ink Light: the home button icon is faint on white; review all 7 themes on the device (also the v0.2.2 hands-on check below).
+- [ ] **Device check (carried over from v0.2.2):** when the device can't reach WiFi, the `QRPickle-Setup` hotspot asks for the admin password (confirmed 2026-10-12) **and the LED stays amber** (still to check).
+- [ ] **Theme review (carried over; with UI consistency):** E-Ink Light: the home button icon is faint on white; review all 7 themes on the device.
 - [ ] **Screenshot build heap (carried over):** `cyd-screens` falls to ~100-400 B free at boot (the release build ~4 KB); data screens (OpenWeather, DX) need several minutes before they fill.
 - [ ] **Compressed splash logos (carried over):** LVGL RLE; measure the net saving (decoder cost included); the logos stay in the firmware.
 
