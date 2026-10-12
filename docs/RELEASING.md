@@ -6,7 +6,7 @@ Devices on the field pick up new releases through **Cloud OTA** (sidebar menu �
 
 ## One-time GitHub setup (before the first Pages release)
 
-Releases also publish to **GitHub Pages**: Cloud OTA files under `/ota/` and the browser installer under `/install/` (https://bmp.github.io/QRPickle/install/).
+Releases also publish to **GitHub Pages**: Cloud OTA files under `/ota/` and the browser installer under `/install/` (https://bmp.github.io/QRPickle/install/, also at https://quixotic.bharathpalavalli.com/QRPickle/install/, the address the README gives).
 
 The same site is also published to **Quixotic Pursuits** (https://quixotic.bharathpalavalli.com/QRPickle/, repo `bmp/quixotic`): the release workflow force-pushes it as the single commit of that repo's `qrpickle-site` branch and asks its Pages workflow to rebuild. The step is skipped until the `QUIXOTIC_TOKEN` secret exists (fine-grained token, repository `bmp/quixotic` only, permissions Contents and Actions: read and write). Devices keep using `bmp.github.io/QRPickle/ota/`, so both sites stay.
 1. Repository **Settings → Pages → Build and deployment → Source: GitHub Actions**.
@@ -126,7 +126,7 @@ git push origin :refs/tags/v0.1.12
 
 ## Users without Cloud OTA
 
-**Easiest:** open https://bmp.github.io/QRPickle/install/ in Chrome or Edge, pick a version, connect the CYD by USB and click **Install** (ESP Web Tools). It writes the firmware and the filesystem (erasing saved profiles); settings in NVS are kept unless the user ticks "Erase device".
+**Easiest:** open https://quixotic.bharathpalavalli.com/QRPickle/install/ in Chrome or Edge, pick a version, connect the CYD by USB and click **Install** (ESP Web Tools). It writes the firmware and the filesystem (erasing saved profiles); settings in NVS are kept unless the user ticks "Erase device".
 
 The version list holds the newest 5 releases from v0.2.0 on. CI downloads the earlier ones' five images from their GitHub releases, so **don't delete release assets** of versions that should stay installable. Older versions are a way to roll back by hand; Cloud OTA never downgrades.
 

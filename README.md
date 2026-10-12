@@ -6,7 +6,7 @@
 
 This project is inspired by [cburns42/HamClockCYD](https://github.com/cburns42/HamClockCYD) and [SP3KON/ESP32-HAM-CLOCK](https://github.com/SP3KON/ESP32-HAM-CLOCK), which resulted in a group build at [BARC](https://barc.in/) with VU3GWN forking it to ([coffeedev/BARC-HAM-CLOCK](https://github.com/coffeedev/BARC-HAM-CLOCK)).
 
-**TL;DR:** install QRPickle from your browser with the **[one-click web installer](https://bmp.github.io/QRPickle/install/)** (Chrome or Edge, and a USB data cable).
+**TL;DR:** install QRPickle from your browser with the **[one-click web installer](https://quixotic.bharathpalavalli.com/QRPickle/install/)** (Chrome or Edge, and a USB data cable).
 
 ***
 
@@ -68,23 +68,38 @@ Saved secrets (WiFi password, API keys, passcodes) are never shown again in the 
 
 **Note:** saved profiles store their WiFi credentials on the device's filesystem, so they can switch networks. The flash is not encrypted. A profile without a stored password or key keeps the device's current one when applied. Backups never contain secrets.
 
-## Core Features & Architecture
+## Features and Data Sources
 
-* **Stream-Buffered HamAlert & DX Cluster:** Maintains a persistent, asynchronous TCP Telnet socket to background-listen for targeted DX spots. Uses a custom "Smart Parser" to read arbitrary-length streams without overflowing the FreeRTOS stack.
-* **Heap-Protected POTA & SOTA Fetching:** Standard HTTPS requests require ~40KB of contiguous RAM for RSA encryption (`mbedTLS`). QRPickle uses element-by-element JSON stream deserialization and task-staggering to prevent `BIGNUM` Out-Of-Memory kernel panics.
-* **APRS-IS Integration:** Connects to the global APRS-IS network. Features a tactical Radar view, live spotter tracking, custom macros, and direct bidirectional messaging.
-* **Band Conditions & Solar Data:** Solar-terrestrial data (SFI, K, A, X-ray, solar wind, Bz, noise) from [HAMQSL.com](https://www.hamqsl.com/solar.html) (courtesy of N0NBH), fetched every 3 hours (hourly in storms) or from your own source. Rates 11 bands (160 m to 6 m) for day and night at your location, shows greyline and the next sunrise/sunset, and explains every indicator on the device.
-* **Satellites & SSTV:** The next passes of popular amateur satellites over your station (FM, linear, SSTV, voice beacons, optionally APRS) with times, directions and frequencies, plus ISS SSTV events and ARISS school contacts. Passes are computed on the device (SGP4) from a feed built every 6 hours ([about the feed](https://bmp.github.io/QRPickle/space/)); your location never leaves the CYD. The LED signals SSTV and school-contact passes ahead of time.
-* **Screen Cycling:** Show chosen screens in turn (10 s each by default); a touch pauses it.
-* **Weather:** Local BME280 sensor plus OpenWeatherMap current conditions and a 24-hour forecast with selectable slots.
-* **Adaptive Power & Wi-Fi Management:** Enforces hardware-level radio power caps (`esp_wifi_set_max_tx_power(60)`, i.e. 15 dBm) to prevent LDO voltage brownouts on the CYD board. Falls back to an integrated Setup AP (`192.168.4.1`) if routing fails.
-* **Profiles:** Save and hot-swap complete configurations (every setting except the admin password: callsign, grid, network, theme, APRS, macros, DX servers, HamAlert) for quick transitions between Home, Mobile and Field ops. Edit a profile in the normal settings form, delete it, or download/restore a backup (settings + profiles, without passwords and keys). Profiles are stored on LittleFS, so download a backup before writing a new filesystem image.
-* **Monochrome & Tactical Themes:** Driven by **LVGL 9**, featuring high-contrast modes including Tactical Field Red, GitHub Slate Dark, Terminal Phosphor Green, and pure-binary E-Ink simulations.
-* **OTA:** Manual firmware update through the web dashboard, or **Cloud OTA** (pulls the latest release published on GitHub Pages and checks its SHA-256 before switching). A new image that doesn't come up healthy within 3 boots is rolled back automatically.
-* **Adaptive brightness:** Option to enable adaptive brightness or set it manually.
-* **Indoor sensor (optional):** a BME280 on the CN1 connector adds indoor temperature, humidity and pressure. See [Hardware and Wiring](docs/HARDWARE.md).
-* **Documentation:** guides for hardware, releasing, debugging and assets are indexed in [docs/](docs/README.md).
-* **LED Status:** A very elementary notification system is implemented through the LED lights on the backside of the ESP32-CYD. Details are documented in the [LED Colours](docs/LEDColours.md) file in the docs folder.
+What each screen shows and where its data comes from. Accounts and keys are entered in the web
+console and stay on the device.
+
+| Screen | What it shows | Data from |
+| :--- | :--- | :--- |
+| **Dashboard** | Local and UTC time, indoor sensor and weather, band conditions for your chosen band groups | the screens below |
+| **DX Cluster** | Live DX spots, filtered by band and mode | DX cluster over telnet (default `dxspider.co.uk:7300`, fallback `dxc.w6bgr.com:7373`; both configurable) |
+| **xOTA** | POTA and SOTA activators on air, filtered by band, mode and QRP | [POTA](https://pota.app) (`api.pota.app`); [SOTA cluster](https://www.sota.org.uk) (`cluster.sota.org.uk`, telnet) |
+| **HamAlert** | Spots matching your own triggers | [HamAlert](https://hamalert.org) (your account, telnet) |
+| **APRS** | Stations heard (list and radar), messages, your position beacon | [APRS-IS](https://www.aprs-is.net) (`rotate.aprs.net`; your callsign and passcode) |
+| **Band Conditions** | 11 bands (160 m to 6 m) rated for day and night at your location, greyline, next sunrise/sunset, solar indicators explained ([how bands are rated](docs/BAND_RATING.md)) | [HAMQSL.com](https://www.hamqsl.com/solar.html) solar data, courtesy of N0NBH (every 3 hours, hourly in storms), or your own source |
+| **Satellites** | The next passes over your station of popular amateur satellites (FM, linear, SSTV, voice beacons, optionally APRS) with times, directions and frequencies; ISS SSTV events and ARISS school contacts | A feed built every 6 hours from [SatNOGS DB](https://db.satnogs.org) (CC BY-SA 4.0), [CelesTrak](https://celestrak.org) orbits and [ARISS](https://www.ariss.org) ([about the feed](https://quixotic.bharathpalavalli.com/QRPickle/space/)); passes computed on the device, your location is never sent |
+| **Weather** | Indoor temperature, humidity and pressure; current conditions and a 24-hour forecast | BME280 sensor (optional, [wiring](docs/HARDWARE.md)); [OpenWeather](https://openweathermap.org) (your free API key) |
+| **Network, Settings, Cloud OTA** | WiFi, station and display settings on the device; updates | [GitHub Pages](https://bmp.github.io/QRPickle/ota/ota.json) for updates; time from `pool.ntp.org` |
+
+**On the device**
+* **Screen cycling:** chosen screens in turn (10 s each by default); a touch pauses it, a status-bar icon shows and toggles it.
+* **Status LED:** setup and network states, a faint pulse when data arrives, a strobe for HamAlert or APRS messages, and a purple signal before ISS SSTV and school-contact passes ([LED Colours](docs/LEDColours.md)).
+* **Themes:** 7 themes in LVGL 9, including Tactical Field Red, Terminal Green and two E-Ink styles.
+* **Display:** sleep timeout, manual or automatic brightness (light sensor).
+* **Privacy:** passwords and network details are masked on screen and in the serial log.
+
+**Web console and updates**
+* **Web console:** every setting, profiles (save and switch complete setups for home, mobile and field; download/restore a backup without passwords and keys), APRS messaging and system information. Digest login; the setup hotspot (`192.168.4.1`) takes over when no network is reachable.
+* **Updates:** firmware upload in the web console, or **Cloud OTA** from GitHub Pages with a mandatory SHA-256 and verified HTTPS. A new image that doesn't come up healthy within 3 boots is rolled back. First installs: the [web installer](https://quixotic.bharathpalavalli.com/QRPickle/install/).
+
+**How it fits on an ESP32 without PSRAM**
+* One network session at a time and streamed JSON parsing keep HTTPS (about 40 KB per session) within memory; long-running work runs in background tasks, never in the UI loop ([memory budget](docs/MEMORY.md)).
+* WiFi transmit power is capped (15 dBm) to avoid brownouts on the CYD's regulator.
+* Guides for hardware, releasing, debugging and assets: [docs/](docs/README.md).
 
 ---
 
@@ -173,7 +188,7 @@ The release folder contains the following files:
 
 ## Easy Web Installation (No Software Required)
 
-**One-click installer (from v0.2.0):** open **[bmp.github.io/QRPickle/install](https://bmp.github.io/QRPickle/install/)** in Chrome or Edge, pick a version (the latest is preselected; the last five releases are listed), connect the CYD by USB and click **Install**. It writes everything, including the filesystem. If you're updating a device that already has profiles, download a backup first (web console → Profiles → Download Backup).
+**One-click installer (from v0.2.0):** open **[quixotic.bharathpalavalli.com/QRPickle/install](https://quixotic.bharathpalavalli.com/QRPickle/install/)** in Chrome or Edge, pick a version (the latest is preselected; the last five releases are listed), connect the CYD by USB and click **Install**. It writes everything, including the filesystem. If you're updating a device that already has profiles, download a backup first (web console → Profiles → Download Backup).
 
 **Manual alternative:** flash the release files with the Espressif Web Flasher.
 
