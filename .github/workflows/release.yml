@@ -133,3 +133,26 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v5
+
+      # Quixotic Pursuits (https://quixotic.bharathpalavalli.com, repo bmp/quixotic) shows QRPickle
+      # at /QRPickle/: this same site, force-pushed as the single commit of bmp/quixotic's
+      # `qrpickle-site` branch (installer images don't pile up in history); bmp/quixotic's Pages
+      # workflow puts it under /QRPickle/. Skipped until the QUIXOTIC_TOKEN secret exists (a
+      # fine-grained token for bmp/quixotic only: Contents and Actions, read and write). The Pages above stay: devices
+      # read bmp.github.io/QRPickle/ota/ota.json.
+      - name: Publish to Quixotic Pursuits
+        env:
+          QUIXOTIC_TOKEN: ${{ secrets.QUIXOTIC_TOKEN }}
+        if: env.QUIXOTIC_TOKEN != ''
+        run: |
+          cd site
+          git init -q -b qrpickle-site
+          git config user.name "github-actions[bot]"
+          git config user.email "41898333+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "QRPickle ${FW_VERSION} site"
+          git push -f "https://x-access-token:${QUIXOTIC_TOKEN}@github.com/bmp/quixotic.git" qrpickle-site
+          rm -rf .git
+          # A push to that branch doesn't build the site (the branch has no workflow): ask for it.
+          curl -fsS -X POST -H "Authorization: Bearer ${QUIXOTIC_TOKEN}" -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/bmp/quixotic/actions/workflows/pages.yml/dispatches -d '{"ref":"main"}'
