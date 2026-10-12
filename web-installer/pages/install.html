@@ -69,16 +69,18 @@
       {id: "full", label: "Full install",
        desc: "Everything: bootloader, partition table, firmware and web console files. You will be offered " +
              "\"Erase device\": tick it for a clean start (it also clears settings and profiles). For a new board.",
-       files: ["bootloader.bin", "partitions.bin", "boot_app0.bin", "firmware.bin", "littlefs.bin"], erase: true},
+       files: ["bootloader.bin", "partitions.bin", "boot_app0.bin", "firmware.bin", "littlefs.bin"]},
       {id: "firmware", label: "Firmware only",
        desc: "Only the firmware (and the record of which slot to start from). Settings, profiles and the web " +
-             "console files stay. The board must already run QRPickle v0.2.0 or later; the web console " +
-             "files stay at their old version until a full install or a filesystem upload.",
-       files: ["boot_app0.bin", "firmware.bin"], erase: false},
+             "console files stay: leave \"Erase device\" unticked when asked. The board must already run " +
+             "QRPickle v0.2.0 or later; the web console files stay at their old version until a full install " +
+             "or a filesystem upload.",
+       files: ["boot_app0.bin", "firmware.bin"]},
       {id: "custom", label: "Custom",
        desc: "Pick the images and their addresses (from the partition table). Writing the web console files " +
-             "erases saved profiles. Only change an address if you know why.",
-       files: null, erase: false},
+             "erases saved profiles. Leave \"Erase device\" unticked when asked, unless you want the whole " +
+             "chip cleared. Only change an address if you know why.",
+       files: null},
     ];
     function mode() { return document.getElementById("mode").value; }
 
@@ -141,7 +143,10 @@
       if (typeof chosen === "string") return;
       // Absolute image URLs: the manifest is a blob, so relative paths would have nothing to resolve against.
       const base = new URL(v.manifest, location.href);
-      const manifest = {name: "QRPickle", version: v.version, new_install_prompt_erase: m.erase,
+      // Always ask about erasing. Without the question, ESP Web Tools ERASES THE WHOLE CHIP on boards that
+      // don't speak Improv Serial (QRPickle doesn't): "Firmware only" would then wipe settings and leave no
+      // bootloader. With the question, an unticked "Erase device" writes only the chosen images.
+      const manifest = {name: "QRPickle", version: v.version, new_install_prompt_erase: true,
                         builds: [{chipFamily: "ESP32", parts: chosen.map(p => ({path: new URL(p.path, base).href, offset: p.offset}))}]};
       if (manifestUrl) URL.revokeObjectURL(manifestUrl);
       manifestUrl = URL.createObjectURL(new Blob([JSON.stringify(manifest)], {type: "application/json"}));
