@@ -175,6 +175,24 @@ Tile rules:
   `config::cycle_screens`), raise `CYCLE_SCREENS_ALL`, a case in `show()`, a tick box in the web
   console, and a passive visit if the screen fetches or connects when opened.
 
+## Satellites screen
+
+`src/ui/screens/satellites.cpp` (menu: Satellites, `PAGE_SATELLITES`), laid out like Band Conditions:
+tabs PASSES / EVENTS / GUIDE, a 172 px body and a footer (satellites and passes held, feed age,
+refresh).
+
+- **PASSES:** up to 10 rows in `font_jetbrains_10`, one label each: local rise time (`NOW` while
+  up, accent colour), name (12 characters), highest elevation, compass directions at rise and set,
+  minutes above the horizon, and `SSTV` / `ARISS` (amber) for ISS passes during an event. A
+  geostationary satellite (QO-100) gets one line with its elevation. Tapping a row shows that pass:
+  times, directions and the frequencies, read from the cached feed file on the tap
+  (`SpaceManager::load_sat()`); tapping the text goes back.
+- **EVENTS:** ISS SSTV events and school contacts as one wrapped label; for a contact, whether the
+  ISS is above the horizon then. Ends with the data credit (SatNOGS DB is CC BY-SA: keep it).
+- Data: `services::SpaceManager` (`view().version`); hold `lock()` while reading the arrays, with a
+  short timeout (never block the main loop on it).
+- LVGL pool on any tab or the pass view: 33-38 % (measured 2026-10-12).
+
 ## Themes
 
 Every colour comes from the theme: `theme_color(TOKEN)` (`theme.h`). Never write `lv_color_hex()`
