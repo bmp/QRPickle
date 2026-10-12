@@ -24,6 +24,8 @@ This project is inspired by [cburns42/HamClockCYD](https://github.com/cburns42/H
 | <img src="docs/pics/screens/dx-cluster.png" alt="DX Cluster" width="250"> | <img src="docs/pics/screens/pota.png" alt="POTA Spots" width="250"> | <img src="docs/pics/screens/sota.png" alt="SOTA Spots" width="250"> |
 | **Band Conditions** | **Solar Indicators** | **Reading the Indicators** |
 | <img src="docs/pics/screens/band-conditions.png" alt="Band Conditions" width="250"> | <img src="docs/pics/screens/band-solar.png" alt="Solar Indicators" width="250"> | <img src="docs/pics/screens/band-guide.png" alt="Reading the Indicators" width="250"> |
+| **Satellite Passes** | **A Pass** | **SSTV & School Contacts** |
+| <img src="docs/pics/screens/satellites.png" alt="Satellite Passes" width="250"> | <img src="docs/pics/screens/satellites-pass.png" alt="A Satellite Pass" width="250"> | <img src="docs/pics/screens/satellites-events.png" alt="SSTV Events and School Contacts" width="250"> |
 | **APRS Traffic** | **APRS Radar** | **APRS Messages** |
 | <img src="docs/pics/screens/aprs-traffic.png" alt="APRS Traffic" width="250"> | <img src="docs/pics/screens/aprs-radar.png" alt="APRS Radar" width="250"> | <img src="docs/pics/screens/aprs-messages.png" alt="APRS Messages" width="250"> |
 | **APRS Quick Messages** | **APRS Beacon** | **HamAlert** |
@@ -72,6 +74,8 @@ Saved secrets (WiFi password, API keys, passcodes) are never shown again in the 
 * **Heap-Protected POTA & SOTA Fetching:** Standard HTTPS requests require ~40KB of contiguous RAM for RSA encryption (`mbedTLS`). QRPickle uses element-by-element JSON stream deserialization and task-staggering to prevent `BIGNUM` Out-Of-Memory kernel panics.
 * **APRS-IS Integration:** Connects to the global APRS-IS network. Features a tactical Radar view, live spotter tracking, custom macros, and direct bidirectional messaging.
 * **Band Conditions & Solar Data:** Solar-terrestrial data (SFI, K, A, X-ray, solar wind, Bz, noise) from [HAMQSL.com](https://www.hamqsl.com/solar.html) (courtesy of N0NBH), fetched every 3 hours (hourly in storms) or from your own source. Rates 11 bands (160 m to 6 m) for day and night at your location, shows greyline and the next sunrise/sunset, and explains every indicator on the device.
+* **Satellites & SSTV:** The next passes of popular amateur satellites over your station (FM, linear, SSTV, voice beacons, optionally APRS) with times, directions and frequencies, plus ISS SSTV events and ARISS school contacts. Passes are computed on the device (SGP4) from a feed built every 6 hours ([about the feed](https://bmp.github.io/QRPickle/space/)); your location never leaves the CYD. The LED signals SSTV and school-contact passes ahead of time.
+* **Screen Cycling:** Show chosen screens in turn (10 s each by default); a touch pauses it.
 * **Weather:** Local BME280 sensor plus OpenWeatherMap current conditions and a 24-hour forecast with selectable slots.
 * **Adaptive Power & Wi-Fi Management:** Enforces hardware-level radio power caps (`esp_wifi_set_max_tx_power(60)`, i.e. 15 dBm) to prevent LDO voltage brownouts on the CYD board. Falls back to an integrated Setup AP (`192.168.4.1`) if routing fails.
 * **Profiles:** Save and hot-swap complete configurations (every setting except the admin password: callsign, grid, network, theme, APRS, macros, DX servers, HamAlert) for quick transitions between Home, Mobile and Field ops. Edit a profile in the normal settings form, delete it, or download/restore a backup (settings + profiles, without passwords and keys). Profiles are stored on LittleFS, so download a backup before writing a new filesystem image.
@@ -98,6 +102,7 @@ QRPickle's own code is MIT-licensed (see [`License`](License)). The fonts are un
 * **[TFT_eSPI](https://github.com/Bodmer/TFT_eSPI):** Highly optimized SPI driver for the ILI9341 display.
 * **[XPT2046_Touchscreen](https://github.com/PaulStoffregen/XPT2046_Touchscreen):** Driver for the resistive touch controller (on its own SPI bus).
 * **[ESPAsyncWebServer](https://github.com/ESP32Async/ESPAsyncWebServer):** The web console and its REST API, with Digest authentication.
+* **[Sgp4](https://github.com/Hopperpop/Sgp4-Library):** Satellite orbit propagation (Vallado's SGP4) for the pass predictions.
 * **[ArduinoJson v7](https://arduinojson.org/):** Zero-allocation stream parsing for OpenWeatherMap, POTA, and SOTA HTTPS payloads.
 * **ESP-IDF Native APIs:** Utilized directly alongside the Arduino Core wrapper for strict Wi-Fi TX power limits, FreeRTOS task handling, and lwIP socket management.
 

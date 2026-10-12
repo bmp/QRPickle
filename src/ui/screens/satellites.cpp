@@ -29,7 +29,7 @@ namespace ui {
         constexpr int BODY_Y = TAB_H, BODY_H = CONTENT_H - TAB_H - FOOTER_H;  // 172
         constexpr int FOOTER_Y = CONTENT_H - FOOTER_H;
         constexpr int REFRESH_X = SCREEN_W - 72, REFRESH_W = 28;
-        constexpr int ROWS = 10, ROW_H = 15, ROW_Y = 15;
+        constexpr int ROWS = 9, ROW_H = 15, ROW_Y = 15;  // and the geostationary line below
 
         const char* const CREDIT = "Data: SatNOGS DB (CC BY-SA 4.0), CelesTrak, ARISS.";
 

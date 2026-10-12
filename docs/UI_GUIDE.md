@@ -181,7 +181,7 @@ Tile rules:
 tabs PASSES / EVENTS / GUIDE, a 172 px body and a footer (satellites and passes held, feed age,
 refresh).
 
-- **PASSES:** up to 10 rows in `font_jetbrains_10`, one label each: local rise time (`NOW` while
+- **PASSES:** up to 9 rows in `font_jetbrains_10`, one label each: local rise time (`NOW` while
   up, accent colour), name (12 characters), highest elevation, compass directions at rise and set,
   minutes above the horizon, and `SSTV` / `ARISS` (amber) for ISS passes during an event. A
   geostationary satellite (QO-100) gets one line with its elevation. Tapping a row shows that pass:
