@@ -19,4 +19,12 @@ namespace services {
         bool held_;
     };
 
+    // TLS needs ~40 KB in total from the byte-addressable heap, its biggest piece a ~17 KB receive
+    // buffer (docs/MEMORY.md). Call after taking NetLock (and the quiet window): waits up to
+    // wait_ms for that much to be free and returns false, with a log line naming `who`, when it
+    // isn't, so the caller postpones instead of failing inside mbedTLS.
+    constexpr uint32_t TLS_MIN_FREE = 40000;
+    constexpr uint32_t TLS_MIN_BLOCK = 18000;
+    bool tls_heap_ready(const char* who, uint32_t wait_ms = 5000);
+
 }  // namespace services

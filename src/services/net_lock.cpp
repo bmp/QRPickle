@@ -1,6 +1,7 @@
 #include "net_lock.h"
 #include <Arduino.h>
 #include <freertos/semphr.h>
+#include <esp_heap_caps.h>
 
 namespace services {
 
@@ -26,6 +27,20 @@ namespace services {
 
     NetLock::~NetLock() {
         if (held_) xSemaphoreGiveRecursive(mtx);
+    }
+
+    bool tls_heap_ready(const char* who, uint32_t wait_ms) {
+        uint32_t free_b = 0, block = 0;
+        for (uint32_t t = 0;; t += 100) {
+            free_b = heap_caps_get_free_size(MALLOC_CAP_8BIT);
+            block = heap_caps_get_largest_free_block(MALLOC_CAP_8BIT);
+            if (free_b >= TLS_MIN_FREE && block >= TLS_MIN_BLOCK) return true;
+            if (t >= wait_ms) break;
+            vTaskDelay(pdMS_TO_TICKS(100));
+        }
+        Serial.printf("[Net] %s postponed: %u B free, largest block %u B (TLS needs %u / %u)\n", who,
+                      (unsigned)free_b, (unsigned)block, (unsigned)TLS_MIN_FREE, (unsigned)TLS_MIN_BLOCK);
+        return false;
     }
 
 }  // namespace services

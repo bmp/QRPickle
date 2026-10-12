@@ -96,7 +96,12 @@ function fillForm(data) {
     setElementValue("cfg-lon", data.lon ?? 77.59);
     setElementValue("cfg-offset", data.offset ?? 5.5);
     setElementValue("cfg-brightness", data.brightness ?? 180);
+    setElementValue("cfg-auto-bright", !!data.auto_bright, true);
     setElementValue("cfg-timeout", data.timeout ?? 5);
+    setElementValue("cfg-cycle-en", !!data.cycle_en, true);
+    setElementValue("cfg-cycle-s", data.cycle_s ?? 10);
+    const cycleMask = data.cycle_screens ?? 127;
+    for (let i = 0; i < 7; i++) setElementValue(`cyc-bit${i}`, (cycleMask & (1 << i)) !== 0, true);
     setElementValue("cfg-theme", data.theme_id ?? 0);
 
     // Secrets are never sent to the browser (review 1.3): blank fields keep the stored value.
@@ -127,6 +132,12 @@ function fillForm(data) {
     setElementValue("cfg-latlon-set", !!data.latlon_set, true);
     const groups = data.band_groups ?? 31;
     for (let i = 0; i < 5; i++) setElementValue(`bg-bit${i}`, (groups & (1 << i)) !== 0, true);
+    const satCats = data.sat_categories ?? 15;
+    for (let i = 0; i < 5; i++) setElementValue(`sat-bit${i}`, (satCats & (1 << i)) !== 0, true);
+    setElementValue("sat-min-el", data.sat_min_el ?? 10);
+    setElementValue("pass-alert-en", data.pass_alert_en ?? true, true);
+    setElementValue("pass-alert-min", data.pass_alert_min ?? 30);
+    setElementValue("space_url", data.space_url || "");
     checkLatLonGrid();
 }
 
@@ -153,8 +164,12 @@ function collectForm() {
         lon: parseFloat(getElementValue("cfg-lon")),
         offset: parseFloat(getElementValue("cfg-offset")),
         brightness: parseInt(getElementValue("cfg-brightness")),
+        auto_bright: getElementValue("cfg-auto-bright", true),
         theme_id: parseInt(getElementValue("cfg-theme")),
         timeout: parseInt(getElementValue("cfg-timeout")),
+        cycle_en: getElementValue("cfg-cycle-en", true),
+        cycle_s: parseInt(getElementValue("cfg-cycle-s")) || 10,
+        cycle_screens: [0, 1, 2, 3, 4, 5, 6].reduce((m, i) => m | (getElementValue(`cyc-bit${i}`, true) ? 1 << i : 0), 0) || 127,
         fc_slots: forecastMask,
         dx_url_p: getElementValue("dx_url_p"),
         dx_port_p: parseInt(getElementValue("dx_port_p")),
@@ -163,6 +178,11 @@ function collectForm() {
         solar_url: getElementValue("solar_url").trim(),
         latlon_set: getElementValue("cfg-latlon-set", true),
         band_groups: bandGroups || 31,  // the device also refuses "none"
+        sat_categories: [0, 1, 2, 3, 4].reduce((m, i) => m | (getElementValue(`sat-bit${i}`, true) ? 1 << i : 0), 0) || 15,
+        sat_min_el: parseInt(getElementValue("sat-min-el")) || 0,
+        pass_alert_en: getElementValue("pass-alert-en", true),
+        pass_alert_min: parseInt(getElementValue("pass-alert-min")) || 30,
+        space_url: getElementValue("space_url").trim(),
         aprs_en: getElementValue("cfg-aprs-en") === "1",
         aprs_pass: getElementValue("cfg-aprs-pass"),
         aprs_ssid: parseInt(getElementValue("cfg-aprs-ssid")),

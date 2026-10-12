@@ -1,16 +1,12 @@
 /*
- * Icons-only fallback font (LV_SYMBOL_* used by QRPickle and its LVGL widgets, plus degree sign
- * and bullet), converted with lv_font_conv by scripts/build_fonts.sh.
- * Font Awesome 5 Free glyphs: Copyright Fonticons, Inc. (https://fontawesome.com)
- * Degree sign and bullet: Copyright 2020 The JetBrains Mono Project Authors
- * (https://github.com/JetBrains/JetBrainsMono)
- * Licensed under the SIL Open Font License, Version 1.1: see assets/fonts/OFL-LVGL-builtin.txt and
- * assets/fonts/OFL-JetBrainsMono.txt
+ * Converted from $(basename "$font_path") with lv_font_conv (glyphs 0x20-0x7F).
+ * $copyright
+ * Licensed under the SIL Open Font License, Version 1.1: see $licence_file
  */
 /*******************************************************************************
  * Size: 10 px
  * Bpp: 4
- * Opts: --no-compress --no-prefilter --bpp 4 --size 10 --font assets/fonts/FontAwesome5-Solid+Brands+Regular.woff -r 0xf00b,0xf00c,0xf00d,0xf013,0xf015,0xf021,0xf043,0xf053,0xf054,0xf06e,0xf070,0xf078,0xf093,0xf11c,0xf124,0xf1eb,0xf55a,0xf8a2 --font assets/fonts/JetBrainsMono-Bold.ttf -r 0xB0,0x2022 --format lvgl --lv-include lvgl.h -o src/ui/fonts/font_symbols_10_raw.c
+ * Opts: --no-compress --no-prefilter --bpp 4 --size 10 --font assets/fonts/FontAwesome5-Solid+Brands+Regular.woff -r 0xf00b,0xf00c,0xf00d,0xf013,0xf015,0xf021,0xf043,0xf053,0xf054,0xf06e,0xf070,0xf078,0xf079,0xf093,0xf11c,0xf124,0xf1eb,0xf55a,0xf8a2 --font assets/fonts/JetBrainsMono-Bold.ttf -r 0xB0,0x2022 --format lvgl --lv-include lvgl.h -o src/ui/fonts/font_symbols_10_raw.c
  ******************************************************************************/
 
 #ifdef LV_LVGL_H_INCLUDE_SIMPLE
@@ -131,6 +127,15 @@ static LV_ATTRIBUTE_LARGE_CONST const uint8_t glyph_bitmap[] = {
     0xfd, 0x10, 0x0, 0x3f, 0xfd, 0x10, 0x0, 0x0,
     0x3b, 0x10, 0x0,
 
+    /* U+F079 "" */
+    0x0, 0x80, 0x0, 0x0, 0x0, 0x0, 0x0, 0xcf,
+    0xc3, 0xff, 0xff, 0xf5, 0x0, 0xbe, 0xfe, 0xb3,
+    0x44, 0x4e, 0x60, 0x4, 0x3f, 0x34, 0x0, 0x0,
+    0xd6, 0x0, 0x2, 0xf2, 0x0, 0x0, 0xd, 0x60,
+    0x0, 0x2f, 0x20, 0x0, 0x8c, 0xea, 0xf1, 0x1,
+    0xff, 0xff, 0xf7, 0xdf, 0xf7, 0x0, 0x4, 0x44,
+    0x44, 0x11, 0xc7, 0x0,
+
     /* U+F093 "" */
     0x0, 0x0, 0x33, 0x0, 0x0, 0x0, 0x3, 0xff,
     0x40, 0x0, 0x0, 0x3f, 0xff, 0xf4, 0x0, 0x2,
@@ -208,12 +213,13 @@ static const lv_font_fmt_txt_glyph_dsc_t glyph_dsc[] = {
     {.bitmap_index = 401, .adv_w = 180, .box_w = 12, .box_h = 8, .ofs_x = 0, .ofs_y = 0},
     {.bitmap_index = 449, .adv_w = 200, .box_w = 13, .box_h = 11, .ofs_x = 0, .ofs_y = -2},
     {.bitmap_index = 521, .adv_w = 140, .box_w = 9, .box_h = 6, .ofs_x = 0, .ofs_y = 1},
-    {.bitmap_index = 548, .adv_w = 160, .box_w = 10, .box_h = 11, .ofs_x = 0, .ofs_y = -2},
-    {.bitmap_index = 603, .adv_w = 180, .box_w = 12, .box_h = 8, .ofs_x = 0, .ofs_y = 0},
-    {.bitmap_index = 651, .adv_w = 160, .box_w = 12, .box_h = 11, .ofs_x = -1, .ofs_y = -2},
-    {.bitmap_index = 717, .adv_w = 200, .box_w = 13, .box_h = 10, .ofs_x = 0, .ofs_y = -1},
-    {.bitmap_index = 782, .adv_w = 200, .box_w = 13, .box_h = 8, .ofs_x = 0, .ofs_y = 0},
-    {.bitmap_index = 834, .adv_w = 161, .box_w = 11, .box_h = 7, .ofs_x = 0, .ofs_y = 0}
+    {.bitmap_index = 548, .adv_w = 200, .box_w = 13, .box_h = 8, .ofs_x = 0, .ofs_y = 0},
+    {.bitmap_index = 600, .adv_w = 160, .box_w = 10, .box_h = 11, .ofs_x = 0, .ofs_y = -2},
+    {.bitmap_index = 655, .adv_w = 180, .box_w = 12, .box_h = 8, .ofs_x = 0, .ofs_y = 0},
+    {.bitmap_index = 703, .adv_w = 160, .box_w = 12, .box_h = 11, .ofs_x = -1, .ofs_y = -2},
+    {.bitmap_index = 769, .adv_w = 200, .box_w = 13, .box_h = 10, .ofs_x = 0, .ofs_y = -1},
+    {.bitmap_index = 834, .adv_w = 200, .box_w = 13, .box_h = 8, .ofs_x = 0, .ofs_y = 0},
+    {.bitmap_index = 886, .adv_w = 161, .box_w = 11, .box_h = 7, .ofs_x = 0, .ofs_y = 0}
 };
 
 /*---------------------
@@ -222,8 +228,8 @@ static const lv_font_fmt_txt_glyph_dsc_t glyph_dsc[] = {
 
 static const uint16_t unicode_list_0[] = {
     0x0, 0x1f72, 0xef5b, 0xef5c, 0xef5d, 0xef63, 0xef65, 0xef71,
-    0xef93, 0xefa3, 0xefa4, 0xefbe, 0xefc0, 0xefc8, 0xefe3, 0xf06c,
-    0xf074, 0xf13b, 0xf4aa, 0xf7f2
+    0xef93, 0xefa3, 0xefa4, 0xefbe, 0xefc0, 0xefc8, 0xefc9, 0xefe3,
+    0xf06c, 0xf074, 0xf13b, 0xf4aa, 0xf7f2
 };
 
 /*Collect the unicode lists and glyph_id offsets*/
@@ -231,7 +237,7 @@ static const lv_font_fmt_txt_cmap_t cmaps[] =
 {
     {
         .range_start = 176, .range_length = 63475, .glyph_id_start = 1,
-        .unicode_list = unicode_list_0, .glyph_id_ofs_list = NULL, .list_length = 20, .type = LV_FONT_FMT_TXT_CMAP_SPARSE_TINY
+        .unicode_list = unicode_list_0, .glyph_id_ofs_list = NULL, .list_length = 21, .type = LV_FONT_FMT_TXT_CMAP_SPARSE_TINY
     }
 };
 

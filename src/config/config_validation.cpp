@@ -105,6 +105,7 @@ namespace config {
         terminate(c.dx_url_primary);
         terminate(c.dx_url_secondary);
         terminate(c.solar_url);
+        terminate(c.space_url);
         terminate(c.aprs_passcode);
         terminate(c.aprs_comment);
         terminate(c.aprs_icon);
@@ -123,6 +124,16 @@ namespace config {
         if (!(c.lon >= -180.0f && c.lon <= 180.0f)) c.lon = prev.lon;
         c.band_groups &= BAND_GROUPS_ALL;
         if (!c.band_groups) c.band_groups = prev.band_groups ? prev.band_groups : BAND_GROUPS_ALL;  // at least one
+        c.cycle_screens &= CYCLE_SCREENS_ALL;
+        if (!c.cycle_screens) c.cycle_screens = prev.cycle_screens ? prev.cycle_screens : CYCLE_SCREENS_ALL;
+        if (c.cycle_seconds < CYCLE_SECONDS_MIN) c.cycle_seconds = CYCLE_SECONDS_MIN;
+        if (c.cycle_seconds > CYCLE_SECONDS_MAX) c.cycle_seconds = CYCLE_SECONDS_MAX;
+        if (!is_valid_solar_url(c.space_url)) memcpy(c.space_url, prev.space_url, sizeof(c.space_url));  // same rules
+        c.sat_categories &= SAT_CATEGORIES_ALL;
+        if (!c.sat_categories) c.sat_categories = prev.sat_categories ? prev.sat_categories : SAT_CATEGORIES_DEFAULT;
+        if (c.sat_min_el > SAT_MIN_EL_MAX) c.sat_min_el = SAT_MIN_EL_MAX;
+        if (c.pass_alert_min < 1) c.pass_alert_min = 1;
+        if (c.pass_alert_min > PASS_ALERT_MIN_MAX) c.pass_alert_min = PASS_ALERT_MIN_MAX;
         if (c.dx_port_primary == 0) c.dx_port_primary = prev.dx_port_primary;
         if (c.dx_port_secondary == 0) c.dx_port_secondary = prev.dx_port_secondary;
         if (!is_valid_solar_url(c.solar_url)) memcpy(c.solar_url, prev.solar_url, sizeof(c.solar_url));

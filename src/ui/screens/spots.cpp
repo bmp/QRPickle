@@ -1,4 +1,5 @@
 #include "spots.h"
+#include "../screen_cycle.h"
 #include "../layout.h"
 #include "../theme.h"
 #include "../fonts.h"
@@ -317,9 +318,10 @@ namespace ui {
         lv_obj_add_event_cb(scr, [](lv_event_t* e) {
             if (ui_timer) { lv_timer_delete(ui_timer); ui_timer = nullptr; }
             if (status_dot) { lv_obj_delete(status_dot); status_dot = nullptr; }
-            
-            services::DxManager::stop();
-            
+
+            // While the cycle shows DX, stay connected (no new login every round); the cycle feeds it.
+            if (!cycle::keeps_dx_connected()) services::DxManager::stop();
+
             scr = list_container = lbl_comment = btn_freq = btn_mode = nullptr;
             for(int i = 0; i < 20; i++) row_pool[i].base_row = nullptr;
         }, LV_EVENT_DELETE, NULL);

@@ -25,7 +25,7 @@ import zlib
 
 W, H = 320, 240
 PAGES = ["dashboard", "weather", "network", "settings", "spots", "xota", "aprs", "aprs_radar",
-         "aprs_msg", "band_cond", "hamalert", "cloud_ota"]
+         "aprs_msg", "band_cond", "hamalert", "cloud_ota", "satellites"]
 THEMES = ["classic", "field_red", "slate_dark", "light", "terminal_green", "eink_light", "eink_dark"]
 
 # Screens beyond the pages: (page, taps, settle seconds). Taps are screen coordinates (320 x 240,
@@ -38,6 +38,9 @@ SHOTS = {
     "aprs_beacon": (6, [(267, 35)], 3),
     "band_solar": (9, [(160, 36)], 3),
     "band_guide": (9, [(267, 36)], 3),
+    "satellites_pass": (12, [(100, 70)], 3),  # the first pass row
+    "satellites_events": (12, [(160, 36)], 3),
+    "satellites_guide": (12, [(267, 36)], 3),
     "menu": (0, [(14, 12)], 2),  # closed again with its X (CLOSE_MENU) before the next shot
     "network_scan": (2, [(245, 200)], 10),
     "settings_keyboard": (3, [(130, 72)], 3),
@@ -45,7 +48,7 @@ SHOTS = {
 }
 CLOSE_MENU = (310, 14)  # the menu's X
 # Pages whose tab (or state) the shots change: reset afterwards so later captures start clean.
-RESETS = [(1, (53, 35)), (5, (80, 35)), (6, (53, 35)), (9, (53, 36))]
+RESETS = [(1, (53, 35)), (5, (80, 35)), (6, (53, 35)), (9, (53, 36)), (12, (53, 36))]
 BAND_ROWS, BANDS = 8, 30  # must match src/core/screen_tools.h
 
 

@@ -163,11 +163,11 @@ namespace ui {
         if (lbl_b_status && tabview && lv_tabview_get_tab_active(tabview) == 2) {
             auto& cfg = config::get();
             bool is_conn = services::AprsManager::is_connected();
-            lv_label_set_text(lbl_b_status, is_conn ? "STATUS: ACTIVE (APRS-IS Secure Link)" : "STATUS: OFFLINE (Reconnecting)");
+            lv_label_set_text(lbl_b_status, is_conn ? "APRS-IS: CONNECTED" : "APRS-IS: RECONNECTING");
             lv_obj_set_style_text_color(lbl_b_status, is_conn ? theme_color(COLOR_STATUS_OK) : theme_color(COLOR_STATUS_ERROR), 0);
 
             char s_buf[128];  // "PAYLOAD: <call>-<ssid>>APRS: <payload up to 95>"
-            snprintf(s_buf, sizeof(s_buf), "TX COUNT: %u times", services::AprsManager::get_tx_count());
+            snprintf(s_buf, sizeof(s_buf), "BEACONS SENT: %u", services::AprsManager::get_tx_count());
             lv_label_set_text(lbl_b_txcount, s_buf);
 
             uint32_t last = services::AprsManager::get_last_tx_time();

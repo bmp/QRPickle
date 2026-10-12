@@ -25,6 +25,7 @@ namespace services {
         static bool is_dirty() { return dirty; }
         static void clear_dirty() { dirty = false; }
         static uint32_t get_last_fetch_time() { return last_fetch_time; }
+        static bool last_fetch_failed() { return failed; }  // the last try got no list (shown on xOTA)
         static void expire_timer() { last_fetch_time = 0; } // Forces refresh on button tap
 
     private:
@@ -33,6 +34,7 @@ namespace services {
         static bool fetching;
         static bool dirty;
         static uint32_t last_fetch_time;
+        static bool failed;
 
         static void deduce_mode(float freq, const char* comment, char* out_mode, size_t max_len);
         static void run_fetch();             // the HTTPS fetch; runs in its own task

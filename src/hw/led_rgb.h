@@ -16,6 +16,8 @@ namespace hw {
 
         // Triggers a high-priority 3-second White/Magenta strobe loop for APRS or HamAlert
         void trigger_priority_strobe();
-        
+
+        // Satellite pass alert overlay (services/space_manager; docs/LEDColours.md).
+        void set_pass_alert(PassAlert alert);
     }
 }

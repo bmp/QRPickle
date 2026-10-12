@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>QRPickle space feed</title>
+  <style>
+    /* Matches ham.bharathpalavalli.com: Garamond, 720px column, dark by default with a light toggle. */
+    :root { --bg-color:#1d1f27; --text-color:#c9d1d9; --heading-color:#eee; --link-color:#8cc2dd;
+            --toggle-border:#444; --code-bg:#282a36; --code-color:#f8f8f2; --td-border:#444;
+            --th-border:#8cc2dd; --row-odd:rgba(255,255,255,.03); --note-bg:#2a2a1d; --note-border:#eba613;
+            --input-bg:#252525; --input-color:#ddd; }
+    [data-theme=light] { --bg-color:#fdfdfd; --text-color:#2c3338; --heading-color:#111; --link-color:#005bb5;
+            --toggle-border:#ccc; --code-bg:#e8e8e8; --code-color:#c92a2a; --td-border:#ddd;
+            --th-border:#005bb5; --row-odd:rgba(0,0,0,.03); --note-bg:#fff7e0; --note-border:#d11;
+            --input-bg:#f4f4f4; --input-color:#333; }
+    body { font-family:Garamond,serif; margin:auto; padding:20px; max-width:720px; line-height:1.5;
+           background-color:var(--bg-color); color:var(--text-color); overflow-wrap:break-word; }
+    h1, h2, h3, strong, b { color:var(--heading-color); }
+    a { color:var(--link-color); }
+    nav a { margin-right:10px; }
+    .header-row { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+    .title { text-decoration:none; border:0; }
+    .title h1 { font-size:24px; margin:19.92px 0; }
+    .theme-toggle-btn { margin-left:auto; background:none; border:1px solid var(--toggle-border); border-radius:20px;
+           cursor:pointer; padding:2px 8px; font-size:.8rem; color:var(--text-color); }
+    .theme-toggle-btn:hover { border-color:var(--link-color); }
+    code { font-family:"courier new",monospace; background:var(--code-bg); color:var(--code-color); padding:0 .3em; border-radius:3px; }
+    select { font:inherit; padding:.2em .4em; background:var(--input-bg); color:var(--input-color); border:1px solid var(--td-border); }
+    table { border-collapse:collapse; font-size:.9rem; margin:1rem 0; }
+    th { text-align:left; border-bottom:2px solid var(--th-border); padding:8px 12px; color:var(--heading-color); }
+    td { border-bottom:1px solid var(--td-border); padding:8px 12px; }
+    tbody tr:nth-child(odd) { background:var(--row-odd); }
+    .note { background:var(--note-bg); border-left:3px solid var(--note-border); padding:.5em .8em; }
+    .hidden { display:none; }
+    .notes { border-left:3px solid var(--link-color); background:var(--row-odd); padding:.6em .9em; margin:.5rem 0 1rem; }
+    .notes h3 { margin:0 0 .4em; font-size:1rem; }
+    .notes pre { margin:0; white-space:pre-wrap; font-family:Garamond,serif; font-size:.95rem; line-height:1.45; }
+    esp-web-install-button { display:block; margin:1rem 0; }
+    .install-btn { font:inherit; font-size:1.05rem; padding:.45em 1.2em; border-radius:20px; cursor:pointer;
+           border:1px solid var(--link-color); background:var(--link-color); color:var(--bg-color); }
+    .install-btn:hover { filter:brightness(1.1); }
+    footer { margin-top:2rem; }
+  </style>
+  <script>  // theme before first paint (no flash); same choice as the blog: dark unless set to light
+    if (localStorage.getItem("theme") === "light") document.documentElement.setAttribute("data-theme", "light");
+  </script>
+</head>
+<body>
+  <header>
+    <div class="header-row">
+      <a href="https://ham.bharathpalavalli.com/" class="title"><h1>Getting On The Air</h1></a>
+      <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle light/dark mode" onclick="toggleTheme()">☀️ | 🌙</button>
+    </div>
+    <nav>
+      <a href="https://ham.bharathpalavalli.com/">Home</a>
+      <a href="https://ham.bharathpalavalli.com/posts/20260525174115-qrpickle/">About QRPickle</a>
+      <a href="https://github.com/bmp/QRPickle">Source</a>
+      <a href="https://github.com/bmp/QRPickle/releases">Releases</a>
+      <a href="../install/">Install</a>
+    </nav>
+  </header>
+  <main>
+  <h2>QRPickle space feed</h2>
+  <p>QRPickle's Satellites screen lists the next passes of amateur satellites over your station, ISS SSTV
+     events and ARISS school contacts. The orbits and the event list come from a small file that GitHub
+     builds every 6 hours; the passes are computed on the CYD itself, so your location never leaves it.</p>
+  <p id="feed-status" class="notes">Checking the current feed...</p>
+  <table>
+    <tbody>
+      <tr><td>Address</td><td><code>https://raw.githubusercontent.com/bmp/QRPickle/space-feed/space.json</code></td></tr>
+      <tr><td>Updated</td><td>every 6 hours by <a href="https://github.com/bmp/QRPickle/blob/main/.github/workflows/space-feed.yml">a GitHub workflow</a> (the branch holds only the latest file)</td></tr>
+      <tr><td>Contents</td><td>up to 40 satellites (FM, linear, SSTV, voice beacons, APRS) with orbits (TLE) and frequencies; announced ISS SSTV events and school contacts</td></tr>
+      <tr><td>Size</td><td>about 13 KB</td></tr>
+      <tr><td>Builder</td><td><a href="https://github.com/bmp/QRPickle/tree/main/tools/space_feed">tools/space_feed</a> (Python, with tests)</td></tr>
+    </tbody>
+  </table>
+  <h3>Using your own feed</h3>
+  <p>In the web console (Advanced → Satellites) you can point the device at another address serving the same
+     JSON, for example a copy built by <code>tools/space_feed/build_feed.py</code> on your own machine.
+     Leave it empty for this feed.</p>
+  <h3>Sources and licence</h3>
+  <p>Satellite list and frequencies: <a href="https://db.satnogs.org/">SatNOGS DB</a> (Libre Space Foundation),
+     CC BY-SA 4.0. Orbits: <a href="https://celestrak.org/">CelesTrak</a>. SSTV events and school contacts:
+     <a href="https://www.ariss.org/">ARISS</a>. The feed is a derived work and is shared under
+     <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>.</p>
+  </main>
+  <footer><small>QRPickle by VU3GLJ is MIT-licensed: see the
+     <a href="https://github.com/bmp/QRPickle/blob/main/THIRD_PARTY_NOTICES.md">third-party notices</a>.</small></footer>
+  <script>
+function toggleTheme() {
+      const light = document.documentElement.getAttribute("data-theme") !== "light";
+      if (light) document.documentElement.setAttribute("data-theme", "light");
+      else document.documentElement.removeAttribute("data-theme");
+      localStorage.setItem("theme", light ? "light" : "dark");
+    }
+
+    // The feed's age and counts (raw.githubusercontent.com allows cross-origin reads).
+    fetch("https://raw.githubusercontent.com/bmp/QRPickle/space-feed/space.json", {cache: "no-store"})
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(d => {
+        const built = new Date(d.generated * 1000);
+        const hours = Math.round((Date.now() - built) / 360000) / 10;
+        document.getElementById("feed-status").textContent =
+          `Current feed: built ${built.toUTCString()} (${hours} h ago), ${d.sats.length} satellites, ${d.events.length} events.`;
+      })
+      .catch(() => { document.getElementById("feed-status").textContent = "The current feed could not be read just now."; });
+  </script>
+</body>
+</html>

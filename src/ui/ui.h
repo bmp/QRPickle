@@ -13,11 +13,13 @@ namespace ui {
         PAGE_APRS_MSG,
         PAGE_BAND_COND,
         PAGE_HAMALERT,
-        PAGE_CLOUD_OTA
+        PAGE_CLOUD_OTA,
+        PAGE_SATELLITES  // appended: the screenshot tool and /api/debug/screen use these numbers
     };
 
     void ui_init();
     void ui_navigate_local(LocalPage page);
+    LocalPage ui_active_page();
     void display_update();
 
 }  // namespace ui

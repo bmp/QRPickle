@@ -1,4 +1,5 @@
 #include "net_lock.h"
+#include "../core/mem_stats.h"
 #include "../hw/led_rgb.h"
 #include "pota_manager.h"
 #include "../core/metadata.h" 
@@ -17,6 +18,7 @@ namespace services {
     bool PotaManager::fetching = false;
     bool PotaManager::dirty = false;
     uint32_t PotaManager::last_fetch_time = 0;
+    bool PotaManager::failed = false;
 
     void PotaManager::deduce_mode(float freq, const char* comment, char* out_mode, size_t max_len) {
         if (strcasestr(comment, "FT8"))   { strncpy(out_mode, "FT8", max_len); return; }
@@ -103,12 +105,17 @@ namespace services {
 
     void PotaManager::fetch_task(void*) {
         run_fetch();
+        mem_stats::note_stack(mem_stats::STK_POTA);
         vTaskDelete(NULL);
     }
 
     void PotaManager::run_fetch() {
+        failed = true;  // until a list arrives
         NetLock lock;
-        if (!lock.held()) { fetching = false; return; }
+        if (!lock.held() || !tls_heap_ready("POTA fetch")) {
+            fetching = false;
+            return;
+        }
         Serial.println("[POTA] Fetch started.");
 
         SafeTlsClient secureClient;  // thread-safe DNS (safe_client.h)
@@ -164,6 +171,7 @@ namespace services {
                     spots[spot_count++] = s;
                 }
                 dirty = true;
+                failed = false;
                 hw::led_rgb::trigger_traffic_pulse();  // data ingress (docs/LEDColours.md)
                 Serial.printf("[POTA] Success. Mapped %u spots.\n", spot_count);
             }

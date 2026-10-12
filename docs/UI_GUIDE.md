@@ -110,6 +110,26 @@ Count before adding text to a crowded row; the band screen's footer keeps each h
 tile must not swallow the tap: `lv_obj_set_clickable(obj, false)` and
 `lv_obj_set_event_bubble(obj, true)` (see `band_badge_create()`).
 
+## LVGL: what is switched on
+
+To save flash, QRPickle builds only the LVGL parts it uses (`include/lv_conf.h`).
+`scripts/check_lvgl_usage.py` runs before every build and stops it when code uses a part that is
+switched off, or an `LV_SYMBOL_*` the icons font lacks.
+
+| Available | Switched off |
+|---|---|
+| label, button, image, textarea, keyboard (+ buttonmatrix), dropdown, checkbox, slider (+ bar), msgbox, tabview | arc, spinner, switch, list, menu, win, tileview, LED, line, canvas, span, imagebutton, animimg, arclabel, chart, scale, calendar, table, roller, spinbox |
+| flex layout | grid layout, observer (subjects) |
+| fonts in `fonts.h` + icons-only fallback (`font_symbols_10/14`) | LVGL's Montserrat fonts |
+| RGB565 screen, RGB565A8 images, A8 masks | other colour formats (ARGB8888 layers among them) |
+| image cache 16 KB, layer buffer 8 KB | larger caches |
+
+**Before using a switched-off part:** set its `LV_USE_*` to 1 in `include/lv_conf.h`, run
+`pio run -t clean`, then check the flash size (`check_size.py`) and the LVGL peak on the device
+(`/api/status` → `mem`, `docs/MEMORY.md`). A widget often brings theme styles and icons with it:
+the guard tells you which icons to add to `scripts/build_fonts.sh`. Prefer composing the
+available parts (a "switch" can be a checkbox; a "list" a flex column of buttons, as the WiFi scan does).
+
 ## Dashboard and tiles
 
 The dashboard (`screens/dashboard.cpp`) places tiles from `src/ui/widgets/`. A tile is
@@ -136,6 +156,42 @@ Tile rules:
 - If the user can choose what a tile shows, keep the choice in `config::Config` (for example
   `band_groups`), offer it in the web console, and let the tile spread the chosen rows over its
   height (the band tile uses taller rows and the 14 px font for three groups or fewer).
+
+## Screen cycling
+
+`src/ui/screen_cycle.cpp` shows the screens chosen in the settings (`cycle_enabled`,
+`cycle_screens`, `cycle_seconds`; default off, all seven screens, 10 s) one after another.
+
+- It pauses while LVGL has seen a touch in the last 2 minutes (`lv_display_get_inactive_time()`;
+  at boot this also means it starts 2 minutes after the UI), while the backlight sleeps, and while
+  Settings, the menu or APRS messages are open. The loop icon in the status bar (next to sleep and
+  WiFi) is accent-coloured while cycling, muted while paused; tapping it holds the current screen
+  until tapped again.
+- **A screen that starts network work on open needs a passive visit for cycling.** xOTA:
+  `xota_open_for_cycle()` shows the spots already held, pauses nothing and refreshes only old data
+  (POTA 5 min, SOTA 10 min). DX: while it is cycled the cluster stays connected and the cycle
+  reads its socket (`cycle::keeps_dx_connected()`), instead of a new login every round.
+- **Adding a screen to the cycle:** a value in `cycle::Screen` (keep the order: it is the bit in
+  `config::cycle_screens`), raise `CYCLE_SCREENS_ALL`, a case in `show()`, a tick box in the web
+  console, and a passive visit if the screen fetches or connects when opened.
+
+## Satellites screen
+
+`src/ui/screens/satellites.cpp` (menu: Satellites, `PAGE_SATELLITES`), laid out like Band Conditions:
+tabs PASSES / EVENTS / GUIDE, a 172 px body and a footer (satellites and passes held, feed age,
+refresh).
+
+- **PASSES:** up to 9 rows in `font_jetbrains_10`, one label each: local rise time (`NOW` while
+  up, accent colour), name (12 characters), highest elevation, compass directions at rise and set,
+  minutes above the horizon, and `SSTV` / `ARISS` (amber) for ISS passes during an event. A
+  geostationary satellite (QO-100) gets one line with its elevation. Tapping a row shows that pass:
+  times, directions and the frequencies, read from the cached feed file on the tap
+  (`SpaceManager::load_sat()`); tapping the text goes back.
+- **EVENTS:** ISS SSTV events and school contacts as one wrapped label; for a contact, whether the
+  ISS is above the horizon then. Ends with the data credit (SatNOGS DB is CC BY-SA: keep it).
+- Data: `services::SpaceManager` (`view().version`); hold `lock()` while reading the arrays, with a
+  short timeout (never block the main loop on it).
+- LVGL pool on any tab or the pass view: 33-38 % (measured 2026-10-12).
 
 ## Themes
 

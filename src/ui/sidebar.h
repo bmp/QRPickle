@@ -13,7 +13,8 @@ namespace ui {
         DEST_WEATHER,
         DEST_APRS,
         DEST_HAMALERT,
-        DEST_CLOUD_OTA
+        DEST_CLOUD_OTA,
+        DEST_SATELLITES
     };
 
     struct SidebarCallbacks {

@@ -1,4 +1,5 @@
 #include "status_bar.h"
+#include "screen_cycle.h"
 #include "layout.h"
 #include "theme.h"
 #include "fonts.h"
@@ -18,6 +19,9 @@ namespace ui {
     static lv_obj_t* btn_settings = nullptr;
     static lv_obj_t* lbl_clock = nullptr;
     static lv_obj_t* lbl_update = nullptr;
+    static lv_obj_t* btn_cycle = nullptr;
+    static lv_obj_t* lbl_cycle = nullptr;
+    static int cycle_state = 0;
     static StatusBarCallbacks callbacks;
 
     static void show_sleep_modal() {
@@ -130,10 +134,21 @@ namespace ui {
         lv_label_set_text(lbl_sleep, LV_SYMBOL_EYE_CLOSE);
         lv_obj_center(lbl_sleep);
 
+        // Screen cycling: next to the sleep and WiFi icons; tap pauses/resumes (ui/screen_cycle.h).
+        btn_cycle = lv_btn_create(bg_panel);
+        lv_obj_set_size(btn_cycle, 24, 24);
+        lv_obj_align(btn_cycle, LV_ALIGN_RIGHT_MID, -107, 0);
+        lv_obj_set_style_radius(btn_cycle, 0, 0);
+        lv_obj_add_event_cb(btn_cycle, [](lv_event_t*) { cycle::toggle_pause(); }, LV_EVENT_CLICKED, NULL);
+        lbl_cycle = lv_label_create(btn_cycle);
+        lv_label_set_text(lbl_cycle, LV_SYMBOL_LOOP);
+        lv_obj_center(lbl_cycle);
+        lv_obj_set_hidden(btn_cycle, true);
+
         lbl_update = lv_label_create(bg_panel);
         lv_label_set_text(lbl_update, LV_SYMBOL_UPLOAD); // Visual up-arrow indicator
         lv_obj_set_style_text_color(lbl_update, theme_color(COLOR_ACCENT_PRIMARY), 0);
-        lv_obj_align(lbl_update, LV_ALIGN_RIGHT_MID, -107, 0);
+        lv_obj_align(lbl_update, LV_ALIGN_RIGHT_MID, -131, 0);
         lv_obj_set_hidden(lbl_update, true);  // Hidden by default
 
         status_bar_refresh_theme();
@@ -176,6 +191,8 @@ namespace ui {
         if (btn_settings) lv_obj_set_style_bg_color(btn_settings, bg_col, 0);
         if (btn_wifi) lv_obj_set_style_bg_color(btn_wifi, bg_col, 0);
         if (btn_sleep) lv_obj_set_style_bg_color(btn_sleep, bg_col, 0);
+        if (btn_cycle) lv_obj_set_style_bg_color(btn_cycle, bg_col, 0);
+        status_bar_set_cycle(cycle_state);
 
         if (lbl_title) lv_obj_set_style_text_color(lbl_title, text_col, 0);
         if (lbl_clock) lv_obj_set_style_text_color(lbl_clock, text_col, 0);
@@ -187,6 +204,14 @@ namespace ui {
         if (lbl_set) lv_obj_set_style_text_color(lbl_set, text_col, 0);
         
         if (lbl_sleep) lv_obj_set_style_text_color(lbl_sleep, text_col, 0); 
+    }
+
+    void status_bar_set_cycle(int state) {
+        cycle_state = state;
+        if (!btn_cycle) return;
+        lv_obj_set_hidden(btn_cycle, state == 0);
+        // Running: accent colour; paused (touch or tap): muted.
+        lv_obj_set_style_text_color(lbl_cycle, theme_color(state == 1 ? COLOR_ACCENT_PRIMARY : COLOR_TEXT_MUTED), 0);
     }
 
 } // namespace ui

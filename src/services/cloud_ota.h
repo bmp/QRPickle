@@ -24,6 +24,10 @@ namespace services {
         bool is_check_running();
         // True once an update check has succeeded (boot retries stop then).
         bool is_check_complete();
+        // Result of the most recent check (for diagnosis); age 0 = no check finished yet.
+        bool last_check_ok();
+        const char* last_check_error();
+        uint32_t last_check_age_s();
         ReleaseInfo get_release_info();
 
         // Streams firmware.bin into the inactive slot and verifies its SHA-256 against ota.json

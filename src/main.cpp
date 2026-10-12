@@ -15,6 +15,7 @@
 #include "services/display_manager.h"
 #include "services/weather_manager.h"
 #include "services/prop_manager.h"
+#include "services/space_manager.h"
 #include "ui/ui.h"
 #include "ui/fonts.h"
 #ifdef QRP_SCREEN_TOOLS
@@ -43,6 +44,7 @@ void setup() {
     config::load();
     config::log_summary();
     Serial.flush();
+    services::SpaceManager::init();
 
     Serial.println("[Boot Check] Initializing Sensors...");
     Serial.flush();
@@ -96,6 +98,7 @@ void loop() {
     crashlog::mark(crashlog::SLOT_LOOP, 6); services::weather_manager::update();
     crashlog::mark(crashlog::SLOT_LOOP, 8);
     services::PropagationManager::update();
+    services::SpaceManager::update();
     mem_stats::update();
 #ifdef QRP_SCREEN_TOOLS
     screen_tools::update();

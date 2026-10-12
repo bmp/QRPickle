@@ -18,6 +18,9 @@ namespace ui {
 
     enum XotaTab { TAB_POTA, TAB_SOTA };
     static XotaTab active_tab = TAB_POTA;
+    static bool cycle_visit_pending = false;  // set by xota_open_for_cycle(), read by draw
+    static bool visit_passive = false;  // this visit came from screen cycling
+    constexpr uint32_t CYCLE_POTA_MAX_AGE_MS = 5 * 60000, CYCLE_SOTA_MAX_AGE_MS = 10 * 60000;
 
     static lv_obj_t* scr = nullptr;
     static lv_obj_t* btn_tab_pota = nullptr;
@@ -30,6 +33,7 @@ namespace ui {
     static lv_obj_t* btn_qrp = nullptr;
     static lv_obj_t* list_container = nullptr;
     static lv_obj_t* lbl_comment = nullptr;
+    static bool failed_shown = false;  // the comment bar shows the POTA download failure
     static lv_obj_t* lbl_loading = nullptr; 
     static lv_obj_t* status_dot = nullptr;
     static lv_timer_t* ui_timer = nullptr;
@@ -83,7 +87,18 @@ namespace ui {
     static void update_ui(lv_timer_t* t);
 
     static void execute_delayed_fetch(lv_timer_t* t) {
-        if (active_tab == TAB_POTA) {
+        if (visit_passive) {
+            // Cycling: show what is held; refresh only old data, without pausing other services
+            // (the TLS heap gate protects the POTA download).
+            const bool pota = active_tab == TAB_POTA;
+            const uint32_t last = pota ? services::PotaManager::get_last_fetch_time()
+                                       : services::SotaManager::get_last_fetch_time();
+            const uint32_t max_age = pota ? CYCLE_POTA_MAX_AGE_MS : CYCLE_SOTA_MAX_AGE_MS;
+            if (last == 0 || millis() - last > max_age) {
+                if (pota) services::PotaManager::fetch_async();
+                else services::SotaManager::fetch_async();
+            }
+        } else if (active_tab == TAB_POTA) {
             // POTA uses TLS: wait until the socket tasks (APRS, HamAlert, SOTA cluster) have
             // exited and released their stacks; stop() only requests the exit. Retry in 100 ms.
             if (!services::HamAlertManager::is_stopped() || !services::AprsManager::is_stopped() ||
@@ -106,13 +121,10 @@ namespace ui {
         delayed_fetch_timer = nullptr;
     }
 
-    static void set_tab(XotaTab t) {
-        if (delayed_fetch_timer) return; 
-
-        active_tab = t;
-        last_auto_refresh_millis = millis(); 
-        if (t == TAB_POTA) services::SotaManager::stop();  // free the socket before POTA's TLS fetch
-
+    // Highlight the active tab and set the header (no fetch).
+    static void style_tabs() {
+        if (!lbl_tab_pota || !lbl_tab_sota || !lbl_hdr_ref) return;
+        const XotaTab t = active_tab;
         if (t == TAB_POTA) {
             lv_obj_set_style_text_color(lbl_tab_pota, theme_color(COLOR_ACCENT_PRIMARY), 0);
             lv_obj_set_style_border_width(btn_tab_pota, 2, 0);
@@ -130,6 +142,16 @@ namespace ui {
             lv_obj_set_style_border_color(btn_tab_sota, theme_color(COLOR_ACCENT_PRIMARY), 0);
             lv_label_set_text(lbl_hdr_ref, "SUMMIT");
         }
+    }
+
+    static void set_tab(XotaTab t) {
+        if (delayed_fetch_timer) return;
+
+        active_tab = t;
+        last_auto_refresh_millis = millis();
+        if (t == TAB_POTA) services::SotaManager::stop();  // free the socket before POTA's TLS fetch
+
+        style_tabs();
 
         bool needs_fetch = false;
         if (t == TAB_POTA && (millis() - services::PotaManager::get_last_fetch_time() > 30000 || services::PotaManager::get_last_fetch_time() == 0)) {
@@ -190,8 +212,15 @@ namespace ui {
                         (active_tab == TAB_POTA ? services::PotaManager::is_fetching() : services::SotaManager::is_fetching());
         bool dirty = (active_tab == TAB_POTA) ? services::PotaManager::is_dirty() : services::SotaManager::is_dirty();
 
+        // A failed POTA download used to leave an empty list without a word.
+        const bool failed = active_tab == TAB_POTA && !fetching && services::PotaManager::last_fetch_failed();
         if (status_dot) {
-            lv_obj_set_style_bg_color(status_dot, fetching ? theme_color(COLOR_STATUS_BUSY) : theme_color(COLOR_STATUS_OK), 0);
+            lv_obj_set_style_bg_color(status_dot, fetching ? theme_color(COLOR_STATUS_BUSY) : theme_color(failed ? COLOR_STATUS_ERROR : COLOR_STATUS_OK), 0);
+        }
+        if (lbl_comment && failed != failed_shown) {
+            failed_shown = failed;
+            lv_label_set_text(lbl_comment, failed ? "POTA download failed. Tap refresh to retry." : "COMMENT: Tap a row to read.");
+            lv_obj_set_style_text_color(lbl_comment, theme_color(failed ? COLOR_STATUS_WARN : COLOR_TEXT_MUTED), 0);
         }
 
         if (dirty || t == nullptr) {
@@ -272,9 +301,11 @@ namespace ui {
         // Re-entered within the quiet period: the services must stay stopped.
         if (resume_timer) { lv_timer_delete(resume_timer); resume_timer = nullptr; }
 
-        Serial.println("[xOTA] Entry. Suspending core monitoring sockets to free RAM...");
-        services::DxManager::stop();
-        if (!xota_holds_quiet) {  // HamAlert/APRS (the 10 KB APRS task) paused via the shared window
+        visit_passive = cycle_visit_pending;
+        cycle_visit_pending = false;
+        if (!visit_passive) Serial.println("[xOTA] Entry. Suspending core monitoring sockets to free RAM...");
+        if (!visit_passive) services::DxManager::stop();
+        if (!visit_passive && !xota_holds_quiet) {  // HamAlert/APRS (the 10 KB APRS task) paused via the shared window
             services::quiet::acquire();
             xota_holds_quiet = true;
         }
@@ -368,6 +399,7 @@ namespace ui {
         lv_obj_set_scrollable(foot, false);
 
         lbl_comment = lv_label_create(foot);
+        failed_shown = false;
         lv_label_set_text(lbl_comment, "INITIALIZING...");
         lv_obj_set_style_text_font(lbl_comment, &font_jetbrains_10, 0);
         lv_obj_set_style_text_color(lbl_comment, theme_color(COLOR_TEXT_MUTED), 0);
@@ -474,14 +506,21 @@ namespace ui {
                 rows = nullptr;
             }
 
-            if (!resume_timer) resume_timer = lv_timer_create(resume_services_cb, 2000, NULL);
+            if (xota_holds_quiet && !resume_timer) resume_timer = lv_timer_create(resume_services_cb, 2000, NULL);
             
         }, LV_EVENT_DELETE, NULL);
 
         // The fetch runs from a 100 ms timer so LVGL renders the loading label first
         // (a nested lv_timer_handler() call here would be ignored by LVGL's re-entrancy guard).
+        style_tabs();
         delayed_fetch_timer = lv_timer_create(execute_delayed_fetch, 100, NULL);
 
         ui_timer = lv_timer_create(update_ui, 300, NULL);
+    }
+
+    void xota_open_for_cycle(bool sota) {
+        active_tab = sota ? TAB_SOTA : TAB_POTA;
+        cycle_visit_pending = true;
+        ui_navigate_local(PAGE_XOTA);
     }
 }

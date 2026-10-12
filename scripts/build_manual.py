@@ -198,7 +198,8 @@ def main():
     a = ap.parse_args()
 
     preamble, sections = split_sections(read_doc("README.md"))
-    appendices = [("LED Colours", read_doc("docs/LEDColours.md"), 1)]
+    appendices = [("LED Colours", read_doc("docs/LEDColours.md"), 1),
+                  ("How Band Conditions Are Rated", read_doc("docs/BAND_RATING.md"), 1)]
     by_title = dict(sections)
     for readme_title, title in README_APPENDICES.items():
         appendices.append((title, by_title[readme_title], 2))

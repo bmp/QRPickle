@@ -15,6 +15,7 @@ static void assert_rgb(uint8_t r, uint8_t g, uint8_t b, Rgb c, const char* what)
 }
 
 static Rgb at(LEDState s, uint32_t now) { return pattern_color(s, now, -1, -1); }
+static bool eq(Rgb a, Rgb b) { return a.r == b.r && a.g == b.g && a.b == b.b; }
 
 void test_boot_sequence_colours() {
     assert_rgb(180, 45, 0, at(STATE_BOOT_HW, 0), "hardware init: solid amber");
@@ -72,6 +73,29 @@ void test_common_anode_inversion() {
     TEST_ASSERT_EQUAL_UINT8(75, pwm_duty(180));  // amber red channel
 }
 
+void test_pass_alert_soon_is_a_purple_double_blink_every_10s() {
+    const Rgb purple = {90, 0, 160}, off = {0, 0, 0};
+    TEST_ASSERT_TRUE(eq(pattern_color(STATE_OFF, 50, -1, -1, PassAlert::SOON), purple));
+    TEST_ASSERT_TRUE(eq(pattern_color(STATE_OFF, 200, -1, -1, PassAlert::SOON), off));
+    TEST_ASSERT_TRUE(eq(pattern_color(STATE_OFF, 350, -1, -1, PassAlert::SOON), purple));
+    TEST_ASSERT_TRUE(eq(pattern_color(STATE_OFF, 5000, -1, -1, PassAlert::SOON), off));
+    TEST_ASSERT_TRUE(eq(pattern_color(STATE_OFF, 10050, -1, -1, PassAlert::SOON), purple));
+    // HamAlert strobe and traffic pulse still win.
+    TEST_ASSERT_TRUE(eq(pattern_color(STATE_OFF, 50, -1, 10, PassAlert::SOON), Rgb{0, 40, 60}));
+}
+
+void test_pass_alert_now_breathes_purple() {
+    const Rgb low = pattern_color(STATE_OFF, 0, -1, -1, PassAlert::NOW);
+    const Rgb high = pattern_color(STATE_OFF, 2000, -1, -1, PassAlert::NOW);
+    TEST_ASSERT_EQUAL_UINT8(9, low.r);  // 10 %
+    TEST_ASSERT_EQUAL_UINT8(16, low.b);
+    TEST_ASSERT_EQUAL_UINT8(90, high.r);  // 100 % at mid-period
+    TEST_ASSERT_EQUAL_UINT8(160, high.b);
+    TEST_ASSERT_EQUAL_UINT8(0, high.g);
+    TEST_ASSERT_TRUE(eq(pattern_color(STATE_OFF, 1000, -1, -1, PassAlert::NOW),
+                        pattern_color(STATE_OFF, 3000, -1, -1, PassAlert::NOW)));  // symmetric
+}
+
 int main(int, char**) {
     UNITY_BEGIN();
     RUN_TEST(test_boot_sequence_colours);
@@ -81,5 +105,7 @@ int main(int, char**) {
     RUN_TEST(test_traffic_pulse_is_30ms_of_faint_cyan);
     RUN_TEST(test_priorities_strobe_over_pulse_over_state);
     RUN_TEST(test_common_anode_inversion);
+    RUN_TEST(test_pass_alert_soon_is_a_purple_double_blink_every_10s);
+    RUN_TEST(test_pass_alert_now_breathes_purple);
     return UNITY_END();
 }

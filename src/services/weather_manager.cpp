@@ -25,7 +25,7 @@ namespace services {
             snprintf(url, sizeof(url), "https://api.openweathermap.org/data/2.5/weather?lat=%.4f&lon=%.4f&appid=%s&units=metric", cfg.lat, cfg.lon, cfg.openweather_api_key);
 
             NetLock lock;
-            if (!lock.held()) return;
+            if (!lock.held() || !tls_heap_ready("OpenWeather", 0)) return;  // main loop: never wait here
             // HTTPS so the API key isn't sent in clear (review 3.5); serialised by NetLock.
             SafeTlsClient tls;  // thread-safe DNS (safe_client.h)
             tls.setInsecure();
@@ -74,7 +74,7 @@ namespace services {
             snprintf(url, sizeof(url), "https://api.openweathermap.org/data/2.5/forecast?lat=%.4f&lon=%.4f&appid=%s&units=metric&cnt=8", cfg.lat, cfg.lon, cfg.openweather_api_key);
 
             NetLock lock;
-            if (!lock.held()) return;
+            if (!lock.held() || !tls_heap_ready("OpenWeather", 0)) return;  // main loop: never wait here
             // HTTPS so the API key isn't sent in clear (review 3.5); serialised by NetLock.
             SafeTlsClient tls;  // thread-safe DNS (safe_client.h)
             tls.setInsecure();

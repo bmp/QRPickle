@@ -20,6 +20,8 @@ During a cold boot or hardware reset, the LED acts as a progressive loading indi
 * **White & Magenta Strobe (3 Seconds):** High-Priority Alert. A HamAlert filter was triggered, or a direct peer-to-peer APRS message was received.
 
 ## 4. Hardware Faults
+* **Purple Double Blink (every 10 s):** Satellite pass alert. An ISS pass with an ARISS SSTV event or a school contact starts within the alert lead time (default 30 minutes; web console, Satellites; off on the device Settings screen with "Pass alerts").
+* **Purple Breathing (4 s):** That pass is under way (until the ISS sets). HamAlert strobes and data pulses still show on top.
 * **Triple Red Flash:** Critical System Fault. Repeated 3-second cycle indicating a severe blockage (e.g., flash memory corruption or continuous socket failures).
 
 ---

@@ -7,6 +7,7 @@
 #include "../fonts.h"
 #include "../../config/config.h"
 #include "../../config/config_validation.h"
+#include "../../services/aprs_manager.h"
 #include "../../hw/display.h"
 #include "../../services/display_manager.h" 
 #include "../../services/profile_manager.h"
@@ -36,6 +37,9 @@ namespace ui {
     static lv_obj_t* btn_plus = nullptr;
 
     static lv_obj_t* cb_auto_bright = nullptr;
+    static lv_obj_t* cb_aprs = nullptr;  // APRS on/off
+    static lv_obj_t* cb_cycle = nullptr;  // screen cycling on/off
+    static lv_obj_t* cb_pass = nullptr;  // LED satellite pass alerts on/off
     static bool pending_auto_brightness = false;
     
     // Layout bindings for timeout modifier row
@@ -105,10 +109,11 @@ namespace ui {
         if (btn_profile)   { lv_obj_set_style_bg_color(btn_profile, bg_panel, 0); lv_obj_set_style_border_color(btn_profile, border, 0); }
         if (lbl_profile)   lv_obj_set_style_text_color(lbl_profile, txt_main, 0);
 
-        if (cb_auto_bright) {
-            lv_obj_set_style_text_color(cb_auto_bright, txt_main, 0);
-            lv_obj_set_style_bg_color(cb_auto_bright, bg_panel, LV_PART_INDICATOR);
-            lv_obj_set_style_bg_color(cb_auto_bright, accent, LV_PART_INDICATOR | LV_STATE_CHECKED);
+        for (lv_obj_t* cb : {cb_auto_bright, cb_aprs, cb_cycle, cb_pass}) {
+            if (!cb) continue;
+            lv_obj_set_style_text_color(cb, txt_main, 0);
+            lv_obj_set_style_bg_color(cb, bg_panel, LV_PART_INDICATOR);
+            lv_obj_set_style_bg_color(cb, accent, LV_PART_INDICATOR | LV_STATE_CHECKED);
         }
 
         if (slider_bright) {
@@ -204,6 +209,9 @@ namespace ui {
                 if (p_data.auto_brightness) lv_obj_add_state(cb_auto_bright, LV_STATE_CHECKED);
                 else lv_obj_remove_state(cb_auto_bright, LV_STATE_CHECKED);
             }
+            if (cb_aprs) lv_obj_set_state(cb_aprs, LV_STATE_CHECKED, p_data.aprs_enabled);
+            if (cb_cycle) lv_obj_set_state(cb_cycle, LV_STATE_CHECKED, p_data.cycle_enabled);
+            if (cb_pass) lv_obj_set_state(cb_pass, LV_STATE_CHECKED, p_data.pass_alert_enabled);
 
             pending_theme_id = p_data.theme_id;
             if (lbl_theme) lv_label_set_text(lbl_theme, theme_get_name(pending_theme_id));
@@ -276,6 +284,9 @@ namespace ui {
         const auto& c = config::get();
         bool modified = applied;
         bool new_auto_bright = lv_obj_has_state(cb_auto_bright, LV_STATE_CHECKED);
+        const bool new_aprs = lv_obj_has_state(cb_aprs, LV_STATE_CHECKED);
+        const bool new_cycle = lv_obj_has_state(cb_cycle, LV_STATE_CHECKED);
+        const bool new_pass_alert = lv_obj_has_state(cb_pass, LV_STATE_CHECKED);
 
         const char* new_call = lv_textarea_get_text(ta_call);
         const char* new_grid = lv_textarea_get_text(ta_grid);
@@ -284,16 +295,18 @@ namespace ui {
         uint8_t new_bright = (uint8_t)lv_slider_get_value(slider_bright);
 
         if (!modified && (strcmp(c.callsign, new_call) != 0 ||
-            strcmp(c.grid, new_grid) != 0 ||
-            strcmp(c.wifi_ssid, new_ssid) != 0 ||
-            strcmp(c.wifi_password, new_pass) != 0 ||
-            strcmp(c.openweather_api_key, pending_owm_api_key) != 0 ||
-            c.tz_offset_hh != pending_tz_offset_hh ||
-            c.brightness != new_bright ||
-            c.auto_brightness != new_auto_bright ||
-            c.theme_id != pending_theme_id ||
-            c.screen_timeout_min != pending_timeout_min))
-        {
+                          strcmp(c.grid, new_grid) != 0 ||
+                          strcmp(c.wifi_ssid, new_ssid) != 0 ||
+                          strcmp(c.wifi_password, new_pass) != 0 ||
+                          strcmp(c.openweather_api_key, pending_owm_api_key) != 0 ||
+                          c.tz_offset_hh != pending_tz_offset_hh ||
+                          c.brightness != new_bright ||
+                          c.auto_brightness != new_auto_bright ||
+                          c.aprs_enabled != new_aprs ||
+                          c.cycle_enabled != new_cycle ||
+                          c.pass_alert_enabled != new_pass_alert ||
+                          c.theme_id != pending_theme_id ||
+                          c.screen_timeout_min != pending_timeout_min)) {
             modified = true;
         }
 
@@ -315,10 +328,18 @@ namespace ui {
             mc.tz_offset_hh = pending_tz_offset_hh;
             mc.brightness = new_bright;
             mc.auto_brightness = new_auto_bright;
+            const bool aprs_changed = mc.aprs_enabled != new_aprs;
+            mc.aprs_enabled = new_aprs;
+            mc.cycle_enabled = new_cycle;  // ui/screen_cycle.cpp follows the setting
+            mc.pass_alert_enabled = new_pass_alert;  // space_manager follows it within 5 s
             mc.theme_id = pending_theme_id;
             mc.screen_timeout_min = pending_timeout_min; 
 
             config::save();
+            if (aprs_changed) {
+                if (new_aprs) services::AprsManager::start();
+                else services::AprsManager::stop();
+            }
 
             status_bar_refresh_theme();
             settings_refresh_theme();
@@ -507,6 +528,28 @@ namespace ui {
         if (pending_auto_brightness) lv_obj_add_state(slider_bright, LV_STATE_DISABLED);
         lv_obj_add_event_cb(slider_bright, bright_changed, LV_EVENT_VALUE_CHANGED, NULL);
 
+        // Services: switched in the field without the web console.
+        lv_obj_t* svc_row = lv_obj_create(form);
+        lv_obj_set_size(svc_row, 250, 52);
+        lv_obj_set_style_bg_opa(svc_row, LV_OPA_TRANSP, 0);
+        lv_obj_set_style_border_width(svc_row, 0, 0);
+        lv_obj_set_style_pad_all(svc_row, 0, 0);
+        cb_aprs = lv_checkbox_create(svc_row);
+        lv_checkbox_set_text(cb_aprs, " APRS");
+        lv_obj_set_style_text_font(cb_aprs, &font_atkinson_14, 0);
+        lv_obj_align(cb_aprs, LV_ALIGN_TOP_LEFT, 0, 2);
+        lv_obj_set_state(cb_aprs, LV_STATE_CHECKED, c.aprs_enabled);
+        cb_cycle = lv_checkbox_create(svc_row);
+        lv_checkbox_set_text(cb_cycle, " Cycle screens");
+        lv_obj_set_style_text_font(cb_cycle, &font_atkinson_14, 0);
+        lv_obj_align(cb_cycle, LV_ALIGN_TOP_RIGHT, 0, 2);
+        lv_obj_set_state(cb_cycle, LV_STATE_CHECKED, c.cycle_enabled);
+        cb_pass = lv_checkbox_create(svc_row);
+        lv_checkbox_set_text(cb_pass, " Satellite pass alerts (LED)");
+        lv_obj_set_style_text_font(cb_pass, &font_atkinson_14, 0);
+        lv_obj_align(cb_pass, LV_ALIGN_BOTTOM_LEFT, 0, -2);
+        lv_obj_set_state(cb_pass, LV_STATE_CHECKED, c.pass_alert_enabled);
+
         make_label(form, "UI Theme");
         btn_theme = lv_btn_create(form);
         lv_obj_set_width(btn_theme, 250); // Unified width
@@ -581,6 +624,9 @@ namespace ui {
             btn_minus = nullptr;
             btn_plus = nullptr;
             btn_timeout_minus = nullptr;
+            cb_aprs = nullptr;
+            cb_cycle = nullptr;
+            cb_pass = nullptr;
             btn_timeout_plus = nullptr;
             lbl_timeout = nullptr;
             btn_exit = nullptr;

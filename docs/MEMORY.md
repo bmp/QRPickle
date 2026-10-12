@@ -36,35 +36,56 @@ and follow the rules at the end. Measured on a CYD with v0.2.4 on 2026-10-10.
 | LVGL layer buffer (`LV_DRAW_LAYER_SIMPLE_BUF_SIZE`) | 8 KB chunks | inside the pool | only for objects drawn through a layer (object opacity, transforms) |
 | Display draw buffer | 12.8 KB | static | `320 x 10` RGB565 x 2 |
 | TLS session (mbedTLS) | ~40 KB in total | heap | two ~16.7 KB buffers plus contexts; certificate checks add more |
-| Task stacks | 2-12 KB each | heap | APRS 10 KB, Cloud OTA 12 KB, solar/POTA fetch 8 KB, HamAlert/DX/SOTA 4 KB, LED 2 KB |
+| Task stacks | 2-12 KB each | heap | sized from measurements (below): APRS 4 KB, HamAlert 4 KB, AsyncTCP 8 KB, Cloud OTA check 12 KB, solar/POTA fetch 8 KB, DX dial/SOTA 4 KB, LED 2 KB, loopTask 8 KB |
 | WiFi, lwIP, web server | varies | heap | buffers come and go with traffic |
+| Satellites (`space_manager`) | ~3.3 KB static; ~15 KB while passes are computed | static, heap | the feed (~13 KB) lives in LittleFS (`/space.json`), read one object at a time |
 
-Measured after 2 minutes of normal running: about 110 KB free in total, 68 KB of it 8-bit, the
-big region in 125 blocks with the largest free one 18.4 KB. The lowest free heap at boot was about
-4 KB. TLS succeeds or fails depending on whether two 16.7 KB blocks are free at that moment.
+Measured after 2 minutes of normal running in v0.2.4: about 98 KB free, the largest 8-bit block
+swinging between 19 and 35 KB, the lowest free heap since boot 0.1-1.8 KB, and the Cloud OTA check
+failing for memory. In v0.2.5 (tasks parked, stacks sized from measurements): about 114 KB free,
+the largest block a steady 45 KB, the lowest since boot 4.4 KB, and the check passing 6 of 6
+(2026-10-11).
+
+Stack use, from `/api/status` → `mem.stack_free` (bytes never used, lowest seen):
+
+| Task | Stack | Never used | Note |
+|---|---|---|---|
+| aprs_task | 4 KB (was 10) | ~1.8 KB | |
+| hamalert_task | 4 KB | ~2.0 KB | 3 KB was too tight (review 3.9) |
+| async_tcp (web server) | 8 KB (was 16) | ~4.8 KB | `CONFIG_ASYNC_TCP_STACK_SIZE` in platformio.ini |
+| gh_ota_check | 12 KB | ~6.8 KB | with certificate verification |
+| solar_fetch | 8 KB | ~4.2 KB | |
+| loopTask | 8 KB | ~2.1 KB | LVGL and the UI |
 
 ## Rules
 
 1. **No large static buffers.** Static DRAM is nearly full and takes from the heap region beside
    it. Allocate at init instead (the LVGL pool does).
-2. **Allocate long-lived memory early, once.** Every allocation made at run time, and every task
+2. **Long-lived tasks are created once and parked, never deleted** (HamAlert, APRS: on `stop()`
+   they close the socket and wait; `start()` wakes them). Deleting and re-creating them moved their
+   stacks around the heap on every quiet window. **Size every stack from `mem.stack_free`** with
+   ~1.5-2 KB to spare, and add new tasks to `mem_stats` (`watch_stack` or `note_stack`).
+3. **Allocate long-lived memory early, once.** Every allocation made at run time, and every task
    that is stopped and restarted, can land somewhere new and split the big region. Prefer one
    buffer kept for the device's lifetime over repeated allocate/free.
-3. **One network session at a time:** `services::NetLock` (`net_lock.h`) around every connect or
+4. **One network session at a time:** `services::NetLock` (`net_lock.h`) around every connect or
    HTTP(S) request. Two TLS sessions never fit together.
-4. **Background TLS takes the quiet window:** `services::quiet` (`quiet_window.h`) pauses HamAlert
+5. **Background TLS takes the quiet window:** `services::quiet` (`quiet_window.h`) pauses HamAlert
    and APRS while held. It is counted: the last holder restarts what was running. Background
    tasks use `quiet::Hold`; the UI uses `acquire()`/`release()` (xOTA).
-5. **Check the 8-bit heap**, not `ESP.getMaxAllocHeap()` (above). Log the largest 8-bit block when a
+6. **Check the 8-bit heap**, not `ESP.getMaxAllocHeap()` (above). Log the largest 8-bit block when a
    TLS request fails.
-6. **Don't start heavy work in the first seconds after boot.** WiFi, NTP, the solar fetch and the
+7. **Don't start heavy work in the first seconds after boot.** WiFi, NTP, the solar fetch and the
    telnet connects already crowd them. The automatic Cloud OTA check starts 2 minutes after boot
    and retries every 10 minutes until it succeeds.
-7. **LVGL:** fade with `bg_opa`/`text_opa`, not object opacity on objects with children (that
+8. **LVGL:** fade with `bg_opa`/`text_opa`, not object opacity on objects with children (that
    renders through a layer buffer). Show only the open tab's objects (`lv_obj_clean` on tab
    change). Keep the number of distinct images on a page small (the image cache is 16 KB).
-8. **Measure before and after** a change that adds memory (below), and keep the LVGL peak below
+9. **Measure before and after** a change that adds memory (below), and keep the LVGL peak below
    ~56 KB (8 KB margin in the pool).
+10. **Bulky data goes to LittleFS, not RAM.** Holding the satellite feed in RAM (10 KB) was enough
+    to make the Cloud OTA certificate check fail on every boot (2026-10-12, A/B tested). Stream
+    downloads to a file and keep only what screens show; read the rest on demand.
 
 ## Measuring
 

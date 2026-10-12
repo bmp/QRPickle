@@ -1,6 +1,7 @@
 #include "ui.h"
 #include "layout.h"
 #include "status_bar.h"
+#include "screen_cycle.h"
 #include "sidebar.h"
 #include "home_button.h"
 #include "theme.h"
@@ -17,6 +18,7 @@
 #include "screens/band_cond.h"
 #include "screens/hamalert_view.h"
 #include "screens/cloud_ota.h"
+#include "screens/satellites.h"
 #include "../services/hamalert_manager.h"
 #include "../services/aprs_manager.h"
 #include "../services/prop_manager.h"
@@ -88,6 +90,8 @@ namespace ui {
             ui_navigate_local(PAGE_HAMALERT);
         } else if (dest == DEST_CLOUD_OTA) {
             ui_navigate_local(PAGE_CLOUD_OTA);
+        } else if (dest == DEST_SATELLITES) {
+            ui_navigate_local(PAGE_SATELLITES);
         }
     }
 
@@ -149,6 +153,8 @@ namespace ui {
                 if (active_page == PAGE_SETTINGS) settings_destroy();
                 ui_navigate_local(PAGE_DASHBOARD);
             });
+
+            cycle::init();  // screen cycling (off unless enabled in the settings)
 
             if (config::get().aprs_enabled) {
                 services::AprsManager::start();
@@ -241,9 +247,14 @@ namespace ui {
             } else if (page == PAGE_CLOUD_OTA) {
                 status_bar_set_title("Cloud Updates");
                 draw_cloud_ota_page(view_container);
+            } else if (page == PAGE_SATELLITES) {
+                status_bar_set_title("Satellites");
+                draw_satellites_page(view_container);
             }
         }
     }
+
+    LocalPage ui_active_page() { return active_page; }
 
     void display_update() {
         static uint32_t last_tick = millis();

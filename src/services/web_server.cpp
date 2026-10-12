@@ -10,9 +10,9 @@
 #include "../config/config.h"
 #include "../config/config_validation.h"
 #include "../config/config_json.h"
+#include "../ui/ui.h"
 #ifdef QRP_SCREEN_TOOLS
 #include "../core/screen_tools.h"
-#include "../ui/ui.h"
 #endif
 #include "json_copy.h"
 #include <atomic>
@@ -158,15 +158,22 @@ void web_server_init() {
         AsyncResponseStream *response = request->beginResponseStream("application/json");
         JsonDocument doc;
         doc["uptime"] = millis() / 1000;
+        doc["ui_page"] = static_cast<int>(ui::ui_active_page());  // ui::LocalPage (tests, screen cycling)
         doc["heap"] = ESP.getFreeHeap();
         const auto& m = mem_stats::get();  // sampled on the main loop every 5 s
         JsonObject mem = doc["mem"].to<JsonObject>();
+        mem["heap_free"] = m.heap_free;  // 8-bit (byte-addressable); "heap" above also counts IRAM
         mem["heap_min_free"] = m.heap_min_free;
         mem["largest_block"] = m.largest_block;
         mem["largest_block_min"] = m.largest_block_min;
         mem["lvgl_total"] = m.lvgl_total;
         mem["lvgl_used"] = m.lvgl_used;
         mem["lvgl_max_used"] = m.lvgl_max_used;
+        JsonObject stk = mem["stack_free"].to<JsonObject>();  // bytes never used, lowest seen
+        for (int i = 0; i < mem_stats::STK_COUNT; i++) {
+            const auto slot = (mem_stats::StackSlot)i;
+            if (mem_stats::stack_free(slot)) stk[mem_stats::stack_name(slot)] = mem_stats::stack_free(slot);
+        }
         doc["rssi"] = WiFi.isConnected() ? WiFi.RSSI() : 0;
         doc["ip"] = WiFi.localIP().toString();
         doc["sensor_online"] = sensor_is_online();  // review 5.1: null instead of a fake 0
@@ -344,7 +351,7 @@ void web_server_init() {
         }
         int page = request->getParam("page")->value().toInt();
         int theme = request->hasParam("theme") ? request->getParam("theme")->value().toInt() : -1;
-        if (page < 0 || page > ui::PAGE_CLOUD_OTA || theme > config::THEME_ID_MAX) {
+        if (page < 0 || page > ui::PAGE_SATELLITES || theme > config::THEME_ID_MAX) {
             request->send(400);
             return;
         }
@@ -477,6 +484,9 @@ void web_server_init() {
         doc["latest_ver"] = info.latest_version;
         doc["notes"] = info.release_notes;
         doc["local_ver"] = meta::FW_VERSION;
+        doc["last_ok"] = services::cloud_ota::last_check_ok();
+        doc["last_age_s"] = services::cloud_ota::last_check_age_s();
+        doc["last_error"] = services::cloud_ota::last_check_error();
 
         serializeJson(doc, *response);
         request->send(response);
