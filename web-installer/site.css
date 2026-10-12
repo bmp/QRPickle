@@ -30,7 +30,8 @@ tbody tr:nth-child(odd) { background:var(--row-odd); }
 .hidden { display:none; }
 .notes { border-left:3px solid var(--link-color); background:var(--row-odd); padding:.6em .9em; margin:.5rem 0 1rem; }
 .notes h3 { margin:0 0 .4em; font-size:1rem; }
-.notes pre { margin:0; white-space:pre-wrap; font-family:Garamond,serif; font-size:.95rem; line-height:1.45; }
+.notes pre { margin:0; white-space:pre-wrap; font-family:Garamond,serif; font-size:.95rem; line-height:1.45;
+             max-height:11em; overflow-y:auto; padding-right:.4em; }  /* long notes scroll inside a fixed box */
 esp-web-install-button { display:block; margin:1rem 0; }
 .install-btn { font:inherit; font-size:1.05rem; padding:.45em 1.2em; border-radius:20px; cursor:pointer;
        border:1px solid var(--link-color); background:var(--link-color); color:var(--bg-color); }
@@ -54,3 +55,10 @@ nav a.active { font-weight:bold; text-decoration:none; }
 .toc ul { margin:.2em 0; padding-left:1.2em; }
 .toc > ul > li { margin:.15em 0; }
 
+.mode-desc { margin:.2rem 0 .8rem; font-size:.95rem; }
+.small { font-size:.85rem; }
+.parts td, .parts th { padding:4px 8px; }
+.parts input.addr { font-family:"courier new",monospace; background:var(--input-bg); color:var(--input-color); border:1px solid var(--td-border); }
+.parts .default { font-size:.85rem; opacity:.7; white-space:nowrap; }
+.parts .default.changed { color:var(--note-border); opacity:1; font-weight:bold; }
+esp-web-install-button.disabled { opacity:.4; pointer-events:none; }

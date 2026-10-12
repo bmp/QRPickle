@@ -17,7 +17,7 @@
 <h3>Install</h3>
   <p>
     <label for="ver">Version:</label>
-    <select id="ver" onchange="selectVersion()"><option>loading…</option></select>
+    <select id="ver"><option>loading…</option></select>
   </p>
   <section id="notes-box" class="notes hidden" aria-labelledby="notes-title">
     <h3 id="notes-title">Release notes</h3>
@@ -26,31 +26,30 @@
   <p id="older" class="note hidden">This is an older version. Installing it replaces the firmware and the
      web console files; with "Erase device" it also clears all settings. Cloud OTA will offer newer
      versions again afterwards.</p>
+  <p>
+    <label for="mode">What to install:</label>
+    <span id="mode-box"></span>
+  </p>
+  <p id="mode-desc" class="mode-desc"></p>
+  <div id="custom" class="hidden">
+    <table class="parts">
+      <thead><tr><th></th><th>File</th><th>Address</th><th>Contents</th></tr></thead>
+      <tbody id="custom-rows"></tbody>
+    </table>
+    <p class="small"><a href="#" onclick="resetAddresses(); return false;">Reset addresses</a> to the partition table's.</p>
+    <p id="custom-error" class="note hidden"></p>
+  </div>
   <ol>
     <li>Use <strong>Chrome or Edge</strong> on a computer (Web Serial is required).</li>
     <li>Connect the CYD with a USB <em>data</em> cable.</li>
-    <li>Click <strong>Install QRPickle</strong>, pick the serial port, and allow erasing for a clean install.</li>
+    <li>Click <strong>Install QRPickle</strong> and pick the serial port.</li>
   </ol>
   <esp-web-install-button id="install" manifest="manifest.json">
     <button slot="activate" class="install-btn">Install QRPickle</button>
     <span slot="unsupported" class="note">This browser can't access USB serial ports. Use Chrome or Edge on a computer.</span>
     <span slot="not-allowed" class="note">The installer needs a secure (https) page.</span>
   </esp-web-install-button>
-  <details>
-    <summary>What gets written where</summary>
-    <p>Every version uses the same flash layout:</p>
-    <table>
-      <thead><tr><th>Address</th><th>File</th><th>Contents</th></tr></thead>
-      <tbody>
-      <tr><td><code>0x1000</code></td><td><code>bootloader.bin</code></td><td>ESP32 bootloader</td></tr>
-      <tr><td><code>0x8000</code></td><td><code>partitions.bin</code></td><td>Partition table</td></tr>
-      <tr><td><code>0xE000</code></td><td><code>boot_app0.bin</code></td><td>otadata: boot from app0</td></tr>
-      <tr><td><code>0x10000</code></td><td><code>firmware.bin</code></td><td>Firmware (app0)</td></tr>
-      <tr><td><code>0x390000</code></td><td><code>littlefs.bin</code></td><td>Web console files (LittleFS)</td></tr>
-      </tbody>
-    </table>
-    <p>Settings (<code>nvs</code>, <code>0x9000</code>) are kept unless you erase the device.</p>
-  </details>
+  <p class="small">Settings live in <code>nvs</code> at <code>0x9000</code>: only "Erase device" (full install) clears them.</p>
   <p>After installing, the device opens a <code>QRPickle-Setup</code> WiFi network. Its password and the web
      console login are shown on the device's Network screen. Join it, open <code>http://192.168.4.1</code> (user
    <code>admin</code>, the same password) and enter your WiFi network, callsign and grid square; the device then
@@ -63,26 +62,104 @@
      backup first (web console → Profiles → Download Backup) where available.</p>
 <!-- scripts -->
   <script>
-    // versions.json is written by scripts/make_pages_site.py: newest first, each with its own manifest.
-    let versions = [];
-    function selectVersion() {
-      const sel = document.getElementById("ver");
-      const v = versions[sel.selectedIndex];
+    // versions.json (scripts/make_pages_site.py): versions newest first, and the five images with their
+    // addresses (from partitions.csv). Each mode is a manifest built here for ESP Web Tools.
+    let versions = [], parts = [], manifestUrl = null;
+    const MODES = [
+      {id: "full", label: "Full install",
+       desc: "Everything: bootloader, partition table, firmware and web console files. You will be offered " +
+             "\"Erase device\": tick it for a clean start (it also clears settings and profiles). For a new board.",
+       files: ["bootloader.bin", "partitions.bin", "boot_app0.bin", "firmware.bin", "littlefs.bin"], erase: true},
+      {id: "firmware", label: "Firmware only",
+       desc: "Only the firmware (and the record of which slot to start from). Settings, profiles and the web " +
+             "console files stay. The board must already run QRPickle v0.2.0 or later; the web console " +
+             "files stay at their old version until a full install or a filesystem upload.",
+       files: ["boot_app0.bin", "firmware.bin"], erase: false},
+      {id: "custom", label: "Custom",
+       desc: "Pick the images and their addresses (from the partition table). Writing the web console files " +
+             "erases saved profiles. Only change an address if you know why.",
+       files: null, erase: false},
+    ];
+    function mode() { return document.getElementById("mode").value; }
+
+    function buildModeChooser() {
+      document.getElementById("mode-box").innerHTML = '<select id="mode">' +
+        MODES.map(m => `<option value="${m.id}">${m.label}</option>`).join("") + "</select>";
+      document.getElementById("mode").addEventListener("change", update);
+    }
+
+    function buildCustomRows() {
+      document.getElementById("custom-rows").innerHTML = parts.map((p, i) =>
+        `<tr><td><input type="checkbox" id="c${i}" checked></td><td><label for="c${i}"><code>${p.path}</code></label></td>` +
+        `<td><input class="addr" id="a${i}" value="${p.offset}" size="9" spellcheck="false"> ` +
+        `<span class="default" id="d${i}">(default ${p.offset})</span></td><td>${p.what}</td></tr>`).join("");
+      document.querySelectorAll("#custom-rows input").forEach(x => x.addEventListener("input", update));
+    }
+
+    function resetAddresses() {
+      parts.forEach((p, i) => { document.getElementById("a" + i).value = p.offset; });
+      update();
+    }
+
+    // The chosen images and addresses, or an error text.
+    function chosenParts() {
+      const m = MODES.find(x => x.id === mode());
+      if (m.files) return parts.filter(p => m.files.includes(p.path)).map(p => ({path: p.path, offset: parseInt(p.offset, 16)}));
+      const out = [];
+      for (let i = 0; i < parts.length; i++) {
+        if (!document.getElementById("c" + i).checked) continue;
+        const text = document.getElementById("a" + i).value.trim();
+        const off = /^0x[0-9a-f]+$/i.test(text) ? parseInt(text, 16) : NaN;
+        if (isNaN(off) || off % 0x1000 || off >= 0x400000)
+          return `${parts[i].path}: the address must be hex (0x...), a multiple of 0x1000 and inside the 4 MB flash.`;
+        if (out.some(p => p.offset === off)) return `${parts[i].path}: another image already goes to ${text}.`;
+        out.push({path: parts[i].path, offset: off});
+      }
+      return out.length ? out : "Tick at least one image.";
+    }
+
+    function update() {
+      const v = versions[document.getElementById("ver").selectedIndex];
       if (!v) return;
-      document.getElementById("install").setAttribute("manifest", v.manifest);
       document.getElementById("notes").textContent = v.notes || "";
       document.getElementById("notes-title").textContent = "Release notes for " + v.version;
       document.getElementById("notes-box").classList.toggle("hidden", !v.notes);
-      document.getElementById("older").classList.toggle("hidden", sel.selectedIndex === 0);
+      document.getElementById("older").classList.toggle("hidden", document.getElementById("ver").selectedIndex === 0);
+      const m = MODES.find(x => x.id === mode());
+      document.getElementById("mode-desc").textContent = m.desc;
+      document.getElementById("custom").classList.toggle("hidden", m.id !== "custom");
+      parts.forEach((p, i) => {  // a changed address shows its default in amber
+        const changed = parseInt(document.getElementById("a" + i).value, 16) !== parseInt(p.offset, 16);
+        document.getElementById("d" + i).classList.toggle("changed", changed);
+      });
+      const chosen = chosenParts();
+      const err = document.getElementById("custom-error");
+      err.classList.toggle("hidden", typeof chosen !== "string");
+      err.textContent = typeof chosen === "string" ? chosen : "";
+      const button = document.getElementById("install");
+      button.classList.toggle("disabled", typeof chosen === "string");
+      if (typeof chosen === "string") return;
+      // Absolute image URLs: the manifest is a blob, so relative paths would have nothing to resolve against.
+      const base = new URL(v.manifest, location.href);
+      const manifest = {name: "QRPickle", version: v.version, new_install_prompt_erase: m.erase,
+                        builds: [{chipFamily: "ESP32", parts: chosen.map(p => ({path: new URL(p.path, base).href, offset: p.offset}))}]};
+      if (manifestUrl) URL.revokeObjectURL(manifestUrl);
+      manifestUrl = URL.createObjectURL(new Blob([JSON.stringify(manifest)], {type: "application/json"}));
+      button.setAttribute("manifest", manifestUrl);
     }
+
     fetch("versions.json")
       .then(r => r.json())
       .then(data => {
         versions = data.versions;
+        parts = data.parts || [];
         const sel = document.getElementById("ver");
         sel.textContent = "";
         versions.forEach((v, i) => sel.add(new Option(v.version + (i === 0 ? " (latest)" : ""), v.version)));
-        selectVersion();
+        sel.addEventListener("change", update);
+        buildModeChooser();
+        buildCustomRows();
+        update();
       })
       .catch(() => {  // older site without versions.json: the latest manifest only
         fetch("manifest.json").then(r => r.json()).then(m => {
