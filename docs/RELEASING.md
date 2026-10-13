@@ -54,6 +54,7 @@ Nothing here is automatic; tick each one that applies before the version bump.
 **Features** (whenever one is added, changed or removed in this release):
 - [ ] `README.md` → **Features and Data Sources**: the screen's row (what it shows, where its data comes from) and the bullets under the table. The manual (PDF and the website's Manual page) is built from the README, so it follows.
 - [ ] `web-installer/pages/home.html` → **Features** list on the website's home page.
+- [ ] `docs/SETUP.md` (**First-time Setup**, also a manual chapter): new or changed settings, accounts a service needs, first-start steps, menu or button names, and the troubleshooting table.
 - [ ] A new data source or library: `THIRD_PARTY_NOTICES.md` (the build's licence check catches libraries, not web services).
 - [ ] `web-installer/pages/install.html` → **What you need**, only if the hardware changes.
 
