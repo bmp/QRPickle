@@ -80,7 +80,8 @@ void setup() {
 
     // Force the LED state to OFF after the boot sequence is complete
     // This instantly kills the stuck "breathing cyan" timekeeper loop
-    hw::led_rgb::set_state(hw::led_rgb::STATE_OFF);
+    // (unless the setup hotspot is up: its amber stays)
+    hw::led_rgb::set_state(hw::led_rgb::boot_done_state(hw::led_rgb::STATE_OFF, wifi_manager_setup_hotspot()));
 
     // Watch the main loop: a hang now reboots after 30 s with a backtrace and [CRASHLOG]
     // breadcrumbs instead of freezing silently (found with the DX screen, 2026-10-09).

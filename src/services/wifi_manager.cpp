@@ -140,4 +140,7 @@ void wifi_manager_update() {
 }
 
 bool wifi_manager_is_connected() { return (current_state == WIFI_STATE_CONNECTED); }
+bool wifi_manager_setup_hotspot() {
+    return current_state == WIFI_STATE_AP_MODE || current_state == WIFI_STATE_AP_FALLBACK;
+}
 const char* wifi_manager_get_status_text() { return status_msg; }

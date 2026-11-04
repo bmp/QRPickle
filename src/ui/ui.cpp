@@ -176,7 +176,8 @@ namespace ui {
                 120000, nullptr);
 
             // Set Stage 4 -> Turn LED faint green to indicate operational readiness
-            hw::led_rgb::set_state(hw::led_rgb::STATE_BOOT_READY);
+            // (unless the setup hotspot is up: its amber stays)
+            hw::led_rgb::set_state(hw::led_rgb::boot_done_state(hw::led_rgb::STATE_BOOT_READY, wifi_manager_setup_hotspot()));
 
             ui_navigate_local(PAGE_DASHBOARD);
         });
