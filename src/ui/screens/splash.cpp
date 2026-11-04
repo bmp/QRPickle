@@ -7,6 +7,8 @@
 #include "../../core/metadata.h" 
 #include "../fonts.h"
 #include <WiFi.h>
+#include <LittleFS.h>
+#include "../../core/logo_file.h"
 #ifdef QRP_SCREEN_TOOLS
 #include "../../core/screen_tools.h"
 #endif
@@ -48,6 +50,27 @@ namespace ui {
         if (lbl_wifi_status) lv_label_set_text(lbl_wifi_status, buf);
     }
 
+    // A custom logo (web console, /logos/<side>.bin) when present and valid, else the built-in one.
+    static void set_logo(lv_obj_t* img, const char* side, const lv_image_dsc_t* builtin) {
+        static char path[2][24];
+        const int slot = side[0] == 'l' ? 0 : 1;
+        char fs_path[20];
+        snprintf(fs_path, sizeof(fs_path), "/logos/%s.bin", side);
+        File f = LittleFS.open(fs_path, "r");
+        if (f) {
+            uint8_t hdr[core::logo::HEADER_BYTES];
+            const size_t n = f.read(hdr, sizeof(hdr));
+            const size_t size = f.size();
+            f.close();
+            if (core::logo::header_valid(hdr, n, size)) {
+                snprintf(path[slot], sizeof(path[slot]), "L:%s", fs_path);  // LVGL keeps the pointer
+                lv_image_set_src(img, path[slot]);
+                return;
+            }
+        }
+        lv_image_set_src(img, builtin);
+    }
+
     void draw_splash_screen(lv_obj_t* parent, void (*on_complete)()) {
         splash_complete_callback = on_complete;
         wifi_attempts = 0;
@@ -67,15 +90,15 @@ namespace ui {
         lv_label_set_text(lbl_logo, meta::FW_NAME); 
         lv_obj_align(lbl_logo, LV_ALIGN_TOP_MID, 0, 25);
 
-        // 3. Spawn Left Image and lock further out to the left
+        // 3. Left logo: centred where the built-in 50 x 50 logo is centred
         lv_obj_t* img_left = lv_image_create(page);
-        lv_image_set_src(img_left, &logo_splash_left_50x50);
-        lv_obj_align_to(img_left, lbl_logo, LV_ALIGN_OUT_LEFT_MID, -36, 0);
+        set_logo(img_left, "left", &logo_splash_left_50x50);
+        lv_obj_align_to(img_left, lbl_logo, LV_ALIGN_OUT_LEFT_MID, -36 - 25 + (int)lv_image_get_src_width(img_left) / 2, 0);
 
-        // 4. Spawn Right Image and lock further out to the right
+        // 4. Right logo: centred where the built-in 30 x 60 logo is centred
         lv_obj_t* img_right = lv_image_create(page);
-        lv_image_set_src(img_right, &logo_splash_right_30x60);
-        lv_obj_align_to(img_right, lbl_logo, LV_ALIGN_OUT_RIGHT_MID, 42, 0);
+        set_logo(img_right, "right", &logo_splash_right_30x60);
+        lv_obj_align_to(img_right, lbl_logo, LV_ALIGN_OUT_RIGHT_MID, 42 + 15 - (int)lv_image_get_src_width(img_right) / 2, 0);
 
         // 5. Metadata Release Parameters
         lv_obj_t* lbl_meta = lv_label_create(page);
