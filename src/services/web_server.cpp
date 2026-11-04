@@ -189,6 +189,12 @@ void web_server_init() {
         else request->send(404, "text/plain", "JS Missing");
     });
 
+    server.on("/logo.js", HTTP_GET, [](AsyncWebServerRequest *request) {
+        REQUIRE_AUTH(request);
+        if (www_exists("/www/logo.js")) request->send(LittleFS, "/www/logo.js", "application/javascript");
+        else request->send(404, "text/plain", "JS Missing");
+    });
+
     server.on("/api/status", HTTP_GET, [](AsyncWebServerRequest *request) {
         REQUIRE_AUTH(request);
         AsyncResponseStream *response = request->beginResponseStream("application/json");

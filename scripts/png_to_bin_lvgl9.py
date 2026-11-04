@@ -36,9 +36,23 @@ def largest_square_in_blocks(n):
 
 
 def fit_box(src_w, src_h, box_w, box_h):
-    """The largest size within box_w x box_h with the source's shape (at least 1 x 1)."""
+    """The largest size within box_w x box_h with the source's shape (at least 1 x 1). Rounds
+    halves up, like data/www/logo.js (Python's round() rounds them to even)."""
     scale = min(box_w / src_w, box_h / src_h)
-    return max(1, round(src_w * scale)), max(1, round(src_h * scale))
+    return max(1, math.floor(src_w * scale + 0.5)), max(1, math.floor(src_h * scale + 0.5))
+
+
+def encode_rgb565a8(rgba, w, h):
+    """LVGL 9 header + RGB565 plane (little-endian) + alpha plane, from RGBA bytes."""
+    stride = w * 2
+    out = bytearray([0x19, 0x14, 0, 0, w & 0xFF, w >> 8, h & 0xFF, h >> 8, stride & 0xFF, stride >> 8, 0, 0])
+    alpha = bytearray()
+    for i in range(0, w * h * 4, 4):
+        r, g, b, a = rgba[i], rgba[i + 1], rgba[i + 2], rgba[i + 3]
+        c = ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3)
+        out += bytes([c & 0xFF, c >> 8])
+        alpha.append(a)
+    return bytes(out + alpha)
 
 
 def block_note(w, h):
@@ -64,44 +78,9 @@ def convert_to_lvgl9_split_bin(input_path, output_path, w, h):
         print(f"❌ Error loading {input_path}: {e}")
         return False
 
-    raw = img.tobytes()  # RGBA, 4 bytes per pixel
-    pixels = (raw[i:i + 4] for i in range(0, len(raw), 4))
-
-    # LVGL v9 12-Byte Header
-    magic = 0x19
-    cf = 0x14 # LV_COLOR_FORMAT_RGB565A8
-    flags = 0x0000
-    stride = w * 2 # Stride of the base RGB565 map is width * 2 bytes
-
-    lv_header = bytearray([
-        magic,
-        cf,
-        flags & 0xFF, (flags >> 8) & 0xFF,
-        w & 0xFF, (w >> 8) & 0xFF,
-        h & 0xFF, (h >> 8) & 0xFF,
-        stride & 0xFF, (stride >> 8) & 0xFF,
-        0x00, 0x00
-    ])
-
-    rgb_data = bytearray()
-    alpha_data = bytearray()
-
-    for r, g, b, a in pixels:
-        # Convert to RGB565
-        color565 = ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3)
-        # Block 1: RGB Data (Little Endian)
-        rgb_data.append(color565 & 0xFF)
-        rgb_data.append((color565 >> 8) & 0xFF)
-        # Block 2: Alpha Mask Data
-        alpha_data.append(a)
-
-    # LVGL v9 Requires the complete RGB array first, followed by the complete Alpha array
-    bin_data = rgb_data + alpha_data
-
     try:
         with open(output_path, 'wb') as f:
-            f.write(lv_header)
-            f.write(bin_data)
+            f.write(encode_rgb565a8(img.tobytes(), w, h))
         return True
     except Exception as e:
         print(f"❌ Error writing {output_path}: {e}")

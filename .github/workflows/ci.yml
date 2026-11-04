@@ -32,6 +32,12 @@ jobs:
       - name: Space feed builder tests
         run: python3 -m unittest discover -s tools/space_feed
 
+      - name: Image converter tests (Python and the web console's JS)
+        run: |
+          pip install pillow
+          python3 -m unittest scripts/test_png_to_bin_lvgl9.py
+          node test/js/logo_test.mjs
+
       - name: Release notes exist for FW_VERSION (CHANGELOG.md)
         run: python3 scripts/release_notes.py "$(grep FW_VERSION src/core/metadata.h | cut -d'"' -f2)" > /dev/null
 
