@@ -265,3 +265,8 @@ footer a:hover { text-decoration: underline; }
 }
 .edit-banner .btn { margin-left: auto; }
 .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.logo-previews { display: flex; gap: 8px; margin: 8px 0; }
+.logo-prev { width: 60px; height: 60px; border: 1px solid var(--border); image-rendering: pixelated; }
+.logo-prev.dark { background: #000; }
+.logo-prev.light { background: #fff; }

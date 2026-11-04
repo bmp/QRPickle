@@ -76,7 +76,7 @@ function initTabsEngine() {
                 }
             });
             
-            if (targetTab === "system") fetchSystemTelemetry();
+            if (targetTab === "system") { fetchSystemTelemetry(); refreshLogos(); }
             if (targetTab === "about") fetchAboutDetails();
             if (targetTab === "cloudota") fetchCloudOTADetails();
         });
@@ -433,6 +433,71 @@ function deleteSelectedProfile() {
     fetch(`/api/profiles/delete?name=${encodeURIComponent(pName)}`, { method: "POST" })
         .then(res => res.ok ? null : alert("Profile could not be deleted."))
         .then(() => fetchProfilesList());
+}
+
+// --- SPLASH LOGOS (logo.js converts; the device checks and stores) ---
+const pendingLogos = { left: null, right: null };
+
+async function refreshLogos() {
+    try {
+        const s = await (await fetch("/api/logos")).json();
+        for (const side of ["left", "right"]) {
+            const el = document.getElementById(`logo-state-${side}`);
+            if (el) el.textContent = s[side] && s[side].custom ? `custom, ${s[side].w} x ${s[side].h}` : "built-in";
+        }
+    } catch (e) { /* device busy: leave "--" */ }
+}
+
+function pickLogo(side, input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();  // data: URL (the CSP allows data: images, not blob:)
+    reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+            const { w, h } = logoFitBox(img.naturalWidth || 60, img.naturalHeight || 60);
+            const c = document.createElement("canvas");
+            c.width = w; c.height = h;
+            const ctx = c.getContext("2d");
+            ctx.imageSmoothingQuality = "high";
+            ctx.drawImage(img, 0, 0, w, h);
+            const rgba = ctx.getImageData(0, 0, w, h).data;
+            pendingLogos[side] = logoEncode(rgba, w, h);
+            for (const tone of ["dark", "light"]) {
+                const p = document.getElementById(`logo-prev-${side}-${tone}`).getContext("2d");
+                p.clearRect(0, 0, 60, 60);
+                p.drawImage(c, Math.floor((60 - w) / 2), Math.floor((60 - h) / 2));
+            }
+            document.getElementById(`logo-up-${side}`).disabled = false;
+        };
+        img.onerror = () => alert("This file could not be read as an image.");
+        img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+async function postLogo(side, bytes) {
+    const form = new FormData();
+    form.append("logo", new Blob([bytes], { type: "application/octet-stream" }), `${side}.bin`);
+    const res = await fetch(`/api/logos/upload?side=${side}`, { method: "POST", body: form });
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `HTTP ${res.status}`);
+}
+
+async function uploadLogo(side) {
+    if (!pendingLogos[side]) return;
+    try {
+        await postLogo(side, pendingLogos[side]);
+        alert("Logo saved. It shows from the next restart.");
+    } catch (e) {
+        alert("Logo not saved: " + e.message);
+    }
+    refreshLogos();
+}
+
+async function deleteLogo(side) {
+    if (!confirm(`Use the built-in ${side} logo again?`)) return;
+    await fetch(`/api/logos/delete?side=${side}`, { method: "POST" });
+    refreshLogos();
 }
 
 // Backup: settings + all profiles as the device reports them (secrets masked, review 1.3).

@@ -324,6 +324,21 @@
                 <div class="sys-card"><label>Native Espressif IDF</label><div id="sys-lib-idf" class="val">--</div></div>
             </div>
 
+            <div class="sys-section-title" style="margin-top: 25px;">Splash Logos</div>
+            <p class="hint">Your own logo left and/or right of the title on the start screen, scaled into 60 x 60. Shown from the next restart. Kept across updates; included in backups.</p>
+            <div class="sys-grid">
+                <div class="sys-card" id="logo-card-left"><label>Left logo: <span id="logo-state-left">--</span></label>
+                    <input type="file" accept="image/*" onchange="pickLogo('left', this)">
+                    <div class="logo-previews"><canvas id="logo-prev-left-dark" width="60" height="60" class="logo-prev dark"></canvas><canvas id="logo-prev-left-light" width="60" height="60" class="logo-prev light"></canvas></div>
+                    <button class="btn" id="logo-up-left" disabled onclick="uploadLogo('left')">Upload</button>
+                    <button class="btn" onclick="deleteLogo('left')">Use built-in</button></div>
+                <div class="sys-card" id="logo-card-right"><label>Right logo: <span id="logo-state-right">--</span></label>
+                    <input type="file" accept="image/*" onchange="pickLogo('right', this)">
+                    <div class="logo-previews"><canvas id="logo-prev-right-dark" width="60" height="60" class="logo-prev dark"></canvas><canvas id="logo-prev-right-light" width="60" height="60" class="logo-prev light"></canvas></div>
+                    <button class="btn" id="logo-up-right" disabled onclick="uploadLogo('right')">Upload</button>
+                    <button class="btn" onclick="deleteLogo('right')">Use built-in</button></div>
+            </div>
+
             <div class="sys-section-title" style="margin-top: 25px;">Wireless Maintenance Terminal</div>
             <div class="sys-card" style="max-width: 100%; box-sizing: border-box;">
                 <label>Select Deployment Partition Target</label>
