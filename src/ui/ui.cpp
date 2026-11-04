@@ -4,6 +4,7 @@
 #include "screen_cycle.h"
 #include "sidebar.h"
 #include "home_button.h"
+#include "keyboard.h"
 #include "theme.h"
 #include "screens/dashboard.h" 
 #include "screens/settings.h"
@@ -196,6 +197,9 @@ namespace ui {
     }
 
     void ui_navigate_local(LocalPage page) {
+        // The on-screen keyboard is a modal on the top layer: a page change (home, menu, cycling)
+        // closes it, or it stays over the next page.
+        keyboard_hide();
         if (page == PAGE_SETTINGS) {
             open_settings_screen();
             return;
