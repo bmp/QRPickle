@@ -521,7 +521,7 @@ void web_server_update() {
     }
     if (flag_trigger_ui_refresh) {
         flag_trigger_ui_refresh = false;
-        ui::status_bar_refresh_theme();
+        ui::ui_refresh_theme();
         services::display_manager::set_brightness(config::get().brightness);  
     }
     

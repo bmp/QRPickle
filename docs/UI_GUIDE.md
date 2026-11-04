@@ -260,8 +260,11 @@ QRP_ADMIN_PW=... python3 -I tools/device_screens.py \
     [--compare release/shots/before]
 ```
 
-The `cyd-screens` build has less free heap than a release build: HTTPS requests with certificate
-checks (Cloud OTA) can fail on it. Judge network behaviour on the `cyd` build.
+The `cyd-screens` build takes a 5 KB band buffer from the heap at the first capture (kept until
+the next restart) and skips the automatic update check, which ran it out of memory (a manual check
+still works). It has a little less heap than a release build once capturing: judge network
+behaviour on the `cyd` build. The splash shot restarts the device and always shows the saved theme,
+so take it once, not per theme.
 
 ## Checklists
 

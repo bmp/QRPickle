@@ -113,6 +113,14 @@ namespace ui {
         active_page = PAGE_SETTINGS; 
     }
 
+    void ui_refresh_theme() {
+        // The main screen, also when Settings (a screen of its own) is the active one.
+        if (view_container) lv_obj_set_style_bg_color(lv_obj_get_screen(view_container), theme_color(COLOR_BG_APP), 0);
+        status_bar_refresh_theme();
+        if (global_home_btn) lv_obj_set_style_text_color(global_home_btn, theme_color(COLOR_TEXT_MAIN), 0);
+        sidebar_rebuild();
+    }
+
     void ui_init() {
         lv_obj_t* main_screen = lv_screen_active();
         lv_obj_set_style_bg_color(main_screen, theme_color(COLOR_BG_APP), 0);
@@ -192,6 +200,8 @@ namespace ui {
             open_settings_screen();
             return;
         }
+        // Settings is a screen of its own on top: close it, or the new page opens hidden behind it.
+        if (active_page == PAGE_SETTINGS) settings_destroy();
 
         active_page = page;
         if (!view_container) return;

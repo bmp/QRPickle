@@ -91,7 +91,7 @@ namespace screen_tools {
             int theme = pending_theme.exchange(-1);
             if (theme >= 0) {
                 config::mutable_get().theme_id = (uint8_t)theme;  // not saved: preview only
-                ui::status_bar_refresh_theme();
+                ui::ui_refresh_theme();
             }
             ui::ui_navigate_local(static_cast<ui::LocalPage>(page));
         }
