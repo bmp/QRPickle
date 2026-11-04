@@ -81,8 +81,11 @@ empty to keep the saved value.
 
 - **Profiles** tab → **Save Current Form as New Profile** (e.g. "Home", "Field"); switch between them
   later on the device or in the console.
-- **Profiles → Backup and Restore → Download Backup** keeps all settings and profiles in a file, without passwords and keys. Do this
-  before writing a new filesystem image or a full install, which erase profiles.
+- **Profiles → Backup and Restore → Download Backup** keeps all settings, profiles and splash logos in a file, without passwords
+  and keys. Do this before a full install, which erases everything. A filesystem update in the web console keeps profiles and
+  logos (from v0.2.6).
+- Optional: **System Info → Splash Logos** puts your own logo (a club logo, your callsign badge) left and/or right of the title
+  on the start screen. Any image works; a PNG with a transparent background looks best. It shows from the next restart.
 
 ## 8. Updates
 

@@ -4,6 +4,29 @@ User-facing changes per release, newest first. Each section is also the release 
 
 ## v0.2.6 (unreleased)
 
+Your own splash logos; filesystem updates keep profiles; theme and LED fixes
+
+Updating from v0.2.5: Cloud OTA (device or web console) or upload firmware.bin;
+settings are kept. Then upload littlefs.bin (web console: System Info, "LittleFS
+Storage Image") for the new web console. Download a backup first (Profiles,
+Backup and Restore): this first update still runs from the old console, which
+erases profiles. From v0.2.6 on, the console keeps them.
+
+New
+- Splash logos: your own logo left and/or right of the title on the start
+  screen (a club logo, a callsign badge). Upload any image in the web console
+  (System Info, Splash Logos); it is scaled into 60 x 60 in the browser, with a
+  preview. Kept across updates and included in backups. A PNG with a
+  transparent background looks best.
+
+Changes
+- A filesystem update in the web console keeps your profiles and logos: it
+  saves them first and writes them back after the restart (profiles without
+  their own passwords and keys, as with a backup).
+- Backups include your splash logos.
+- The weather icons are 36 x 36 (were 40 x 40): each fits one 4 KB block of
+  the filesystem, which frees 72 KB.
+
 Fixes
 - Changing the theme now recolours the whole screen at once: the background,
   the home button and the menu kept the old theme until a restart (in E-Ink

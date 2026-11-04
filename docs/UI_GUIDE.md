@@ -193,6 +193,15 @@ refresh).
   short timeout (never block the main loop on it).
 - LVGL pool on any tab or the pass view: 33-38 % (measured 2026-10-12).
 
+## Splash logos
+
+- The splash shows a custom logo (`/logos/left.bin`, `/logos/right.bin`, uploaded in the web console)
+  when the file passes `core::logo::header_valid`, else the built-in C array. A custom logo is
+  centred where the built-in one is centred (left 50 x 50, right 30 x 60) and fits a 60 x 60 box.
+- The browser converts (`data/www/logo.js`, same bytes as `png_to_bin_lvgl9.py --fit 60x60`); the
+  device only checks and stores. LittleFS is mounted in `core::lvgl_fs_init()`, before the UI.
+- Logos without transparency show their background as a box (checked 2026-11-04 with four club logos).
+
 ## Themes
 
 Every colour comes from the theme: `theme_color(TOKEN)` (`theme.h`). Never write `lv_color_hex()`
