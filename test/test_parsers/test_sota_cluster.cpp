@@ -7,6 +7,7 @@
 #include "band_tests.h"
 #include "hamalert_tests.h"
 #include "space_tests.h"
+#include "logo_tests.h"
 
 using services::sota_cluster::ParsedSpot;
 using services::sota_cluster::parse_line;
@@ -134,5 +135,7 @@ int main(int, char**) {
     RUN_TEST(test_space_parse_event);
     RUN_TEST(test_space_insert_pass_keeps_earliest);
     RUN_TEST(test_space_event_passes_and_alert);
+    RUN_TEST(test_logo_header_valid_sizes);
+    RUN_TEST(test_logo_header_rejects_bad_files);
     return UNITY_END();
 }
