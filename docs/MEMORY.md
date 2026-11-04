@@ -31,7 +31,7 @@ and follow the rules at the end. Measured on a CYD with v0.2.4 on 2026-10-10.
 
 | User | Size | Where | Notes |
 |------|------|-------|-------|
-| LVGL pool (`LV_MEM_SIZE`) | 64 KB | heap, once at `lv_init()` | peak use 52 KB (DX cluster page); 28.5 KB after boot |
+| LVGL pool (`LV_MEM_SIZE`) | 64 KB | heap, once at `lv_init()` | DX cluster page 49 KB -> 29.5 KB after one label per row (2026-11-04); 26-28.5 KB after boot |
 | LVGL image cache (`LV_CACHE_DEF_SIZE`) | up to 16 KB | inside the pool | decoded icons from LittleFS; 32 KB ran the pool out (crash) |
 | LVGL layer buffer (`LV_DRAW_LAYER_SIMPLE_BUF_SIZE`) | 8 KB chunks | inside the pool | only for objects drawn through a layer (object opacity, transforms) |
 | Display draw buffer | 12.8 KB | static | `320 x 10` RGB565 x 2 |

@@ -8,6 +8,7 @@
 #include "hamalert_tests.h"
 #include "space_tests.h"
 #include "logo_tests.h"
+#include "dx_tests.h"
 
 using services::sota_cluster::ParsedSpot;
 using services::sota_cluster::parse_line;
@@ -138,5 +139,7 @@ int main(int, char**) {
     RUN_TEST(test_logo_header_valid_sizes);
     RUN_TEST(test_logo_header_rejects_bad_files);
     RUN_TEST(test_space_retry_backs_off);
+    RUN_TEST(test_dx_status_line_follows_the_connection);
+    RUN_TEST(test_dx_row_text_has_fixed_columns);
     return UNITY_END();
 }

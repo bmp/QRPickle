@@ -4,6 +4,7 @@
 #include "../theme.h"
 #include "../fonts.h"
 #include "../../services/dx_manager.h"
+#include "../../services/dx_status_text.h"
 #include <lvgl.h>
 #include <cstdio>
 #include <cstring>
@@ -25,13 +26,11 @@ namespace ui {
     static int active_mode_idx = 0; 
     static const char* MODES[] = {"ALL", "CW", "SSB", "FT8", "FT4"};
 
+    // One label per row (services::dx_row_text lines up the columns in the monospace font): five
+    // labels per row made this the page with the highest LVGL pool use.
     struct RowWidgets {
         lv_obj_t* base_row;
-        lv_obj_t* lbl_call;
-        lv_obj_t* lbl_freq;
-        lv_obj_t* lbl_mode;
-        lv_obj_t* lbl_spotter;
-        lv_obj_t* lbl_cmt;
+        lv_obj_t* lbl;
     };
     static RowWidgets row_pool[20];
     static const services::DxSpot* displayed_spots[20]; 
@@ -101,71 +100,47 @@ namespace ui {
             }
         }
 
-        // Redraw on new spots, or when a filter changed (filters used to have no visible effect
-        // until the next spot arrived).
-        if (!services::DxManager::is_dirty() && !filters_changed) return;
-        filters_changed = false;
+        // The status line follows the connection on every tick (it used to change only with new
+        // spots, so after a restart the page said nothing while it waited).
+        static services::DxStatus last_status = services::DX_STATUS_DISCONNECTED;
+        static size_t last_total = SIZE_MAX, last_shown = SIZE_MAX;
+        static size_t shown = 0;
 
-        const services::DxSpot* raw_spots = services::DxManager::get_spots();
-        size_t total_raw = services::DxManager::get_spot_count();
-        size_t match_count = 0;
+        const bool redraw = services::DxManager::is_dirty() || filters_changed;
+        if (redraw) {
+            filters_changed = false;
+            const services::DxSpot* raw_spots = services::DxManager::get_spots();
+            const size_t total_raw = raw_spots ? services::DxManager::get_spot_count() : 0;
+            size_t match_count = 0;
+            memset(displayed_spots, 0, sizeof(displayed_spots));
 
-        memset(displayed_spots, 0, sizeof(displayed_spots));
-
-        if (!raw_spots) {
-            for (size_t i = 0; i < 20; i++) {
+            // Suspend rendering frames during mass layout updates for smoother performance
+            lv_obj_set_hidden(list_container, true);
+            for (size_t i = 0; i < total_raw && match_count < 20; i++) {
+                if (match_band(raw_spots[i].freq, active_band_idx) && match_mode(raw_spots[i].mode, active_mode_idx)) {
+                    displayed_spots[match_count] = &raw_spots[i];
+                    char line[80];
+                    services::dx_row_text(raw_spots[i], line, sizeof(line));
+                    lv_label_set_text(row_pool[match_count].lbl, line);
+                    lv_obj_set_hidden(row_pool[match_count].base_row, false);
+                    match_count++;
+                }
+            }
+            for (size_t i = match_count; i < 20; i++) {
                 if (row_pool[i].base_row) lv_obj_set_hidden(row_pool[i].base_row, true);
             }
-            if (lbl_comment) lv_label_set_text(lbl_comment, "STATUS: DX Cluster buffer empty.");
-            return;
+            lv_obj_set_hidden(list_container, false);
+            shown = match_count;
+            services::DxManager::clear_dirty();
         }
 
-        // Suspend rendering frames during mass layout updates for smoother performance
-        lv_obj_set_hidden(list_container, true);
-
-        for (size_t i = 0; i < total_raw && match_count < 20; i++) {
-            if (match_band(raw_spots[i].freq, active_band_idx) && match_mode(raw_spots[i].mode, active_mode_idx)) {
-                displayed_spots[match_count] = &raw_spots[i];
-
-                RowWidgets& rw = row_pool[match_count];
-                char buf[16];
-
-                lv_label_set_text(rw.lbl_call, raw_spots[i].dx_call);
-
-                snprintf(buf, sizeof(buf), "%.3f", raw_spots[i].freq);
-                lv_label_set_text(rw.lbl_freq, buf);
-
-                lv_label_set_text(rw.lbl_mode, raw_spots[i].mode);
-                lv_label_set_text(rw.lbl_spotter, raw_spots[i].spotter);
-                lv_label_set_text(rw.lbl_cmt, raw_spots[i].comment);
-
-                lv_obj_set_hidden(rw.base_row, false);
-                match_count++;
-            }
+        const size_t total = services::DxManager::get_spots() ? services::DxManager::get_spot_count() : 0;
+        if (lbl_comment && (redraw || current_status != last_status || total != last_total || shown != last_shown)) {
+            lv_label_set_text(lbl_comment, services::dx_status_line(current_status, total, shown));
+            last_status = current_status;
+            last_total = total;
+            last_shown = shown;
         }
-
-        for (size_t i = match_count; i < 20; i++) {
-            if (row_pool[i].base_row) {
-                lv_obj_set_hidden(row_pool[i].base_row, true);
-            }
-        }
-
-        lv_obj_set_hidden(list_container, false);
-
-        // --- NEW UX LOGIC: Dynamic Loading Status ---
-        if (lbl_comment) {
-            if (current_status == services::DX_STATUS_DISCONNECTED) {
-                lv_label_set_text(lbl_comment, "OFFLINE: Lost connection to DX Cluster node.");
-            } else if (current_status == services::DX_STATUS_CONNECTING) {
-                lv_label_set_text(lbl_comment, "SYNCING: Negotiating Telnet link with cluster...");
-            } else if (match_count == 0) {
-                lv_label_set_text(lbl_comment, "WAITING: No spots received yet. Listening...");
-            } else {
-                lv_label_set_text(lbl_comment, "COMMENT: Tap any row to read full string.");
-            }
-        }
-
-        services::DxManager::clear_dirty();
     }
 
     void draw_spots_page(lv_obj_t* parent) {
@@ -201,7 +176,7 @@ namespace ui {
         lv_obj_align(l_call, LV_ALIGN_LEFT_MID, 6, 0);
 
         btn_freq = lv_button_create(header_bar);
-        lv_obj_set_size(btn_freq, 76, 20);
+        lv_obj_set_size(btn_freq, 58, 20);  // over the frequency column (x 66, 9 characters)
         lv_obj_align(btn_freq, LV_ALIGN_LEFT_MID, 62, 0);
         lv_obj_set_style_bg_color(btn_freq, theme_color(COLOR_BG_APP), 0);
         lv_obj_set_style_border_color(btn_freq, theme_color(COLOR_BORDER), 0);
@@ -217,8 +192,8 @@ namespace ui {
         lv_obj_center(lbl_bf);
 
         btn_mode = lv_button_create(header_bar);
-        lv_obj_set_size(btn_mode, 72, 20);
-        lv_obj_align(btn_mode, LV_ALIGN_LEFT_MID, 142, 0);
+        lv_obj_set_size(btn_mode, 58, 20);  // over the mode column (x 126)
+        lv_obj_align(btn_mode, LV_ALIGN_LEFT_MID, 124, 0);
         lv_obj_set_style_bg_color(btn_mode, theme_color(COLOR_BG_APP), 0);
         lv_obj_set_style_border_color(btn_mode, theme_color(COLOR_BORDER), 0);
         lv_obj_set_style_border_width(btn_mode, 1, 0);
@@ -236,13 +211,13 @@ namespace ui {
         lv_label_set_text(l_spot, "SPOTTER");
         lv_obj_set_style_text_font(l_spot, &font_jetbrains_10, 0);
         lv_obj_set_style_text_color(l_spot, theme_color(COLOR_TEXT_MUTED), 0);
-        lv_obj_align(l_spot, LV_ALIGN_LEFT_MID, 218, 0);
+        lv_obj_align(l_spot, LV_ALIGN_LEFT_MID, 186, 0);
 
         lv_obj_t* l_cmt = lv_label_create(header_bar);
         lv_label_set_text(l_cmt, "CMT");
         lv_obj_set_style_text_font(l_cmt, &font_jetbrains_10, 0);
         lv_obj_set_style_text_color(l_cmt, theme_color(COLOR_TEXT_MUTED), 0);
-        lv_obj_align(l_cmt, LV_ALIGN_LEFT_MID, 274, 0);
+        lv_obj_align(l_cmt, LV_ALIGN_LEFT_MID, 240, 0);
 
         lv_obj_t* footer = lv_obj_create(scr);
         lv_obj_set_size(footer, SCREEN_W, 24);
@@ -284,35 +259,12 @@ namespace ui {
             lv_obj_add_event_cb(row, row_clicked_cb, LV_EVENT_CLICKED, (void*)(intptr_t)i);
             row_pool[i].base_row = row;
 
-            row_pool[i].lbl_call = lv_label_create(row);
-            lv_obj_set_style_text_font(row_pool[i].lbl_call, &font_jetbrains_10, 0);
-            lv_obj_set_style_text_color(row_pool[i].lbl_call, theme_color(COLOR_TEXT_MAIN), 0);
-            lv_obj_align(row_pool[i].lbl_call, LV_ALIGN_LEFT_MID, 6, 0);
-
-            row_pool[i].lbl_freq = lv_label_create(row);
-            lv_obj_set_style_text_font(row_pool[i].lbl_freq, &font_jetbrains_10, 0);
-            lv_obj_set_style_text_color(row_pool[i].lbl_freq, theme_color(COLOR_ACCENT_PRIMARY), 0);
-            lv_obj_set_width(row_pool[i].lbl_freq, 76);
-            lv_obj_set_style_text_align(row_pool[i].lbl_freq, LV_TEXT_ALIGN_CENTER, 0);
-            lv_obj_align(row_pool[i].lbl_freq, LV_ALIGN_LEFT_MID, 62, 0);
-
-            row_pool[i].lbl_mode = lv_label_create(row);
-            lv_obj_set_style_text_font(row_pool[i].lbl_mode, &font_jetbrains_10, 0);
-            lv_obj_set_style_text_color(row_pool[i].lbl_mode, theme_color(COLOR_TEXT_MAIN), 0);
-            lv_obj_set_width(row_pool[i].lbl_mode, 72);
-            lv_obj_set_style_text_align(row_pool[i].lbl_mode, LV_TEXT_ALIGN_CENTER, 0);
-            lv_obj_align(row_pool[i].lbl_mode, LV_ALIGN_LEFT_MID, 142, 0);
-
-            row_pool[i].lbl_spotter = lv_label_create(row);
-            lv_obj_set_style_text_font(row_pool[i].lbl_spotter, &font_jetbrains_10, 0);
-            lv_obj_set_style_text_color(row_pool[i].lbl_spotter, theme_color(COLOR_TEXT_MUTED), 0);
-            lv_obj_align(row_pool[i].lbl_spotter, LV_ALIGN_LEFT_MID, 218, 0);
-
-            row_pool[i].lbl_cmt = lv_label_create(row);
-            lv_obj_set_style_text_font(row_pool[i].lbl_cmt, &font_jetbrains_10, 0);
-            lv_obj_set_style_text_color(row_pool[i].lbl_cmt, theme_color(COLOR_TEXT_MUTED), 0);
-            lv_obj_set_width(row_pool[i].lbl_cmt, 42); 
-            lv_obj_align(row_pool[i].lbl_cmt, LV_ALIGN_LEFT_MID, 274, 0);
+            row_pool[i].lbl = lv_label_create(row);
+            lv_obj_set_style_text_font(row_pool[i].lbl, &font_jetbrains_10, 0);
+            lv_obj_set_style_text_color(row_pool[i].lbl, theme_color(COLOR_TEXT_MAIN), 0);
+            lv_obj_set_width(row_pool[i].lbl, SCREEN_W - 6);
+            lv_label_set_long_mode(row_pool[i].lbl, LV_LABEL_LONG_CLIP);
+            lv_obj_align(row_pool[i].lbl, LV_ALIGN_LEFT_MID, 6, 0);
         }
 
         lv_obj_add_event_cb(scr, [](lv_event_t* e) {
