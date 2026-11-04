@@ -67,6 +67,7 @@
                         <input type="password" id="cfg-password" placeholder="••••••••••••" maxlength="63">
                         <button class="eye-toggle" type="button" onclick="togglePass('cfg-password')">👁️</button>
                     </div>
+                    <button type="button" class="btn btn-secondary secret-clear" onclick="clearSecret('cfg-password')">Clear saved value</button>
                 </div>
                 <div class="form-group">
                     <label>TFT Display Backlight PWM</label>
@@ -129,6 +130,7 @@
                         <input type="password" id="cfg-apikey" placeholder="Paste API Key here..." maxlength="39">
                         <button class="eye-toggle" type="button" onclick="togglePass('cfg-apikey')">👁️</button>
                     </div>
+                    <button type="button" class="btn btn-secondary secret-clear" onclick="clearSecret('cfg-apikey')">Clear saved value</button>
                 </div>
                 
                 <div class="form-group" style="grid-column: span 2;">
@@ -151,6 +153,7 @@
                         <input type="password" id="cfg-hamalert-pass" placeholder="Enter HamAlert Token..." maxlength="15">
                         <button class="eye-toggle" type="button" onclick="togglePass('cfg-hamalert-pass')">👁️</button>
                     </div>
+                    <button type="button" class="btn btn-secondary secret-clear" onclick="clearSecret('cfg-hamalert-pass')">Clear saved value</button>
                 </div>
 
                 <label style="grid-column: span 2; font-weight: bold; border-bottom: 1px solid var(--border); padding-bottom: 5px; color: var(--accent); margin-top: 10px;">APRS-IS Global Network Parameters</label>
@@ -168,6 +171,7 @@
                         <input type="password" id="cfg-aprs-pass" placeholder="12345" maxlength="5">
                         <button class="eye-toggle" type="button" onclick="togglePass('cfg-aprs-pass')">👁️</button>
                     </div>
+                    <button type="button" class="btn btn-secondary secret-clear" onclick="clearSecret('cfg-aprs-pass')">Clear saved value</button>
                 </div>
                 <div class="form-group">
                     <label>Station SSID Suffix</label>

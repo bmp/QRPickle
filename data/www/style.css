@@ -275,3 +275,5 @@ footer a:hover { text-decoration: underline; }
 .cyc-order li { display: flex; align-items: center; gap: 6px; padding: 2px 0; }
 .cyc-order li label { flex: 1; margin: 0; font-size: 13px; }
 .cyc-order li .btn { min-width: 44px; min-height: 36px; padding: 0; }
+
+.secret-clear { margin-top: 4px; padding: 2px 8px; font-size: 11px; }

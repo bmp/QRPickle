@@ -294,6 +294,38 @@ void test_cycle_next_follows_the_order() {
     TEST_ASSERT_EQUAL_INT(-1, cycle_next(order, 0x00, 0));  // nothing chosen
 }
 
+void test_secret_tails_and_clear() {
+    Config c = base();
+    strcpy(c.wifi_password, "secret4f");
+    strcpy(c.aprs_passcode, "12345");  // short: no tail
+    strcpy(c.openweather_api_key, "0123456789abcdef");
+    JsonDocument doc;
+    to_json(c, doc.to<JsonObject>(), Secrets::Mask);
+    TEST_ASSERT_EQUAL_STRING("", doc["password"].as<const char*>());
+    TEST_ASSERT_TRUE(doc["password_set"].as<bool>());
+    TEST_ASSERT_EQUAL_STRING("4f", doc["password_tail"].as<const char*>());
+    TEST_ASSERT_EQUAL_STRING("ef", doc["apikey_tail"].as<const char*>());
+    TEST_ASSERT_TRUE(doc["aprs_pass_set"].as<bool>());
+    TEST_ASSERT_TRUE(doc["aprs_pass_tail"].isNull());
+    TEST_ASSERT_TRUE(doc["hamalert_pass_tail"].isNull());  // unset
+
+    JsonDocument full;
+    to_json(c, full.to<JsonObject>(), Secrets::Include);  // profiles on the device: no tails
+    TEST_ASSERT_TRUE(full["password_tail"].isNull());
+
+    JsonDocument in;
+    in["apikey_clear"] = true;
+    from_json(c, in.as<JsonObjectConst>());
+    TEST_ASSERT_EQUAL_STRING("", c.openweather_api_key);
+    TEST_ASSERT_EQUAL_STRING("secret4f", c.wifi_password);  // others untouched
+
+    JsonDocument in2;
+    in2["password_clear"] = true;
+    in2["password"] = "newpass99";  // a new value wins over clear
+    from_json(c, in2.as<JsonObjectConst>());
+    TEST_ASSERT_EQUAL_STRING("newpass99", c.wifi_password);
+}
+
 int main(int, char**) {
     UNITY_BEGIN();
     RUN_TEST(test_valid_config_is_normalised_not_reverted);
@@ -311,5 +343,6 @@ int main(int, char**) {
     RUN_TEST(test_satellite_settings);
     RUN_TEST(test_cycle_order);
     RUN_TEST(test_cycle_next_follows_the_order);
+    RUN_TEST(test_secret_tails_and_clear);
     return UNITY_END();
 }

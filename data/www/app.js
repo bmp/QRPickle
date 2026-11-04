@@ -28,9 +28,30 @@ function moveCycle(btn, dir) {
     if (dir > 0 && li.nextElementSibling) ol.insertBefore(li.nextElementSibling, li);
 }
 
-function markSaved(id, isSet) {
+// Secrets are write-only (review 1.3): the device says whether one is saved and, for 6+
+// characters, its last 2 ("<key>_tail"); Clear sends "<key>_clear".
+const SECRET_FIELDS = [["cfg-password", "password"], ["cfg-apikey", "apikey"],
+                       ["cfg-hamalert-pass", "hamalert_pass"], ["cfg-aprs-pass", "aprs_pass"]];
+const pendingClear = {};
+
+function markSaved(id, isSet, tail) {
     const el = document.getElementById(id);
-    if (el) el.placeholder = isSet ? "saved (leave blank to keep)" : "";
+    delete pendingClear[id];
+    if (el) el.placeholder = !isSet ? "" : tail ? `saved, ends in ••${tail} (leave blank to keep)` : "saved (leave blank to keep)";
+}
+
+function clearSecret(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    pendingClear[id] = true;
+    el.value = "";
+    el.placeholder = "will be cleared when you save";
+}
+
+// Backups and kept data never carry the tails (they are a hint for this page only).
+function stripTails(obj) {
+    if (obj && typeof obj === "object") for (const k of Object.keys(obj)) if (k.endsWith("_tail")) delete obj[k];
+    return obj;
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -128,10 +149,9 @@ function fillForm(data) {
     setElementValue("cfg-theme", data.theme_id ?? 0);
 
     // Secrets are never sent to the browser (review 1.3): blank fields keep the stored value.
-    for (const [id, key] of [["cfg-password", "password"], ["cfg-apikey", "apikey"],
-                             ["cfg-hamalert-pass", "hamalert_pass"], ["cfg-aprs-pass", "aprs_pass"]]) {
+    for (const [id, key] of SECRET_FIELDS) {
         setElementValue(id, "");
-        markSaved(id, data[key + "_set"]);
+        markSaved(id, data[key + "_set"], data[key + "_tail"]);
     }
     setElementValue("cfg-admin-pw", "");
     setElementValue("cfg-admin-pw2", "");
@@ -177,7 +197,7 @@ function collectForm() {
         if (getElementValue(`bg-bit${i}`, true)) bandGroups |= (1 << i);
     }
 
-    return {
+    const form = {
         callsign: getElementValue("cfg-callsign"),
         grid: getElementValue("cfg-grid"),
         ssid: getElementValue("cfg-ssid"),
@@ -215,6 +235,8 @@ function collectForm() {
         aprs_macros: macros,
         hamalert_pass: getElementValue("cfg-hamalert-pass")
     };
+    for (const [id, key] of SECRET_FIELDS) if (pendingClear[id]) form[key + "_clear"] = true;
+    return form;
 }
 
 function loadCurrentConfig() {
@@ -558,7 +580,7 @@ async function collectKeep() {
     const keep = { profiles: {}, logos: {} };
     for (const name of await fetchProfilesList()) {
         const res = await fetch(`/api/profiles/get?name=${encodeURIComponent(name)}`);
-        if (res.ok) keep.profiles[name] = await res.json();
+        if (res.ok) keep.profiles[name] = stripTails(await res.json());
     }
     for (const side of ["left", "right"]) {
         const res = await fetch(`/api/logos/get?side=${side}`);
@@ -603,12 +625,12 @@ async function waitForDevice(maxMs = 120000) {
 // Backup: settings + all profiles as the device reports them (secrets masked, review 1.3).
 async function downloadBackup() {
     try {
-        const settings = await (await fetch("/api/config")).json();
+        const settings = stripTails(await (await fetch("/api/config")).json());
         for (const k of ["fw_name", "fw_version", "author_call"]) delete settings[k];
         const profiles = {};
         for (const name of await fetchProfilesList()) {
             const res = await fetch(`/api/profiles/get?name=${encodeURIComponent(name)}`);
-            if (res.ok) profiles[name] = await res.json();
+            if (res.ok) profiles[name] = stripTails(await res.json());
         }
         const logos = {};
         for (const side of ["left", "right"]) {

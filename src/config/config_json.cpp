@@ -1,6 +1,7 @@
 #include "config_json.h"
 #include <math.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <string.h>
 
 namespace config {
@@ -79,8 +80,17 @@ namespace config {
                     if (secrets == Secrets::Include) {
                         out[f.key] = (const char*)src;
                     } else {
+                        const char* v = static_cast<const char*>(src);
+                        const size_t n = strnlen(v, f.size);
                         out[f.key] = "";
-                        out[f.set_key] = static_cast<const char*>(src)[0] != '\0';
+                        out[f.set_key] = n > 0;
+                        // "saved, ends in ..4f" in the web console: the last 2 characters, and only
+                        // of secrets of 6+ (never most of a short one, e.g. an APRS passcode).
+                        if (n >= SECRET_TAIL_MIN) {
+                            char key[32], tail[3] = {v[n - 2], v[n - 1], '\0'};
+                            snprintf(key, sizeof(key), "%s_tail", f.key);
+                            out[(char*)key] = (char*)tail;  // char*: ArduinoJson copies both
+                        }
                     }
                     break;
                 case Kind::U8:   out[f.key] = *static_cast<const uint8_t*>(src); break;
@@ -106,12 +116,16 @@ namespace config {
                 case Kind::STR:
                     if (v.is<const char*>()) copy_into(static_cast<char*>(dst), f.size, v.as<const char*>());
                     break;
-                case Kind::SECRET:
+                case Kind::SECRET: {
+                    char clear_key[32];
+                    snprintf(clear_key, sizeof(clear_key), "%s_clear", f.key);
+                    if (in[(const char*)clear_key] | false) static_cast<char*>(dst)[0] = '\0';  // "Clear"; a new value wins
                     if (v.is<const char*>()) {
                         const char* s = v.as<const char*>();
                         if (s[0] != '\0' && strcmp(s, "unset") != 0) copy_into(static_cast<char*>(dst), f.size, s);
                     }
                     break;
+                }
                 case Kind::U8:   if (v.is<long>()) *static_cast<uint8_t*>(dst)  = (uint8_t)clamp_int(v, 0, 255); break;
                 case Kind::I8:   if (v.is<long>()) *static_cast<int8_t*>(dst)   = (int8_t)clamp_int(v, -128, 127); break;
                 case Kind::U16:  if (v.is<long>()) *static_cast<uint16_t*>(dst) = (uint16_t)clamp_int(v, 0, 65535); break;

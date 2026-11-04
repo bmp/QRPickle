@@ -7,6 +7,9 @@
 // explicitly ("admin_pw" in /api/config/save).
 namespace config {
 
+    // Masked output shows the last 2 characters of a secret ("<key>_tail") only from this length on.
+    constexpr size_t SECRET_TAIL_MIN = 6;
+
     enum class Secrets : uint8_t {
         Mask,     // "" plus "<key>_set": true/false (web API, review 1.3)
         Include   // the stored value (profile files on the device only)
