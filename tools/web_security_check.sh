@@ -20,6 +20,10 @@ check "POST /api/system/reboot requires auth"    "$(code -X POST "$B/api/system/
 check "POST /api/system/update requires auth"    "$(code -X POST -F 'f=@/dev/null' "$B/api/system/update?target=firmware")" 401
 check "POST /api/cloud_ota/flash requires auth"  "$(code -X POST "$B/api/cloud_ota/flash")" 401
 check "POST /api/profiles/delete requires auth" "$(code -X POST "$B/api/profiles/delete?name=x")" 401
+check "GET /api/logos requires auth"             "$(code "$B/api/logos")" 401
+check "GET /api/logos/get requires auth"         "$(code "$B/api/logos/get?side=left")" 401
+check "POST /api/logos/upload requires auth"     "$(code -X POST -F 'f=@/dev/null' "$B/api/logos/upload?side=left")" 401
+check "POST /api/logos/delete requires auth"     "$(code -X POST "$B/api/logos/delete?side=left")" 401
 check "GET /api/config with auth"                "$(code "${auth[@]}" "$B/api/config")" 200
 
 cfg=$(curl -s -m 10 "${auth[@]}" "$B/api/config")
