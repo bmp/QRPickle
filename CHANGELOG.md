@@ -2,6 +2,15 @@
 
 User-facing changes per release, newest first. Each section is also the release commit message (see `docs/RELEASING.md`).
 
+## v0.2.6 (unreleased)
+
+Fixes
+- Changing the theme now recolours the whole screen at once: the background,
+  the home button and the menu kept the old theme until a restart (in E-Ink
+  Light the home icon was faint and the Network page unreadable).
+- The status LED stays amber while the setup hotspot is up, as documented; it
+  used to go dark at the end of the start-up.
+
 ## v0.2.5 (2026-10-12)
 
 Satellites and SSTV, screen cycling, more settings on the device; more free memory
