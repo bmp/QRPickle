@@ -36,6 +36,10 @@ namespace hw {
         Rgb pattern_color(LEDState state, uint32_t now_ms, int32_t strobe_age_ms, int32_t pulse_age_ms,
                           PassAlert pass = PassAlert::NONE);
 
+        // The state to show when boot finishes and wants `wanted` (off or the "ready" green): amber
+        // stays while the setup hotspot is up (docs/LEDColours.md), whichever ends first.
+        LEDState boot_done_state(LEDState wanted, bool setup_hotspot);
+
         // The CYD's RGB LED is common anode: a channel is fully on at PWM duty 0 and off at 255.
         constexpr uint8_t pwm_duty(uint8_t level) { return (uint8_t)(255 - level); }
 

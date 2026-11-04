@@ -1,6 +1,7 @@
 #pragma once
 #include <unity.h>
 #include "../../src/services/space_parse.h"
+#include "../../src/services/space_schedule.h"
 
 // Feed elements in the shape tools/space_feed/build_feed.py writes (hand-made sample).
 static const char* SPACE_SAT = R"({"id":25544,"n":"ISS","c":"fsv",
@@ -90,4 +91,12 @@ inline void test_space_event_passes_and_alert() {
     TEST_ASSERT_EQUAL_STRING("NW", compass(315));
     TEST_ASSERT_EQUAL_STRING("SSE", compass(160));
     TEST_ASSERT_EQUAL_STRING("N", compass(355));
+}
+
+inline void test_space_retry_backs_off() {
+    TEST_ASSERT_EQUAL_UINT32(2 * 60000u, services::space_retry_ms(0));  // treated as the first failure
+    TEST_ASSERT_EQUAL_UINT32(2 * 60000u, services::space_retry_ms(1));
+    TEST_ASSERT_EQUAL_UINT32(5 * 60000u, services::space_retry_ms(2));
+    TEST_ASSERT_EQUAL_UINT32(15 * 60000u, services::space_retry_ms(3));
+    TEST_ASSERT_EQUAL_UINT32(15 * 60000u, services::space_retry_ms(255));
 }

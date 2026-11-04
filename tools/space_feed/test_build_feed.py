@@ -110,5 +110,73 @@ class Events(unittest.TestCase):
         self.assertEqual([s["n"] for s in feed2["sats"]], ["ISS"])
 
 
+
+# ---- The source list (sources.yaml) ----------------------------------------------------------
+
+def src(name, provides, fmt, url="https://example.org/x", **kw):
+    return dict({"name": name, "provides": provides, "format": fmt, "url": url}, **kw)
+
+
+DEFAULT_LIST = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sources.yaml")
+
+
+class Sources(unittest.TestCase):
+    def test_default_list_is_valid_and_keeps_the_credit(self):
+        sources = b.load_sources(DEFAULT_LIST)
+        primaries = [s for s in sources if s.get("enabled", True) and not s.get("fallback_for")]
+        self.assertEqual(b.credit_for(primaries), b.CREDIT)  # same text as before the list
+
+    def test_validation(self):
+        with self.assertRaisesRegex(ValueError, "unknown format"):
+            b.validate_sources([src("a", "tle", "pdf")])
+        with self.assertRaisesRegex(ValueError, "url"):
+            b.validate_sources([src("a", "tle", "tle", url="")])
+        with self.assertRaisesRegex(ValueError, "provides"):
+            b.validate_sources([src("a", "orbits", "tle")])
+        with self.assertRaisesRegex(ValueError, "fallback_for"):
+            b.validate_sources([src("a", "tle", "tle", fallback_for="missing")])
+
+    def test_fallback_and_credit_from_used_sources(self):
+        sources = [src("tx", "transmitters", "satnogs_transmitters", credit="SatNOGS."),
+                   src("sats", "satellites", "satnogs_satellites"),
+                   src("celestrak", "tle", "tle", credit="CelesTrak."),
+                   src("amsat", "tle", "tle", url="https://amsat.example/tle", fallback_for="celestrak",
+                       credit="AMSAT."),
+                   src("off", "events", "events_json", enabled=False, credit="Off.")]
+        pages = {"https://example.org/x": "[]", "https://amsat.example/tle": ISS_TLE}
+
+        def fetch(url, timeout=60):
+            if "celestrak" in url or url == "https://example.org/x" and fetch.fail_next:
+                raise OSError("down")
+            return pages[url]
+        fetch.fail_next = False
+        sources[2]["url"] = "https://celestrak.example/tle"
+        data, used = b.collect(sources, fetch)
+        self.assertIn("ISS (ZARYA)", data["tle"])  # from the fallback
+        names = [s["name"] for s in used]
+        self.assertIn("amsat", names)
+        self.assertNotIn("celestrak", names)
+        self.assertNotIn("off", names)  # disabled
+        self.assertEqual(b.credit_for(used), "SatNOGS. AMSAT. Built by QRPickle; this feed is CC BY-SA 4.0.")
+
+    def test_required_source_failing_without_fallback_stops(self):
+        def fetch(url, timeout=60):
+            raise OSError("down")
+        with self.assertRaisesRegex(RuntimeError, "transmitters"):
+            b.collect([src("tx", "transmitters", "satnogs_transmitters")], fetch)
+
+    def test_exclude_and_own_events(self):
+        now = 1_800_000_000
+        data = {"transmitters": [tx(25544, "Transceiver", "FM", "FM voice", up=145990000),
+                                 tx(27607, "Transceiver", "FM", "FM repeater", up=145850000)],
+                "satellites": SATS, "tle": ISS_TLE + SO50_TLE, "contacts": "", "sstv": "",
+                "events": [{"k": "sstv", "s": now + 3600, "e": now + 7200, "t": "Club SSTV test",
+                            "x": "", "f": 145.8, "m": "PD120"}]}
+        feed = b.build(data, now=now, exclude={27607})
+        self.assertEqual([s["id"] for s in feed["sats"]], [25544])
+        self.assertEqual([e["t"] for e in feed["events"]], ["Club SSTV test"])
+        with self.assertRaisesRegex(ValueError, "event"):
+            b.build(dict(data, events=[{"k": "sstv"}]), now=now)
+
 if __name__ == "__main__":
     unittest.main()

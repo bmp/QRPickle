@@ -2,6 +2,57 @@
 
 User-facing changes per release, newest first. Each section is also the release commit message (see `docs/RELEASING.md`).
 
+## v0.2.6 (2026-11-04)
+
+Your own splash logos, cycling order, saved-secret hints, a lighter DX page; theme and LED fixes
+
+Updating from v0.2.5: Cloud OTA (device or web console) or upload firmware.bin;
+settings are kept. Then upload littlefs.bin (web console: System Info, "LittleFS
+Storage Image") for the new web console. Download a backup first (Profiles,
+Backup and Restore): this first update still runs from the old console, which
+erases profiles. From v0.2.6 on, the console keeps them. On v0.2.5 the update
+check often fails (fixed in v0.2.6) but retries every 10 minutes until it gets
+through; uploading firmware.bin in the web console works at once.
+
+New
+- Splash logos: your own logo left and/or right of the title on the start
+  screen (a club logo, a callsign badge). Upload any image in the web console
+  (System Info, Splash Logos); it is scaled into 60 x 60 in the browser, with a
+  preview. Kept across updates and included in backups. A PNG with a
+  transparent background looks best.
+- Screen cycling in your order: the web console lists the screens with up and
+  down arrows.
+- Saved passwords and keys show their last 2 characters in the web console
+  ("saved, ends in ••4f"; only for 6 or more characters), and each has a
+  Clear button. Backups still contain no secrets.
+
+Changes
+- A filesystem update in the web console keeps your profiles and logos: it
+  saves them first and writes them back after the restart (profiles without
+  their own passwords and keys, as with a backup).
+- Backups include your splash logos.
+- The weather icons are 36 x 36 (were 40 x 40): each fits one 4 KB block of
+  the filesystem, which frees 72 KB.
+- The DX Cluster page says what it is doing ("CONNECTED: waiting for
+  spots...") instead of showing an empty list, and needs much less memory
+  (one line per spot).
+- Home and refresh are in the same place on every page (bottom right), and
+  nothing else sits under them.
+- The satellite feed is retried after 2 and 5 minutes when a download fails
+  (it waited 15); its sources are a list (AMSAT orbits when CelesTrak is down).
+
+Fixes
+- Cloud OTA can check for updates again: the certificate check ran out of
+  memory during the connection and failed almost every time (also on v0.2.5).
+  The certificate is now checked between two connections, with the memory
+  free; the security is the same.
+- Changing the theme now recolours the whole screen at once: the background,
+  the home button and the menu kept the old theme until a restart (in E-Ink
+  Light the home icon was faint and the Network page unreadable).
+- The status LED stays amber while the setup hotspot is up, as documented; it
+  used to go dark at the end of the start-up.
+- Opening a page while Settings was open left Settings on top.
+
 ## v0.2.5 (2026-10-12)
 
 Satellites and SSTV, screen cycling, more settings on the device; more free memory

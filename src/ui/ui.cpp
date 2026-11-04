@@ -4,6 +4,7 @@
 #include "screen_cycle.h"
 #include "sidebar.h"
 #include "home_button.h"
+#include "keyboard.h"
 #include "theme.h"
 #include "screens/dashboard.h" 
 #include "screens/settings.h"
@@ -113,6 +114,14 @@ namespace ui {
         active_page = PAGE_SETTINGS; 
     }
 
+    void ui_refresh_theme() {
+        // The main screen, also when Settings (a screen of its own) is the active one.
+        if (view_container) lv_obj_set_style_bg_color(lv_obj_get_screen(view_container), theme_color(COLOR_BG_APP), 0);
+        status_bar_refresh_theme();
+        if (global_home_btn) lv_obj_set_style_text_color(global_home_btn, theme_color(COLOR_TEXT_MAIN), 0);
+        sidebar_rebuild();
+    }
+
     void ui_init() {
         lv_obj_t* main_screen = lv_screen_active();
         lv_obj_set_style_bg_color(main_screen, theme_color(COLOR_BG_APP), 0);
@@ -164,6 +173,9 @@ namespace ui {
             // happen in the first seconds (free heap fell to ~6 KB). The automatic update check (a
             // 12 KB task plus TLS) starts two minutes later and, if it fails (usually for heap), is
             // retried every 10 minutes until it succeeds; a manual check runs at once.
+            // Not in the screenshot build: at its heap (~800 B left at the check) it restarted the
+            // device during captures; the build is never updated over the air.
+#ifndef QRP_SCREEN_TOOLS
             lv_timer_create(
                 [](lv_timer_t* t) {
                     if (services::cloud_ota::is_check_complete()) {
@@ -174,19 +186,26 @@ namespace ui {
                     lv_timer_set_period(t, 600000);
                 },
                 120000, nullptr);
+#endif
 
             // Set Stage 4 -> Turn LED faint green to indicate operational readiness
-            hw::led_rgb::set_state(hw::led_rgb::STATE_BOOT_READY);
+            // (unless the setup hotspot is up: its amber stays)
+            hw::led_rgb::set_state(hw::led_rgb::boot_done_state(hw::led_rgb::STATE_BOOT_READY, wifi_manager_setup_hotspot()));
 
             ui_navigate_local(PAGE_DASHBOARD);
         });
     }
 
     void ui_navigate_local(LocalPage page) {
+        // The on-screen keyboard is a modal on the top layer: a page change (home, menu, cycling)
+        // closes it, or it stays over the next page.
+        keyboard_hide();
         if (page == PAGE_SETTINGS) {
             open_settings_screen();
             return;
         }
+        // Settings is a screen of its own on top: close it, or the new page opens hidden behind it.
+        if (active_page == PAGE_SETTINGS) settings_destroy();
 
         active_page = page;
         if (!view_container) return;

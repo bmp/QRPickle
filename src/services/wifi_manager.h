@@ -23,6 +23,7 @@ void wifi_manager_start_ap();
 
 // Thread-safe queries to pull connection status and IP data for our UI views
 bool wifi_manager_is_connected();
+bool wifi_manager_setup_hotspot();  // the QRPickle-Setup hotspot is up (AP only or fallback)
 const char * wifi_manager_get_status_text();
 
 #endif // WIFI_MANAGER_H

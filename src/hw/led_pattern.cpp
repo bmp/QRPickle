@@ -3,6 +3,10 @@
 namespace hw {
     namespace led_rgb {
 
+        LEDState boot_done_state(LEDState wanted, bool setup_hotspot) {
+            return setup_hotspot ? STATE_BOOT_HW : wanted;
+        }
+
         Rgb pattern_color(LEDState state, uint32_t now_ms, int32_t strobe_age_ms, int32_t pulse_age_ms,
                           PassAlert pass) {
             // Priority inbound strobe: White / Magenta every 125 ms for 3 s.

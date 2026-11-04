@@ -27,6 +27,7 @@
 #include <Arduino.h>
 #include <Update.h>  
 #include <esp_arduino_version.h>
+#include "../core/logo_file.h"
 
 static AsyncWebServer server(80);
 using services::copy_secret;
@@ -117,6 +118,41 @@ const char fallback_html[] PROGMEM = R"rawhtml(
 </html>
 )rawhtml";
 
+// Custom splash logos (docs/UI_GUIDE.md, "Splash logos"): the browser
+// converts, the device only checks and stores. One upload at a time.
+struct LogoUpload {
+    File file;
+    size_t bytes = 0;
+    bool too_big = false;
+    uint8_t hdr[core::logo::HEADER_BYTES] = {};
+};
+static LogoUpload logo_up;
+
+static const char* logo_side(AsyncWebServerRequest* r) {
+    if (!r->hasParam("side")) return nullptr;
+    const String& s = r->getParam("side")->value();
+    return s == "left" ? "left" : s == "right" ? "right"
+                                               : nullptr;
+}
+
+static void logo_info(JsonObject o, const char* side) {
+    char path[20];
+    snprintf(path, sizeof(path), "/logos/%s.bin", side);
+    File f = LittleFS.open(path, "r");
+    uint8_t hdr[core::logo::HEADER_BYTES];
+    uint16_t w = 0, h = 0;
+    bool ok = false;
+    if (f) {
+        ok = core::logo::header_valid(hdr, f.read(hdr, sizeof(hdr)), f.size(), &w, &h);
+        f.close();
+    }
+    o["custom"] = ok;
+    if (ok) {
+        o["w"] = w;
+        o["h"] = h;
+    }
+}
+
 void web_server_init() {
     // Called from setup() and again whenever the setup AP comes up; register routes only once.
     static bool initialized = false;
@@ -150,6 +186,12 @@ void web_server_init() {
     server.on("/app.js", HTTP_GET, [](AsyncWebServerRequest *request) {
         REQUIRE_AUTH(request);
         if (www_exists("/www/app.js")) request->send(LittleFS, "/www/app.js", "application/javascript");
+        else request->send(404, "text/plain", "JS Missing");
+    });
+
+    server.on("/logo.js", HTTP_GET, [](AsyncWebServerRequest* request) {
+        REQUIRE_AUTH(request);
+        if (www_exists("/www/logo.js")) request->send(LittleFS, "/www/logo.js", "application/javascript");
         else request->send(404, "text/plain", "JS Missing");
     });
 
@@ -500,6 +542,89 @@ void web_server_init() {
         flag_trigger_ota_flash = true; 
     });
 
+    server.on("/api/logos/get", HTTP_GET, [](AsyncWebServerRequest* request) {
+        REQUIRE_AUTH(request);
+        const char* side = logo_side(request);
+        char path[20];
+        if (side) snprintf(path, sizeof(path), "/logos/%s.bin", side);
+        if (!side || !LittleFS.exists(path)) {
+            request->send(404);
+            return;
+        }
+        request->send(LittleFS, path, "application/octet-stream");
+    });
+
+    server.on("/api/logos/delete", HTTP_POST, [](AsyncWebServerRequest* request) {
+        REQUIRE_AUTH(request);
+        const char* side = logo_side(request);
+        char path[20];
+        if (side) snprintf(path, sizeof(path), "/logos/%s.bin", side);
+        if (!side || !LittleFS.remove(path)) {
+            request->send(404, "application/json", "{\"status\":\"not_found\"}");
+            return;
+        }
+        request->send(200, "application/json", "{\"status\":\"success\"}");
+    });
+
+    server.on("/api/logos/upload", HTTP_POST, [](AsyncWebServerRequest* request) {
+            REQUIRE_AUTH(request);
+            const char* side = logo_side(request);
+            const char* err = nullptr;
+            uint16_t w = 0, h = 0;
+            if (logo_up.file) logo_up.file.close();
+            if (!side) {
+                err = "side must be left or right";
+            } else {
+                char tmp[20], path[20];
+                snprintf(tmp, sizeof(tmp), "/logos/%s.tmp", side);
+                snprintf(path, sizeof(path), "/logos/%s.bin", side);
+                const size_t hdr_len = logo_up.bytes < core::logo::HEADER_BYTES ? logo_up.bytes : core::logo::HEADER_BYTES;
+                if (logo_up.too_big) err = "larger than 10,812 bytes (60 x 60)";
+                else if (!core::logo::header_valid(logo_up.hdr, hdr_len, logo_up.bytes, &w, &h))
+                    err = "not an LVGL RGB565A8 image of at most 60 x 60";
+                else if (!LittleFS.rename(tmp, path) && !(LittleFS.remove(path) && LittleFS.rename(tmp, path)))
+                    err = "could not store the logo";
+                if (err) LittleFS.remove(tmp);
+            }
+            logo_up = LogoUpload{};
+            char body[96];
+            if (err) {
+                snprintf(body, sizeof(body), "{\"status\":\"failed\",\"error\":\"%s\"}", err);
+                request->send(400, "application/json", body);
+                return;
+            }
+            snprintf(body, sizeof(body), "{\"status\":\"success\",\"w\":%u,\"h\":%u}", w, h);
+            request->send(200, "application/json", body); }, [](AsyncWebServerRequest* request, String, size_t index, uint8_t* data, size_t len, bool) {
+            if (!authorized(request)) return;  // never write for an unauthenticated upload
+            const char* side = logo_side(request);
+            if (!side) return;
+            if (index == 0) {
+                logo_up = LogoUpload{};
+                char tmp[20];
+                snprintf(tmp, sizeof(tmp), "/logos/%s.tmp", side);
+                if (!LittleFS.exists("/logos")) LittleFS.mkdir("/logos");
+                logo_up.file = LittleFS.open(tmp, "w");
+            }
+            if (logo_up.too_big || !logo_up.file) return;
+            if (index + len > core::logo::MAX_BYTES) {
+                logo_up.too_big = true;
+                return;
+            }
+            for (size_t i = 0; i < len && index + i < core::logo::HEADER_BYTES; i++) logo_up.hdr[index + i] = data[i];
+            logo_up.file.write(data, len);
+            logo_up.bytes = index + len; });
+
+    // After /api/logos/*: a route also matches "<uri>/..." (as for /api/profiles/get and /api/profiles).
+    server.on("/api/logos", HTTP_GET, [](AsyncWebServerRequest* request) {
+        REQUIRE_AUTH(request);
+        JsonDocument doc;
+        logo_info(doc["left"].to<JsonObject>(), "left");
+        logo_info(doc["right"].to<JsonObject>(), "right");
+        AsyncResponseStream* response = request->beginResponseStream("application/json");
+        serializeJson(doc, *response);
+        request->send(response);
+    });
+
     // Defence in depth for review 1.1: no remote scripts, no requests to other hosts.
     DefaultHeaders::Instance().addHeader("Content-Security-Policy",
         "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; "
@@ -521,7 +646,7 @@ void web_server_update() {
     }
     if (flag_trigger_ui_refresh) {
         flag_trigger_ui_refresh = false;
-        ui::status_bar_refresh_theme();
+        ui::ui_refresh_theme();
         services::display_manager::set_brightness(config::get().brightness);  
     }
     

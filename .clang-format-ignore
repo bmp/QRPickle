@@ -5,3 +5,5 @@ include/lv_conf.h
 src/hw/User_Setup.h
 # Hand-aligned constants table edited at every release (FW_VERSION)
 src/core/metadata.h
+# JavaScript tests follow the web console style (data/www), not .clang-format (C/C++)
+test/js/*

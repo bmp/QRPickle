@@ -66,23 +66,28 @@ Network screen always shows the current one, so you can't lock yourself out.
 | Band conditions | Advanced → Solar Data; Dashboard Band Tile Shows | solar data from HAMQSL.com by default; pick the band groups for the dashboard tile |
 | Satellites | Advanced → Satellites | which kinds of satellites, the minimum elevation, the LED alert before SSTV and school-contact passes |
 
-Secrets you save (WiFi password, keys, passcodes) are never shown again in the console; leave a field
-empty to keep the saved value.
+Secrets you save (WiFi password, keys, passcodes) are never shown again in the console: a saved one
+shows "saved, ends in ••xy" (its last 2 characters, for 6 or more), so you can tell which one is
+stored. Leave a field empty to keep the saved value; "Clear saved value" removes it on the next save.
 
 ## 6. On the device
 
 - **Menu** (top-left): every screen. The **home** button (bottom-right) returns to the dashboard.
 - **Settings** (in the menu): callsign, grid, WiFi, brightness (or automatic), theme, screen sleep,
   and APRS, screen cycling and satellite pass alerts on or off.
-- **Screen cycling** (web console, Basic Settings): chosen screens in turn; a touch pauses it.
+- **Screen cycling** (web console, Basic Settings): chosen screens in turn, in the order of the list
+  (move them with the arrows); a touch pauses it.
 - The clock shows `--:--` until the CYD has set its time from the internet; UTC is always right.
 
 ## 7. Save your setup
 
 - **Profiles** tab → **Save Current Form as New Profile** (e.g. "Home", "Field"); switch between them
   later on the device or in the console.
-- **Profiles → Backup and Restore → Download Backup** keeps all settings and profiles in a file, without passwords and keys. Do this
-  before writing a new filesystem image or a full install, which erase profiles.
+- **Profiles → Backup and Restore → Download Backup** keeps all settings, profiles and splash logos in a file, without passwords
+  and keys. Do this before a full install, which erases everything. A filesystem update in the web console keeps profiles and
+  logos (from v0.2.6).
+- Optional: **System Info → Splash Logos** puts your own logo (a club logo, your callsign badge) left and/or right of the title
+  on the start screen. Any image works; a PNG with a transparent background looks best. It shows from the next restart.
 
 ## 8. Updates
 

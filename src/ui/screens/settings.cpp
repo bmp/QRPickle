@@ -2,6 +2,7 @@
 #include "../layout.h"
 #include "../keyboard.h"
 #include "../status_bar.h"
+#include "../ui.h"
 #include "../theme.h"
 #include "../privacy.h"
 #include "../fonts.h"
@@ -341,7 +342,7 @@ namespace ui {
                 else services::AprsManager::stop();
             }
 
-            status_bar_refresh_theme();
+            ui_refresh_theme();
             settings_refresh_theme();
 
             lv_label_set_text(lbl, "SAVED!");

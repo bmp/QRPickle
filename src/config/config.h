@@ -9,6 +9,8 @@ namespace config {
     // Weather, DX Cluster, POTA, SOTA, APRS Radar).
     constexpr uint16_t CYCLE_SCREENS_ALL = 0x7F;
     constexpr uint16_t CYCLE_SECONDS_MIN = 10, CYCLE_SECONDS_MAX = 600, CYCLE_SECONDS_DEFAULT = 10;
+    // The order the cycle visits them: the 7 screen ids above, comma-separated (web console).
+    constexpr const char* CYCLE_ORDER_DEFAULT = "0,1,2,3,4,5,6";
     // Satellites (services/space_parse.h): category bits FM 1, linear 2, SSTV 4, voice 8, APRS 16.
     constexpr uint8_t SAT_CATEGORIES_ALL = 0x1F, SAT_CATEGORIES_DEFAULT = 0x0F;
     constexpr uint8_t SAT_MIN_EL_MAX = 60, SAT_MIN_EL_DEFAULT = 10;
@@ -34,6 +36,7 @@ namespace config {
         bool cycle_enabled;  // show the chosen screens one after another (off by default)
         uint16_t cycle_screens;  // CYCLE_SCREENS_* bits
         uint16_t cycle_seconds;  // per screen, CYCLE_SECONDS_MIN..MAX
+        char cycle_order[16];  // e.g. "0,1,2,3,4,5,6" (CYCLE_ORDER_DEFAULT); parse_cycle_order
 
         // Satellites and ARISS events (services/space_manager.h).
         char space_url[96];  // own feed in the same format; "" = the project's space-feed branch

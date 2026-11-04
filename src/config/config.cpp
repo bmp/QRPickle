@@ -38,6 +38,7 @@ namespace config {
         FIELD("cyc_en",     BOOL, cycle_enabled),
         FIELD("cyc_scr",    U16,  cycle_screens),
         FIELD("cyc_s",      U16,  cycle_seconds),
+        FIELD("cyc_ord",    STR,  cycle_order),
         FIELD("space_url",  STR,  space_url),
         FIELD("sat_cat",    U8,   sat_categories),
         FIELD("sat_minel",  U8,   sat_min_el),
@@ -120,6 +121,7 @@ namespace config {
         cfg.cycle_enabled = false;
         cfg.cycle_screens = CYCLE_SCREENS_ALL;
         cfg.cycle_seconds = CYCLE_SECONDS_DEFAULT;
+        strcpy(cfg.cycle_order, CYCLE_ORDER_DEFAULT);
         cfg.sat_categories = SAT_CATEGORIES_DEFAULT;
         cfg.sat_min_el = SAT_MIN_EL_DEFAULT;
         cfg.pass_alert_enabled = true;

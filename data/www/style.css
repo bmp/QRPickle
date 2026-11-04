@@ -265,3 +265,15 @@ footer a:hover { text-decoration: underline; }
 }
 .edit-banner .btn { margin-left: auto; }
 .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.logo-previews { display: flex; gap: 8px; margin: 8px 0; }
+.logo-prev { width: 60px; height: 60px; border: 1px solid var(--border); image-rendering: pixelated; }
+.logo-prev.dark { background: #000; }
+.logo-prev.light { background: #fff; }
+
+.cyc-order { list-style: decimal; margin: 0; padding: 8px 8px 8px 32px; background: rgba(0,0,0,0.2); border: 1px solid var(--border); }
+.cyc-order li { display: flex; align-items: center; gap: 6px; padding: 2px 0; }
+.cyc-order li label { flex: 1; margin: 0; font-size: 13px; }
+.cyc-order li .btn { min-width: 44px; min-height: 36px; padding: 0; }
+
+.secret-clear { margin-top: 4px; padding: 2px 8px; font-size: 11px; }

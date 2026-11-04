@@ -4,6 +4,7 @@
 #include "ui.h"
 #include "screens/xota.h"
 #include "../config/config.h"
+#include "../config/config_validation.h"
 #include "../services/display_manager.h"
 #include "../services/dx_manager.h"
 #include <Arduino.h>
@@ -15,7 +16,7 @@ namespace ui {
         static bool user_paused = false;
         static State current = State::OFF;
         static uint32_t last_switch_ms = 0;
-        static int index = -1;  // the screen shown last by the cycle
+        static int index = -1;  // the position in the cycling order shown last
 
         static void show(Screen s) {
             switch (s) {
@@ -53,17 +54,17 @@ namespace ui {
             if (s != State::RUNNING) return;
             const auto& cfg = config::get();
             if (millis() - last_switch_ms < (uint32_t)cfg.cycle_seconds * 1000) return;
-            for (int step = 1; step <= SCREEN_COUNT; step++) {  // next chosen screen
-                const int next = (index + step) % SCREEN_COUNT;
-                if (cfg.cycle_screens & (1u << next)) {
-                    index = next;
-                    show(static_cast<Screen>(next));
-                    lv_mem_monitor_t mon;
-                    lv_mem_monitor(&mon);
-                    Serial.printf("[Cycle] screen %d, LVGL pool %u%% used (peak %u B, largest free %u B)\n", next,
-                                  mon.used_pct, (unsigned)mon.max_used, (unsigned)mon.free_biggest_size);
-                    break;
-                }
+            uint8_t order[SCREEN_COUNT];  // the web console's order (sanitised; default as a fallback)
+            if (!config::parse_cycle_order(cfg.cycle_order, order))
+                for (int i = 0; i < SCREEN_COUNT; i++) order[i] = (uint8_t)i;
+            const int pos = config::cycle_next(order, cfg.cycle_screens, index);
+            if (pos >= 0) {
+                index = pos;
+                show(static_cast<Screen>(order[pos]));
+                lv_mem_monitor_t mon;
+                lv_mem_monitor(&mon);
+                Serial.printf("[Cycle] screen %d, LVGL pool %u%% used (peak %u B, largest free %u B)\n", order[pos],
+                              mon.used_pct, (unsigned)mon.max_used, (unsigned)mon.free_biggest_size);
             }
             last_switch_ms = millis();
         }

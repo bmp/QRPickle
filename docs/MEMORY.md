@@ -31,7 +31,7 @@ and follow the rules at the end. Measured on a CYD with v0.2.4 on 2026-10-10.
 
 | User | Size | Where | Notes |
 |------|------|-------|-------|
-| LVGL pool (`LV_MEM_SIZE`) | 64 KB | heap, once at `lv_init()` | peak use 52 KB (DX cluster page); 28.5 KB after boot |
+| LVGL pool (`LV_MEM_SIZE`) | 64 KB | heap, once at `lv_init()` | DX cluster page 49 KB -> 29.5 KB after one label per row (2026-11-04); 26-28.5 KB after boot |
 | LVGL image cache (`LV_CACHE_DEF_SIZE`) | up to 16 KB | inside the pool | decoded icons from LittleFS; 32 KB ran the pool out (crash) |
 | LVGL layer buffer (`LV_DRAW_LAYER_SIMPLE_BUF_SIZE`) | 8 KB chunks | inside the pool | only for objects drawn through a layer (object opacity, transforms) |
 | Display draw buffer | 12.8 KB | static | `320 x 10` RGB565 x 2 |
@@ -86,6 +86,10 @@ Stack use, from `/api/status` → `mem.stack_free` (bytes never used, lowest see
 10. **Bulky data goes to LittleFS, not RAM.** Holding the satellite feed in RAM (10 KB) was enough
     to make the Cloud OTA certificate check fail on every boot (2026-10-12, A/B tested). Stream
     downloads to a file and keep only what screens show; read the rest on demand.
+11. **Verify TLS certificates outside the handshake** when the chain needs RSA-4096 checks (Let's
+   Encrypt's roots): inside it, the two 16 KB TLS buffers, the parsed CA bundle and the signature
+   checks don't fit together and mbedTLS reports a failed signature, not "out of memory"
+   (`services::TwoStepTlsClient`, Cloud OTA, 2026-11-04).
 
 ## Measuring
 
@@ -111,9 +115,29 @@ went from 85.5 % to 81.9 % (66 KB):
 - **Icons-only fallback font** instead of Montserrat 10/14 (~20 KB, see `docs/UI_GUIDE.md`).
 
 In reserve: TLS errors as numeric codes instead of mbedTLS's 15 KB text table (codes are
-standardised in mbedTLS's headers; document the common ones in `docs/DEBUGGING.md`), compressed
-(RLE) splash logos (~5-8 KB net), and link-time optimisation with a newer toolchain (Arduino core 3 /
-ESP-IDF 5, `docs/TASKS.md`).
+standardised in mbedTLS's headers; document the common ones in `docs/DEBUGGING.md`), and link-time
+optimisation with a newer toolchain (Arduino core 3 / ESP-IDF 5, `docs/TASKS.md`). Compressing the
+splash logos was measured and dropped (2026-11-04): RLE makes them larger, LZ4 saves 1.7 KB net.
+
+**Budget review (2026-11-04, v0.2.6 work, 1,580,704 B = 86.1 %):** flash by library, from a linker map:
+
+| KB | What | Can it shrink? |
+|---:|---|---|
+| ~275 | WiFi stack (net80211, pp, wpa_supplicant, phy) | no (prebuilt) |
+| 164 | LVGL | widgets already trimmed; fonts are ours (below) |
+| 149 | mbedTLS (crypto + TLS) | prebuilt; the server handshake (7 KB) is linked although QRPickle is only a client: needs a custom sdkconfig (port) |
+| 105 | lwIP | no |
+| 97 | libc | printf twice (`_vfprintf_r` 12 KB, `_svfprintf_r` 12 KB) and the scanf engine (8 KB, kept by the framework/time-zone code, not by QRPickle) |
+| 43 | SGP4 (satellites) | `sgp4init` 17 KB, `sgp4` 8 KB: needed |
+| 43 | ESPAsyncWebServer | no |
+| 30 | `web_server.cpp` | the inline fallback page is 1.7 KB; the rest is routes |
+| 29 | LittleFS | no |
+| 15 | `cloud_ota.cpp` | includes the ISRG root certificates (needed) |
+| 13 | splash logos (C arrays) | measured: compression doesn't pay |
+
+Headroom to the 95 % limit: 162 KB. Nothing large is removable on this platform without a port; the
+candidates for the platform spike are the TLS server code, the duplicate printf and the error texts
+(together ~30-40 KB).
 
 ## Next
 

@@ -1,6 +1,7 @@
 #ifdef QRP_SCREEN_TOOLS
 #include "screen_tools.h"
 #include <esp_attr.h>
+#include <esp_heap_caps.h>
 #include "../config/config.h"
 #include "../ui/status_bar.h"
 #include "../ui/ui.h"
@@ -15,9 +16,11 @@ namespace screen_tools {
     static std::atomic<int> pending_theme{-1};
     static std::atomic<int> pending_band{-1};
     static std::atomic<int> ready_band{-1};
-    // Static, not heap: the screenshot build ran the heap down to ~1 KB blocks with xOTA's downloads,
-    // and the web server stopped answering. Static DRAM has room (this build only).
-    alignas(4) static uint8_t band_buf[BAND_BYTES];
+    // Allocated once, at the first band request, and never freed. Not per capture: that ran the heap
+    // down to ~1 KB blocks with xOTA's downloads and the web server stopped answering. Not static
+    // either: static DRAM comes out of the heap, and 5 KB less left this build ~100-400 B at the
+    // boot-time TLS peak (docs/TASKS.md, "Screenshot build heap").
+    static uint8_t* band_buf = nullptr;
     static int capture_band = -1;  // main loop only
 
     void request_page(int page, int theme) {
@@ -28,6 +31,8 @@ namespace screen_tools {
 
     bool request_band(int band) {
         if (band < 0 || band >= BANDS) return false;
+        if (!band_buf) band_buf = (uint8_t*)heap_caps_malloc(BAND_BYTES, MALLOC_CAP_8BIT);
+        if (!band_buf) return false;
         ready_band = -1;
         pending_band = band;
         return true;
@@ -36,7 +41,7 @@ namespace screen_tools {
     const uint8_t* band_data(int band) { return ready_band == band ? band_buf : nullptr; }
 
     void on_flush(int32_t x1, int32_t y1, int32_t x2, int32_t y2, const uint8_t* px) {
-        if (capture_band < 0) return;
+        if (capture_band < 0 || !band_buf) return;
         const int32_t top = capture_band * BAND_ROWS, bottom = top + BAND_ROWS - 1;
         const int32_t w = x2 - x1 + 1;
         for (int32_t y = (y1 > top ? y1 : top); y <= (y2 < bottom ? y2 : bottom); y++) {
@@ -86,7 +91,7 @@ namespace screen_tools {
             int theme = pending_theme.exchange(-1);
             if (theme >= 0) {
                 config::mutable_get().theme_id = (uint8_t)theme;  // not saved: preview only
-                ui::status_bar_refresh_theme();
+                ui::ui_refresh_theme();
             }
             ui::ui_navigate_local(static_cast<ui::LocalPage>(page));
         }

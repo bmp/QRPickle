@@ -1,3 +1,4 @@
+#include "space_schedule.h"
 #include "space_manager.h"
 #include "net_lock.h"
 #include "quiet_window.h"
@@ -36,6 +37,7 @@ namespace services {
     static uint32_t next_fetch_ms = 0, next_pass_ms = 0, last_try_ms = 0, last_alert_ms = 0;
     static uint32_t pass_inputs = 0;  // hash of what the last pass run used (location, filters)
     static bool cache_checked = false;
+    static uint8_t fail_count = 0;  // consecutive failed downloads (space_retry_ms)
 
     static constexpr const char* FEED_PATH = "/space.json";
     static constexpr const char* TMP_PATH = "/space.tmp";
@@ -366,7 +368,7 @@ namespace services {
         const bool clock_ok = now >= MIN_VALID_UTC;
 
         // A feed cached before the reboot: passes once the boot's network work is done (the update
-        // check at 2 minutes needs the heap). LittleFS is mounted by the web server at boot.
+        // check at 2 minutes needs the heap). LittleFS is mounted by core::lvgl_fs_init() at boot.
         if (!cache_checked && clock_ok && now_ms >= FIRST_FETCH_MS) {
             cache_checked = true;
             if (LittleFS.exists(FEED_PATH)) next_pass_ms = now_ms;
@@ -376,11 +378,13 @@ namespace services {
             if (fetch_ok) {
                 view_.fetched_utc = now;
                 view_.failed_utc = 0;
+                fail_count = 0;
                 next_fetch_ms = now_ms + FETCH_EVERY_S * 1000;
                 next_pass_ms = now_ms;  // new orbits and events
             } else {
                 view_.failed_utc = now;
-                next_fetch_ms = now_ms + RETRY_MS;
+                if (fail_count < 255) fail_count++;
+                next_fetch_ms = now_ms + space_retry_ms(fail_count);
             }
             view_.version++;
         }

@@ -58,6 +58,28 @@ ui_navigate_local(PAGE_X)
   `sidebar_selection_cb()`.
 - Settings is the exception: it is a separate LVGL screen (`settings_create()/settings_destroy()`),
   not a page in `view_container`.
+  Opening any other page closes it (`ui_navigate_local()`).
+- A theme change recolours the shell built at boot with `ui_refresh_theme()` (screen background,
+  status bar, home button, menu); pages are redrawn when they open.
+
+### The corner (layout rule, owner 2026-11-04)
+
+```
+                                   x 256          x 319
+ ... page content ...                |              |
+ footer text, tiles, buttons    ─────┤  [⟳]   [⌂]   │ y 218
+ end at x 250 (CONTENT_RIGHT)        │ x 262  x 294 │ y 239
+```
+
+- The bottom-right box (x 256-319, the bottom 22 px; `corner.h`) holds only **home** (far right,
+  global, `home_button.cpp`) and, on pages that have one, **refresh** (`refresh_button_create()`,
+  x 262). The same place on every page: Band Conditions, Satellites, xOTA, Cloud OTA.
+- No text, icon or control of a page in that box; panel backgrounds and borders may pass under.
+  Footer texts and bottom tiles end at `CONTENT_RIGHT` (x 250).
+- Full-screen pages that hide home (APRS Radar, APRS Messages) are exempt.
+- Status-bar icons all use the default font (`LV_FONT_DEFAULT` with the icons fallback), so they are
+  one size; differences are the glyphs' own widths.
+- Check: enlarged crops of the corner from a capture of every page and tab (`device_screens.py`).
 
 ## Pages
 
@@ -193,6 +215,15 @@ refresh).
   short timeout (never block the main loop on it).
 - LVGL pool on any tab or the pass view: 33-38 % (measured 2026-10-12).
 
+## Splash logos
+
+- The splash shows a custom logo (`/logos/left.bin`, `/logos/right.bin`, uploaded in the web console)
+  when the file passes `core::logo::header_valid`, else the built-in C array. A custom logo is
+  centred where the built-in one is centred (left 50 x 50, right 30 x 60) and fits a 60 x 60 box.
+- The browser converts (`data/www/logo.js`, same bytes as `png_to_bin_lvgl9.py --fit 60x60`); the
+  device only checks and stores. LittleFS is mounted in `core::lvgl_fs_init()`, before the UI.
+- Logos without transparency show their background as a box (checked 2026-11-04 with four club logos).
+
 ## Themes
 
 Every colour comes from the theme: `theme_color(TOKEN)` (`theme.h`). Never write `lv_color_hex()`
@@ -260,8 +291,11 @@ QRP_ADMIN_PW=... python3 -I tools/device_screens.py \
     [--compare release/shots/before]
 ```
 
-The `cyd-screens` build has less free heap than a release build: HTTPS requests with certificate
-checks (Cloud OTA) can fail on it. Judge network behaviour on the `cyd` build.
+The `cyd-screens` build takes a 5 KB band buffer from the heap at the first capture (kept until
+the next restart) and skips the automatic update check, which ran it out of memory (a manual check
+still works). It has a little less heap than a release build once capturing: judge network
+behaviour on the `cyd` build. The splash shot restarts the device and always shows the saved theme,
+so take it once, not per theme.
 
 ## Checklists
 

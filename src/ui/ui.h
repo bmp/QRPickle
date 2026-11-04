@@ -19,6 +19,9 @@ namespace ui {
 
     void ui_init();
     void ui_navigate_local(LocalPage page);
+    // After a theme change: recolours the shell built at boot (screen background, status bar, home
+    // button, menu); without it they keep the boot theme until a restart. Pages are redrawn on open.
+    void ui_refresh_theme();
     LocalPage ui_active_page();
     void display_update();
 

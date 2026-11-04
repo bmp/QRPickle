@@ -67,6 +67,7 @@
                         <input type="password" id="cfg-password" placeholder="••••••••••••" maxlength="63">
                         <button class="eye-toggle" type="button" onclick="togglePass('cfg-password')">👁️</button>
                     </div>
+                    <button type="button" class="btn btn-secondary secret-clear" onclick="clearSecret('cfg-password')">Clear saved value</button>
                 </div>
                 <div class="form-group">
                     <label>TFT Display Backlight PWM</label>
@@ -91,15 +92,16 @@
                 </div>
                 <div class="form-group" style="grid-column: span 2;">
                     <label style="margin:0;"><input type="checkbox" id="cfg-cycle-en"> Cycle through screens automatically</label>
-                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; background: rgba(0,0,0,0.2); padding: 12px; border: 1px solid var(--border);">
-                        <label style="margin:0; font-size:12px;"><input type="checkbox" id="cyc-bit0"> Dashboard</label>
-                        <label style="margin:0; font-size:12px;"><input type="checkbox" id="cyc-bit1"> Band Conditions</label>
-                        <label style="margin:0; font-size:12px;"><input type="checkbox" id="cyc-bit2"> Weather</label>
-                        <label style="margin:0; font-size:12px;"><input type="checkbox" id="cyc-bit3"> DX Cluster</label>
-                        <label style="margin:0; font-size:12px;"><input type="checkbox" id="cyc-bit4"> POTA</label>
-                        <label style="margin:0; font-size:12px;"><input type="checkbox" id="cyc-bit5"> SOTA</label>
-                        <label style="margin:0; font-size:12px;"><input type="checkbox" id="cyc-bit6"> APRS Radar</label>
-                    </div>
+                    <p class="hint" style="margin:10px 0 4px;">Ticked screens are shown in this order; move them with the arrows.</p>
+                    <ol id="cyc-order" class="cyc-order">
+                        <li data-id="0"><label><input type="checkbox" id="cyc-bit0"> Dashboard</label><button type="button" class="btn btn-secondary" aria-label="Move up" onclick="moveCycle(this, -1)">&uarr;</button><button type="button" class="btn btn-secondary" aria-label="Move down" onclick="moveCycle(this, 1)">&darr;</button></li>
+                        <li data-id="1"><label><input type="checkbox" id="cyc-bit1"> Band Conditions</label><button type="button" class="btn btn-secondary" aria-label="Move up" onclick="moveCycle(this, -1)">&uarr;</button><button type="button" class="btn btn-secondary" aria-label="Move down" onclick="moveCycle(this, 1)">&darr;</button></li>
+                        <li data-id="2"><label><input type="checkbox" id="cyc-bit2"> Weather</label><button type="button" class="btn btn-secondary" aria-label="Move up" onclick="moveCycle(this, -1)">&uarr;</button><button type="button" class="btn btn-secondary" aria-label="Move down" onclick="moveCycle(this, 1)">&darr;</button></li>
+                        <li data-id="3"><label><input type="checkbox" id="cyc-bit3"> DX Cluster</label><button type="button" class="btn btn-secondary" aria-label="Move up" onclick="moveCycle(this, -1)">&uarr;</button><button type="button" class="btn btn-secondary" aria-label="Move down" onclick="moveCycle(this, 1)">&darr;</button></li>
+                        <li data-id="4"><label><input type="checkbox" id="cyc-bit4"> POTA</label><button type="button" class="btn btn-secondary" aria-label="Move up" onclick="moveCycle(this, -1)">&uarr;</button><button type="button" class="btn btn-secondary" aria-label="Move down" onclick="moveCycle(this, 1)">&darr;</button></li>
+                        <li data-id="5"><label><input type="checkbox" id="cyc-bit5"> SOTA</label><button type="button" class="btn btn-secondary" aria-label="Move up" onclick="moveCycle(this, -1)">&uarr;</button><button type="button" class="btn btn-secondary" aria-label="Move down" onclick="moveCycle(this, 1)">&darr;</button></li>
+                        <li data-id="6"><label><input type="checkbox" id="cyc-bit6"> APRS Radar</label><button type="button" class="btn btn-secondary" aria-label="Move up" onclick="moveCycle(this, -1)">&uarr;</button><button type="button" class="btn btn-secondary" aria-label="Move down" onclick="moveCycle(this, 1)">&darr;</button></li>
+                    </ol>
                     <label style="margin-top:10px;">Seconds per screen (10-600)</label>
                     <input type="number" id="cfg-cycle-s" min="10" max="600" step="1">
                     <p class="hint">A touch pauses cycling on that screen; it resumes after 2 minutes without a touch. The loop icon in the device's status bar shows it and pauses or resumes it. While cycling, POTA and SOTA show the spots already loaded and refresh every 5 or 10 minutes, and the DX cluster stays connected.</p>
@@ -128,6 +130,7 @@
                         <input type="password" id="cfg-apikey" placeholder="Paste API Key here..." maxlength="39">
                         <button class="eye-toggle" type="button" onclick="togglePass('cfg-apikey')">👁️</button>
                     </div>
+                    <button type="button" class="btn btn-secondary secret-clear" onclick="clearSecret('cfg-apikey')">Clear saved value</button>
                 </div>
                 
                 <div class="form-group" style="grid-column: span 2;">
@@ -150,6 +153,7 @@
                         <input type="password" id="cfg-hamalert-pass" placeholder="Enter HamAlert Token..." maxlength="15">
                         <button class="eye-toggle" type="button" onclick="togglePass('cfg-hamalert-pass')">👁️</button>
                     </div>
+                    <button type="button" class="btn btn-secondary secret-clear" onclick="clearSecret('cfg-hamalert-pass')">Clear saved value</button>
                 </div>
 
                 <label style="grid-column: span 2; font-weight: bold; border-bottom: 1px solid var(--border); padding-bottom: 5px; color: var(--accent); margin-top: 10px;">APRS-IS Global Network Parameters</label>
@@ -167,6 +171,7 @@
                         <input type="password" id="cfg-aprs-pass" placeholder="12345" maxlength="5">
                         <button class="eye-toggle" type="button" onclick="togglePass('cfg-aprs-pass')">👁️</button>
                     </div>
+                    <button type="button" class="btn btn-secondary secret-clear" onclick="clearSecret('cfg-aprs-pass')">Clear saved value</button>
                 </div>
                 <div class="form-group">
                     <label>Station SSID Suffix</label>
@@ -272,7 +277,7 @@
         <section id="tab-profiles" class="tab-content">
             <div class="profile-section">
                 <h2>Stored Profiles</h2>
-                <p class="hint">A profile holds every setting except the admin password. Profiles live on the filesystem: writing a new <code>littlefs.bin</code> erases them, so download a backup first.</p>
+                <p class="hint">A profile holds every setting except the admin password. Profiles live on the filesystem. A filesystem update in this console keeps them (it saves and restores them, without their own passwords or keys); a full install erases them.</p>
                 <div class="form-group">
                     <label>Profile</label>
                     <select id="profile-select" onchange="handleProfileSelectionChange()">
@@ -296,7 +301,7 @@
                 <hr style="border:0; border-top:1px dashed #333; margin:25px 0;">
 
                 <h2>Backup and Restore</h2>
-                <p class="hint">The backup holds the current settings and all profiles, without passwords or keys. Restoring keeps the device's current secrets; restored profiles have none until you edit them.</p>
+                <p class="hint">The backup holds the current settings, all profiles and your splash logos, without passwords or keys. Restoring keeps the device's current secrets; restored profiles have none until you edit them.</p>
                 <div class="profile-controls">
                     <button class="btn btn-secondary" onclick="downloadBackup()">Download Backup</button>
                     <button class="btn btn-secondary" onclick="document.getElementById('restore-file').click()">Restore from Backup...</button>
@@ -322,6 +327,21 @@
                 <div class="sys-card"><label>Serialization Parser</label><div id="sys-lib-json" class="val">--</div></div>
                 <div class="sys-card"><label>ESP32 Arduino Core</label><div id="sys-lib-core" class="val">--</div></div>
                 <div class="sys-card"><label>Native Espressif IDF</label><div id="sys-lib-idf" class="val">--</div></div>
+            </div>
+
+            <div class="sys-section-title" style="margin-top: 25px;">Splash Logos</div>
+            <p class="hint">Your own logo left and/or right of the title on the start screen, scaled into 60 x 60. Shown from the next restart. Kept across updates; included in backups.</p>
+            <div class="sys-grid">
+                <div class="sys-card" id="logo-card-left"><label>Left logo: <span id="logo-state-left">--</span></label>
+                    <input type="file" accept="image/*" onchange="pickLogo('left', this)">
+                    <div class="logo-previews"><canvas id="logo-prev-left-dark" width="60" height="60" class="logo-prev dark"></canvas><canvas id="logo-prev-left-light" width="60" height="60" class="logo-prev light"></canvas></div>
+                    <button class="btn" id="logo-up-left" disabled onclick="uploadLogo('left')">Upload</button>
+                    <button class="btn" onclick="deleteLogo('left')">Use built-in</button></div>
+                <div class="sys-card" id="logo-card-right"><label>Right logo: <span id="logo-state-right">--</span></label>
+                    <input type="file" accept="image/*" onchange="pickLogo('right', this)">
+                    <div class="logo-previews"><canvas id="logo-prev-right-dark" width="60" height="60" class="logo-prev dark"></canvas><canvas id="logo-prev-right-light" width="60" height="60" class="logo-prev light"></canvas></div>
+                    <button class="btn" id="logo-up-right" disabled onclick="uploadLogo('right')">Upload</button>
+                    <button class="btn" onclick="deleteLogo('right')">Use built-in</button></div>
             </div>
 
             <div class="sys-section-title" style="margin-top: 25px;">Wireless Maintenance Terminal</div>
@@ -421,6 +441,7 @@
         <span id="foot-name">--</span> | <span id="foot-version">--</span> | <a id="foot-link" href="https://ham.bharathpalavalli.com/" target="_blank"><span id="foot-authorcall">--</span></a>
     </footer>
 
+    <script src="logo.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

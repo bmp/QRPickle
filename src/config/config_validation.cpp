@@ -82,6 +82,28 @@ namespace config {
         return true;
     }
 
+    bool parse_cycle_order(const char* s, uint8_t out[7]) {
+        if (!s) return false;
+        uint8_t seen = 0;
+        for (int i = 0; i < 7; i++) {
+            const char ch = s[i * 2];
+            if (ch < '0' || ch > '6' || (seen & (1u << (ch - '0')))) return false;
+            seen |= 1u << (ch - '0');
+            out[i] = (uint8_t)(ch - '0');
+            const char sep = s[i * 2 + 1];
+            if (i < 6 ? sep != ',' : sep != '\0') return false;
+        }
+        return true;
+    }
+
+    int cycle_next(const uint8_t order[7], uint16_t mask, int pos) {
+        for (int step = 1; step <= 7; step++) {
+            const int p = ((pos < 0 ? -1 : pos) + step) % 7;
+            if (mask & (1u << order[p])) return p;
+        }
+        return -1;
+    }
+
     bool is_valid_solar_url(const char* s) {
         if (!s[0]) return true;
         const char* host;
@@ -106,6 +128,7 @@ namespace config {
         terminate(c.dx_url_secondary);
         terminate(c.solar_url);
         terminate(c.space_url);
+        terminate(c.cycle_order);
         terminate(c.aprs_passcode);
         terminate(c.aprs_comment);
         terminate(c.aprs_icon);
@@ -128,6 +151,11 @@ namespace config {
         if (!c.cycle_screens) c.cycle_screens = prev.cycle_screens ? prev.cycle_screens : CYCLE_SCREENS_ALL;
         if (c.cycle_seconds < CYCLE_SECONDS_MIN) c.cycle_seconds = CYCLE_SECONDS_MIN;
         if (c.cycle_seconds > CYCLE_SECONDS_MAX) c.cycle_seconds = CYCLE_SECONDS_MAX;
+        uint8_t order[7];
+        if (!parse_cycle_order(c.cycle_order, order)) {
+            if (parse_cycle_order(prev.cycle_order, order)) memcpy(c.cycle_order, prev.cycle_order, sizeof(c.cycle_order));
+            else strcpy(c.cycle_order, CYCLE_ORDER_DEFAULT);
+        }
         if (!is_valid_solar_url(c.space_url)) memcpy(c.space_url, prev.space_url, sizeof(c.space_url));  // same rules
         c.sat_categories &= SAT_CATEGORIES_ALL;
         if (!c.sat_categories) c.sat_categories = prev.sat_categories ? prev.sat_categories : SAT_CATEGORIES_DEFAULT;

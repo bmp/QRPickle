@@ -96,6 +96,15 @@ void test_pass_alert_now_breathes_purple() {
                         pattern_color(STATE_OFF, 3000, -1, -1, PassAlert::NOW)));  // symmetric
 }
 
+void test_setup_hotspot_keeps_amber_after_boot() {
+    // docs/LEDColours.md: amber stays on while the setup hotspot is up (the end of setup() and of
+    // the splash used to switch it off).
+    TEST_ASSERT_EQUAL(STATE_BOOT_HW, boot_done_state(STATE_OFF, true));
+    TEST_ASSERT_EQUAL(STATE_BOOT_HW, boot_done_state(STATE_BOOT_READY, true));
+    TEST_ASSERT_EQUAL(STATE_OFF, boot_done_state(STATE_OFF, false));
+    TEST_ASSERT_EQUAL(STATE_BOOT_READY, boot_done_state(STATE_BOOT_READY, false));
+}
+
 int main(int, char**) {
     UNITY_BEGIN();
     RUN_TEST(test_boot_sequence_colours);
@@ -107,5 +116,6 @@ int main(int, char**) {
     RUN_TEST(test_common_anode_inversion);
     RUN_TEST(test_pass_alert_soon_is_a_purple_double_blink_every_10s);
     RUN_TEST(test_pass_alert_now_breathes_purple);
+    RUN_TEST(test_setup_hotspot_keeps_amber_after_boot);
     return UNITY_END();
 }

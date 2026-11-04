@@ -1,6 +1,7 @@
 #include "cloud_ota.h"
 #include "../layout.h"
 #include "../theme.h"
+#include "../corner.h"
 #include "../fonts.h"
 #include "../../services/cloud_ota.h"
 #include "../../core/metadata.h"
@@ -71,25 +72,6 @@ namespace ui {
         lv_obj_set_style_text_color(local_lbl, theme_color(COLOR_TEXT_MUTED), 0);
         lv_obj_align(local_lbl, LV_ALIGN_LEFT_MID, 10, 0);
 
-        // Manual Refresh Check Button
-        lv_obj_t* btn_check = lv_button_create(header);
-        lv_obj_set_size(btn_check, 45, 30);
-        lv_obj_align(btn_check, LV_ALIGN_CENTER, -5, 0);
-        lv_obj_set_style_bg_color(btn_check, theme_color(COLOR_BG_APP), 0);
-        lv_obj_set_style_border_color(btn_check, theme_color(COLOR_BORDER), 0);
-        lv_obj_set_style_border_width(btn_check, 1, 0);
-
-        lv_obj_t* btn_check_lbl = lv_label_create(btn_check);
-        lv_label_set_text(btn_check_lbl, LV_SYMBOL_REFRESH);
-        lv_obj_set_style_text_color(btn_check_lbl, theme_color(COLOR_TEXT_MAIN), 0);
-        lv_obj_center(btn_check_lbl);
-
-        lv_obj_add_event_cb(btn_check, [](lv_event_t* e) {
-            services::cloud_ota::force_update_check();
-            lv_obj_t* p = lv_obj_get_parent(page_container);
-            lv_obj_delete(page_container);
-            draw_cloud_ota_page(p);
-        }, LV_EVENT_CLICKED, NULL);
 
         // Balanced fonts to font_jetbrains_14 layout symmetry
         lv_obj_t* remote_lbl = lv_label_create(header);
@@ -118,8 +100,16 @@ namespace ui {
 
         // Flash Button
         flash_btn = lv_button_create(page_container);
-        lv_obj_set_size(flash_btn, 240, 40);
-        lv_obj_align(flash_btn, LV_ALIGN_BOTTOM_MID, 0, -5);
+        lv_obj_set_size(flash_btn, 236, 40);
+        lv_obj_align(flash_btn, LV_ALIGN_BOTTOM_LEFT, 8, -5);  // ends before the corner (corner.h)
+
+        // Check now: the refresh button at the corner's fixed spot
+        refresh_button_create(page_container, [](lv_event_t*) {
+            services::cloud_ota::force_update_check();
+            lv_obj_t* p = lv_obj_get_parent(page_container);
+            lv_obj_delete(page_container);
+            draw_cloud_ota_page(p);
+        });
         lv_obj_set_style_bg_color(flash_btn, theme_color(COLOR_ACCENT_PRIMARY), 0);
         
         btn_lbl = lv_label_create(flash_btn);

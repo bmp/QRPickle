@@ -154,7 +154,7 @@ def render_pages(out, ref):
         os.makedirs(dest, exist_ok=True)
         with open(os.path.join(dest, "index.html"), "w", encoding="utf-8") as f:
             f.write(page)
-    for name in ("site.css", "site.js"):
+    for name in ("site.css", "site.js", "install-plan.js"):
         shutil.copy(os.path.join(SITE, name), os.path.join(out, name))
     shutil.copy(os.path.join(REPO_ROOT, "docs", "pics", "qrpickle-tour.gif"), os.path.join(out, "tour.gif"))
 

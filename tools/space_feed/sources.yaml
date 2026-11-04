@@ -1,0 +1,74 @@
+# Sources of QRPickle's satellite feed (tools/space_feed/build_feed.py). One entry per source.
+# Adding a source = adding an entry here; the feed format and the firmware stay the same.
+#
+#   name          unique name (fallback_for refers to it)
+#   provides      transmitters | satellites | tle | contacts | sstv | events
+#   format        satnogs_transmitters | satnogs_satellites | tle | ariss_contacts | ariss_sstv | events_json
+#   url           where to download it
+#   timeout       seconds (default 60)
+#   enabled       false to skip it (default true)
+#   fallback_for  used only when the named source fails (same `provides`)
+#   credit        text for the feed's credit line (sources actually used); licence: for people
+#   categories    transmitters only: category letters to take (f FM, l linear, s SSTV, v voice, a APRS)
+#   include/exclude  transmitters only: NORAD ids always taken / never taken
+#   single_url    tle only: one satellite by NORAD id ({} = the id), for satellites missing from the group
+#
+# events_json: a list of events in the feed's format, e.g.
+#   [{"k": "sstv", "s": 1800000000, "e": 1800007200, "t": "Club SSTV test", "x": "", "f": 145.8, "m": "PD120"}]
+# (k: sstv or contact; s/e: start/end, Unix UTC; t: title; x: detail; f: MHz; m: mode).
+
+sources:
+  - name: satnogs-transmitters
+    provides: transmitters
+    format: satnogs_transmitters
+    url: https://db.satnogs.org/api/transmitters/?format=json
+    timeout: 60
+    categories: flsv
+    exclude: [1430]  # TIROS-10: a 1960 weather satellite listed with an "SSTV" transmitter
+    licence: CC BY-SA 4.0
+    credit: "Transmitters: SatNOGS DB (db.satnogs.org), CC BY-SA 4.0."
+
+  - name: satnogs-satellites
+    provides: satellites
+    format: satnogs_satellites
+    url: https://db.satnogs.org/api/satellites/?format=json
+    timeout: 60
+    licence: CC BY-SA 4.0
+    credit: ""  # credited with the transmitters
+
+  - name: celestrak-amateur
+    provides: tle
+    format: tle
+    url: https://celestrak.org/NORAD/elements/gp.php?GROUP=amateur&FORMAT=tle
+    single_url: https://celestrak.org/NORAD/elements/gp.php?CATNR={}&FORMAT=tle
+    timeout: 60
+    credit: "Orbits: CelesTrak (celestrak.org)."
+
+  - name: amsat-nasabare
+    provides: tle
+    format: tle
+    url: https://www.amsat.org/tle/current/nasabare.txt
+    fallback_for: celestrak-amateur
+    timeout: 60
+    credit: "Orbits: AMSAT (amsat.org)."
+
+  - name: ariss-contacts
+    provides: contacts
+    format: ariss_contacts
+    url: https://www.ariss.org/upcoming-educational-contacts.html
+    timeout: 60
+    credit: "Events: ARISS (ariss.org)."
+
+  - name: ariss-sstv
+    provides: sstv
+    format: ariss_sstv
+    url: https://www.ariss.org/upcoming-sstv-events.html
+    timeout: 60
+    credit: ""  # credited with the contacts
+
+  - name: own-events
+    provides: events
+    format: events_json
+    url: https://example.org/my-events.json
+    enabled: false
+    credit: ""

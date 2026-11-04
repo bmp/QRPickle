@@ -60,6 +60,13 @@ namespace core {
         fs_drv.tell_cb = lv_fs_tell;
         lv_fs_drv_register(&fs_drv);
 
+        // Mounted here, before the UI: the splash reads custom logos (/logos) from LittleFS.
+        if (LittleFS.begin()) {
+            if (!LittleFS.exists("/logos")) LittleFS.mkdir("/logos");
+        } else {
+            Serial.println("  [Core FS] LittleFS mount failed (built-in logos and images only)");
+        }
+
         Serial.println("  [Core FS] LVGL LittleFS bridge registered for drive 'L:'");
     }
 

@@ -22,7 +22,8 @@ META = {"fw_name": "QRPickle", "fw_version": FW_VERSION, "author_call": "VU3GLJ"
 CONFIG = {
     **META,
     "callsign": "VU3GLJ", "grid": "MK82tw", "ssid": "Shack-WiFi",
-    "password": "", "password_set": True, "apikey": "", "apikey_set": True,
+    # Demo tails ("xy"): the screenshots never show a real secret's ending.
+    "password": "", "password_set": True, "password_tail": "xy", "apikey": "", "apikey_set": True, "apikey_tail": "xy",
     "lat": 12.92, "lon": 77.60, "offset": 5.5, "brightness": 180, "auto_bright": False,
     "theme_id": 0, "timeout": 5, "fc_slots": 15,
     "dx_url_p": "dxspider.co.uk", "dx_port_p": 7300, "dx_url_s": "dxc.w6bgr.com", "dx_port_s": 7373,
@@ -30,8 +31,12 @@ CONFIG = {
     "aprs_cmt": "QRPickle on the CYD", "aprs_icn": "/[",
     "aprs_macros": ["QRT. Packing up gear.", "CQ POTA, spotting active now.", "All OK, monitoring frequency.",
                     "Changing bands shortly.", "Testing APRS-IS link."],
-    "hamalert_pass": "", "hamalert_pass_set": True,
+    "hamalert_pass": "", "hamalert_pass_set": True, "hamalert_pass_tail": "xy",
+    "latlon_set": True, "band_groups": 31, "solar_url": "",
+    "cycle_en": True, "cycle_screens": 0x4B, "cycle_s": 15, "cycle_order": "2,0,1,3,4,5,6",
+    "space_url": "", "sat_categories": 15, "sat_min_el": 10, "pass_alert_en": True, "pass_alert_min": 30,
 }
+LOGOS = {"left": {"custom": True, "w": 60, "h": 45}, "right": {"custom": False}}
 PROFILES = {
     "Home": {},
     "Field_Day": {"ssid": "Phone-Hotspot", "aprs_ssid": 9, "aprs_icn": "\\F", "theme_id": 1, "timeout": 2},
@@ -67,6 +72,7 @@ class Handler(BaseHTTPRequestHandler):
             "/api/profiles": lambda: list(PROFILES),
             "/api/cloud_ota/check": lambda: CLOUD_OTA,
             "/api/aprs/messages": lambda: APRS_MESSAGES,
+            "/api/logos": lambda: LOGOS,
         }
         if url.path in routes:
             return self.send(routes[url.path]())

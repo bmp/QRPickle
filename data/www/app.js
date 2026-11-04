@@ -6,9 +6,52 @@ function esc(v) {
 
 // Secrets are never sent to the browser (review 1.3). Show that one is stored; leaving the
 // field blank keeps it.
-function markSaved(id, isSet) {
+// Screen cycling order: the list's rows carry the screen ids (0..6); the device checks the order.
+function renderCycleOrder(order) {
+    const ol = document.getElementById("cyc-order");
+    if (!ol) return;
+    const ids = /^[0-6](,[0-6]){6}$/.test(order || "") ? order.split(",") : ["0", "1", "2", "3", "4", "5", "6"];
+    for (const id of ids) {
+        const li = ol.querySelector(`li[data-id="${id}"]`);
+        if (li) ol.appendChild(li);
+    }
+}
+
+function cycleOrderValue() {
+    const ol = document.getElementById("cyc-order");
+    return ol ? [...ol.children].map(li => li.dataset.id).join(",") : "0,1,2,3,4,5,6";
+}
+
+function moveCycle(btn, dir) {
+    const li = btn.closest("li"), ol = li.parentElement;
+    if (dir < 0 && li.previousElementSibling) ol.insertBefore(li, li.previousElementSibling);
+    if (dir > 0 && li.nextElementSibling) ol.insertBefore(li.nextElementSibling, li);
+}
+
+// Secrets are write-only (review 1.3): the device says whether one is saved and, for 6+
+// characters, its last 2 ("<key>_tail"); Clear sends "<key>_clear".
+const SECRET_FIELDS = [["cfg-password", "password"], ["cfg-apikey", "apikey"],
+                       ["cfg-hamalert-pass", "hamalert_pass"], ["cfg-aprs-pass", "aprs_pass"]];
+const pendingClear = {};
+
+function markSaved(id, isSet, tail) {
     const el = document.getElementById(id);
-    if (el) el.placeholder = isSet ? "saved (leave blank to keep)" : "";
+    delete pendingClear[id];
+    if (el) el.placeholder = !isSet ? "" : tail ? `saved, ends in ••${tail} (leave blank to keep)` : "saved (leave blank to keep)";
+}
+
+function clearSecret(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    pendingClear[id] = true;
+    el.value = "";
+    el.placeholder = "will be cleared when you save";
+}
+
+// Backups and kept data never carry the tails (they are a hint for this page only).
+function stripTails(obj) {
+    if (obj && typeof obj === "object") for (const k of Object.keys(obj)) if (k.endsWith("_tail")) delete obj[k];
+    return obj;
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -76,7 +119,7 @@ function initTabsEngine() {
                 }
             });
             
-            if (targetTab === "system") fetchSystemTelemetry();
+            if (targetTab === "system") { fetchSystemTelemetry(); refreshLogos(); }
             if (targetTab === "about") fetchAboutDetails();
             if (targetTab === "cloudota") fetchCloudOTADetails();
         });
@@ -102,13 +145,13 @@ function fillForm(data) {
     setElementValue("cfg-cycle-s", data.cycle_s ?? 10);
     const cycleMask = data.cycle_screens ?? 127;
     for (let i = 0; i < 7; i++) setElementValue(`cyc-bit${i}`, (cycleMask & (1 << i)) !== 0, true);
+    renderCycleOrder(data.cycle_order);
     setElementValue("cfg-theme", data.theme_id ?? 0);
 
     // Secrets are never sent to the browser (review 1.3): blank fields keep the stored value.
-    for (const [id, key] of [["cfg-password", "password"], ["cfg-apikey", "apikey"],
-                             ["cfg-hamalert-pass", "hamalert_pass"], ["cfg-aprs-pass", "aprs_pass"]]) {
+    for (const [id, key] of SECRET_FIELDS) {
         setElementValue(id, "");
-        markSaved(id, data[key + "_set"]);
+        markSaved(id, data[key + "_set"], data[key + "_tail"]);
     }
     setElementValue("cfg-admin-pw", "");
     setElementValue("cfg-admin-pw2", "");
@@ -154,7 +197,7 @@ function collectForm() {
         if (getElementValue(`bg-bit${i}`, true)) bandGroups |= (1 << i);
     }
 
-    return {
+    const form = {
         callsign: getElementValue("cfg-callsign"),
         grid: getElementValue("cfg-grid"),
         ssid: getElementValue("cfg-ssid"),
@@ -170,6 +213,7 @@ function collectForm() {
         cycle_en: getElementValue("cfg-cycle-en", true),
         cycle_s: parseInt(getElementValue("cfg-cycle-s")) || 10,
         cycle_screens: [0, 1, 2, 3, 4, 5, 6].reduce((m, i) => m | (getElementValue(`cyc-bit${i}`, true) ? 1 << i : 0), 0) || 127,
+        cycle_order: cycleOrderValue(),
         fc_slots: forecastMask,
         dx_url_p: getElementValue("dx_url_p"),
         dx_port_p: parseInt(getElementValue("dx_port_p")),
@@ -191,6 +235,8 @@ function collectForm() {
         aprs_macros: macros,
         hamalert_pass: getElementValue("cfg-hamalert-pass")
     };
+    for (const [id, key] of SECRET_FIELDS) if (pendingClear[id]) form[key + "_clear"] = true;
+    return form;
 }
 
 function loadCurrentConfig() {
@@ -274,7 +320,7 @@ function fetchAboutDetails() {
 }
 
 // --- FAIL-SAFE OTA MAINTENANCE TRANSFERS ---
-function executeWirelessOTA() {
+async function executeWirelessOTA() {
     const target = document.getElementById("ota-target").value;
     const fileInput = document.getElementById("ota-file-input");
     
@@ -293,6 +339,16 @@ function executeWirelessOTA() {
     const statusLabel = document.getElementById("ota-status-lbl");
 
     progressContainer.classList.remove("hidden");
+    let keep = null;
+    if (target === "filesystem") {
+        statusLabel.innerText = "Saving profiles and logos before the update...";
+        try { keep = await collectKeep(); } catch (e) {
+            if (!confirm("Profiles and logos could not be read (" + e + "). Update anyway? They will be erased.")) {
+                progressContainer.classList.add("hidden");
+                return;
+            }
+        }
+    }
     statusLabel.innerText = "Uploading payload packages to file server...";
 
     const xhr = new XMLHttpRequest();
@@ -310,6 +366,21 @@ function executeWirelessOTA() {
     xhr.onreadystatechange = () => {
         if (xhr.readyState === 4) {
             if (xhr.status === 200) {
+                if (keep) {
+                    const n = Object.keys(keep.profiles).length, l = Object.keys(keep.logos).length;
+                    statusLabel.innerText = `Waiting for the device to restart, then restoring ${n} profile(s) and ${l} logo(s)...`;
+                    waitForDevice().then(async up => {
+                        const failed = up ? await restoreKeep(keep) : ["device did not come back"];
+                        if (failed.length) {
+                            alert("Restore incomplete: " + failed.join(", ") + ". Your profiles and logos are downloaded as a file; restore it under Profiles.");
+                            offerKeepDownload(keep);
+                        } else {
+                            alert(`Filesystem updated; ${n} profile(s) and ${l} logo(s) restored.`);
+                        }
+                        progressContainer.classList.add("hidden");
+                    });
+                    return;
+                }
                 statusLabel.innerText = "Upload completed! Rebooting hardware processor core...";
                 alert("OTA patch successfully written. The device will now flash reboot.");
                 triggerReboot();
@@ -435,17 +506,138 @@ function deleteSelectedProfile() {
         .then(() => fetchProfilesList());
 }
 
+// --- SPLASH LOGOS (logo.js converts; the device checks and stores) ---
+const pendingLogos = { left: null, right: null };
+
+async function refreshLogos() {
+    try {
+        const s = await (await fetch("/api/logos")).json();
+        for (const side of ["left", "right"]) {
+            const el = document.getElementById(`logo-state-${side}`);
+            if (el) el.textContent = s[side] && s[side].custom ? `custom, ${s[side].w} x ${s[side].h}` : "built-in";
+        }
+    } catch (e) { /* device busy: leave "--" */ }
+}
+
+function pickLogo(side, input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();  // data: URL (the CSP allows data: images, not blob:)
+    reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+            const { w, h } = logoFitBox(img.naturalWidth || 60, img.naturalHeight || 60);
+            const c = document.createElement("canvas");
+            c.width = w; c.height = h;
+            const ctx = c.getContext("2d");
+            ctx.imageSmoothingQuality = "high";
+            ctx.drawImage(img, 0, 0, w, h);
+            const rgba = ctx.getImageData(0, 0, w, h).data;
+            pendingLogos[side] = logoEncode(rgba, w, h);
+            for (const tone of ["dark", "light"]) {
+                const p = document.getElementById(`logo-prev-${side}-${tone}`).getContext("2d");
+                p.clearRect(0, 0, 60, 60);
+                p.drawImage(c, Math.floor((60 - w) / 2), Math.floor((60 - h) / 2));
+            }
+            document.getElementById(`logo-up-${side}`).disabled = false;
+        };
+        img.onerror = () => alert("This file could not be read as an image.");
+        img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+async function postLogo(side, bytes) {
+    const form = new FormData();
+    form.append("logo", new Blob([bytes], { type: "application/octet-stream" }), `${side}.bin`);
+    const res = await fetch(`/api/logos/upload?side=${side}`, { method: "POST", body: form });
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `HTTP ${res.status}`);
+}
+
+async function uploadLogo(side) {
+    if (!pendingLogos[side]) return;
+    try {
+        await postLogo(side, pendingLogos[side]);
+        alert("Logo saved. It shows from the next restart.");
+    } catch (e) {
+        alert("Logo not saved: " + e.message);
+    }
+    refreshLogos();
+}
+
+async function deleteLogo(side) {
+    if (!confirm(`Use the built-in ${side} logo again?`)) return;
+    await fetch(`/api/logos/delete?side=${side}`, { method: "POST" });
+    refreshLogos();
+}
+
+const b64 = bytes => btoa(String.fromCharCode(...bytes));
+const unb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+
+// Profiles and logos live in LittleFS: a filesystem update erases them. Read them first (profiles
+// as the API gives them: without their own secrets) and write them back after the restart.
+async function collectKeep() {
+    const keep = { profiles: {}, logos: {} };
+    for (const name of await fetchProfilesList()) {
+        const res = await fetch(`/api/profiles/get?name=${encodeURIComponent(name)}`);
+        if (res.ok) keep.profiles[name] = stripTails(await res.json());
+    }
+    for (const side of ["left", "right"]) {
+        const res = await fetch(`/api/logos/get?side=${side}`);
+        if (res.ok) keep.logos[side] = b64(new Uint8Array(await res.arrayBuffer()));
+    }
+    return keep;
+}
+
+async function restoreKeep(keep) {
+    const failed = [];
+    for (const [name, cfg] of Object.entries(keep.profiles || {})) {
+        if (!PROFILE_NAME_RE.test(name)) continue;
+        const res = await postProfile(name, cfg, true);
+        if (!res.ok) failed.push(name);
+    }
+    for (const [side, data] of Object.entries(keep.logos || {})) {
+        if (side !== "left" && side !== "right") continue;
+        try { await postLogo(side, unb64(data)); } catch (e) { failed.push(`${side} logo`); }
+    }
+    return failed;
+}
+
+function offerKeepDownload(keep) {
+    const kept = { format: "qrpickle-backup", version: 1, created: new Date().toISOString(), settings: null, ...keep };
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(kept, null, 2)], { type: "application/json" }));
+    a.download = `qrpickle-kept-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+async function waitForDevice(maxMs = 120000) {
+    const end = Date.now() + maxMs;
+    await new Promise(r => setTimeout(r, 15000));  // the device restarts after the upload
+    while (Date.now() < end) {
+        try { if ((await fetch("/api/status", { cache: "no-store" })).ok) return true; } catch (e) { /* not up yet */ }
+        await new Promise(r => setTimeout(r, 3000));
+    }
+    return false;
+}
+
 // Backup: settings + all profiles as the device reports them (secrets masked, review 1.3).
 async function downloadBackup() {
     try {
-        const settings = await (await fetch("/api/config")).json();
+        const settings = stripTails(await (await fetch("/api/config")).json());
         for (const k of ["fw_name", "fw_version", "author_call"]) delete settings[k];
         const profiles = {};
         for (const name of await fetchProfilesList()) {
             const res = await fetch(`/api/profiles/get?name=${encodeURIComponent(name)}`);
-            if (res.ok) profiles[name] = await res.json();
+            if (res.ok) profiles[name] = stripTails(await res.json());
         }
-        const backup = { format: "qrpickle-backup", version: 1, created: new Date().toISOString(), settings, profiles };
+        const logos = {};
+        for (const side of ["left", "right"]) {
+            const res = await fetch(`/api/logos/get?side=${side}`);
+            if (res.ok) logos[side] = b64(new Uint8Array(await res.arrayBuffer()));
+        }
+        const backup = { format: "qrpickle-backup", version: 1, created: new Date().toISOString(), settings, profiles, logos };
         const a = document.createElement("a");
         a.href = URL.createObjectURL(new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" }));
         a.download = `qrpickle-backup-${new Date().toISOString().slice(0, 10)}.json`;
@@ -466,23 +658,24 @@ async function restoreBackup(input) {
     } catch (err) {
         alert("This file is not valid JSON."); return;
     }
-    if (backup.format !== "qrpickle-backup" || !backup.settings || typeof backup.profiles !== "object") {
+    // settings: null = a file kept during a filesystem update (profiles and logos only).
+    if (backup.format !== "qrpickle-backup" || backup.settings === undefined || typeof backup.profiles !== "object") {
         alert("This is not a QRPickle backup file."); return;
     }
     const names = Object.keys(backup.profiles).filter(n => PROFILE_NAME_RE.test(n));
-    if (!confirm(`Restore the device settings and ${names.length} profile(s) from this backup? ` +
-                 "Passwords and keys stored on the device are kept.")) return;
-    const failed = [];
-    for (const name of names) {
-        const res = await postProfile(name, backup.profiles[name], true);
-        if (!res.ok) failed.push(name);
+    const logoSides = Object.keys(backup.logos || {}).filter(s => s === "left" || s === "right");
+    const what = [backup.settings ? "the device settings" : null, `${names.length} profile(s)`,
+                  logoSides.length ? `${logoSides.length} splash logo(s)` : null].filter(Boolean).join(", ");
+    if (!confirm(`Restore ${what} from this backup? Passwords and keys stored on the device are kept.`)) return;
+    const failed = await restoreKeep({ profiles: backup.profiles, logos: backup.logos || {} });
+    if (backup.settings) {
+        const res = await fetch("/api/config/save", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(backup.settings)
+        });
+        if (!res.ok) failed.push("device settings");
     }
-    const res = await fetch("/api/config/save", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(backup.settings)
-    });
-    if (!res.ok) failed.push("device settings");
     alert(failed.length ? "Restore finished with errors: " + failed.join(", ") : "Backup restored.");
     window.location.reload();
 }

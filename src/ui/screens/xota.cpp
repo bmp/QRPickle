@@ -1,6 +1,7 @@
 #include "xota.h"
 #include "../layout.h"
 #include "../theme.h"
+#include "../corner.h"
 #include "../fonts.h"
 #include "../ui.h"
 #include "../../services/pota_manager.h"
@@ -404,29 +405,15 @@ namespace ui {
         lv_obj_set_style_text_font(lbl_comment, &font_jetbrains_10, 0);
         lv_obj_set_style_text_color(lbl_comment, theme_color(COLOR_TEXT_MUTED), 0);
         lv_obj_align(lbl_comment, LV_ALIGN_LEFT_MID, 8, 0);
-        lv_obj_set_width(lbl_comment, 240);  // stop before the refresh button
+        lv_obj_set_width(lbl_comment, CONTENT_RIGHT - 8);  // stop before the corner (corner.h)
         lv_label_set_long_mode(lbl_comment, LV_LABEL_LONG_DOT);
 
-        lv_obj_t* btn_refresh = lv_button_create(foot);
-        lv_obj_set_size(btn_refresh, 24, 20);
-        lv_obj_align(btn_refresh, LV_ALIGN_RIGHT_MID, -40, 0);  // clear of the global home button (bottom-right)
-        lv_obj_set_style_bg_color(btn_refresh, theme_color(COLOR_BG_APP), 0);
-        lv_obj_set_style_border_color(btn_refresh, theme_color(COLOR_BORDER), 0);
-        lv_obj_set_style_border_width(btn_refresh, 1, 0);
-        lv_obj_set_style_radius(btn_refresh, 3, 0);
-        lv_obj_set_style_pad_all(btn_refresh, 0, 0);
-        lv_obj_add_event_cb(btn_refresh, [](lv_event_t*){
-            if (delayed_fetch_timer) return; 
-            
+        refresh_button_create(scr, [](lv_event_t*) {  // the corner's fixed spot (corner.h)
+            if (delayed_fetch_timer) return;
             if (active_tab == TAB_POTA) services::PotaManager::expire_timer();
             else services::SotaManager::expire_timer();
-            
             set_tab(active_tab);
-        }, LV_EVENT_CLICKED, nullptr);
-        lv_obj_t* lbl_ref = lv_label_create(btn_refresh);
-        lv_label_set_text(lbl_ref, LV_SYMBOL_REFRESH);
-        lv_obj_set_style_text_color(lbl_ref, theme_color(COLOR_TEXT_MAIN), 0);
-        lv_obj_center(lbl_ref);
+        });
 
         list_container = lv_obj_create(scr);
         lv_obj_set_size(list_container, SCREEN_W, CONTENT_H - LIST_TOP - FOOT_H);  // between header and footer

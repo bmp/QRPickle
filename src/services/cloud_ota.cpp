@@ -8,6 +8,7 @@
 #include "hamalert_manager.h"
 #include "aprs_manager.h"
 #include "quiet_window.h"
+#include "two_step_tls.h"
 #include "../core/metadata.h"
 #include <WiFiClientSecure.h>
 #include "safe_client.h"
@@ -44,18 +45,19 @@ namespace services {
         }
 
         // HTTPS with certificate verification against OTA_CA_BUNDLE (review 2.11), on top of the
-        // mandatory SHA-256. Verification needs >= 12 KB of task stack (see the task sizes below).
+        // mandatory SHA-256: verified outside the TLS handshake (two_step_tls.h), which failed for
+        // memory inside it. Verification needs >= 12 KB of task stack (see the task sizes below).
         // Plain http only in test builds (QRP_OTA_BASE_URL).
         struct Transport {
             SafeClient plain;  // thread-safe DNS (safe_client.h)
-            SafeTlsClient tls;
+            TwoStepTlsClient tls{OTA_CA_BUNDLE};
             WiFiClient& for_url(const String& url) {
                 if (url.startsWith("http://")) return plain;
-                tls.setCACert(OTA_CA_BUNDLE);
                 return tls;
             }
-            // mbedTLS' reason for a failed HTTPS connection (e.g. "X509 - Certificate verification failed").
+            // Why a HTTPS connection failed: the verification's reason, else mbedTLS' error.
             String tls_error() {
+                if (tls.verify_error()[0]) return String(tls.verify_error());
                 char buf[96] = "";
                 tls.lastError(buf, sizeof(buf));
                 return String(buf);

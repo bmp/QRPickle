@@ -86,14 +86,15 @@ console and stay on the device.
 | **Network, Settings, Cloud OTA** | WiFi, station and display settings on the device; updates | [GitHub Pages](https://bmp.github.io/QRPickle/ota/ota.json) for updates; time from `pool.ntp.org` |
 
 **On the device**
-* **Screen cycling:** chosen screens in turn (10 s each by default); a touch pauses it, a status-bar icon shows and toggles it.
+* **Screen cycling:** chosen screens in turn, in your order (10 s each by default); a touch pauses it, a status-bar icon shows and toggles it.
 * **Status LED:** setup and network states, a faint pulse when data arrives, a strobe for HamAlert or APRS messages, and a purple signal before ISS SSTV and school-contact passes ([LED Colours](docs/LEDColours.md)).
 * **Themes:** 7 themes in LVGL 9, including Tactical Field Red, Terminal Green and two E-Ink styles.
 * **Display:** sleep timeout, manual or automatic brightness (light sensor).
 * **Privacy:** passwords and network details are masked on screen and in the serial log.
+* **Splash logos:** your own logos left and right of the title on the start screen (uploaded in the web console, scaled into 60 x 60; kept across updates and in backups).
 
 **Web console and updates**
-* **Web console:** every setting, profiles (save and switch complete setups for home, mobile and field; download/restore a backup without passwords and keys), APRS messaging and system information. Digest login; the setup hotspot (`192.168.4.1`) takes over when no network is reachable.
+* **Web console:** every setting, profiles (save and switch complete setups for home, mobile and field; download/restore a backup without passwords and keys; a filesystem update keeps profiles and logos; saved secrets show their last 2 characters and can be cleared), APRS messaging and system information. Digest login; the setup hotspot (`192.168.4.1`) takes over when no network is reachable.
 * **Updates:** firmware upload in the web console, or **Cloud OTA** from GitHub Pages with a mandatory SHA-256 and verified HTTPS. A new image that doesn't come up healthy within 3 boots is rolled back. First installs: the [web installer](https://quixotic.bharathpalavalli.com/QRPickle/install/).
 
 **How it fits on an ESP32 without PSRAM**
