@@ -71,13 +71,14 @@ namespace ui {
             if (tel.has_data) {
                 char age_buf[16];
                 band_age_text(age_buf, sizeof(age_buf), age);
-                snprintf(buf, sizeof(buf), "%s %s", tel.own_source ? "own source" : "hamqsl.com", age_buf);
+                // At most 13 characters: the footer ends before the corner (corner.h, x 250).
+                snprintf(buf, sizeof(buf), "%s %s", tel.own_source ? "own src" : "hamqsl", age_buf);
             } else if (const uint32_t retry = PropagationManager::next_retry_utc()) {
                 char hhmm[8];
                 band_local_hhmm(hhmm, sizeof(hhmm), retry);
-                snprintf(buf, sizeof(buf), "Failed, retry at %s", hhmm);
+                snprintf(buf, sizeof(buf), "Retry at %s", hhmm);
             } else {
-                snprintf(buf, sizeof(buf), "Waiting for data...");
+                snprintf(buf, sizeof(buf), "Waiting...");
             }
             lv_label_set_text(t.footer, buf);
             const bool warn = age > 6 * 3600 || (!tel.has_data && tel.failed_utc);

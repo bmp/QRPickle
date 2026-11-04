@@ -2,6 +2,7 @@
 #include "../band_badge.h"
 #include "../layout.h"
 #include "../theme.h"
+#include "../corner.h"
 #include "../fonts.h"
 #include "../../config/config.h"
 #include "../../services/space_manager.h"
@@ -28,7 +29,7 @@ namespace ui {
         constexpr int TAB_H = 24, FOOTER_H = 20;
         constexpr int BODY_Y = TAB_H, BODY_H = CONTENT_H - TAB_H - FOOTER_H;  // 172
         constexpr int FOOTER_Y = CONTENT_H - FOOTER_H;
-        constexpr int REFRESH_X = SCREEN_W - 72, REFRESH_W = 28;
+        // The refresh button is at the corner's fixed spot (corner.h).
         constexpr int ROWS = 9, ROW_H = 15, ROW_Y = 15;  // and the geostationary line below
 
         const char* const CREDIT = "Data: SatNOGS DB (CC BY-SA 4.0), CelesTrak, ARISS.";
@@ -406,26 +407,14 @@ namespace ui {
         s.status = text(s.root, COLOR_TEXT_MAIN, 6, FOOTER_Y + 5);
         lv_obj_set_width(s.status, 150);
         lv_label_set_long_mode(s.status, LV_LABEL_LONG_CLIP);
-        s.age = text(s.root, COLOR_TEXT_MUTED, REFRESH_X - 6 - 84, FOOTER_Y + 5);
+        s.age = text(s.root, COLOR_TEXT_MUTED, CONTENT_RIGHT - 84, FOOTER_Y + 5);
         lv_obj_set_width(s.age, 84);
         lv_label_set_long_mode(s.age, LV_LABEL_LONG_CLIP);
         lv_obj_set_style_text_align(s.age, LV_TEXT_ALIGN_RIGHT, 0);
-        s.refresh_btn = lv_button_create(s.root);
-        lv_obj_set_size(s.refresh_btn, REFRESH_W, 16);
-        lv_obj_set_pos(s.refresh_btn, REFRESH_X, FOOTER_Y + 2);
-        lv_obj_set_style_bg_color(s.refresh_btn, theme_color(COLOR_BG_BUTTON), 0);
-        lv_obj_set_style_pad_all(s.refresh_btn, 0, 0);
-        lv_obj_t* icon = lv_label_create(s.refresh_btn);
-        lv_label_set_text(icon, LV_SYMBOL_REFRESH);
-        lv_obj_set_style_text_color(icon, theme_color(COLOR_TEXT_MAIN), 0);
-        lv_obj_center(icon);
-        lv_obj_add_event_cb(
-            s.refresh_btn,
-            [](lv_event_t*) {
-                s.busy_tap = !SpaceManager::refresh_now();
-                refresh(true);
-            },
-            LV_EVENT_CLICKED, nullptr);
+        s.refresh_btn = refresh_button_create(s.root, [](lv_event_t*) {
+            s.busy_tap = !SpaceManager::refresh_now();
+            refresh(true);
+        });
 
         show_tab(active_tab);
         s.timer = lv_timer_create([](lv_timer_t*) { refresh(false); }, 2000, nullptr);

@@ -1,6 +1,7 @@
 #include "aprs_hub.h"
 #include "../layout.h"
 #include "../theme.h"
+#include "../corner.h"
 #include "../privacy.h"
 #include "../fonts.h"
 #include "../ui.h"
@@ -236,6 +237,8 @@ namespace ui {
         lv_obj_set_style_text_font(lbl_comment, &font_jetbrains_10, 0);
         lv_obj_set_style_text_color(lbl_comment, theme_color(COLOR_TEXT_MUTED), 0);
         lv_obj_align(lbl_comment, LV_ALIGN_TOP_LEFT, 6, 2);
+        lv_obj_set_width(lbl_comment, CONTENT_RIGHT - 6);  // stop before the corner (corner.h)
+        lv_label_set_long_mode(lbl_comment, LV_LABEL_LONG_DOT);
 
         lv_obj_t* btn_radar = lv_button_create(foot);
         lv_obj_set_size(btn_radar, 36, 16);

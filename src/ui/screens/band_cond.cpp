@@ -2,6 +2,7 @@
 #include "../band_badge.h"
 #include "../layout.h"
 #include "../theme.h"
+#include "../corner.h"
 #include "../fonts.h"
 #include "../../services/prop_manager.h"
 #include <cmath>
@@ -31,9 +32,9 @@ namespace ui {
         constexpr int BODY_Y = TAB_H, BODY_H = CONTENT_H - TAB_H - FOOTER_H;  // 172
         constexpr int FOOTER_Y = CONTENT_H - FOOTER_H;
         // Refresh button left of the global home button (bottom-right corner, home_button.cpp).
-        constexpr int REFRESH_X = SCREEN_W - 72, REFRESH_W = 28;
+        // The refresh button is at the corner's fixed spot (corner.h).
         constexpr int AGE_W = 90;  // "hamqsl 59m ago" fits; the sun text gets the rest
-        constexpr int SUN_W = REFRESH_X - AGE_W - 14;
+        constexpr int SUN_W = CONTENT_RIGHT - AGE_W - 8;
 
         // BANDS tab columns.
         constexpr int B_NAME_X = 16, B_DAY_X = 86, B_NIGHT_X = 146, B_COL_W = 44, B_GROUP_X = 206;
@@ -430,26 +431,14 @@ namespace ui {
         s.sun = text(s.root, COLOR_TEXT_MAIN, 6, FOOTER_Y + 5);
         lv_obj_set_width(s.sun, SUN_W);
         lv_label_set_long_mode(s.sun, LV_LABEL_LONG_CLIP);
-        s.age = text(s.root, COLOR_TEXT_MUTED, REFRESH_X - 6 - AGE_W, FOOTER_Y + 5);
+        s.age = text(s.root, COLOR_TEXT_MUTED, CONTENT_RIGHT - AGE_W, FOOTER_Y + 5);
         lv_obj_set_width(s.age, AGE_W);
         lv_label_set_long_mode(s.age, LV_LABEL_LONG_CLIP);
         lv_obj_set_style_text_align(s.age, LV_TEXT_ALIGN_RIGHT, 0);
-        s.refresh_btn = lv_button_create(s.root);
-        lv_obj_set_size(s.refresh_btn, REFRESH_W, 16);
-        lv_obj_set_pos(s.refresh_btn, REFRESH_X, FOOTER_Y + 2);
-        lv_obj_set_style_bg_color(s.refresh_btn, theme_color(COLOR_BG_BUTTON), 0);
-        lv_obj_set_style_pad_all(s.refresh_btn, 0, 0);
-        lv_obj_t* icon = lv_label_create(s.refresh_btn);
-        lv_label_set_text(icon, LV_SYMBOL_REFRESH);
-        lv_obj_set_style_text_color(icon, theme_color(COLOR_TEXT_MAIN), 0);
-        lv_obj_center(icon);
-        lv_obj_add_event_cb(
-            s.refresh_btn,
-            [](lv_event_t*) {
-                s.show_unlock = !PropagationManager::refresh_now();
-                refresh(true);
-            },
-            LV_EVENT_CLICKED, nullptr);
+        s.refresh_btn = refresh_button_create(s.root, [](lv_event_t*) {
+            s.show_unlock = !PropagationManager::refresh_now();
+            refresh(true);
+        });
 
         show_tab(active_tab);
         s.timer = lv_timer_create([](lv_timer_t*) { refresh(PropagationManager::is_fetching()); }, 2000, nullptr);

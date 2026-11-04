@@ -2,6 +2,7 @@
 #include "../screen_cycle.h"
 #include "../layout.h"
 #include "../theme.h"
+#include "../corner.h"
 #include "../fonts.h"
 #include "../../services/dx_manager.h"
 #include "../../services/dx_status_text.h"
@@ -234,6 +235,8 @@ namespace ui {
         lv_obj_set_style_text_font(lbl_comment, &font_jetbrains_10, 0);
         lv_obj_set_style_text_color(lbl_comment, theme_color(COLOR_TEXT_MUTED), 0);
         lv_obj_align(lbl_comment, LV_ALIGN_LEFT_MID, 8, 0);
+        lv_obj_set_width(lbl_comment, CONTENT_RIGHT - 8);  // stop before the corner (corner.h)
+        lv_label_set_long_mode(lbl_comment, LV_LABEL_LONG_DOT);
 
         list_container = lv_obj_create(scr);
         lv_obj_set_size(list_container, SCREEN_W, 158);

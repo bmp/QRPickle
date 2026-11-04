@@ -58,6 +58,28 @@ ui_navigate_local(PAGE_X)
   `sidebar_selection_cb()`.
 - Settings is the exception: it is a separate LVGL screen (`settings_create()/settings_destroy()`),
   not a page in `view_container`.
+  Opening any other page closes it (`ui_navigate_local()`).
+- A theme change recolours the shell built at boot with `ui_refresh_theme()` (screen background,
+  status bar, home button, menu); pages are redrawn when they open.
+
+### The corner (layout rule, owner 2026-11-04)
+
+```
+                                   x 256          x 319
+ ... page content ...                |              |
+ footer text, tiles, buttons    ─────┤  [⟳]   [⌂]   │ y 218
+ end at x 250 (CONTENT_RIGHT)        │ x 262  x 294 │ y 239
+```
+
+- The bottom-right box (x 256-319, the bottom 22 px; `corner.h`) holds only **home** (far right,
+  global, `home_button.cpp`) and, on pages that have one, **refresh** (`refresh_button_create()`,
+  x 262). The same place on every page: Band Conditions, Satellites, xOTA, Cloud OTA.
+- No text, icon or control of a page in that box; panel backgrounds and borders may pass under.
+  Footer texts and bottom tiles end at `CONTENT_RIGHT` (x 250).
+- Full-screen pages that hide home (APRS Radar, APRS Messages) are exempt.
+- Status-bar icons all use the default font (`LV_FONT_DEFAULT` with the icons fallback), so they are
+  one size; differences are the glyphs' own widths.
+- Check: enlarged crops of the corner from a capture of every page and tab (`device_screens.py`).
 
 ## Pages
 

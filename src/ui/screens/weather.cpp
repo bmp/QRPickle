@@ -2,6 +2,7 @@
 #include "../layout.h"
 #include "../status_bar.h"
 #include "../theme.h"
+#include "../corner.h"
 #include "../fonts.h"
 #include "../../hw/sensor.h"
 #include "../../services/weather_manager.h"
@@ -106,8 +107,8 @@ namespace ui {
         lv_obj_set_size(c4, card_w, card_h); lv_obj_align(c4, LV_ALIGN_TOP_RIGHT, -2, 80);
 
         lv_obj_t* alt_bar = lv_obj_create(parent);
-        lv_obj_set_size(alt_bar, 312, 24);
-        lv_obj_align(alt_bar, LV_ALIGN_BOTTOM_MID, 0, -2);
+        lv_obj_set_size(alt_bar, CONTENT_RIGHT - 4, 24);  // ends before the corner (corner.h)
+        lv_obj_align(alt_bar, LV_ALIGN_BOTTOM_LEFT, 4, -2);
         lv_obj_set_style_bg_color(alt_bar, theme_color(COLOR_BG_PANEL), 0);
         lv_obj_set_style_border_color(alt_bar, theme_color(COLOR_BORDER), 0);
         lv_obj_set_style_border_width(alt_bar, 1, 0);
@@ -198,7 +199,8 @@ namespace ui {
         lv_obj_set_size(q5, q_w, q_h); lv_obj_align(q5, LV_ALIGN_TOP_LEFT, 2, 146);
 
         lv_obj_t* q6 = create_grid_card(parent, "PRESSURE", &lbl_cur_pres, &font_jetbrains_14);
-        lv_obj_set_size(q6, q_w, q_h); lv_obj_align(q6, LV_ALIGN_TOP_RIGHT, -2, 146);
+        lv_obj_set_size(q6, q_w - (SCREEN_W - CONTENT_RIGHT), q_h);  // ends before the corner (corner.h)
+        lv_obj_align(q6, LV_ALIGN_TOP_LEFT, SCREEN_W - 2 - q_w, 146);
     }
 
     // --- Tab 3 Layout (3A - Fast Zebra List) ---
