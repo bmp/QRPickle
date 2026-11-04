@@ -30,7 +30,9 @@ jobs:
         run: ruff check
 
       - name: Space feed builder tests
-        run: python3 -m unittest discover -s tools/space_feed
+        run: |
+          pip install "pyyaml==6.0.2"  # the source list (tools/space_feed/sources.yaml)
+          python3 -m unittest discover -s tools/space_feed
 
       - name: Image converter tests (Python and the web console's JS)
         run: |

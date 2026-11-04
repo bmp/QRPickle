@@ -5,7 +5,7 @@ ARISS events (school contacts, SSTV), for the CYD to compute passes itself.
 Runs in GitHub Actions every 6 hours (.github/workflows/space-feed.yml) and is committed to the
 `space-feed` branch. The CYD downloads it; it never sends its location anywhere.
 
-Sources (credited in the feed and on the Pages site):
+Sources: tools/space_feed/sources.yaml (credited in the feed and on the Pages site):
   - SatNOGS DB transmitters and satellites (CC BY-SA 4.0): which satellites carry FM voice
     repeaters, linear transponders, SSTV or voice beacons, with frequencies and modes.
   - CelesTrak: orbital elements (TLE), the "amateur" group plus single satellites by catalogue number.
@@ -26,12 +26,6 @@ import sys
 import time
 import urllib.request
 
-SATNOGS_TX = "https://db.satnogs.org/api/transmitters/?format=json"
-SATNOGS_SATS = "https://db.satnogs.org/api/satellites/?format=json"
-CELESTRAK_GROUP = "https://celestrak.org/NORAD/elements/gp.php?GROUP=amateur&FORMAT=tle"
-CELESTRAK_ONE = "https://celestrak.org/NORAD/elements/gp.php?CATNR={}&FORMAT=tle"
-ARISS_CONTACTS = "https://www.ariss.org/upcoming-educational-contacts.html"
-ARISS_SSTV = "https://www.ariss.org/upcoming-sstv-events.html"
 USER_AGENT = "QRPickle-space-feed/1 (+https://github.com/bmp/QRPickle)"
 
 ISS = 25544
@@ -106,7 +100,7 @@ def parse_tle(text):
     return out
 
 
-def select_satellites(transmitters, satellites, categories="flsv"):
+def select_satellites(transmitters, satellites, categories="flsv", deny=DENY):
     """[(norad, name, category letters, [tx...])], the ISS first, then the categories in turn."""
     in_orbit = {s["norad_cat_id"]: s for s in satellites
                 if s.get("norad_cat_id") and s.get("status") == "in orbit"}
@@ -116,7 +110,7 @@ def select_satellites(transmitters, satellites, categories="flsv"):
             continue
         c = category(tx)
         nid = tx["norad_cat_id"]
-        if c is None or c not in categories or nid not in in_orbit or nid in DENY:
+        if c is None or c not in categories or nid not in in_orbit or nid in deny:
             continue
         cats, txs = per.setdefault(nid, (set(), []))
         cats.add(c)
@@ -232,14 +226,28 @@ def parse_sstv(raw):
 
 # ---- Feed -------------------------------------------------------------------------------------
 
-def build(sources, now=None, single_tle=None):
+EVENT_KEYS = {"k", "s", "e", "t", "x", "f", "m"}
+
+
+def check_events(events):
+    """Own events (events_json sources) in the feed's format; a malformed one stops the build."""
+    for e in events:
+        if not (isinstance(e, dict) and EVENT_KEYS <= set(e) and e["k"] in ("sstv", "contact")
+                and isinstance(e["s"], int) and isinstance(e["e"], int) and e["e"] >= e["s"]):
+            raise ValueError(f"bad own event: {e!r} (needs {sorted(EVENT_KEYS)}, k sstv|contact)")
+    return events
+
+
+def build(sources, now=None, single_tle=None, categories="flsv", exclude=None, credit=CREDIT):
     """The feed dict. sources: transmitters (list), satellites (list), tle (text), contacts (html),
-    sstv (html). single_tle(norad) returns TLE text for satellites missing from the group."""
+    sstv (html), optionally events (own events, the feed's format). single_tle(norad) returns TLE
+    text for satellites missing from the group."""
     now = int(now if now is not None else time.time())
     tles = parse_tle(sources["tle"])
     sats = []
     fetched = 0
-    for nid, name, cats, txs in select_satellites(sources["transmitters"], sources["satellites"]):
+    deny = DENY | set(exclude or ())
+    for nid, name, cats, txs in select_satellites(sources["transmitters"], sources["satellites"], categories, deny):
         if nid not in tles and single_tle and fetched < MAX_SINGLE_TLE_FETCHES:
             fetched += 1
             try:
@@ -252,10 +260,80 @@ def build(sources, now=None, single_tle=None):
         sats.append({"id": nid, "n": name[:24], "c": cats, "t1": l1, "t2": l2, "tx": txs[:6]})
         if len(sats) >= MAX_SATS:
             break
-    events = [e for e in parse_contacts(sources["contacts"]) + parse_sstv(sources["sstv"])
+    own = check_events(sources.get("events") or [])
+    events = [e for e in parse_contacts(sources.get("contacts", "")) + parse_sstv(sources.get("sstv", "")) + own
               if e["e"] >= now - 86400]
     events.sort(key=lambda e: e["s"])
-    return {"v": 1, "generated": now, "credit": CREDIT, "sats": sats, "events": events}
+    return {"v": 1, "generated": now, "credit": credit, "sats": sats, "events": events}
+
+
+# ---- The source list (sources.yaml) ----------------------------------------------------------
+
+SOURCES_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sources.yaml")
+PROVIDES = {"transmitters", "satellites", "tle", "contacts", "sstv", "events"}
+FORMATS = {"satnogs_transmitters": json.loads, "satnogs_satellites": json.loads, "tle": str,
+           "ariss_contacts": str, "ariss_sstv": str, "events_json": json.loads}
+REQUIRED = ("transmitters", "satellites", "tle")
+BUILT_BY = "Built by QRPickle; this feed is CC BY-SA 4.0."
+
+
+def validate_sources(sources):
+    """Checks the list; raises ValueError naming the first problem."""
+    names = {s.get("name") for s in sources}
+    for s in sources:
+        n = s.get("name") or "?"
+        if s.get("format") not in FORMATS:
+            raise ValueError(f"{n}: unknown format {s.get('format')!r}")
+        if s.get("provides") not in PROVIDES:
+            raise ValueError(f"{n}: provides must be one of {sorted(PROVIDES)}")
+        if not s.get("url"):
+            raise ValueError(f"{n}: url missing")
+        if s.get("fallback_for") and s["fallback_for"] not in names:
+            raise ValueError(f"{n}: fallback_for {s['fallback_for']!r} is not a source")
+    return sources
+
+
+def load_sources(path=SOURCES_PATH):
+    import yaml  # only the builder needs it (pip install pyyaml)
+    with open(path, encoding="utf-8") as f:
+        return validate_sources(yaml.safe_load(f)["sources"])
+
+
+def collect(sources, fetch_fn=fetch):
+    """Downloads every enabled source (its fallbacks when it fails): ({provides: data}, [used])."""
+    data, used = {}, []
+    primaries = [s for s in sources if s.get("enabled", True) and not s.get("fallback_for")]
+    for s in primaries:
+        chain = [s] + [f for f in sources if f.get("fallback_for") == s["name"] and f.get("enabled", True)]
+        for cand in chain:
+            try:
+                value = FORMATS[cand["format"]](fetch_fn(cand["url"], timeout=cand.get("timeout", 60)))
+            except (OSError, ValueError) as e:
+                print(f"{cand['name']}: {e}", file=sys.stderr)
+                continue
+            key = cand["provides"]
+            if key in ("tle", "contacts", "sstv") and key in data:
+                data[key] += "\n" + value
+            elif key == "events" and key in data:
+                data[key] += value
+            else:
+                data[key] = value
+            used.append(cand)
+            break
+    missing = [k for k in REQUIRED if k not in data]
+    if missing:
+        raise RuntimeError(f"no data for {', '.join(missing)} (sources and fallbacks failed)")
+    return data, used
+
+
+def credit_for(used):
+    """The feed's credit line from the sources it was built from."""
+    parts = []
+    for s in used:
+        c = (s.get("credit") or "").strip()
+        if c and c not in parts:
+            parts.append(c)
+    return " ".join(parts + [BUILT_BY])
 
 
 def load_offline(d):
@@ -270,17 +348,24 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", required=True)
     ap.add_argument("--offline", help="directory with the five source files (no downloads)")
+    ap.add_argument("--sources", default=SOURCES_PATH, help="the source list (default sources.yaml)")
     a = ap.parse_args()
+    source_list = load_sources(a.sources)
+    tx_src = next((x for x in source_list if x["provides"] == "transmitters" and x.get("enabled", True)), {})
     if a.offline:
         sources, single = load_offline(a.offline), None
+        used = [x for x in source_list if x.get("enabled", True) and not x.get("fallback_for")]
     else:
-        sources = {"transmitters": json.loads(fetch(SATNOGS_TX)), "satellites": json.loads(fetch(SATNOGS_SATS)),
-                   "tle": fetch(CELESTRAK_GROUP), "contacts": fetch(ARISS_CONTACTS), "sstv": fetch(ARISS_SSTV)}
+        sources, used = collect(source_list)
+        tle_src = next((x for x in used if x["provides"] == "tle" and x.get("single_url")), None)
 
         def single(nid):
-            time.sleep(1)  # gentle on CelesTrak
-            return fetch(CELESTRAK_ONE.format(nid))
-    feed = build(sources, single_tle=single)
+            if not tle_src:
+                return ""
+            time.sleep(1)  # gentle on the orbit source
+            return fetch(tle_src["single_url"].format(nid))
+    feed = build(sources, single_tle=single, categories=tx_src.get("categories", "flsv"),
+                 exclude=set(tx_src.get("exclude", [])), credit=credit_for(used))
     if not feed["sats"]:
         sys.exit("no satellites in the feed; not writing it")
     with open(a.out, "w", encoding="utf-8") as f:

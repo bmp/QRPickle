@@ -28,7 +28,9 @@ jobs:
           python-version: '3.x'
 
       - name: Builder tests
-        run: python3 -m unittest discover -s tools/space_feed
+        run: |
+          pip install "pyyaml==6.0.2"  # the source list (tools/space_feed/sources.yaml)
+          python3 -m unittest discover -s tools/space_feed
 
       - name: Build the feed
         run: python3 tools/space_feed/build_feed.py --out "$RUNNER_TEMP/space.json"
