@@ -2,7 +2,7 @@
 
 User-facing changes per release, newest first. Each section is also the release commit message (see `docs/RELEASING.md`).
 
-## v0.2.6 (unreleased)
+## v0.2.6 (2026-11-04)
 
 Your own splash logos, cycling order, saved-secret hints, a lighter DX page; theme and LED fixes
 
