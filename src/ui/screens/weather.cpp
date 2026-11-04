@@ -142,8 +142,8 @@ namespace ui {
 
         // Icon and Temp moved further to the right
         img_cur_icon = lv_image_create(top_deck);
-        lv_obj_set_size(img_cur_icon, 40, 40);
-        lv_obj_align(img_cur_icon, LV_ALIGN_LEFT_MID, 25, 0); 
+        lv_obj_set_size(img_cur_icon, 36, 36);  // one 4 KB LittleFS block per icon (png_to_bin_lvgl9.py)
+        lv_obj_align(img_cur_icon, LV_ALIGN_LEFT_MID, 27, 0);  // same centre as the earlier 40 x 40
 
         lbl_cur_temp = lv_label_create(top_deck);
         lv_obj_set_style_text_font(lbl_cur_temp, &font_jetbrains_24, 0);
@@ -350,7 +350,7 @@ namespace ui {
             if (lbl_cur_pres) { snprintf(buf, sizeof(buf), "%.0f hPa", cur.pressure); lv_label_set_text(lbl_cur_pres, buf); }
 
             if (img_cur_icon && lv_image_get_src(img_cur_icon) == nullptr) {
-                snprintf(buf, sizeof(buf), "L:/img/%s_40x40.bin", cur.icon);
+                snprintf(buf, sizeof(buf), "L:/img/%s_36x36.bin", cur.icon);
                 lv_image_set_src(img_cur_icon, buf);
             }
         }

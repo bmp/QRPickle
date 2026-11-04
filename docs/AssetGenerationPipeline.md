@@ -32,6 +32,21 @@ Once assets are generated using the toolchains, apply these PlatformIO orchestra
 
 A few assets are converted to C files to ensure quick load before LittleFS is loaded, whereas the rest are converted to bin files to help with saving space in the main partition for complex logic. The two files are `img_to_c.py` and `png_to_bin_lvgl9.py` respectively.
 
+**Images in LittleFS take whole 4 KB blocks.** Each `.bin` is uncompressed (12-byte header + 3 bytes
+per pixel), so a file just over 4,096 B takes two blocks: the 40x40 weather icons (4,812 B) used 144 KB
+of the filesystem; at 36x36 (3,900 B) they take 72 KB. 36x36 is the largest square that fits one
+block. The converter reports the blocks of every image and warns when a slightly smaller size would
+save one:
+
+```bash
+python3 scripts/png_to_bin_lvgl9.py -f 01d_36x36.png            # size from the name
+python3 scripts/png_to_bin_lvgl9.py -f logo.png --fit 60x60     # scale into a box, keep the shape
+python3 scripts/png_to_bin_lvgl9.py --report                    # blocks used by data/img/*.bin
+```
+
+`--all` converts `assets/img/*.png` into `data/img/`, skipping images built into the firmware
+(those with a C file in `src/ui/img/`).
+
 ### Compile and Flash Software Layout Logic
 Compiles the structural source files (`.cpp`) and asset arrays (`.c`), uploading the firmware payload to application flash space:
 ```bash
