@@ -1,6 +1,7 @@
 # QRPickle Documentation
 
 **Using QRPickle**
+- [First-time Setup](SETUP.md): from a new board to a working QRPickle: install, the setup hotspot, settings, services, backups.
 - [Hardware and Wiring](HARDWARE.md): the board, the pins QRPickle uses, the optional BME280 sensor.
 - [LED Colours](LEDColours.md): what the status LED means.
 

@@ -52,6 +52,23 @@ def rebase_links(text, subdir):
     return outside_code(text, lambda t: re.sub(r"(!?\[[^\]]*\])\(([^)\s]+)\)", repl, t))
 
 
+def internal_links(text, targets):
+    """Links to documents that are chapters of the manual become links inside it: {repo path: anchor}.
+    A link with its own anchor into the README (README.md#x) becomes #x."""
+    def repl(m):
+        label, target = m.group(1), m.group(2)
+        path, _, frag = target.partition("#")
+        if path == "README.md" and frag:
+            return f"{label}(#{frag})"
+        return f"{label}(#{targets[path]})" if path in targets else m.group(0)
+    return outside_code(text, lambda t: re.sub(r"(?<!!)(\[[^\]]*\])\(([^)\s]+)\)", repl, t))
+
+
+def anchor(title):
+    """pandoc's id for a heading."""
+    return re.sub(r"[^a-z0-9 -]", "", title.lower()).strip().replace(" ", "-")
+
+
 def metadata(name):
     """A string constant from src/core/metadata.h (the firmware's single source of identity)."""
     with open(os.path.join(ROOT, "src", "core", "metadata.h"), encoding="utf-8") as f:
@@ -254,17 +271,28 @@ def main():
     def chapters(secs):
         return (preamble + "".join(re.sub(r"(?m)^#(#+) ", r"\1 ", t) for title, t in secs
                                    if title not in README_APPENDICES and title not in README_DROPPED)
+                + "\n\n---\n\n" + read_doc("docs/SETUP.md")
                 + "\n\n---\n\n" + read_doc("docs/HARDWARE.md"))
 
     def appendix_text(pagebreak):
         return "".join(pagebreak + as_appendix(text, chr(ord("A") + i), title, level)
                        for i, (title, text, level) in enumerate(appendices))
 
+    # Chapters and appendices link to each other inside the manual, not to GitHub.
+    targets = {"docs/SETUP.md": "first-time-setup", "docs/HARDWARE.md": "hardware-and-wiring"}
+    appendix_docs = {"LED Colours": "docs/LEDColours.md", "How Band Conditions Are Rated": "docs/BAND_RATING.md",
+                     "Screens, Widgets and Themes": "docs/UI_GUIDE.md", "Third-Party Notices": "THIRD_PARTY_NOTICES.md"}
+    for i, (title, _, _) in enumerate(appendices):
+        doc_path = appendix_docs.get(title)
+        if doc_path:
+            targets[doc_path] = anchor(f"Appendix {chr(ord('A') + i)}: {title}")
+
     if a.html_out:
-        write_html(absolute_links(chapters(sections) + appendix_text("\n\n"), a.repo), a.html_out)
+        write_html(absolute_links(internal_links(chapters(sections) + appendix_text("\n\n"), targets), a.repo),
+                   a.html_out)
     if not a.out:
         return
-    doc = absolute_links(cover + chapters(pdf_sections) + appendix_text(PAGEBREAK), a.repo)
+    doc = absolute_links(internal_links(cover + chapters(pdf_sections) + appendix_text(PAGEBREAK), targets), a.repo)
 
     with tempfile.TemporaryDirectory(dir=ROOT) as tmp:   # inside the repo, so image paths resolve
         md, typ = os.path.join(tmp, "manual.md"), os.path.join(tmp, "manual.typ")
