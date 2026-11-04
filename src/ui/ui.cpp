@@ -164,6 +164,9 @@ namespace ui {
             // happen in the first seconds (free heap fell to ~6 KB). The automatic update check (a
             // 12 KB task plus TLS) starts two minutes later and, if it fails (usually for heap), is
             // retried every 10 minutes until it succeeds; a manual check runs at once.
+            // Not in the screenshot build: at its heap (~800 B left at the check) it restarted the
+            // device during captures; the build is never updated over the air.
+#ifndef QRP_SCREEN_TOOLS
             lv_timer_create(
                 [](lv_timer_t* t) {
                     if (services::cloud_ota::is_check_complete()) {
@@ -174,6 +177,7 @@ namespace ui {
                     lv_timer_set_period(t, 600000);
                 },
                 120000, nullptr);
+#endif
 
             // Set Stage 4 -> Turn LED faint green to indicate operational readiness
             // (unless the setup hotspot is up: its amber stays)

@@ -10,7 +10,7 @@
 // thread-safe).
 namespace screen_tools {
 
-    constexpr int BAND_ROWS = 8;  // 5 KB static buffer; 20 rows (12.8 KB) starved this build's heap
+    constexpr int BAND_ROWS = 8;  // 5 KB buffer; 20 rows (12.8 KB) starved this build's heap
     constexpr int BANDS = 240 / BAND_ROWS;
     constexpr size_t BAND_BYTES = 320 * BAND_ROWS * 2;  // RGB565, little-endian
 
