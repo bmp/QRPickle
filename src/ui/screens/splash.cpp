@@ -56,7 +56,7 @@ namespace ui {
         const int slot = side[0] == 'l' ? 0 : 1;
         char fs_path[20];
         snprintf(fs_path, sizeof(fs_path), "/logos/%s.bin", side);
-        File f = LittleFS.open(fs_path, "r");
+        File f = LittleFS.exists(fs_path) ? LittleFS.open(fs_path, "r") : File();  // no error log when absent
         if (f) {
             uint8_t hdr[core::logo::HEADER_BYTES];
             const size_t n = f.read(hdr, sizeof(hdr));

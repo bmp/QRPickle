@@ -2,6 +2,23 @@
 
 User-facing changes per release, newest first. Each section is also the release commit message (see `docs/RELEASING.md`).
 
+## v0.2.7 (2026-11-04)
+
+Cloud OTA can install updates again
+
+Updating from v0.2.6 or earlier: upload firmware.bin in the web console
+(System Info, firmware); settings are kept. Cloud OTA on those versions finds
+the update but can't install it (this release fixes that). From v0.2.7 on,
+Cloud OTA installs updates by itself. The web console files are unchanged
+(no littlefs.bin needed).
+
+Fixes
+- Cloud OTA: installing an update failed right after the download started
+  ("No Error"): with the HTTPS connection open, the device had no 4 KB left
+  for the updater. The updater now reserves its memory first. Checked on the
+  device: download, SHA-256 check, install and restart into the new version.
+- No error lines in the log when no custom splash logo is set.
+
 ## v0.2.6 (2026-11-04)
 
 Your own splash logos, cycling order, saved-secret hints, a lighter DX page; theme and LED fixes
@@ -10,7 +27,9 @@ Updating from v0.2.5: Cloud OTA (device or web console) or upload firmware.bin;
 settings are kept. Then upload littlefs.bin (web console: System Info, "LittleFS
 Storage Image") for the new web console. Download a backup first (Profiles,
 Backup and Restore): this first update still runs from the old console, which
-erases profiles. From v0.2.6 on, the console keeps them.
+erases profiles. From v0.2.6 on, the console keeps them. On v0.2.5 the update
+check often fails (fixed in v0.2.6) but retries every 10 minutes until it gets
+through; uploading firmware.bin in the web console works at once.
 
 New
 - Splash logos: your own logo left and/or right of the title on the start
@@ -40,6 +59,10 @@ Changes
   (it waited 15); its sources are a list (AMSAT orbits when CelesTrak is down).
 
 Fixes
+- Cloud OTA can check for updates again: the certificate check ran out of
+  memory during the connection and failed almost every time (also on v0.2.5).
+  The certificate is now checked between two connections, with the memory
+  free; the security is the same.
 - Changing the theme now recolours the whole screen at once: the background,
   the home button and the menu kept the old theme until a restart (in E-Ink
   Light the home icon was faint and the Network page unreadable).

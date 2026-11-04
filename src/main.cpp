@@ -22,10 +22,24 @@
 #include "core/screen_tools.h"
 #endif
 
+#ifdef QRP_HEAP_TRACE  // spike: free 8-bit heap after each start-up step
+#include <esp_heap_caps.h>
+static void heap_step(const char* what) {
+    Serial.printf("[HEAP] %-12s free %6u  largest %6u  internal %6u\n", what,
+                  (unsigned)heap_caps_get_free_size(MALLOC_CAP_8BIT),
+                  (unsigned)heap_caps_get_largest_free_block(MALLOC_CAP_8BIT),
+                  (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL));
+}
+#define HEAP_STEP(w) heap_step(w)
+#else
+#define HEAP_STEP(w)
+#endif
+
 void setup() {
     hw::led_rgb::init();
     hw::led_rgb::set_state(hw::led_rgb::STATE_BOOT_HW);
     Serial.begin(115200);
+    HEAP_STEP("start");
     delay(500);
     crashlog::report_previous();
     services::ota_manager::rollback_boot_check();  // may reboot into the previous image
@@ -42,21 +56,26 @@ void setup() {
     Serial.flush();
 
     config::load();
+    HEAP_STEP("config");
     config::log_summary();
     Serial.flush();
     services::SpaceManager::init();
+    HEAP_STEP("space");
 
     Serial.println("[Boot Check] Initializing Sensors...");
     Serial.flush();
     sensor_init();
+    HEAP_STEP("sensor");
     Serial.println("[Boot Check] Sensors OK.");
     Serial.flush();
 
     Serial.println("[Boot Check] Initializing Display Driver...");
     Serial.flush();
     display_init();
+    HEAP_STEP("display");
 
     core::lvgl_fs_init();
+    HEAP_STEP("lvgl_fs");
 
     Serial.println("[Boot Check] Display Driver OK.");
     Serial.flush();
@@ -64,16 +83,21 @@ void setup() {
     Serial.println("[Boot Check] Initializing Touch Controller...");
     Serial.flush();
     touch_init();
+    HEAP_STEP("touch");
     Serial.println("[Boot Check] Touch Controller OK.");
     Serial.flush();
 
     Serial.println("[Boot Check] Launching Network Stack...");
     Serial.flush();
     wifi_manager_init();
+    HEAP_STEP("wifi");
 
     fonts_init();
+    HEAP_STEP("fonts");
     ui::ui_init();
+    HEAP_STEP("ui");
     web_server_init();
+    HEAP_STEP("web");
 
     Serial.println("--- All operational tasks successfully scheduled ---");
     Serial.flush();

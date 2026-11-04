@@ -8,6 +8,7 @@
 #include "hamalert_manager.h"
 #include "aprs_manager.h"
 #include "quiet_window.h"
+#include "two_step_tls.h"
 #include <WiFi.h>
 #include <mbedtls/version.h>
 #if MBEDTLS_VERSION_MAJOR >= 3  // mbedTLS 3 (ESP-IDF 5) dropped the _ret suffixes
@@ -55,18 +56,19 @@ namespace services {
         }
 
         // HTTPS with certificate verification against OTA_CA_BUNDLE (review 2.11), on top of the
-        // mandatory SHA-256. Verification needs >= 12 KB of task stack (see the task sizes below).
+        // mandatory SHA-256: verified outside the TLS handshake (two_step_tls.h), which failed for
+        // memory inside it. Verification needs >= 12 KB of task stack (see the task sizes below).
         // Plain http only in test builds (QRP_OTA_BASE_URL).
         struct Transport {
             SafeClient plain;  // thread-safe DNS (safe_client.h)
-            SafeTlsClient tls;
+            TwoStepTlsClient tls{OTA_CA_BUNDLE};
             WiFiClient& for_url(const String& url) {
                 if (url.startsWith("http://")) return plain;
-                tls.setCACert(OTA_CA_BUNDLE);
                 return tls;
             }
-            // mbedTLS' reason for a failed HTTPS connection (e.g. "X509 - Certificate verification failed").
+            // Why a HTTPS connection failed: the verification's reason, else mbedTLS' error.
             String tls_error() {
+                if (tls.verify_error()[0]) return String(tls.verify_error());
                 char buf[96] = "";
                 tls.lastError(buf, sizeof(buf));
                 return String(buf);
@@ -200,6 +202,9 @@ namespace services {
 
             NetLock lock(60000);  // whole download; other services are stopped by the lockdown
             if (!lock.held()) fail_and_restart("network busy");
+            // The updater's 4 KB write buffer first: with the HTTPS session open the heap had no
+            // 4 KB left and Update.begin() failed ("malloc failed", reported as "No Error").
+            if (!Update.begin(UPDATE_SIZE_UNKNOWN, U_FLASH)) fail_and_restart("no memory for the updater");
             Transport t;
             HTTPClient http;
             const String fw_url(cached_info.firmware_url);
@@ -216,7 +221,6 @@ namespace services {
             }
             int total_len = http.getSize();
             if (total_len <= 0) fail_and_restart("unknown download size");
-            if (!Update.begin(UPDATE_SIZE_UNKNOWN, U_FLASH)) fail_and_restart(Update.errorString());
 
             mbedtls_sha256_context sha;
             mbedtls_sha256_init(&sha);

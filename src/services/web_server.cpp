@@ -138,7 +138,7 @@ static const char* logo_side(AsyncWebServerRequest* r) {
 static void logo_info(JsonObject o, const char* side) {
     char path[20];
     snprintf(path, sizeof(path), "/logos/%s.bin", side);
-    File f = LittleFS.open(path, "r");
+    File f = LittleFS.exists(path) ? LittleFS.open(path, "r") : File();  // no error log when absent
     uint8_t hdr[core::logo::HEADER_BYTES];
     uint16_t w = 0, h = 0;
     bool ok = false;
