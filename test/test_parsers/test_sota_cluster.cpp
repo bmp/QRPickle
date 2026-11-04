@@ -137,5 +137,6 @@ int main(int, char**) {
     RUN_TEST(test_space_event_passes_and_alert);
     RUN_TEST(test_logo_header_valid_sizes);
     RUN_TEST(test_logo_header_rejects_bad_files);
+    RUN_TEST(test_space_retry_backs_off);
     return UNITY_END();
 }

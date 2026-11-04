@@ -111,9 +111,29 @@ went from 85.5 % to 81.9 % (66 KB):
 - **Icons-only fallback font** instead of Montserrat 10/14 (~20 KB, see `docs/UI_GUIDE.md`).
 
 In reserve: TLS errors as numeric codes instead of mbedTLS's 15 KB text table (codes are
-standardised in mbedTLS's headers; document the common ones in `docs/DEBUGGING.md`), compressed
-(RLE) splash logos (~5-8 KB net), and link-time optimisation with a newer toolchain (Arduino core 3 /
-ESP-IDF 5, `docs/TASKS.md`).
+standardised in mbedTLS's headers; document the common ones in `docs/DEBUGGING.md`), and link-time
+optimisation with a newer toolchain (Arduino core 3 / ESP-IDF 5, `docs/TASKS.md`). Compressing the
+splash logos was measured and dropped (2026-11-04): RLE makes them larger, LZ4 saves 1.7 KB net.
+
+**Budget review (2026-11-04, v0.2.6 work, 1,580,704 B = 86.1 %):** flash by library, from a linker map:
+
+| KB | What | Can it shrink? |
+|---:|---|---|
+| ~275 | WiFi stack (net80211, pp, wpa_supplicant, phy) | no (prebuilt) |
+| 164 | LVGL | widgets already trimmed; fonts are ours (below) |
+| 149 | mbedTLS (crypto + TLS) | prebuilt; the server handshake (7 KB) is linked although QRPickle is only a client: needs a custom sdkconfig (port) |
+| 105 | lwIP | no |
+| 97 | libc | printf twice (`_vfprintf_r` 12 KB, `_svfprintf_r` 12 KB) and the scanf engine (8 KB, kept by the framework/time-zone code, not by QRPickle) |
+| 43 | SGP4 (satellites) | `sgp4init` 17 KB, `sgp4` 8 KB: needed |
+| 43 | ESPAsyncWebServer | no |
+| 30 | `web_server.cpp` | the inline fallback page is 1.7 KB; the rest is routes |
+| 29 | LittleFS | no |
+| 15 | `cloud_ota.cpp` | includes the ISRG root certificates (needed) |
+| 13 | splash logos (C arrays) | measured: compression doesn't pay |
+
+Headroom to the 95 % limit: 162 KB. Nothing large is removable on this platform without a port; the
+candidates for the platform spike are the TLS server code, the duplicate printf and the error texts
+(together ~30-40 KB).
 
 ## Next
 
