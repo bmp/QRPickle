@@ -15,8 +15,6 @@ compile_commands.json
 release/
 device_check.log
 
-# Working plans from Claude Code sessions (local only)
-docs/superpowers/
 
 # Local editor/tool database (not project data)
 .vorg.db
@@ -25,6 +23,6 @@ docs/superpowers/
 __pycache__/
 *.pyc
 
-# Private notes (code review etc.): kept on this machine only, never committed
+# Private notes, reviews, plans and specs (docs/private/{notes,reviews,plans,specs}): this machine only, never committed
 docs/private/
 docs/reviews/

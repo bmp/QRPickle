@@ -118,7 +118,7 @@ const char fallback_html[] PROGMEM = R"rawhtml(
 </html>
 )rawhtml";
 
-// Custom splash logos (docs/superpowers/specs/2026-11-04-custom-splash-logos-design.md): the browser
+// Custom splash logos (docs/UI_GUIDE.md, "Splash logos"): the browser
 // converts, the device only checks and stores. One upload at a time.
 struct LogoUpload {
     File file;
