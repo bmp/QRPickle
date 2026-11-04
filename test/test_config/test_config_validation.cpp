@@ -252,6 +252,48 @@ void test_satellite_settings() {
     TEST_ASSERT_EQUAL_UINT8(45, dst.pass_alert_min);
 }
 
+void test_cycle_order() {
+    uint8_t o[7];
+    TEST_ASSERT_TRUE(parse_cycle_order("0,1,2,3,4,5,6", o));
+    TEST_ASSERT_EQUAL_UINT8(0, o[0]);
+    TEST_ASSERT_EQUAL_UINT8(6, o[6]);
+    TEST_ASSERT_TRUE(parse_cycle_order("6,5,4,3,2,1,0", o));
+    TEST_ASSERT_EQUAL_UINT8(6, o[0]);
+    TEST_ASSERT_EQUAL_UINT8(0, o[6]);
+    const char* bad[] = {"0,0,1,2,3,4,5", "7,1,2,3,4,5,6", "0,1,2", "", "0, 1,2,3,4,5,6", "0,1,2,3,4,5,6,",
+                         "0123456", "a,1,2,3,4,5,6", "0,1,2,3,4,5,6,0"};
+    for (const char* b : bad) TEST_ASSERT_FALSE_MESSAGE(parse_cycle_order(b, o), b);
+    TEST_ASSERT_FALSE(parse_cycle_order(nullptr, o));
+
+    Config prev = base(), c = base();
+    strcpy(prev.cycle_order, "2,0,1,3,4,5,6");
+    strcpy(c.cycle_order, "garbage");
+    sanitize(c, prev);
+    TEST_ASSERT_EQUAL_STRING("2,0,1,3,4,5,6", c.cycle_order);  // invalid: keep the previous
+    strcpy(prev.cycle_order, "also bad");
+    strcpy(c.cycle_order, "9");
+    sanitize(c, prev);
+    TEST_ASSERT_EQUAL_STRING(CYCLE_ORDER_DEFAULT, c.cycle_order);  // both invalid: the default
+
+    Config src = base(), dst = base();
+    strcpy(src.cycle_order, "6,5,4,3,2,1,0");
+    JsonDocument doc;
+    to_json(src, doc.to<JsonObject>(), Secrets::Mask);
+    from_json(dst, doc.as<JsonObjectConst>());
+    TEST_ASSERT_EQUAL_STRING("6,5,4,3,2,1,0", dst.cycle_order);
+}
+
+void test_cycle_next_follows_the_order() {
+    const uint8_t order[7] = {2, 0, 1, 3, 4, 5, 6};
+    TEST_ASSERT_EQUAL_INT(0, cycle_next(order, 0x7F, -1));  // first: position 0 (screen 2)
+    TEST_ASSERT_EQUAL_INT(1, cycle_next(order, 0x7F, 0));
+    TEST_ASSERT_EQUAL_INT(0, cycle_next(order, 0x7F, 6));  // wraps
+    // Only screens 0 and 2 chosen: positions 0 (screen 2) and 1 (screen 0) alternate.
+    TEST_ASSERT_EQUAL_INT(1, cycle_next(order, 0x05, 0));
+    TEST_ASSERT_EQUAL_INT(0, cycle_next(order, 0x05, 1));
+    TEST_ASSERT_EQUAL_INT(-1, cycle_next(order, 0x00, 0));  // nothing chosen
+}
+
 int main(int, char**) {
     UNITY_BEGIN();
     RUN_TEST(test_valid_config_is_normalised_not_reverted);
@@ -267,5 +309,7 @@ int main(int, char**) {
     RUN_TEST(test_location_marker_and_band_groups);
     RUN_TEST(test_screen_cycling_settings);
     RUN_TEST(test_satellite_settings);
+    RUN_TEST(test_cycle_order);
+    RUN_TEST(test_cycle_next_follows_the_order);
     return UNITY_END();
 }

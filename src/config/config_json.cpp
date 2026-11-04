@@ -26,6 +26,7 @@ namespace config {
             FIELD("cycle_en",     BOOL,     cycle_enabled),
             FIELD("cycle_screens", U16,     cycle_screens),
             FIELD("cycle_s",      U16,      cycle_seconds),
+            FIELD("cycle_order",  STR,      cycle_order),
             FIELD("space_url",    STR,      space_url),
             FIELD("sat_categories", U8,     sat_categories),
             FIELD("sat_min_el",   U8,       sat_min_el),

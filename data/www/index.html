@@ -91,15 +91,16 @@
                 </div>
                 <div class="form-group" style="grid-column: span 2;">
                     <label style="margin:0;"><input type="checkbox" id="cfg-cycle-en"> Cycle through screens automatically</label>
-                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; background: rgba(0,0,0,0.2); padding: 12px; border: 1px solid var(--border);">
-                        <label style="margin:0; font-size:12px;"><input type="checkbox" id="cyc-bit0"> Dashboard</label>
-                        <label style="margin:0; font-size:12px;"><input type="checkbox" id="cyc-bit1"> Band Conditions</label>
-                        <label style="margin:0; font-size:12px;"><input type="checkbox" id="cyc-bit2"> Weather</label>
-                        <label style="margin:0; font-size:12px;"><input type="checkbox" id="cyc-bit3"> DX Cluster</label>
-                        <label style="margin:0; font-size:12px;"><input type="checkbox" id="cyc-bit4"> POTA</label>
-                        <label style="margin:0; font-size:12px;"><input type="checkbox" id="cyc-bit5"> SOTA</label>
-                        <label style="margin:0; font-size:12px;"><input type="checkbox" id="cyc-bit6"> APRS Radar</label>
-                    </div>
+                    <p class="hint" style="margin:10px 0 4px;">Ticked screens are shown in this order; move them with the arrows.</p>
+                    <ol id="cyc-order" class="cyc-order">
+                        <li data-id="0"><label><input type="checkbox" id="cyc-bit0"> Dashboard</label><button type="button" class="btn btn-secondary" aria-label="Move up" onclick="moveCycle(this, -1)">&uarr;</button><button type="button" class="btn btn-secondary" aria-label="Move down" onclick="moveCycle(this, 1)">&darr;</button></li>
+                        <li data-id="1"><label><input type="checkbox" id="cyc-bit1"> Band Conditions</label><button type="button" class="btn btn-secondary" aria-label="Move up" onclick="moveCycle(this, -1)">&uarr;</button><button type="button" class="btn btn-secondary" aria-label="Move down" onclick="moveCycle(this, 1)">&darr;</button></li>
+                        <li data-id="2"><label><input type="checkbox" id="cyc-bit2"> Weather</label><button type="button" class="btn btn-secondary" aria-label="Move up" onclick="moveCycle(this, -1)">&uarr;</button><button type="button" class="btn btn-secondary" aria-label="Move down" onclick="moveCycle(this, 1)">&darr;</button></li>
+                        <li data-id="3"><label><input type="checkbox" id="cyc-bit3"> DX Cluster</label><button type="button" class="btn btn-secondary" aria-label="Move up" onclick="moveCycle(this, -1)">&uarr;</button><button type="button" class="btn btn-secondary" aria-label="Move down" onclick="moveCycle(this, 1)">&darr;</button></li>
+                        <li data-id="4"><label><input type="checkbox" id="cyc-bit4"> POTA</label><button type="button" class="btn btn-secondary" aria-label="Move up" onclick="moveCycle(this, -1)">&uarr;</button><button type="button" class="btn btn-secondary" aria-label="Move down" onclick="moveCycle(this, 1)">&darr;</button></li>
+                        <li data-id="5"><label><input type="checkbox" id="cyc-bit5"> SOTA</label><button type="button" class="btn btn-secondary" aria-label="Move up" onclick="moveCycle(this, -1)">&uarr;</button><button type="button" class="btn btn-secondary" aria-label="Move down" onclick="moveCycle(this, 1)">&darr;</button></li>
+                        <li data-id="6"><label><input type="checkbox" id="cyc-bit6"> APRS Radar</label><button type="button" class="btn btn-secondary" aria-label="Move up" onclick="moveCycle(this, -1)">&uarr;</button><button type="button" class="btn btn-secondary" aria-label="Move down" onclick="moveCycle(this, 1)">&darr;</button></li>
+                    </ol>
                     <label style="margin-top:10px;">Seconds per screen (10-600)</label>
                     <input type="number" id="cfg-cycle-s" min="10" max="600" step="1">
                     <p class="hint">A touch pauses cycling on that screen; it resumes after 2 minutes without a touch. The loop icon in the device's status bar shows it and pauses or resumes it. While cycling, POTA and SOTA show the spots already loaded and refresh every 5 or 10 minutes, and the DX cluster stays connected.</p>

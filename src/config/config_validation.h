@@ -23,6 +23,14 @@ namespace config {
     // Own solar data URL: "" (use hamqsl.com) or http(s)://host/..., printable ASCII without spaces.
     bool is_valid_solar_url(const char* s);
 
+    // The cycling order: true only for the 7 screen ids 0..6, each once, comma-separated, no
+    // spaces (e.g. "2,0,1,3,4,5,6"); out gets them in order.
+    bool parse_cycle_order(const char* s, uint8_t out[7]);
+
+    // The next position in order (after position pos, -1 = start) whose screen is chosen in mask
+    // (CYCLE_SCREENS_* bits); -1 when none is chosen.
+    int cycle_next(const uint8_t order[7], uint16_t mask, int pos);
+
     struct Config;
     // Validate a candidate config in place before it goes live. Invalid callsign/grid/ports/
     // coordinates revert to `previous`; numeric fields are clamped; strings are terminated.

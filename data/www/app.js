@@ -6,6 +6,28 @@ function esc(v) {
 
 // Secrets are never sent to the browser (review 1.3). Show that one is stored; leaving the
 // field blank keeps it.
+// Screen cycling order: the list's rows carry the screen ids (0..6); the device checks the order.
+function renderCycleOrder(order) {
+    const ol = document.getElementById("cyc-order");
+    if (!ol) return;
+    const ids = /^[0-6](,[0-6]){6}$/.test(order || "") ? order.split(",") : ["0", "1", "2", "3", "4", "5", "6"];
+    for (const id of ids) {
+        const li = ol.querySelector(`li[data-id="${id}"]`);
+        if (li) ol.appendChild(li);
+    }
+}
+
+function cycleOrderValue() {
+    const ol = document.getElementById("cyc-order");
+    return ol ? [...ol.children].map(li => li.dataset.id).join(",") : "0,1,2,3,4,5,6";
+}
+
+function moveCycle(btn, dir) {
+    const li = btn.closest("li"), ol = li.parentElement;
+    if (dir < 0 && li.previousElementSibling) ol.insertBefore(li, li.previousElementSibling);
+    if (dir > 0 && li.nextElementSibling) ol.insertBefore(li.nextElementSibling, li);
+}
+
 function markSaved(id, isSet) {
     const el = document.getElementById(id);
     if (el) el.placeholder = isSet ? "saved (leave blank to keep)" : "";
@@ -102,6 +124,7 @@ function fillForm(data) {
     setElementValue("cfg-cycle-s", data.cycle_s ?? 10);
     const cycleMask = data.cycle_screens ?? 127;
     for (let i = 0; i < 7; i++) setElementValue(`cyc-bit${i}`, (cycleMask & (1 << i)) !== 0, true);
+    renderCycleOrder(data.cycle_order);
     setElementValue("cfg-theme", data.theme_id ?? 0);
 
     // Secrets are never sent to the browser (review 1.3): blank fields keep the stored value.
@@ -170,6 +193,7 @@ function collectForm() {
         cycle_en: getElementValue("cfg-cycle-en", true),
         cycle_s: parseInt(getElementValue("cfg-cycle-s")) || 10,
         cycle_screens: [0, 1, 2, 3, 4, 5, 6].reduce((m, i) => m | (getElementValue(`cyc-bit${i}`, true) ? 1 << i : 0), 0) || 127,
+        cycle_order: cycleOrderValue(),
         fc_slots: forecastMask,
         dx_url_p: getElementValue("dx_url_p"),
         dx_port_p: parseInt(getElementValue("dx_port_p")),
