@@ -149,6 +149,7 @@ try {
     check(backup?.format === "qrpickle-backup" && backup.profiles?.[TEST_PROFILE], "Download Backup: settings and the test profile");
     const leaks = backup ? [backup.settings, ...Object.values(backup.profiles)].flatMap(c => SECRET_KEYS.filter(k => c[k])) : ["no backup"];
     check(leaks.length === 0, "backup contains no passwords or keys");
+    check(backup && typeof backup.logos === "object", "backup has a logos section (splash logos)");
 
     await js(`document.getElementById("profile-select").value = ${JSON.stringify(TEST_PROFILE)}; deleteSelectedProfile()`);
     await dialog(/Delete profile/);

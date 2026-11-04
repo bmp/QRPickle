@@ -15,4 +15,4 @@ QRP_ADMIN_PW=<admin password> node tools/webui_e2e/device_test.mjs <device-ip> 9
 kill %1
 ```
 
-(Flatpak Ungoogled Chromium: see `tools/webui_screenshots/README.md`.) The password comes only from the environment. Expect `RESULT pass=31 fail=0`.
+(Flatpak Ungoogled Chromium: see `tools/webui_screenshots/README.md`.) The password comes only from the environment. Expect `RESULT pass=32 fail=0`.

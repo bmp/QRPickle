@@ -274,7 +274,7 @@ function fetchAboutDetails() {
 }
 
 // --- FAIL-SAFE OTA MAINTENANCE TRANSFERS ---
-function executeWirelessOTA() {
+async function executeWirelessOTA() {
     const target = document.getElementById("ota-target").value;
     const fileInput = document.getElementById("ota-file-input");
     
@@ -293,6 +293,16 @@ function executeWirelessOTA() {
     const statusLabel = document.getElementById("ota-status-lbl");
 
     progressContainer.classList.remove("hidden");
+    let keep = null;
+    if (target === "filesystem") {
+        statusLabel.innerText = "Saving profiles and logos before the update...";
+        try { keep = await collectKeep(); } catch (e) {
+            if (!confirm("Profiles and logos could not be read (" + e + "). Update anyway? They will be erased.")) {
+                progressContainer.classList.add("hidden");
+                return;
+            }
+        }
+    }
     statusLabel.innerText = "Uploading payload packages to file server...";
 
     const xhr = new XMLHttpRequest();
@@ -310,6 +320,21 @@ function executeWirelessOTA() {
     xhr.onreadystatechange = () => {
         if (xhr.readyState === 4) {
             if (xhr.status === 200) {
+                if (keep) {
+                    const n = Object.keys(keep.profiles).length, l = Object.keys(keep.logos).length;
+                    statusLabel.innerText = `Waiting for the device to restart, then restoring ${n} profile(s) and ${l} logo(s)...`;
+                    waitForDevice().then(async up => {
+                        const failed = up ? await restoreKeep(keep) : ["device did not come back"];
+                        if (failed.length) {
+                            alert("Restore incomplete: " + failed.join(", ") + ". Your profiles and logos are downloaded as a file; restore it under Profiles.");
+                            offerKeepDownload(keep);
+                        } else {
+                            alert(`Filesystem updated; ${n} profile(s) and ${l} logo(s) restored.`);
+                        }
+                        progressContainer.classList.add("hidden");
+                    });
+                    return;
+                }
                 statusLabel.innerText = "Upload completed! Rebooting hardware processor core...";
                 alert("OTA patch successfully written. The device will now flash reboot.");
                 triggerReboot();
@@ -500,6 +525,57 @@ async function deleteLogo(side) {
     refreshLogos();
 }
 
+const b64 = bytes => btoa(String.fromCharCode(...bytes));
+const unb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+
+// Profiles and logos live in LittleFS: a filesystem update erases them. Read them first (profiles
+// as the API gives them: without their own secrets) and write them back after the restart.
+async function collectKeep() {
+    const keep = { profiles: {}, logos: {} };
+    for (const name of await fetchProfilesList()) {
+        const res = await fetch(`/api/profiles/get?name=${encodeURIComponent(name)}`);
+        if (res.ok) keep.profiles[name] = await res.json();
+    }
+    for (const side of ["left", "right"]) {
+        const res = await fetch(`/api/logos/get?side=${side}`);
+        if (res.ok) keep.logos[side] = b64(new Uint8Array(await res.arrayBuffer()));
+    }
+    return keep;
+}
+
+async function restoreKeep(keep) {
+    const failed = [];
+    for (const [name, cfg] of Object.entries(keep.profiles || {})) {
+        if (!PROFILE_NAME_RE.test(name)) continue;
+        const res = await postProfile(name, cfg, true);
+        if (!res.ok) failed.push(name);
+    }
+    for (const [side, data] of Object.entries(keep.logos || {})) {
+        if (side !== "left" && side !== "right") continue;
+        try { await postLogo(side, unb64(data)); } catch (e) { failed.push(`${side} logo`); }
+    }
+    return failed;
+}
+
+function offerKeepDownload(keep) {
+    const kept = { format: "qrpickle-backup", version: 1, created: new Date().toISOString(), settings: null, ...keep };
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(kept, null, 2)], { type: "application/json" }));
+    a.download = `qrpickle-kept-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+async function waitForDevice(maxMs = 120000) {
+    const end = Date.now() + maxMs;
+    await new Promise(r => setTimeout(r, 15000));  // the device restarts after the upload
+    while (Date.now() < end) {
+        try { if ((await fetch("/api/status", { cache: "no-store" })).ok) return true; } catch (e) { /* not up yet */ }
+        await new Promise(r => setTimeout(r, 3000));
+    }
+    return false;
+}
+
 // Backup: settings + all profiles as the device reports them (secrets masked, review 1.3).
 async function downloadBackup() {
     try {
@@ -510,7 +586,12 @@ async function downloadBackup() {
             const res = await fetch(`/api/profiles/get?name=${encodeURIComponent(name)}`);
             if (res.ok) profiles[name] = await res.json();
         }
-        const backup = { format: "qrpickle-backup", version: 1, created: new Date().toISOString(), settings, profiles };
+        const logos = {};
+        for (const side of ["left", "right"]) {
+            const res = await fetch(`/api/logos/get?side=${side}`);
+            if (res.ok) logos[side] = b64(new Uint8Array(await res.arrayBuffer()));
+        }
+        const backup = { format: "qrpickle-backup", version: 1, created: new Date().toISOString(), settings, profiles, logos };
         const a = document.createElement("a");
         a.href = URL.createObjectURL(new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" }));
         a.download = `qrpickle-backup-${new Date().toISOString().slice(0, 10)}.json`;
@@ -531,23 +612,24 @@ async function restoreBackup(input) {
     } catch (err) {
         alert("This file is not valid JSON."); return;
     }
-    if (backup.format !== "qrpickle-backup" || !backup.settings || typeof backup.profiles !== "object") {
+    // settings: null = a file kept during a filesystem update (profiles and logos only).
+    if (backup.format !== "qrpickle-backup" || backup.settings === undefined || typeof backup.profiles !== "object") {
         alert("This is not a QRPickle backup file."); return;
     }
     const names = Object.keys(backup.profiles).filter(n => PROFILE_NAME_RE.test(n));
-    if (!confirm(`Restore the device settings and ${names.length} profile(s) from this backup? ` +
-                 "Passwords and keys stored on the device are kept.")) return;
-    const failed = [];
-    for (const name of names) {
-        const res = await postProfile(name, backup.profiles[name], true);
-        if (!res.ok) failed.push(name);
+    const logoSides = Object.keys(backup.logos || {}).filter(s => s === "left" || s === "right");
+    const what = [backup.settings ? "the device settings" : null, `${names.length} profile(s)`,
+                  logoSides.length ? `${logoSides.length} splash logo(s)` : null].filter(Boolean).join(", ");
+    if (!confirm(`Restore ${what} from this backup? Passwords and keys stored on the device are kept.`)) return;
+    const failed = await restoreKeep({ profiles: backup.profiles, logos: backup.logos || {} });
+    if (backup.settings) {
+        const res = await fetch("/api/config/save", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(backup.settings)
+        });
+        if (!res.ok) failed.push("device settings");
     }
-    const res = await fetch("/api/config/save", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(backup.settings)
-    });
-    if (!res.ok) failed.push("device settings");
     alert(failed.length ? "Restore finished with errors: " + failed.join(", ") : "Backup restored.");
     window.location.reload();
 }

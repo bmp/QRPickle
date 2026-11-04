@@ -272,7 +272,7 @@
         <section id="tab-profiles" class="tab-content">
             <div class="profile-section">
                 <h2>Stored Profiles</h2>
-                <p class="hint">A profile holds every setting except the admin password. Profiles live on the filesystem: writing a new <code>littlefs.bin</code> erases them, so download a backup first.</p>
+                <p class="hint">A profile holds every setting except the admin password. Profiles live on the filesystem. A filesystem update in this console keeps them (it saves and restores them, without their own passwords or keys); a full install erases them.</p>
                 <div class="form-group">
                     <label>Profile</label>
                     <select id="profile-select" onchange="handleProfileSelectionChange()">
@@ -296,7 +296,7 @@
                 <hr style="border:0; border-top:1px dashed #333; margin:25px 0;">
 
                 <h2>Backup and Restore</h2>
-                <p class="hint">The backup holds the current settings and all profiles, without passwords or keys. Restoring keeps the device's current secrets; restored profiles have none until you edit them.</p>
+                <p class="hint">The backup holds the current settings, all profiles and your splash logos, without passwords or keys. Restoring keeps the device's current secrets; restored profiles have none until you edit them.</p>
                 <div class="profile-controls">
                     <button class="btn btn-secondary" onclick="downloadBackup()">Download Backup</button>
                     <button class="btn btn-secondary" onclick="document.getElementById('restore-file').click()">Restore from Backup...</button>
