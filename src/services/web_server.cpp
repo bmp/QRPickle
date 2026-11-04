@@ -542,16 +542,6 @@ void web_server_init() {
         flag_trigger_ota_flash = true; 
     });
 
-    server.on("/api/logos", HTTP_GET, [](AsyncWebServerRequest* request) {
-        REQUIRE_AUTH(request);
-        JsonDocument doc;
-        logo_info(doc["left"].to<JsonObject>(), "left");
-        logo_info(doc["right"].to<JsonObject>(), "right");
-        AsyncResponseStream* response = request->beginResponseStream("application/json");
-        serializeJson(doc, *response);
-        request->send(response);
-    });
-
     server.on("/api/logos/get", HTTP_GET, [](AsyncWebServerRequest* request) {
         REQUIRE_AUTH(request);
         const char* side = logo_side(request);
@@ -623,6 +613,17 @@ void web_server_init() {
             for (size_t i = 0; i < len && index + i < core::logo::HEADER_BYTES; i++) logo_up.hdr[index + i] = data[i];
             logo_up.file.write(data, len);
             logo_up.bytes = index + len; });
+
+    // After /api/logos/*: a route also matches "<uri>/..." (as for /api/profiles/get and /api/profiles).
+    server.on("/api/logos", HTTP_GET, [](AsyncWebServerRequest* request) {
+        REQUIRE_AUTH(request);
+        JsonDocument doc;
+        logo_info(doc["left"].to<JsonObject>(), "left");
+        logo_info(doc["right"].to<JsonObject>(), "right");
+        AsyncResponseStream* response = request->beginResponseStream("application/json");
+        serializeJson(doc, *response);
+        request->send(response);
+    });
 
     // Defence in depth for review 1.1: no remote scripts, no requests to other hosts.
     DefaultHeaders::Instance().addHeader("Content-Security-Policy",
