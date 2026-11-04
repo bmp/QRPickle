@@ -10,7 +10,9 @@ Updating from v0.2.5: Cloud OTA (device or web console) or upload firmware.bin;
 settings are kept. Then upload littlefs.bin (web console: System Info, "LittleFS
 Storage Image") for the new web console. Download a backup first (Profiles,
 Backup and Restore): this first update still runs from the old console, which
-erases profiles. From v0.2.6 on, the console keeps them.
+erases profiles. From v0.2.6 on, the console keeps them. On v0.2.5 the update
+check often fails (fixed in v0.2.6) but retries every 10 minutes until it gets
+through; uploading firmware.bin in the web console works at once.
 
 New
 - Splash logos: your own logo left and/or right of the title on the start
@@ -40,6 +42,10 @@ Changes
   (it waited 15); its sources are a list (AMSAT orbits when CelesTrak is down).
 
 Fixes
+- Cloud OTA can check for updates again: the certificate check ran out of
+  memory during the connection and failed almost every time (also on v0.2.5).
+  The certificate is now checked between two connections, with the memory
+  free; the security is the same.
 - Changing the theme now recolours the whole screen at once: the background,
   the home button and the menu kept the old theme until a restart (in E-Ink
   Light the home icon was faint and the Network page unreadable).

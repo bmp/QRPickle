@@ -86,6 +86,10 @@ Stack use, from `/api/status` → `mem.stack_free` (bytes never used, lowest see
 10. **Bulky data goes to LittleFS, not RAM.** Holding the satellite feed in RAM (10 KB) was enough
     to make the Cloud OTA certificate check fail on every boot (2026-10-12, A/B tested). Stream
     downloads to a file and keep only what screens show; read the rest on demand.
+11. **Verify TLS certificates outside the handshake** when the chain needs RSA-4096 checks (Let's
+   Encrypt's roots): inside it, the two 16 KB TLS buffers, the parsed CA bundle and the signature
+   checks don't fit together and mbedTLS reports a failed signature, not "out of memory"
+   (`services::TwoStepTlsClient`, Cloud OTA, 2026-11-04).
 
 ## Measuring
 
