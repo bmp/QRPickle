@@ -4,7 +4,7 @@ User-facing changes per release, newest first. Each section is also the release 
 
 ## v0.2.6 (unreleased)
 
-Your own splash logos; filesystem updates keep profiles; theme and LED fixes
+Your own splash logos, cycling order, saved-secret hints, a lighter DX page; theme and LED fixes
 
 Updating from v0.2.5: Cloud OTA (device or web console) or upload firmware.bin;
 settings are kept. Then upload littlefs.bin (web console: System Info, "LittleFS
@@ -18,6 +18,11 @@ New
   (System Info, Splash Logos); it is scaled into 60 x 60 in the browser, with a
   preview. Kept across updates and included in backups. A PNG with a
   transparent background looks best.
+- Screen cycling in your order: the web console lists the screens with up and
+  down arrows.
+- Saved passwords and keys show their last 2 characters in the web console
+  ("saved, ends in ••4f"; only for 6 or more characters), and each has a
+  Clear button. Backups still contain no secrets.
 
 Changes
 - A filesystem update in the web console keeps your profiles and logos: it
@@ -26,6 +31,13 @@ Changes
 - Backups include your splash logos.
 - The weather icons are 36 x 36 (were 40 x 40): each fits one 4 KB block of
   the filesystem, which frees 72 KB.
+- The DX Cluster page says what it is doing ("CONNECTED: waiting for
+  spots...") instead of showing an empty list, and needs much less memory
+  (one line per spot).
+- Home and refresh are in the same place on every page (bottom right), and
+  nothing else sits under them.
+- The satellite feed is retried after 2 and 5 minutes when a download fails
+  (it waited 15); its sources are a list (AMSAT orbits when CelesTrak is down).
 
 Fixes
 - Changing the theme now recolours the whole screen at once: the background,
@@ -33,6 +45,7 @@ Fixes
   Light the home icon was faint and the Network page unreadable).
 - The status LED stays amber while the setup hotspot is up, as documented; it
   used to go dark at the end of the start-up.
+- Opening a page while Settings was open left Settings on top.
 
 ## v0.2.5 (2026-10-12)
 
