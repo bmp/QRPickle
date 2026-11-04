@@ -90,3 +90,9 @@ These lean on the TLS library, memory or flash, so they are built once, on the p
   - Check first: flash cost (passphrase small with mbedTLS; OpenPGP more, at 85.5 % of the slot), PBKDF2 time on the ESP32 (a few seconds is fine), and compatibility tests against `gpg` (RSA and Curve25519 keys).
   - Not planned: revealing full secrets in the console (plain HTTP on the LAN) and board-tied keys (a MAC-derived key isn't secret; a stored key is lost on a full erase; eFuses are irreversible).
 - [ ] **Improv Serial in the firmware (owner 2026-10-12):** answer the web installer, so it can set up WiFi right after flashing, show the installed version and offer "update". Check the flash cost.
+
+## Planned for v0.4.0: portable station (owner 2026-11-04; after the v0.3.0 refactor)
+Hardware additions, so the CYD runs in the field without mains power and finds its own position.
+- [ ] **Rechargeable battery (Li-ion or LiPo):** the CYD runs directly from it. To settle: cell and capacity, a charger/protection board (the CYD has none), power switch, battery level on the screen (an ADC pin through a divider), runtime measured with the backlight levels and sleep.
+- [ ] **GPS module for auto positioning:** lat/lon and the grid square from the GPS (instead of typing them in Settings), and time from it when there is no NTP. To settle: module (UART), which free CYD pins/connector, power draw and a GPS off switch, privacy (position stays on the device, as today).
+- [ ] **Modular 3D-printed case:** holds the CYD with the battery and the GPS together, with each module optional (CYD alone, + battery, + GPS). Printable files (STEP/STL) in the repository, under an open licence; the charging port, power switch, LED and sensor reachable.
