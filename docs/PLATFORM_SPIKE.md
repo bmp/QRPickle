@@ -29,6 +29,34 @@ Fixes needed to build (committed, version-guarded so v0.2.x still builds): mbedT
   within minutes: dynamic buffers fragment the heap here instead of saving it.
 - Flash rises to 92-94 % of the slot (limit 95 %), with no room for v0.4 (GPS) without trimming.
 
+## Second attempt: tuned core 3 (2026-11-05, on v0.2.7 code)
+
+Boot heap trace (`-DQRP_HEAP_TRACE`, free 8-bit heap after each start-up step, KB) and the steady
+state after ~3.5 minutes, measured on the CYD:
+
+| | Core 2 (v0.2.7) | Core 3 stock | Core 3 tuned (env `cyd-p3t`) |
+|---|---|---|---|
+| Start (before QRPickle code) | 232.4 | 214.1 | 227.1 |
+| After display (LVGL pool) | 165.5 (largest 110.6) | 141.9 (largest 57.3) | 154.9 (largest 110.6) |
+| After WiFi | 113.7 | 88.7 | 101.2 |
+| After web server | 94.1 | 68.4 | 80.9 |
+| **Steady** | **~74** | ~46.7 | **~60** |
+| Largest block, steady | 36.9 | 38.9 | 38.9 |
+| Update check | OK | postponed (no heap) | **OK** |
+| Firmware | 86.2 % | 94.3 % | 91.6 % |
+
+Tuning (`custom_sdkconfig`): Bluetooth off, WiFi static RX buffers 10 -> 6 and dynamic RX/TX 32 -> 16,
+TLS out buffer 4 KB (asymmetric, fixed), smaller esp_timer and event task stacks, no core dump.
+It won back ~13 of the 27 KB and removed the fragmentation after the LVGL pool; ~14 KB are still
+missing (about 5 KB before any QRPickle code, ~4 KB more around the display, the rest at run time).
+
+Bar agreed with the owner: steady free heap >= ~73 KB, largest block >= 40 KB, update check and
+installs pass, flash <= 90 %. Not met (60 KB, 38.9 KB, 91.6 %). Next candidates if retried: remove
+the unused Arduino components (Matter, Zigbee, RainMaker, Insights: flash), lwIP TCP windows and
+socket count, find the remaining start-up difference with `heap_caps_print_heap_info()` per region.
+Tooling: pioarduino builds its own Python environment in the core folder; pin PlatformIO 6.2.0 there
+(`penv/bin/uv pip install platformio==6.2.0`), else the hybrid compile rejects 6.2.0.post1.
+
 ## Recommendation
 
 Stay on core 2.0.17 / IDF 4.4 for now. A port would be its own project: find where core 3 spends the
