@@ -17,6 +17,8 @@
 #include "services/weather_manager.h"
 #include "services/prop_manager.h"
 #include "services/space_manager.h"
+#include "services/cloud_ota.h"
+#include "services/aprs_manager.h"
 #include "ui/ui.h"
 #include "ui/fonts.h"
 #ifdef QRP_SCREEN_TOOLS
@@ -115,6 +117,24 @@ void loop() {
     services::PropagationManager::update();
     services::SpaceManager::update();
     mem_stats::update();
+#ifdef QRP_STRESS  // test builds only (docs/TESTING.md, "Stress run"): downloads 10-20x as often; never release
+    {
+        // Every minute after the boot rush, one of: weather (every 3 min), satellite feed (every
+        // 15 min, the screen button's limit), solar (manual limit), update check (every 10 min),
+        // and an APRS-IS reconnect every 10 min.
+        static uint32_t last_min = 0;
+        const uint32_t m = millis() / 60000;
+        if (m >= 3 && m != last_min) {
+            last_min = m;
+            if (m % 3 == 0) services::weather_manager::force_refresh();
+            if (m % 15 == 1) services::SpaceManager::refresh_now();
+            if (m % 10 == 2) services::PropagationManager::refresh_now();
+            if (m % 10 == 7) services::cloud_ota::force_update_check();
+            if (m % 10 == 5) services::AprsManager::stop();  // APRS-IS reconnect: off for a minute
+            if (m % 10 == 6) services::AprsManager::start();
+        }
+    }
+#endif
 #ifdef QRP_SCREEN_TOOLS
     screen_tools::update();
 #endif

@@ -103,3 +103,5 @@ The `build-verify` skill (`.claude/skills/build-verify/`) runs the full checklis
 ## Test-only builds
 
 `-DQRP_TEST_CRASH_AT_BOOT` makes the firmware abort 3s after boot. It exists only to prove the OTA rollback guard (see `docs/RELEASING.md`). **Never release it.**
+
+`-DQRP_STRESS` forces downloads far more often than normal (docs/TESTING.md, "Stress build"). **Never release it.**
