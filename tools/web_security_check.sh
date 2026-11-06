@@ -24,6 +24,7 @@ check "GET /api/logos requires auth"             "$(code "$B/api/logos")" 401
 check "GET /api/logos/get requires auth"         "$(code "$B/api/logos/get?side=left")" 401
 check "POST /api/logos/upload requires auth"     "$(code -X POST -F 'f=@/dev/null' "$B/api/logos/upload?side=left")" 401
 check "POST /api/logos/delete requires auth"     "$(code -X POST "$B/api/logos/delete?side=left")" 401
+check "POST /api/splash/preview requires auth"   "$(code -X POST "$B/api/splash/preview")" 401
 check "GET /api/config with auth"                "$(code "${auth[@]}" "$B/api/config")" 200
 
 cfg=$(curl -s -m 10 "${auth[@]}" "$B/api/config")

@@ -1,4 +1,5 @@
 #include "web_server.h"
+#include "../ui/screens/splash.h"
 #include "../core/mem_stats.h"
 #include "profile_manager.h"  
 #include "ota_manager.h"  
@@ -38,6 +39,7 @@ static std::atomic<bool> flag_trigger_reboot{false};
 #ifdef QRP_SCREEN_TOOLS
 static std::atomic<bool> flag_debug_splash{false};  // /api/debug/splash: restart into a held splash
 #endif
+static std::atomic<bool> flag_splash_preview{false};  // /api/splash/preview: show it from the main loop
 static std::atomic<bool> flag_trigger_ui_refresh{false};
 static std::atomic<bool> flag_trigger_ota_flash{false};
 static unsigned long reboot_timer_mark = 0;
@@ -216,6 +218,7 @@ void web_server_init() {
         AsyncResponseStream *response = request->beginResponseStream("application/json");
         JsonDocument doc;
         doc["uptime"] = millis() / 1000;
+        doc["reset_reason"] = (int)esp_reset_reason();  // esp_reset_reason_t: 1 power-on, 3 software, 4 panic
         doc["ui_page"] = static_cast<int>(ui::ui_active_page());  // ui::LocalPage (tests, screen cycling)
         doc["heap"] = ESP.getFreeHeap();
         const auto& m = mem_stats::get();  // sampled on the main loop every 5 s
@@ -588,6 +591,16 @@ void web_server_init() {
         request->send(LittleFS, path, "application/octet-stream");
     });
 
+    // The splash with the current logos over the screen for 10 s, without a restart.
+    server.on("/api/splash/preview", HTTP_POST, [](AsyncWebServerRequest* request) {
+        REQUIRE_AUTH(request);
+        if (ui::splash_preview_active() || flag_splash_preview) {
+            request->send(409, "application/json", "{\"error\":\"a preview is already showing\"}");
+            return;
+        }
+        flag_splash_preview = true;
+        request->send(200, "application/json", "{\"status\":\"showing for 10 s\"}");
+    });
     server.on("/api/logos/delete", HTTP_POST, [](AsyncWebServerRequest* request) {
         REQUIRE_AUTH(request);
         const char* side = logo_side(request);
@@ -686,6 +699,19 @@ void web_server_update() {
     
     if (flag_trigger_reboot && (millis() - reboot_timer_mark > 1500)) {
         ESP.restart();
+    }
+    if (flag_splash_preview.exchange(false)) {
+        // The splash takes ~SPLASH_LVGL_NEED of the LVGL pool on top of the page in view; a heavy page
+        // (Weather, Settings) leaves less, so the dashboard is opened under it first.
+        constexpr uint32_t SPLASH_LVGL_NEED = 16 * 1024;
+        lv_mem_monitor_t mon;
+        lv_mem_monitor(&mon);
+        if (mon.free_biggest_size < SPLASH_LVGL_NEED) ui::ui_navigate_local(ui::PAGE_DASHBOARD);
+        services::display_manager::wake();
+        ui::splash_preview_show(10000);
+        lv_mem_monitor(&mon);
+        Serial.printf("[Splash] preview: LVGL pool %u%% used, largest free %u B\n", mon.used_pct,
+                      (unsigned)mon.free_biggest_size);
     }
 #ifdef QRP_SCREEN_TOOLS
     if (flag_debug_splash) {

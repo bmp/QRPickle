@@ -330,7 +330,7 @@
             </div>
 
             <div class="sys-section-title" style="margin-top: 25px;">Splash Logos</div>
-            <p class="hint">Your own logo left and/or right of the title on the start screen, scaled into 60 x 60. Shown from the next restart. Kept across updates; included in backups.</p>
+            <p class="hint">Your own logo left and/or right of the title on the start screen, scaled into 60 x 60. Shown from the next restart; "Preview on the device" shows the start screen for 10 seconds now. Kept across updates; included in backups.</p>
             <div class="sys-grid">
                 <div class="sys-card" id="logo-card-left"><label>Left logo: <span id="logo-state-left">--</span></label>
                     <input type="file" accept="image/*" onchange="pickLogo('left', this)">
@@ -343,6 +343,7 @@
                     <button class="btn" id="logo-up-right" disabled onclick="uploadLogo('right')">Upload</button>
                     <button class="btn" onclick="deleteLogo('right')">Use built-in</button></div>
             </div>
+            <p><button class="btn" id="splash-preview-btn" onclick="previewSplash()">Preview on the device</button> <span id="splash-preview-msg" class="hint" role="status"></span></p>
 
             <div class="sys-section-title" style="margin-top: 25px;">Wireless Maintenance Terminal</div>
             <div class="sys-card" style="max-width: 100%; box-sizing: border-box;">

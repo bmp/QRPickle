@@ -1,4 +1,5 @@
 #include "screen_cycle.h"
+#include "screens/splash.h"
 #include "sidebar.h"
 #include "status_bar.h"
 #include "ui.h"
@@ -36,7 +37,8 @@ namespace ui {
             if (!cfg.cycle_enabled) return State::OFF;
             if (user_paused) return State::PAUSED_USER;
             const bool busy = services::display_manager::is_sleeping() || ui_active_page() == PAGE_SETTINGS ||
-                              sidebar_is_visible() || ui_active_page() == PAGE_APRS_MSG;
+                              sidebar_is_visible() || ui_active_page() == PAGE_APRS_MSG ||
+                              splash_preview_active();
             if (busy || lv_display_get_inactive_time(nullptr) < RESUME_AFTER_MS) return State::PAUSED_TOUCH;
             return State::RUNNING;
         }

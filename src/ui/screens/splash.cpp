@@ -71,12 +71,9 @@ namespace ui {
         lv_image_set_src(img, builtin);
     }
 
-    void draw_splash_screen(lv_obj_t* parent, void (*on_complete)()) {
-        splash_complete_callback = on_complete;
-        wifi_attempts = 0;
-
+    // The splash page (title, logos, version, diagnostics, status line); returns the status label.
+    static lv_obj_t* build_splash(lv_obj_t* page) {
         // 1. Build Fullscreen Splash Layer Base
-        lv_obj_t* page = lv_obj_create(parent);
         lv_obj_set_size(page, SCREEN_W, SCREEN_H);
         lv_obj_set_style_bg_color(page, theme_color(COLOR_BG_APP), 0);
         lv_obj_set_style_border_width(page, 0, 0);
@@ -153,13 +150,21 @@ namespace ui {
         lv_obj_align(lbl_diag, LV_ALIGN_TOP_LEFT, 0, 0);
 
         // 7. Network Handshaking Dynamic Output Status Line
-        lbl_wifi_status = lv_label_create(page);
+        lv_obj_t* status = lv_label_create(page);
         // Dropped the text size to 10 to clean up layout hierarchy
-        lv_obj_set_style_text_font(lbl_wifi_status, &font_atkinson_10, 0);
-        lv_obj_set_style_text_color(lbl_wifi_status, theme_color(COLOR_INFO), 0);
-        lv_label_set_text(lbl_wifi_status, "Connecting to Network... [0/20]");
+        lv_obj_set_style_text_font(status, &font_atkinson_10, 0);
+        lv_obj_set_style_text_color(status, theme_color(COLOR_INFO), 0);
+        lv_label_set_text(status, "Connecting to Network... [0/20]");
         // Tucked tightly against the bottom bezel to make room for the expanded window
-        lv_obj_align(lbl_wifi_status, LV_ALIGN_BOTTOM_MID, 0, -6);
+        lv_obj_align(status, LV_ALIGN_BOTTOM_MID, 0, -6);
+        return status;
+    }
+
+    void draw_splash_screen(lv_obj_t* parent, void (*on_complete)()) {
+        splash_complete_callback = on_complete;
+        wifi_attempts = 0;
+        lv_obj_t* page = lv_obj_create(parent);
+        lbl_wifi_status = build_splash(page);
 
         // 8. Spawn Asynchronous Network Interrogation Timer
         lv_timer_t* splash_timer = lv_timer_create(splash_timer_cb, 1000, nullptr);
@@ -172,6 +177,35 @@ namespace ui {
                 Serial.println("[Splash] Background polling timer disposed cleanly.");
             }
         }, LV_EVENT_DELETE, splash_timer);
+    }
+
+    // ---- Preview (web console, Splash Logos: "Preview on the device") ---------------------------
+    static lv_obj_t* preview_page = nullptr;
+    static lv_timer_t* preview_timer = nullptr;  // one-shot: LVGL deletes it after it fires
+
+    bool splash_preview_active() { return preview_page != nullptr; }
+
+    bool splash_preview_show(uint32_t ms) {
+        if (preview_page) return false;
+        // On the top layer, over the current page, which stays as it is underneath.
+        preview_page = lv_obj_create(lv_layer_top());
+        lv_obj_t* status = build_splash(preview_page);
+        lv_label_set_text_fmt(status, "Preview: closes in %u s, or tap to close", (unsigned)(ms / 1000));
+        lv_obj_add_flag(preview_page, LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_add_event_cb(preview_page, [](lv_event_t*) { lv_obj_delete_async(preview_page); }, LV_EVENT_CLICKED, nullptr);
+        preview_timer = lv_timer_create([](lv_timer_t*) {
+            preview_timer = nullptr;  // deleted by LVGL after this call (repeat count 1)
+            if (preview_page) lv_obj_delete_async(preview_page);
+        },
+                                        ms, nullptr);
+        lv_timer_set_repeat_count(preview_timer, 1);
+        lv_obj_add_event_cb(preview_page, [](lv_event_t*) {
+            // Closed by a tap: the timer is still pending. Deleting a timer that already fired
+            // corrupted the LVGL pool (panic in lv_tlsf, 2026-11-06).
+            if (preview_timer) lv_timer_delete(preview_timer);
+            preview_timer = nullptr;
+            preview_page = nullptr; }, LV_EVENT_DELETE, nullptr);
+        return true;
     }
 
 } // namespace ui

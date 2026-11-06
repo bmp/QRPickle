@@ -18,19 +18,21 @@ namespace services {
         
         static unsigned long last_fetch_ms = 0;
         static bool initial_fetch_done = false;
-        static uint32_t active_interval_ms = 7200000;  
+        static uint32_t active_interval_ms = 7200000;
 
-        static void fetch_current(const config::Config& cfg) {
-            if (strlen(cfg.openweather_api_key) == 0) return;
+        // Each returns true when this run got new data (a skipped or failed run keeps the old).
+        static bool fetch_current(const config::Config& cfg) {
+            if (strlen(cfg.openweather_api_key) == 0) return false;
             char url[256];
             snprintf(url, sizeof(url), "https://api.openweathermap.org/data/2.5/weather?lat=%.4f&lon=%.4f&appid=%s&units=metric", cfg.lat, cfg.lon, cfg.openweather_api_key);
 
             NetLock lock;
-            if (!lock.held() || !tls_heap_ready("OpenWeather", 0)) return;  // main loop: never wait here
+            if (!lock.held() || !tls_heap_ready("OpenWeather", 0)) return false;  // main loop: never wait here
             // HTTPS so the API key isn't sent in clear (review 3.5); serialised by NetLock.
             SafeTlsClient tls;  // thread-safe DNS (safe_client.h)
             tls.setInsecure();
             HTTPClient http;
+            bool got = false;
             http.begin(tls, url);
             if (http.GET() == 200) {
                 // Strict Memory Filter
@@ -63,23 +65,26 @@ namespace services {
                     strlcpy(current_wx.icon, doc["weather"][0]["icon"] | "01d", sizeof(current_wx.icon));
                     strlcpy(current_wx.location, doc["name"] | "Local Area", sizeof(current_wx.location));
                     current_wx.valid = true;
+                    got = true;
                     hw::led_rgb::trigger_traffic_pulse();  // data ingress (docs/LEDColours.md)
                 }
             }
             http.end();
+            return got;
         }
 
-        static void fetch_forecast(const config::Config& cfg) {
-            if (strlen(cfg.openweather_api_key) == 0) return;
+        static bool fetch_forecast(const config::Config& cfg) {
+            if (strlen(cfg.openweather_api_key) == 0) return false;
             char url[256];
             snprintf(url, sizeof(url), "https://api.openweathermap.org/data/2.5/forecast?lat=%.4f&lon=%.4f&appid=%s&units=metric&cnt=8", cfg.lat, cfg.lon, cfg.openweather_api_key);
 
             NetLock lock;
-            if (!lock.held() || !tls_heap_ready("OpenWeather", 0)) return;  // main loop: never wait here
+            if (!lock.held() || !tls_heap_ready("OpenWeather", 0)) return false;  // main loop: never wait here
             // HTTPS so the API key isn't sent in clear (review 3.5); serialised by NetLock.
             SafeTlsClient tls;  // thread-safe DNS (safe_client.h)
             tls.setInsecure();
             HTTPClient http;
+            bool got = false;
             http.begin(tls, url);
             if (http.GET() == 200) {
                 // Strict Memory Filter
@@ -104,10 +109,12 @@ namespace services {
                         idx++;
                     }
                     forecast_wx.valid = true;
+                    got = true;
                     hw::led_rgb::trigger_traffic_pulse();  // data ingress (docs/LEDColours.md)
                 }
             }
             http.end();
+            return got;
         }
 
         void init() { current_wx.valid = false; forecast_wx.valid = false; }
@@ -138,12 +145,14 @@ namespace services {
                 const auto& cfg = config::get();
                 if (strlen(cfg.openweather_api_key) == 0) return;
                 mem_stats::job_begin("weather");
-                fetch_current(cfg);
-                fetch_forecast(cfg);
+                const bool cur = fetch_current(cfg);
+                const bool fore = fetch_forecast(cfg);
                 mem_stats::job_end();
-                Serial.printf("[Weather] OpenWeather: current %s, forecast %s%s\n", current_wx.valid ? "OK" : "failed",
-                              forecast_wx.valid ? "OK" : "failed",
-                              current_wx.valid && forecast_wx.valid ? "" : " (retry in 5 min)");
+                Serial.printf("[Weather] OpenWeather: current %s, forecast %s%s\n", cur ? "OK" : "failed",
+                              fore ? "OK" : "failed",
+                              cur && fore                             ? ""
+                              : current_wx.valid && forecast_wx.valid ? " (kept the last data)"
+                                                                      : " (retry in 5 min)");
             }
         }
 

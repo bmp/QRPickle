@@ -571,6 +571,24 @@ async function deleteLogo(side) {
     refreshLogos();
 }
 
+// Shows the start screen with the uploaded logos on the device for 10 s (no restart).
+async function previewSplash() {
+    const btn = document.getElementById('splash-preview-btn');
+    const msg = document.getElementById('splash-preview-msg');
+    btn.disabled = true;
+    try {
+        const res = await fetch('/api/splash/preview', {method: 'POST'});
+        msg.innerText = res.ok ? 'Showing on the device for 10 seconds.' : res.status === 409 ? 'A preview is already showing.' :
+                                                                                                `The device refused (HTTP ${res.status}).`;
+    } catch (e) {
+        msg.innerText = 'The device didn\'t answer.';
+    }
+    setTimeout(() => {
+        btn.disabled = false;
+        msg.innerText = '';
+    }, 10000);
+}
+
 const b64 = bytes => btoa(String.fromCharCode(...bytes));
 const unb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
 
