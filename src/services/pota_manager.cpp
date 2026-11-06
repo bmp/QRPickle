@@ -104,7 +104,9 @@ namespace services {
     }
 
     void PotaManager::fetch_task(void*) {
+        mem_stats::job_begin("pota");
         run_fetch();
+        mem_stats::job_end();
         mem_stats::note_stack(mem_stats::STK_POTA);
         vTaskDelete(NULL);
     }

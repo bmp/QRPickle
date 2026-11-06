@@ -28,6 +28,7 @@
 #include <Update.h>  
 #include <esp_arduino_version.h>
 #include "../core/logo_file.h"
+#include "../core/mem_math.h"
 
 static AsyncWebServer server(80);
 using services::copy_secret;
@@ -211,6 +212,23 @@ void web_server_init() {
         mem["lvgl_total"] = m.lvgl_total;
         mem["lvgl_used"] = m.lvgl_used;
         mem["lvgl_max_used"] = m.lvgl_max_used;
+        mem["frag_pct"] = mem::frag_pct(m.heap_free, m.largest_block);
+        JsonObject pages = mem["lvgl_page_peak"].to<JsonObject>();  // ui::LocalPage number -> bytes
+        for (int i = 0; i < mem_stats::PAGES; i++)
+            if (mem_stats::lvgl_page_peak(i)) pages[String(i)] = mem_stats::lvgl_page_peak(i);
+        JsonArray jobs = mem["jobs"].to<JsonArray>();  // last downloads/calculations, oldest first
+        for (int i = 0; i < mem_stats::job_count(); i++) {
+            const auto& j = mem_stats::job(i);
+            JsonArray r = jobs.add<JsonArray>();  // name, ms, free before/min/after, largest before/min/after
+            r.add(j.name);
+            r.add(j.ms);
+            r.add(j.free_before);
+            r.add(j.free_min);
+            r.add(j.free_after);
+            r.add(j.largest_before);
+            r.add(j.largest_min);
+            r.add(j.largest_after);
+        }
         JsonObject stk = mem["stack_free"].to<JsonObject>();  // bytes never used, lowest seen
         for (int i = 0; i < mem_stats::STK_COUNT; i++) {
             const auto slot = (mem_stats::StackSlot)i;

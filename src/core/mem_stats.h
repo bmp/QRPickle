@@ -38,4 +38,21 @@ namespace mem_stats {
     uint32_t stack_free(StackSlot slot);  // 0 = not measured yet
     const char* stack_name(StackSlot slot);
 
+    // Heap around one job (a download, a pass calculation): before, lowest while it ran (sampled
+    // every 50 ms by a FreeRTOS software timer, no extra task), after. The last JOBS are kept.
+    struct JobRecord {
+        char name[12];
+        uint32_t free_before, largest_before, free_min, largest_min, free_after, largest_after, ms;
+    };
+    constexpr int JOBS = 8;
+    void job_begin(const char* name);  // one job at a time (they are serialised by NetLock)
+    void job_end();
+    int job_count();  // records held (<= JOBS), newest last
+    const JobRecord& job(int i);
+
+    // LVGL pool peak per page (ui::LocalPage), from the active page at each sample.
+    constexpr int PAGES = 13;
+    void note_page(uint8_t page);
+    uint32_t lvgl_page_peak(uint8_t page);
+
 }  // namespace mem_stats

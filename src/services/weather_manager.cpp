@@ -1,3 +1,4 @@
+#include "../core/mem_stats.h"
 #include <WiFiClientSecure.h>
 #include "safe_client.h"
 #include "../hw/led_rgb.h"
@@ -136,8 +137,10 @@ namespace services {
                 initial_fetch_done = true;
                 const auto& cfg = config::get();
                 if (strlen(cfg.openweather_api_key) == 0) return;
+                mem_stats::job_begin("weather");
                 fetch_current(cfg);
                 fetch_forecast(cfg);
+                mem_stats::job_end();
                 Serial.printf("[Weather] OpenWeather: current %s, forecast %s%s\n", current_wx.valid ? "OK" : "failed",
                               forecast_wx.valid ? "OK" : "failed",
                               current_wx.valid && forecast_wx.valid ? "" : " (retry in 5 min)");

@@ -83,6 +83,7 @@ namespace services {
     }
 
     void PropagationManager::fetch_task(void*) {
+        mem_stats::job_begin("solar");
         crashlog::mark(crashlog::SLOT_SOLAR, 1);
         const char* own = config::get().solar_url;
         char url[sizeof(config::Config::solar_url)];
@@ -159,6 +160,7 @@ namespace services {
         fetching = false;
         crashlog::mark(crashlog::SLOT_SOLAR, 6);
         mem_stats::note_stack(mem_stats::STK_SOLAR);
+        mem_stats::job_end();
         vTaskDelete(NULL);
     }
 

@@ -3,6 +3,7 @@
 #include "core/mem_stats.h"
 #include <Arduino.h>
 #include <esp_task_wdt.h>
+#include <esp_heap_caps.h>
 #include "hw/display.h"
 #include "hw/touch.h"
 #include "hw/sensor.h"
@@ -22,10 +23,17 @@
 #include "core/screen_tools.h"
 #endif
 
+// Free 8-bit heap after each start-up step, printed once at boot (docs/MEMORY_AUDIT.md).
+static void heap_step(const char* what) {
+    Serial.printf("[HEAP] %-8s free %6u  largest %6u\n", what, (unsigned)heap_caps_get_free_size(MALLOC_CAP_8BIT),
+                  (unsigned)heap_caps_get_largest_free_block(MALLOC_CAP_8BIT));
+}
+
 void setup() {
     hw::led_rgb::init();
     hw::led_rgb::set_state(hw::led_rgb::STATE_BOOT_HW);
     Serial.begin(115200);
+    heap_step("start");
     delay(500);
     crashlog::report_previous();
     services::ota_manager::rollback_boot_check();  // may reboot into the previous image
@@ -49,14 +57,17 @@ void setup() {
     Serial.println("[Boot Check] Initializing Sensors...");
     Serial.flush();
     sensor_init();
+    heap_step("sensor");
     Serial.println("[Boot Check] Sensors OK.");
     Serial.flush();
 
     Serial.println("[Boot Check] Initializing Display Driver...");
     Serial.flush();
     display_init();
+    heap_step("display");
 
     core::lvgl_fs_init();
+    heap_step("fs");
 
     Serial.println("[Boot Check] Display Driver OK.");
     Serial.flush();
@@ -70,10 +81,13 @@ void setup() {
     Serial.println("[Boot Check] Launching Network Stack...");
     Serial.flush();
     wifi_manager_init();
+    heap_step("wifi");
 
     fonts_init();
     ui::ui_init();
+    heap_step("ui");
     web_server_init();
+    heap_step("web");
 
     Serial.println("--- All operational tasks successfully scheduled ---");
     Serial.flush();

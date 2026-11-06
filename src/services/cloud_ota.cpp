@@ -140,7 +140,9 @@ namespace services {
         static void background_check_task(void*) {
             {
                 quiet::Hold hold;  // quiet window (review 2.10)
+                mem_stats::job_begin("ota_check");
                 fetch_ota_json();
+                mem_stats::job_end();
             }
             Serial.printf("[OTA] Update check %s (latest: %s, local: %s)\n",
                           cached_info.latest_version[0] ? "OK" : "FAILED",
