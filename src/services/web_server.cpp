@@ -29,6 +29,7 @@
 #include <esp_arduino_version.h>
 #include "../core/logo_file.h"
 #include "../core/mem_math.h"
+#include <esp_heap_caps.h>
 
 static AsyncWebServer server(80);
 using services::copy_secret;
@@ -154,6 +155,8 @@ static void logo_info(JsonObject o, const char* side) {
     }
 }
 
+static std::atomic<uint32_t> web_refused{0};  // requests closed for lack of memory (mem.web_refused)
+
 void web_server_init() {
     // Called from setup() and again whenever the setup AP comes up; register routes only once.
     static bool initialized = false;
@@ -164,6 +167,18 @@ void web_server_init() {
     if (LittleFS.begin()) {
         if (!LittleFS.exists("/profiles")) LittleFS.mkdir("/profiles");
     }
+
+    // Before every route: with too little memory, close the request without building a response
+    // (a failed allocation there aborts the device; mem::web_can_serve, crash 2026-11-06).
+    server.addMiddleware([](AsyncWebServerRequest* request, ArMiddlewareNext next) {
+        if (!mem::web_can_serve(heap_caps_get_free_size(MALLOC_CAP_8BIT),
+                                heap_caps_get_largest_free_block(MALLOC_CAP_8BIT))) {
+            web_refused++;
+            request->abort();
+            return;
+        }
+        next();
+    });
 
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
         REQUIRE_AUTH(request);
@@ -213,6 +228,7 @@ void web_server_init() {
         mem["lvgl_used"] = m.lvgl_used;
         mem["lvgl_max_used"] = m.lvgl_max_used;
         mem["frag_pct"] = mem::frag_pct(m.heap_free, m.largest_block);
+        mem["web_refused"] = web_refused.load();
         JsonObject pages = mem["lvgl_page_peak"].to<JsonObject>();  // ui::LocalPage number -> bytes
         for (int i = 0; i < mem_stats::PAGES; i++)
             if (mem_stats::lvgl_page_peak(i)) pages[String(i)] = mem_stats::lvgl_page_peak(i);
