@@ -108,6 +108,12 @@ console and stay on the device.
 
 QRPickle uses a fixed UTC offset (in half-hour steps), with no automatic daylight saving. In regions that observe DST, change the offset in Settings twice a year. Most ham-radio activity is logged in UTC, which is always shown correctly.
 
+## Contributing
+
+Bug reports, ideas and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md) and the
+[Code of Conduct](CODE_OF_CONDUCT.md). Report security problems privately ([SECURITY.md](SECURITY.md)).
+What helps with accessibility and what doesn't yet: [ACCESSIBILITY.md](ACCESSIBILITY.md).
+
 ## Third-Party Licences
 
 QRPickle's own code is MIT-licensed (see [`License`](License)). The fonts are under the SIL Open Font License 1.1, the web server libraries under LGPL-3.0, and the CYD pinout image in the docs under CC BY-NC-ND 4.0. The full list, with copyright holders and licence texts, is in **[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)**; each release zip includes it.
