@@ -5,6 +5,7 @@
 #include "../fonts.h"
 #include "../ui.h"
 #include "../../services/pota_manager.h"
+#include "../../services/xota_row_text.h"
 #include "../../services/sota_manager.h"
 #include "../../services/dx_manager.h"
 #include "../../services/hamalert_manager.h"
@@ -56,16 +57,15 @@ namespace ui {
     static int active_qrp = 0; 
     static const char* QRPS[] = {"Q", "•", "-"};
 
-    #define MAX_UI_ROWS 15 
+#define MAX_UI_ROWS 15
 
+    // Two labels per row: the spot as one monospace line (services::xota_row_text, columns at the
+    // header's x) and the QRP dot (accent colour). Six labels per row took the page to 49 KB of the
+    // LVGL pool (2026-11-06).
     struct RowX {
         lv_obj_t* base;
         size_t spot;  // index of the spot shown in this row (filters hide spots, so row N is not spot N)
-        lv_obj_t* l_time;
-        lv_obj_t* l_ref;
-        lv_obj_t* l_freq;
-        lv_obj_t* l_mode;
-        lv_obj_t* l_act;
+        lv_obj_t* l_line;
         lv_obj_t* l_q;
     };
     
@@ -238,12 +238,10 @@ namespace ui {
                     (active_mode == 0 || strcasecmp(spots[i].mode, MODES[active_mode])==0) &&
                     (active_qrp == 0 || (active_qrp==1 && spots[i].is_qrp) || (active_qrp==2 && !spots[i].is_qrp));
                     if(show) {
-                        lv_label_set_text(rows[vis].l_time, spots[i].time);
-                        lv_label_set_text(rows[vis].l_ref, spots[i].reference);
-                        char fb[8]; snprintf(fb, sizeof(fb), "%.3f", spots[i].freq);
-                        lv_label_set_text(rows[vis].l_freq, fb);
-                        lv_label_set_text(rows[vis].l_mode, spots[i].mode);
-                        lv_label_set_text(rows[vis].l_act, spots[i].activator);
+                        char line[48];
+                        services::xota_row_text(spots[i].time, spots[i].reference, spots[i].freq, spots[i].mode,
+                                                spots[i].activator, line, sizeof(line));
+                        lv_label_set_text(rows[vis].l_line, line);
                         lv_label_set_text(rows[vis].l_q, spots[i].is_qrp ? "•" : "-");
                         lv_obj_set_style_text_color(rows[vis].l_q, spots[i].is_qrp ? theme_color(COLOR_ACCENT_PRIMARY) : theme_color(COLOR_TEXT_MAIN), 0);
                         rows[vis].spot = i;
@@ -260,12 +258,10 @@ namespace ui {
                     (active_mode == 0 || strcasecmp(spots[i].mode, MODES[active_mode])==0) &&
                     (active_qrp == 0 || (active_qrp==1 && spots[i].is_qrp) || (active_qrp==2 && !spots[i].is_qrp));
                     if(show) {
-                        lv_label_set_text(rows[vis].l_time, spots[i].time);
-                        lv_label_set_text(rows[vis].l_ref, spots[i].summit);
-                        char fb[8]; snprintf(fb, sizeof(fb), "%.3f", spots[i].freq);
-                        lv_label_set_text(rows[vis].l_freq, fb);
-                        lv_label_set_text(rows[vis].l_mode, spots[i].mode);
-                        lv_label_set_text(rows[vis].l_act, spots[i].activator);
+                        char line[48];
+                        services::xota_row_text(spots[i].time, spots[i].summit, spots[i].freq, spots[i].mode,
+                                                spots[i].activator, line, sizeof(line));
+                        lv_label_set_text(rows[vis].l_line, line);
                         lv_label_set_text(rows[vis].l_q, spots[i].is_qrp ? "•" : "-");
                         lv_obj_set_style_text_color(rows[vis].l_q, spots[i].is_qrp ? theme_color(COLOR_ACCENT_PRIMARY) : theme_color(COLOR_TEXT_MAIN), 0);
                         rows[vis].spot = i;
@@ -372,19 +368,27 @@ namespace ui {
 
         lv_obj_t* l1 = lv_label_create(head); lv_label_set_text(l1, "TIME"); lv_obj_set_style_text_font(l1, &font_jetbrains_10, 0); lv_obj_set_style_text_color(l1, theme_color(COLOR_TEXT_MUTED), 0); lv_obj_align(l1, LV_ALIGN_LEFT_MID, 4, 0);
         lbl_hdr_ref = lv_label_create(head); lv_label_set_text(lbl_hdr_ref, "PARK"); lv_obj_set_style_text_font(lbl_hdr_ref, &font_jetbrains_10, 0); lv_obj_set_style_text_color(lbl_hdr_ref, theme_color(COLOR_TEXT_MUTED), 0); lv_obj_align(lbl_hdr_ref, LV_ALIGN_LEFT_MID, 40, 0);
-        
-        btn_freq = lv_button_create(head); lv_obj_set_size(btn_freq, 36, 20); lv_obj_align(btn_freq, LV_ALIGN_LEFT_MID, 110, 0); 
+
+        btn_freq = lv_button_create(head);
+        lv_obj_set_size(btn_freq, 44, 20);
+        lv_obj_align(btn_freq, LV_ALIGN_LEFT_MID, 106, 0);  // over the frequency column
         lv_obj_set_style_bg_color(btn_freq, theme_color(COLOR_BG_APP), 0); lv_obj_set_style_border_color(btn_freq, theme_color(COLOR_BORDER), 0); lv_obj_set_style_border_width(btn_freq, 1, 0); lv_obj_set_style_radius(btn_freq, 3, 0); lv_obj_set_style_pad_all(btn_freq, 0, 0);
         lv_obj_add_event_cb(btn_freq, cycle_cb, LV_EVENT_CLICKED, (void*)1);
         lv_obj_t* l3 = lv_label_create(btn_freq); lv_label_set_text(l3, BANDS[active_band]); lv_obj_set_style_text_font(l3, &font_jetbrains_10, 0); lv_obj_set_style_text_color(l3, theme_color(COLOR_TEXT_MAIN), 0); lv_obj_center(l3);
-        
-        btn_mode = lv_button_create(head); lv_obj_set_size(btn_mode, 35, 20); lv_obj_align(btn_mode, LV_ALIGN_LEFT_MID, 155, 0); 
+
+        btn_mode = lv_button_create(head);
+        lv_obj_set_size(btn_mode, 28, 20);
+        lv_obj_align(btn_mode, LV_ALIGN_LEFT_MID, 154, 0);  // over the mode column
         lv_obj_set_style_bg_color(btn_mode, theme_color(COLOR_BG_APP), 0); lv_obj_set_style_border_color(btn_mode, theme_color(COLOR_BORDER), 0); lv_obj_set_style_border_width(btn_mode, 1, 0); lv_obj_set_style_radius(btn_mode, 3, 0); lv_obj_set_style_pad_all(btn_mode, 0, 0);
         lv_obj_add_event_cb(btn_mode, cycle_cb, LV_EVENT_CLICKED, (void*)2);
         lv_obj_t* l4 = lv_label_create(btn_mode); lv_label_set_text(l4, MODES[active_mode]); lv_obj_set_style_text_font(l4, &font_jetbrains_10, 0); lv_obj_set_style_text_color(l4, theme_color(COLOR_TEXT_MAIN), 0); lv_obj_center(l4);
 
-        lv_obj_t* l5 = lv_label_create(head); lv_label_set_text(l5, "ACT"); lv_obj_set_style_text_font(l5, &font_jetbrains_10, 0); lv_obj_set_style_text_color(l5, theme_color(COLOR_TEXT_MUTED), 0); lv_obj_align(l5, LV_ALIGN_LEFT_MID, 205, 0);
-        
+        lv_obj_t* l5 = lv_label_create(head);
+        lv_label_set_text(l5, "ACT");
+        lv_obj_set_style_text_font(l5, &font_jetbrains_10, 0);
+        lv_obj_set_style_text_color(l5, theme_color(COLOR_TEXT_MUTED), 0);
+        lv_obj_align(l5, LV_ALIGN_LEFT_MID, 184, 0);
+
         btn_qrp = lv_button_create(head); lv_obj_set_size(btn_qrp, 20, 20); lv_obj_align(btn_qrp, LV_ALIGN_LEFT_MID, 290, 0); 
         lv_obj_set_style_bg_color(btn_qrp, theme_color(COLOR_BG_APP), 0); lv_obj_set_style_border_color(btn_qrp, theme_color(COLOR_BORDER), 0); lv_obj_set_style_border_width(btn_qrp, 1, 0); lv_obj_set_style_radius(btn_qrp, 3, 0); lv_obj_set_style_pad_all(btn_qrp, 0, 0);
         lv_obj_add_event_cb(btn_qrp, cycle_cb, LV_EVENT_CLICKED, (void*)3);
@@ -450,32 +454,12 @@ namespace ui {
             lv_obj_add_event_cb(r, row_click, LV_EVENT_CLICKED, (void*)(intptr_t)i);
             
             rows[i].base = r;
-            
-            rows[i].l_time = lv_label_create(r); 
-            lv_obj_set_style_text_font(rows[i].l_time, &font_jetbrains_10, 0); 
-            lv_obj_set_style_text_color(rows[i].l_time, theme_color(COLOR_TEXT_MAIN), 0);
-            lv_obj_align(rows[i].l_time, LV_ALIGN_LEFT_MID, 4, 0);
-            
-            rows[i].l_ref = lv_label_create(r); 
-            lv_obj_set_style_text_font(rows[i].l_ref, &font_jetbrains_10, 0); 
-            lv_obj_set_style_text_color(rows[i].l_ref, theme_color(COLOR_ACCENT_PRIMARY), 0); 
-            lv_obj_align(rows[i].l_ref, LV_ALIGN_LEFT_MID, 40, 0);
-            
-            rows[i].l_freq = lv_label_create(r); 
-            lv_obj_set_style_text_font(rows[i].l_freq, &font_jetbrains_10, 0); 
-            lv_obj_set_style_text_color(rows[i].l_freq, theme_color(COLOR_TEXT_MAIN), 0);
-            lv_obj_align(rows[i].l_freq, LV_ALIGN_LEFT_MID, 110, 0);
-            
-            rows[i].l_mode = lv_label_create(r); 
-            lv_obj_set_style_text_font(rows[i].l_mode, &font_jetbrains_10, 0); 
-            lv_obj_set_style_text_color(rows[i].l_mode, theme_color(COLOR_TEXT_MAIN), 0);
-            lv_obj_align(rows[i].l_mode, LV_ALIGN_LEFT_MID, 160, 0);
-            
-            rows[i].l_act = lv_label_create(r); 
-            lv_obj_set_style_text_font(rows[i].l_act, &font_jetbrains_10, 0); 
-            lv_obj_set_style_text_color(rows[i].l_act, theme_color(COLOR_TEXT_MAIN), 0);
-            lv_obj_align(rows[i].l_act, LV_ALIGN_LEFT_MID, 205, 0);
-            
+
+            rows[i].l_line = lv_label_create(r);
+            lv_obj_set_style_text_font(rows[i].l_line, &font_jetbrains_10, 0);
+            lv_obj_set_style_text_color(rows[i].l_line, theme_color(COLOR_TEXT_MAIN), 0);
+            lv_obj_align(rows[i].l_line, LV_ALIGN_LEFT_MID, 4, 0);
+
             rows[i].l_q = lv_label_create(r); 
             lv_obj_set_style_text_font(rows[i].l_q, &font_jetbrains_10, 0); 
             lv_obj_align(rows[i].l_q, LV_ALIGN_LEFT_MID, 290, 0);
