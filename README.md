@@ -91,7 +91,7 @@ console and stay on the device.
 * **Themes:** 7 themes in LVGL 9, including Tactical Field Red, Terminal Green and two E-Ink styles.
 * **Display:** sleep timeout, manual or automatic brightness (light sensor).
 * **Privacy:** passwords and network details are masked on screen and in the serial log.
-* **Splash logos:** your own logos left and right of the title on the start screen (uploaded in the web console, scaled into 60 x 60; kept across updates and in backups).
+* **Splash logos:** your own logos left and right of the title on the start screen (uploaded in the web console, scaled into 60 x 60; kept across updates and in backups; "Preview on the device" shows the start screen for 10 seconds without a restart).
 
 **Web console and updates**
 * **Web console:** every setting, profiles (save and switch complete setups for home, mobile and field; download/restore a backup without passwords and keys; a filesystem update keeps profiles and logos; saved secrets show their last 2 characters and can be cleared), APRS messaging and system information. Digest login; the setup hotspot (`192.168.4.1`) takes over when no network is reachable.

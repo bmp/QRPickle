@@ -31,7 +31,7 @@ and follow the rules at the end. Measured on a CYD with v0.2.4 on 2026-10-10.
 
 | User | Size | Where | Notes |
 |------|------|-------|-------|
-| LVGL pool (`LV_MEM_SIZE`) | 64 KB | heap, once at `lv_init()` | DX cluster page 49 KB -> 29.5 KB after one label per row (2026-11-04); 26-28.5 KB after boot |
+| LVGL pool (`LV_MEM_SIZE`) | 56 KB (64 until v0.2.7) | heap, once at `lv_init()` | page peaks (v0.2.8): Weather 39.3, Settings 36.8, Band 36.1, APRS 33.9, xOTA 32.9 KB; the splash preview adds ~0.3 KB (it opens the dashboard under it on a heavy page) |
 | LVGL image cache (`LV_CACHE_DEF_SIZE`) | up to 16 KB | inside the pool | decoded icons from LittleFS; 32 KB ran the pool out (crash) |
 | LVGL layer buffer (`LV_DRAW_LAYER_SIMPLE_BUF_SIZE`) | 8 KB chunks | inside the pool | only for objects drawn through a layer (object opacity, transforms) |
 | Display draw buffer | 12.8 KB | static | `320 x 10` RGB565 x 2 |
@@ -70,9 +70,10 @@ Stack use, from `/api/status` → `mem.stack_free` (bytes never used, lowest see
    buffer kept for the device's lifetime over repeated allocate/free.
 4. **One network session at a time:** `services::NetLock` (`net_lock.h`) around every connect or
    HTTP(S) request. Two TLS sessions never fit together.
-5. **Background TLS takes the quiet window:** `services::quiet` (`quiet_window.h`) pauses HamAlert
-   and APRS while held. It is counted: the last holder restarts what was running. Background
-   tasks use `quiet::Hold`; the UI uses `acquire()`/`release()` (xOTA).
+5. **HamAlert and APRS stay connected during downloads** (since v0.2.8). Stopping them for each
+   TLS session and reconnecting afterwards put their new socket buffers (1,436 B each plus lwIP
+   records) in the middle of the space TLS had just freed, which split the largest block every
+   time. `services::quiet` is still called around TLS work but only counts holders.
 6. **Check the 8-bit heap**, not `ESP.getMaxAllocHeap()` (above). Log the largest 8-bit block when a
    TLS request fails.
 7. **Don't start heavy work in the first seconds after boot.** WiFi, NTP, the solar fetch and the
@@ -81,8 +82,9 @@ Stack use, from `/api/status` → `mem.stack_free` (bytes never used, lowest see
 8. **LVGL:** fade with `bg_opa`/`text_opa`, not object opacity on objects with children (that
    renders through a layer buffer). Show only the open tab's objects (`lv_obj_clean` on tab
    change). Keep the number of distinct images on a page small (the image cache is 16 KB).
-9. **Measure before and after** a change that adds memory (below), and keep the LVGL peak below
-   ~56 KB (8 KB margin in the pool).
+9. **Measure before and after** a change that adds memory (below). The LVGL pool is sized from
+   the highest page peak + 25 % + allocator overhead; a new or heavier page needs a new
+   measurement (`mem.lvgl_page_peak`), and if it passes ~44 KB the pool must grow.
 10. **Bulky data goes to LittleFS, not RAM.** Holding the satellite feed in RAM (10 KB) was enough
     to make the Cloud OTA certificate check fail on every boot (2026-10-12, A/B tested). Stream
     downloads to a file and keep only what screens show; read the rest on demand.
@@ -90,11 +92,29 @@ Stack use, from `/api/status` → `mem.stack_free` (bytes never used, lowest see
    Encrypt's roots): inside it, the two 16 KB TLS buffers, the parsed CA bundle and the signature
    checks don't fit together and mbedTLS reports a failed signature, not "out of memory"
    (`services::TwoStepTlsClient`, Cloud OTA, 2026-11-04).
+12. **The web server refuses rather than crashes when memory is low:** a middleware answers nothing
+   (connection closed) when the 8-bit heap has less than 12 KB free or no 6 KB block
+   (`mem::web_can_serve`, counted in `mem.web_refused`). An allocation failure inside the web
+   library's Digest login aborted the device (xOTA, 2026-11-06).
+13. **Permanent task stacks cost every TLS session.** A network worker (one 12 KB, then 8 KB task for
+   all downloads, instead of short-lived tasks) was built and measured in v0.2.8 and dropped: later
+   downloads started with 3-9 KB less free heap, weather failed twice and the lowest free heap fell
+   to 72 B (7.8 KB before). The code is on the `wip/net-worker` branch for v0.3.
 
 ## Measuring
 
 - `/api/status` → `mem`: `heap_min_free`, `largest_block` (8-bit, now and lowest since boot),
-  `lvgl_used` and `lvgl_max_used`. Sampled every 5 s on the main loop (`src/core/mem_stats.cpp`).
+  `frag_pct` (how much of the free heap is outside the largest block), `lvgl_used`,
+  `lvgl_max_used`, `lvgl_page_peak` (per page), `web_refused`, `stack_free`, and `jobs`: the last
+  downloads with their duration and free/largest before, lowest during (sampled every 50 ms) and
+  after. Serial prints the same as `[Mem] job ...` lines, and `[HEAP]` lines trace the boot.
+  `reset_reason` (top level) tells a crash (4) from a restart (3) or power-on (1).
+- **Heap map** (what sits between the free areas): a temporary probe allocates the largest free
+  block repeatedly, records each area's address and size, frees them, and prints the heap headers
+  (`0xabba1234` + size, with heap poisoning) in the gap with their first bytes. That identified the
+  HamAlert/APRS receive buffers (`# logresp`, `# aprsc`) splitting the heap. `heap_caps_dump()`
+  crashed the device (it prints while holding the heap lock); don't use it. The probe itself briefly
+  takes all free memory, so judge stability on a build without it.
 - LVGL peak over all pages: flash the `cyd-screens` build and open each page with
   `POST /api/debug/screen?page=N` (or `tools/device_screens.py`), reading `/api/status` after each.
 - Heap regions: a temporary `heap_caps_print_heap_info(MALLOC_CAP_8BIT)` prints every region's
