@@ -97,7 +97,8 @@ namespace services {
         if (fetching || (millis() - last_fetch_time < 30000 && last_fetch_time != 0)) return;
         fetching = true;
         // Off the UI thread (review 3.3): the TLS handshake and stream used to freeze the screen.
-        if (xTaskCreate(fetch_task, "pota_fetch", 8192, NULL, 1, NULL) != pdPASS) {
+        // 6 KB: 4.2 KB of 8 KB was never used (mem.stack_free.pota); the 2 KB go to the TLS session.
+        if (xTaskCreate(fetch_task, "pota_fetch", 6144, NULL, 1, NULL) != pdPASS) {
             fetching = false;
             Serial.println("[POTA] Task creation failed (heap).");
         }

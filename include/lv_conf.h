@@ -12,10 +12,12 @@
 #define LV_MEM_POOL_ALLOC   malloc
 
 /* Pool size from measurements (2026-11-06, every page and tab on the CYD, mem.lvgl_page_peak):
- * highest Weather 39.3 KB, then Settings 36.8, Band 36.1, APRS 33.9, xOTA 32.9. Highest + 25 %
- * headroom + ~5 KB of the allocator's own overhead -> 56 KB (was LVGL's default 64 KB): 8 KB more
- * heap. A new or heavier page must be measured first (docs/UI_GUIDE.md). */
-#define LV_MEM_SIZE (56 * 1024)
+ * highest Weather 39.3 KB, then Settings 36.8, Band 36.1, APRS 33.9, xOTA 32.9; the highest seen
+ * in 60 min of cycling with the splash preview 40.3 KB (max_used, allocator overhead included).
+ * 48 KB leaves 7.7 KB (19 %): HTTPS downloads need that heap while cycling (POTA, satellite feed
+ * and the update check failed for memory at 56 KB). A new or heavier page must be measured first
+ * (docs/UI_GUIDE.md); above ~42 KB the pool must grow. */
+#define LV_MEM_SIZE (48 * 1024)
 
 /* Flash budget (review area 6, S2/S3). The display is RGB565, so only the RGB565
  * software renderer (plus RGB565A8 sources and A8 masks/fonts) is needed: ~53 KB saved.

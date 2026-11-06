@@ -31,7 +31,7 @@ and follow the rules at the end. Measured on a CYD with v0.2.4 on 2026-10-10.
 
 | User | Size | Where | Notes |
 |------|------|-------|-------|
-| LVGL pool (`LV_MEM_SIZE`) | 56 KB (64 until v0.2.7) | heap, once at `lv_init()` | page peaks (v0.2.8): Weather 39.3, Settings 36.8, Band 36.1, APRS 33.9, xOTA 32.9 KB; the splash preview adds ~0.3 KB (it opens the dashboard under it on a heavy page) |
+| LVGL pool (`LV_MEM_SIZE`) | 48 KB (64 until v0.2.7) | heap, once at `lv_init()` | page peaks (v0.2.8): Weather 39.3, Settings 36.8, Band 36.1, APRS 33.9, xOTA 32.9 KB; the splash preview adds ~0.3 KB (it opens the dashboard under it on a heavy page) |
 | LVGL image cache (`LV_CACHE_DEF_SIZE`) | up to 16 KB | inside the pool | decoded icons from LittleFS; 32 KB ran the pool out (crash) |
 | LVGL layer buffer (`LV_DRAW_LAYER_SIMPLE_BUF_SIZE`) | 8 KB chunks | inside the pool | only for objects drawn through a layer (object opacity, transforms) |
 | Display draw buffer | 12.8 KB | static | `320 x 10` RGB565 x 2 |
@@ -99,11 +99,14 @@ Stack use, from `/api/status` → `mem.stack_free` (bytes never used, lowest see
    (connection closed) when the 8-bit heap has less than 12 KB free or no 6 KB block
    (`mem::web_can_serve`, counted in `mem.web_refused`). An allocation failure inside the web
    library's Digest login aborted the device (xOTA, 2026-11-06).
-13. **Measure downloads under cycling.** With screen cycling on (DX cluster kept connected, a screen
-   open) HTTPS downloads fail for memory: POTA 0/5 and feed 0/4 in 30 min on v0.2.7 and v0.2.8
-   alike (2026-11-06). The largest block settles at 33-41 KB across runs, not 45 KB (one heap-map
-   run). Judge memory changes by download success in that workload, on a normal build, over at
-   least two runs.
+13. **Measure downloads under cycling.** An HTTPS download takes ~52-57 KB while it runs (TLS,
+   parsing, its task's stack). Cycling holds ~14 KB more than the dashboard alone: the POTA, SOTA
+   and DX spot lists (3.4-3.8 KB each, kept once allocated) and the DX connection. With the LVGL
+   pool at 56 KB, POTA and feed downloads failed for memory while cycling (0/5, 0/4, also on
+   v0.2.7); at 48 KB, with POTA's stack 8 -> 6 KB, all succeeded in 2 x 30 min (2026-11-06).
+   Judge memory changes by download success in that workload (`tools/cycle_run.sh`), on a normal
+   build, from a fresh boot, over at least two runs; the largest block varies 33-55 KB by uptime.
+   Make sure the screens really change (the display asleep pauses cycling).
 14. **Permanent task stacks cost every TLS session.** A network worker (one 12 KB, then 8 KB task for
    all downloads, instead of short-lived tasks) was built and measured in v0.2.8 and dropped: later
    downloads started with 3-9 KB less free heap, weather failed twice and the lowest free heap fell
