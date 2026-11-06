@@ -68,7 +68,10 @@ Stack use, from `/api/status` → `mem.stack_free` (bytes never used, lowest see
 3. **Allocate long-lived memory early, once.** Every allocation made at run time, and every task
    that is stopped and restarted, can land somewhere new and split the big region. Prefer one
    buffer kept for the device's lifetime over repeated allocate/free.
-4. **One network session at a time:** `services::NetLock` (`net_lock.h`) around every connect or
+4. **The main loop never waits for NetLock** (`NetLock lock(0)`, retry later): a task download can
+   hold it for 20 s or more, and the loop watchdog fires at 30 s (weather reset the board this way,
+   2026-11-06).
+4a. **One network session at a time:** `services::NetLock` (`net_lock.h`) around every connect or
    HTTP(S) request. Two TLS sessions never fit together.
 5. **HamAlert and APRS stay connected during downloads** (since v0.2.8). Stopping them for each
    TLS session and reconnecting afterwards put their new socket buffers (1,436 B each plus lwIP

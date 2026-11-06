@@ -18,6 +18,7 @@
 #include "services/prop_manager.h"
 #include "services/space_manager.h"
 #include "services/cloud_ota.h"
+#include "services/net_lock.h"
 #include "services/aprs_manager.h"
 #include "ui/ui.h"
 #include "ui/fonts.h"
@@ -117,6 +118,27 @@ void loop() {
     services::PropagationManager::update();
     services::SpaceManager::update();
     mem_stats::update();
+#ifdef QRP_TEST_NETLOCK_HOLD  // test builds only (docs/TESTING.md): a task holds NetLock for 45 s at
+    // 2 min while weather is due; the main loop must not wait for it (30 s loop watchdog). Never release.
+    {
+        static bool started = false;
+        if (!started && millis() > 120000) {
+            started = true;
+            xTaskCreate([](void*) {
+                {
+                    services::NetLock lock;
+                    Serial.printf("[Test] NetLock held: %d (45 s)\n", lock.held());
+                    vTaskDelay(pdMS_TO_TICKS(45000));
+                }
+                Serial.println("[Test] NetLock released");
+                vTaskDelete(nullptr);
+            },
+                        "netlock_hold", 3072, nullptr, 1, nullptr);
+            vTaskDelay(pdMS_TO_TICKS(200));
+            services::weather_manager::force_refresh();
+        }
+    }
+#endif
 #ifdef QRP_STRESS  // test builds only (docs/TESTING.md, "Stress run"): downloads 10-20x as often; never release
     {
         // Every minute after the boot rush, one of: weather (every 3 min), satellite feed (every

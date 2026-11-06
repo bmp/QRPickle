@@ -26,6 +26,9 @@ Fixes
 - xOTA and APRS lists use less screen memory (xOTA 49.5 -> 33.5 KB,
   APRS 44.1 -> 33.9 KB), so the screen memory pool is 8 KB smaller and that
   memory goes to downloads.
+- The device could restart (watchdog) when a weather update was due while
+  another download was running: the screen waited for the network for up to
+  40 seconds. Weather now tries again 30 seconds later instead.
 - The log no longer reports a skipped weather update as "OK".
 
 Known issue

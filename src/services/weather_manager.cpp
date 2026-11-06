@@ -144,6 +144,16 @@ namespace services {
                 initial_fetch_done = true;
                 const auto& cfg = config::get();
                 if (strlen(cfg.openweather_api_key) == 0) return;
+                // The main loop must never wait for the network (30 s loop watchdog): a download in a
+                // task can hold NetLock for 20 s or more, and each fetch below waited up to 20 s for
+                // it; two such waits reset the board (stress run, 2026-11-06). Take the lock without
+                // waiting and hold it across both fetches (it is recursive); when busy, retry in 30 s.
+                constexpr uint32_t BUSY_RETRY_MS = 30000;
+                NetLock lock(0);
+                if (!lock.held()) {
+                    last_fetch_ms = now - interval + BUSY_RETRY_MS;
+                    return;
+                }
                 mem_stats::job_begin("weather");
                 const bool cur = fetch_current(cfg);
                 const bool fore = fetch_forecast(cfg);
