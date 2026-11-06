@@ -1,6 +1,4 @@
 #include "quiet_window.h"
-#include "aprs_manager.h"
-#include "hamalert_manager.h"
 #include <Arduino.h>
 
 namespace services {
@@ -8,37 +6,27 @@ namespace services {
 
         static portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
         static int holders = 0;
-        static bool ham_was = false, aprs_was = false;
 
+        // HamAlert and APRS stay connected during downloads (2026-11-06): stopping them before each
+        // HTTPS job and reconnecting after it made every reconnect place new socket buffers (1.4 KB
+        // each, plus lwIP records) in the middle of the space TLS had just freed, which split the
+        // heap's largest block (heap maps in docs/MEMORY_AUDIT.md). Kept as an interface: a later
+        // need to pause them can go here again.
         void acquire() {
             portENTER_CRITICAL(&mux);
-            const bool first = holders++ == 0;
+            holders++;
             portEXIT_CRITICAL(&mux);
-            if (!first) return;
-            ham_was = !HamAlertManager::is_stopped();
-            aprs_was = !AprsManager::is_stopped();
-            HamAlertManager::stop();
-            AprsManager::stop();
         }
 
-        bool settled() { return HamAlertManager::is_stopped() && AprsManager::is_stopped(); }
+        bool settled() { return true; }
 
         void release() {
             portENTER_CRITICAL(&mux);
-            const bool last = holders > 0 && --holders == 0;
+            if (holders > 0) holders--;
             portEXIT_CRITICAL(&mux);
-            if (!last) return;
-            if (ham_was) HamAlertManager::start();
-            if (aprs_was) AprsManager::start();
         }
 
-        Hold::Hold(uint32_t wait_ms) {
-            acquire();
-            for (uint32_t t = 0; t < wait_ms && !settled(); t += 100) vTaskDelay(pdMS_TO_TICKS(100));
-            // FreeRTOS frees a deleted task's stack later, in the idle task: give it a moment, or the
-            // TLS handshake starts before the 10 KB APRS stack is back.
-            vTaskDelay(pdMS_TO_TICKS(500));
-        }
+        Hold::Hold(uint32_t) { acquire(); }
 
         Hold::~Hold() { release(); }
 
