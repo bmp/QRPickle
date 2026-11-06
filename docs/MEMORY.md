@@ -96,7 +96,12 @@ Stack use, from `/api/status` → `mem.stack_free` (bytes never used, lowest see
    (connection closed) when the 8-bit heap has less than 12 KB free or no 6 KB block
    (`mem::web_can_serve`, counted in `mem.web_refused`). An allocation failure inside the web
    library's Digest login aborted the device (xOTA, 2026-11-06).
-13. **Permanent task stacks cost every TLS session.** A network worker (one 12 KB, then 8 KB task for
+13. **Measure downloads under cycling.** With screen cycling on (DX cluster kept connected, a screen
+   open) HTTPS downloads fail for memory: POTA 0/5 and feed 0/4 in 30 min on v0.2.7 and v0.2.8
+   alike (2026-11-06). The largest block settles at 33-41 KB across runs, not 45 KB (one heap-map
+   run). Judge memory changes by download success in that workload, on a normal build, over at
+   least two runs.
+14. **Permanent task stacks cost every TLS session.** A network worker (one 12 KB, then 8 KB task for
    all downloads, instead of short-lived tasks) was built and measured in v0.2.8 and dropped: later
    downloads started with 3-9 KB less free heap, weather failed twice and the lowest free heap fell
    to 72 B (7.8 KB before). The code is on the `wip/net-worker` branch for v0.3.

@@ -4,7 +4,7 @@ User-facing changes per release, newest first. Each section is also the release 
 
 ## v0.2.8 (2026-11-07)
 
-More free memory, no crash on the xOTA screen, and a splash logo preview
+No crash on the xOTA screen, slimmer lists, and a splash logo preview
 
 Update with Cloud OTA (from v0.2.7) or the web console. The web console
 files changed (the preview button): also upload littlefs.bin in the web
@@ -21,13 +21,17 @@ Fixes
 - The device could restart on the xOTA screen while the web console was
   open: the web server ran out of memory during the login. It now turns a
   request away when memory is low instead.
-- Downloads leave more memory in one piece: HamAlert and APRS-IS stay
-  connected during downloads (reconnecting after each one split the free
-  memory). Largest free block about 45 KB and steady (was 35 KB, shrinking).
+- HamAlert and APRS-IS stay connected during downloads instead of
+  reconnecting after each one (the reconnects split the free memory).
 - xOTA and APRS lists use less screen memory (xOTA 49.5 -> 33.5 KB,
   APRS 44.1 -> 33.9 KB), so the screen memory pool is 8 KB smaller and that
   memory goes to downloads.
 - The log no longer reports a skipped weather update as "OK".
+
+Known issue
+- While screen cycling is on, POTA spots, the satellite feed and the update
+  check often can't download (not enough memory for HTTPS while the DX
+  cluster and the screens are active). Same in v0.2.7; planned for v0.3.
 
 For developers
 - /api/status: memory per download job, fragmentation, screen memory per
