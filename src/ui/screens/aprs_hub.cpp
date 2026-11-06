@@ -1,3 +1,4 @@
+#include "../../services/aprs_row_text.h"
 #include "aprs_hub.h"
 #include "../layout.h"
 #include "../theme.h"
@@ -38,12 +39,12 @@ namespace ui {
     static lv_obj_t* lbl_comment = nullptr;
     static lv_timer_t* ui_timer = nullptr;
 
+    // One label per row (services::aprs_row_text lines the columns up in the monospace font; the
+    // header sits on the same 6 px grid): four labels per row made this the heaviest page (44 KB of
+    // the LVGL pool, 2026-11-06).
     struct AprsRow {
         lv_obj_t* base;
-        lv_obj_t* l_call;
-        lv_obj_t* l_type;
-        lv_obj_t* l_dist;
-        lv_obj_t* l_brg;
+        lv_obj_t* l_line;
     };
     static AprsRow* rows = nullptr;
 
@@ -91,22 +92,10 @@ namespace ui {
                     if (active_type_idx == 3 && strcmp(st[i].type, "Radios") != 0) continue;
                     if (active_type_idx == 4 && strcmp(st[i].type, "Fixed Base") != 0) continue;
 
-                    lv_label_set_text(rows[vis].l_call, st[i].callsign);
-                    lv_label_set_text(rows[vis].l_type, st[i].type);
-
-                    char dbuf[16]; snprintf(dbuf, sizeof(dbuf), "%.1f km", st[i].distance_km);
-                    if (privacy::HIDE_POSITIONS) snprintf(dbuf, sizeof(dbuf), "-- km");  // screenshot builds
-                    lv_label_set_text(rows[vis].l_dist, dbuf);
-
-                    int brg_val = st[i].bearing_deg;
-                    if (brg_val < 0 || brg_val >= 360) brg_val = 0;
-                    const char* dirs[] = {"N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"};
-                    int dir_idx = ((brg_val + 11) % 360) / 22;
-                    if (dir_idx < 0 || dir_idx >= 16) dir_idx = 0;
-
-                    char bbuf[16]; snprintf(bbuf, sizeof(bbuf), "%d\xC2\xB0 %s", brg_val, dirs[dir_idx]);
-                    if (privacy::HIDE_POSITIONS) snprintf(bbuf, sizeof(bbuf), "--");
-                    lv_label_set_text(rows[vis].l_brg, bbuf);
+                    char line[64];
+                    services::aprs_row_text(st[i].callsign, st[i].type, st[i].distance_km, st[i].bearing_deg,
+                                            privacy::HIDE_POSITIONS, line, sizeof(line));
+                    lv_label_set_text(rows[vis].l_line, line);
 
                     lv_obj_set_hidden(rows[vis].base, false);
                     vis++;
@@ -120,7 +109,7 @@ namespace ui {
                     } else if (vis == 0) {
                         lv_label_set_text(lbl_comment, "WAITING: No stations tracked. Awaiting beacons.");
                     } else {
-                        lv_label_set_text(lbl_comment, "COMMENT: Touch any station row to inspect details.");
+                        lv_label_set_text(lbl_comment, "COMMENT: Tap a station row for details.");
                     }
                 }
             }
@@ -233,11 +222,11 @@ namespace ui {
         lv_obj_set_scrollable(foot, false);
 
         lbl_comment = lv_label_create(foot);
-        lv_label_set_text(lbl_comment, "COMMENT: Touch any station row to inspect details.");
+        lv_label_set_text(lbl_comment, "COMMENT: Tap a station row for details.");
         lv_obj_set_style_text_font(lbl_comment, &font_jetbrains_10, 0);
         lv_obj_set_style_text_color(lbl_comment, theme_color(COLOR_TEXT_MUTED), 0);
         lv_obj_align(lbl_comment, LV_ALIGN_TOP_LEFT, 6, 2);
-        lv_obj_set_width(lbl_comment, CONTENT_RIGHT - 6);  // stop before the corner (corner.h)
+        lv_obj_set_size(lbl_comment, CONTENT_RIGHT - 6, 12);  // one line, before the corner (corner.h)
         lv_label_set_long_mode(lbl_comment, LV_LABEL_LONG_DOT);
 
         lv_obj_t* btn_radar = lv_button_create(foot);
@@ -299,18 +288,26 @@ namespace ui {
         lv_obj_set_scrollable(head, false);
 
         lv_obj_t* hl1 = lv_label_create(head); lv_label_set_text(hl1, "CALL"); lv_obj_set_style_text_font(hl1, &font_jetbrains_10, 0); lv_obj_set_style_text_color(hl1, theme_color(COLOR_TEXT_MUTED), 0); lv_obj_align(hl1, LV_ALIGN_LEFT_MID, 6, 0);
-        
-        btn_hdr_type = lv_button_create(head); lv_obj_set_size(btn_hdr_type, 80, 18); lv_obj_align(btn_hdr_type, LV_ALIGN_LEFT_MID, 62, 0);
+
+        btn_hdr_type = lv_button_create(head);
+        lv_obj_set_size(btn_hdr_type, 78, 18);
+        lv_obj_align(btn_hdr_type, LV_ALIGN_LEFT_MID, 58, 0);
         lv_obj_set_style_bg_color(btn_hdr_type, theme_color(COLOR_BG_APP), 0); lv_obj_set_style_border_color(btn_hdr_type, theme_color(COLOR_BORDER), 0); lv_obj_set_style_border_width(btn_hdr_type, 1, 0); lv_obj_set_style_radius(btn_hdr_type, 3, 0); lv_obj_set_style_pad_all(btn_hdr_type, 0, 0);
         lv_obj_add_event_cb(btn_hdr_type, toggle_type_filter_cb, LV_EVENT_CLICKED, nullptr);
         lv_obj_t* lbl_ht = lv_label_create(btn_hdr_type); lv_label_set_text(lbl_ht, FILTER_TYPES[active_type_idx]); lv_obj_set_style_text_font(lbl_ht, &font_jetbrains_10, 0); lv_obj_set_style_text_color(lbl_ht, theme_color(COLOR_TEXT_MAIN), 0); lv_obj_center(lbl_ht);
 
-        btn_hdr_dist = lv_button_create(head); lv_obj_set_size(btn_hdr_dist, 72, 18); lv_obj_align(btn_hdr_dist, LV_ALIGN_LEFT_MID, 148, 0);
+        btn_hdr_dist = lv_button_create(head);
+        lv_obj_set_size(btn_hdr_dist, 72, 18);
+        lv_obj_align(btn_hdr_dist, LV_ALIGN_LEFT_MID, 142, 0);
         lv_obj_set_style_bg_color(btn_hdr_dist, theme_color(COLOR_BG_APP), 0); lv_obj_set_style_border_color(btn_hdr_dist, theme_color(COLOR_BORDER), 0); lv_obj_set_style_border_width(btn_hdr_dist, 1, 0); lv_obj_set_style_radius(btn_hdr_dist, 3, 0); lv_obj_set_style_pad_all(btn_hdr_dist, 0, 0);
         lv_obj_add_event_cb(btn_hdr_dist, toggle_dist_sort_cb, LV_EVENT_CLICKED, nullptr);
         lv_obj_t* lbl_hd = lv_label_create(btn_hdr_dist); lv_label_set_text(lbl_hd, "DIST [ASC]"); lv_obj_set_style_text_font(lbl_hd, &font_jetbrains_10, 0); lv_obj_set_style_text_color(lbl_hd, theme_color(COLOR_TEXT_MAIN), 0); lv_obj_center(lbl_hd);
 
-        lv_obj_t* hl4 = lv_label_create(head); lv_label_set_text(hl4, "BRG / AZM"); lv_obj_set_style_text_font(hl4, &font_jetbrains_10, 0); lv_obj_set_style_text_color(hl4, theme_color(COLOR_TEXT_MUTED), 0); lv_obj_align(hl4, LV_ALIGN_LEFT_MID, 226, 0);
+        lv_obj_t* hl4 = lv_label_create(head);
+        lv_label_set_text(hl4, "BRG / AZM");
+        lv_obj_set_style_text_font(hl4, &font_jetbrains_10, 0);
+        lv_obj_set_style_text_color(hl4, theme_color(COLOR_TEXT_MUTED), 0);
+        lv_obj_align(hl4, LV_ALIGN_LEFT_MID, 222, 0);
 
         list_container = lv_obj_create(t1);
         lv_obj_set_size(list_container, SCREEN_W, 142);
@@ -335,10 +332,10 @@ namespace ui {
             lv_obj_add_event_cb(r, row_click, LV_EVENT_CLICKED, (void*)(intptr_t)i);
             
             rows[i].base = r;
-            rows[i].l_call = lv_label_create(r); lv_obj_set_style_text_font(rows[i].l_call, &font_jetbrains_10, 0); lv_obj_set_style_text_color(rows[i].l_call, theme_color(COLOR_TEXT_MAIN), 0); lv_obj_align(rows[i].l_call, LV_ALIGN_LEFT_MID, 6, 0);
-            rows[i].l_type = lv_label_create(r); lv_obj_set_style_text_font(rows[i].l_type, &font_jetbrains_10, 0); lv_obj_set_style_text_color(rows[i].l_type, theme_color(COLOR_TEXT_MUTED), 0); lv_obj_align(rows[i].l_type, LV_ALIGN_LEFT_MID, 62, 0);
-            rows[i].l_dist = lv_label_create(r); lv_obj_set_style_text_font(rows[i].l_dist, &font_jetbrains_10, 0); lv_obj_set_style_text_color(rows[i].l_dist, theme_color(COLOR_ACCENT_PRIMARY), 0); lv_obj_align(rows[i].l_dist, LV_ALIGN_LEFT_MID, 148, 0);
-            rows[i].l_brg = lv_label_create(r);  lv_obj_set_style_text_font(rows[i].l_brg, &font_jetbrains_10, 0);  lv_obj_set_style_text_color(rows[i].l_brg, theme_color(COLOR_TEXT_MAIN), 0); lv_obj_align(rows[i].l_brg, LV_ALIGN_LEFT_MID, 226, 0);
+            rows[i].l_line = lv_label_create(r);
+            lv_obj_set_style_text_font(rows[i].l_line, &font_jetbrains_10, 0);
+            lv_obj_set_style_text_color(rows[i].l_line, theme_color(COLOR_TEXT_MAIN), 0);
+            lv_obj_align(rows[i].l_line, LV_ALIGN_LEFT_MID, 6, 0);
         }
         lv_obj_set_hidden(list_container, false);
 
