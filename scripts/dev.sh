@@ -28,14 +28,17 @@ fi
 VERSION=$(grep FW_VERSION src/core/metadata.h | cut -d'"' -f2)
 # The source is mounted with :z (shared SELinux label): with :Z every run gets a private label,
 # and files copied into the cache volume (e.g. data_gz) become unreadable to the next run.
+# Volumes named *3 since v0.3.0 (Arduino core 3): the core 2 caches clash with pioarduino's tools.
 run() {
     "$ENGINE" run --rm -i $([[ -t 0 ]] && echo -t) \
         -v "$PWD:/src:z" \
-        -v "qrpickle-workspace-$UBUNTU:/pio-workspace" -v "qrpickle-core-$UBUNTU:/pio-core" \
+        -v "qrpickle-workspace3-$UBUNTU:/pio-workspace" -v "qrpickle-core3-$UBUNTU:/pio-core" \
         "$IMAGE" bash -euo pipefail -c "$1"
 }
 
 steps_test='pio test -e native'
+# pioarduino (Arduino core 3) creates /pio-core/penv with a PlatformIO it then rejects; pin 6.2.0 there.
+steps_prep='pio pkg install -e cyd >/dev/null && /pio-core/penv/bin/uv pip install -q -p /pio-core/penv/bin/python "platformio==6.2.0"'
 steps_check='pio check -e cyd --severity=high --severity=medium --fail-on-defect=medium'
 # Clean build, then fail on compiler warnings in our own code, as CI does (an incremental build
 # only shows warnings for the files it recompiles).
@@ -48,13 +51,13 @@ steps_pages="pio run -e cyd -t buildfs >/dev/null && python3 scripts/release_not
 
 case "$CMD" in
     test)   run "$steps_test" ;;
-    check)  run "$steps_check" ;;
-    build)  run "$steps_build" ;;
+    check)  run "$steps_prep && $steps_check" ;;
+    build)  run "$steps_prep && $steps_build" ;;
     lint)   run "$steps_lint" ;;
     format) run 'git update-index -q --refresh; git clang-format --binary "$CLANG_FORMAT" "$(git merge-base HEAD origin/main)" -- src/ test/ include/' ;;
     manual) run "$steps_manual" ;;
-    pages)  run "$steps_build >/dev/null && $steps_pages" ;;
+    pages)  run "$steps_prep && $steps_build >/dev/null && $steps_pages" ;;
     shell)  run "bash" ;;
-    all)    run "$steps_test && $steps_check && $steps_build && $steps_lint && $steps_manual && $steps_pages && echo 'dev.sh: all checks passed'" ;;
+    all)    run "$steps_test && $steps_prep && $steps_check && $steps_build && $steps_lint && $steps_manual && $steps_pages && echo 'dev.sh: all checks passed'" ;;
     *)      sed -n '2,10p' "$0"; exit 2 ;;
 esac
