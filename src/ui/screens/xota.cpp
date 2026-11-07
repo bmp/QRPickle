@@ -100,12 +100,12 @@ namespace ui {
                 else services::SotaManager::fetch_async();
             }
         } else if (active_tab == TAB_POTA) {
-            // POTA uses TLS: wait until the socket tasks (APRS, HamAlert, SOTA cluster) have
-            // exited and released their stacks; stop() only requests the exit. Retry in 100 ms.
-            if (!services::HamAlertManager::is_stopped() || !services::AprsManager::is_stopped() ||
-                !services::SotaManager::is_stopped()) {
-                return;
-            }
+            // POTA uses TLS: wait until the SOTA cluster task (stopped when its tab closes) has
+            // exited and released its stack; stop() only requests the exit. Retry in 100 ms.
+            // HamAlert and APRS stay connected since v0.2.8 (the TLS heap gate protects the
+            // download); waiting for them here kept POTA from ever loading when xOTA was opened
+            // by hand (v0.2.8 regression, found 2026-11-07).
+            if (!services::SotaManager::is_stopped()) return;
             services::PotaManager::fetch_async();
         } else {
             services::SotaManager::fetch_async();  // starts the cluster client; spots arrive asynchronously
