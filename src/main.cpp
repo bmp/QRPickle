@@ -48,9 +48,9 @@ void setup() {
     abort();
 #endif
     Serial.println("\n--- QRPickle System Initializing (NVS Production Core) ---");
-    Serial.printf("[Memory] Total Internal RAM: %u bytes\n", ESP.getHeapSize());
-    Serial.printf("[Memory] Total PSRAM: %u bytes\n", ESP.getPsramSize());
-    Serial.printf("[Memory] Free PSRAM: %u bytes\n", ESP.getFreePsram());
+    Serial.printf("[Memory] Total Internal RAM: %u bytes\n", (unsigned)ESP.getHeapSize());
+    Serial.printf("[Memory] Total PSRAM: %u bytes\n", (unsigned)ESP.getPsramSize());
+    Serial.printf("[Memory] Free PSRAM: %u bytes\n", (unsigned)ESP.getFreePsram());
     Serial.flush();
 
     config::load();

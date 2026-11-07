@@ -157,7 +157,7 @@ namespace ui {
             lv_obj_set_style_text_color(lbl_b_status, is_conn ? theme_color(COLOR_STATUS_OK) : theme_color(COLOR_STATUS_ERROR), 0);
 
             char s_buf[128];  // "PAYLOAD: <call>-<ssid>>APRS: <payload up to 95>"
-            snprintf(s_buf, sizeof(s_buf), "BEACONS SENT: %u", services::AprsManager::get_tx_count());
+            snprintf(s_buf, sizeof(s_buf), "BEACONS SENT: %u", (unsigned)services::AprsManager::get_tx_count());
             lv_label_set_text(lbl_b_txcount, s_buf);
 
             uint32_t last = services::AprsManager::get_last_tx_time();
@@ -166,7 +166,7 @@ namespace ui {
                 lv_label_set_text(lbl_b_next, "NEXT TX: Awaiting radio handshake...");
             } else {
                 uint32_t elapsed_sec = (millis() - last) / 1000;
-                snprintf(s_buf, sizeof(s_buf), "LAST TX: %u mins %u secs ago", elapsed_sec / 60, elapsed_sec % 60);
+                snprintf(s_buf, sizeof(s_buf), "LAST TX: %u mins %u secs ago", (unsigned)(elapsed_sec / 60), (unsigned)(elapsed_sec % 60));
                 lv_label_set_text(lbl_b_last, s_buf);
 
                 int remaining = (30 * 60) - elapsed_sec; if(remaining < 0) remaining = 0;
@@ -258,10 +258,10 @@ namespace ui {
         lv_obj_set_style_bg_color(tab_btns, theme_color(COLOR_BG_PANEL), 0);
         lv_obj_set_style_text_font(tab_btns, &font_atkinson_14, 0);
         lv_obj_set_style_text_color(tab_btns, theme_color(COLOR_TEXT_MUTED), 0);
-        lv_obj_set_style_text_color(tab_btns, theme_color(COLOR_ACCENT_PRIMARY), LV_PART_ITEMS | LV_STATE_CHECKED);
-        lv_obj_set_style_border_color(tab_btns, theme_color(COLOR_ACCENT_PRIMARY), LV_PART_ITEMS | LV_STATE_CHECKED);
-        lv_obj_set_style_border_width(tab_btns, 2, LV_PART_ITEMS | LV_STATE_CHECKED);
-        lv_obj_set_style_border_side(tab_btns, LV_BORDER_SIDE_BOTTOM, LV_PART_ITEMS | LV_STATE_CHECKED);
+        lv_obj_set_style_text_color(tab_btns, theme_color(COLOR_ACCENT_PRIMARY), (lv_style_selector_t)LV_PART_ITEMS | LV_STATE_CHECKED);
+        lv_obj_set_style_border_color(tab_btns, theme_color(COLOR_ACCENT_PRIMARY), (lv_style_selector_t)LV_PART_ITEMS | LV_STATE_CHECKED);
+        lv_obj_set_style_border_width(tab_btns, 2, (lv_style_selector_t)LV_PART_ITEMS | LV_STATE_CHECKED);
+        lv_obj_set_style_border_side(tab_btns, LV_BORDER_SIDE_BOTTOM, (lv_style_selector_t)LV_PART_ITEMS | LV_STATE_CHECKED);
 
         lv_obj_t* t1 = lv_tabview_add_tab(tabview, "TRAFFIC");
         lv_obj_t* t2 = lv_tabview_add_tab(tabview, "MESSAGES");

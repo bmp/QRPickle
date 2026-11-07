@@ -282,10 +282,10 @@ namespace ui {
         lv_obj_set_style_bg_color(tab_btns, theme_color(COLOR_BG_PANEL), 0);
         lv_obj_set_style_text_font(tab_btns, &font_atkinson_14, 0);
         lv_obj_set_style_text_color(tab_btns, theme_color(COLOR_TEXT_MUTED), 0);
-        lv_obj_set_style_text_color(tab_btns, theme_color(COLOR_ACCENT_PRIMARY), LV_PART_ITEMS | LV_STATE_CHECKED);
-        lv_obj_set_style_border_color(tab_btns, theme_color(COLOR_ACCENT_PRIMARY), LV_PART_ITEMS | LV_STATE_CHECKED);
-        lv_obj_set_style_border_width(tab_btns, 2, LV_PART_ITEMS | LV_STATE_CHECKED);
-        lv_obj_set_style_border_side(tab_btns, LV_BORDER_SIDE_BOTTOM, LV_PART_ITEMS | LV_STATE_CHECKED);
+        lv_obj_set_style_text_color(tab_btns, theme_color(COLOR_ACCENT_PRIMARY), (lv_style_selector_t)LV_PART_ITEMS | LV_STATE_CHECKED);
+        lv_obj_set_style_border_color(tab_btns, theme_color(COLOR_ACCENT_PRIMARY), (lv_style_selector_t)LV_PART_ITEMS | LV_STATE_CHECKED);
+        lv_obj_set_style_border_width(tab_btns, 2, (lv_style_selector_t)LV_PART_ITEMS | LV_STATE_CHECKED);
+        lv_obj_set_style_border_side(tab_btns, LV_BORDER_SIDE_BOTTOM, (lv_style_selector_t)LV_PART_ITEMS | LV_STATE_CHECKED);
 
         lv_obj_t* t1 = lv_tabview_add_tab(tabview, "LOCAL");
         lv_obj_t* t2 = lv_tabview_add_tab(tabview, "OPENWEATHER");

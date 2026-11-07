@@ -108,10 +108,10 @@ namespace ui {
         for (int i = 0; i < ITEM_COUNT; i++) {
             lv_obj_t* btn = lv_button_create(grid);
             lv_obj_set_size(btn, btn_w, btn_h);
-            
-            lv_obj_set_style_bg_color(btn, theme_color(COLOR_BG_PANEL), LV_PART_MAIN | LV_STATE_DEFAULT);
-            lv_obj_set_style_bg_color(btn, theme_color(COLOR_ACCENT_PRIMARY), LV_PART_MAIN | LV_STATE_PRESSED); 
-            
+
+            lv_obj_set_style_bg_color(btn, theme_color(COLOR_BG_PANEL), (lv_style_selector_t)LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_bg_color(btn, theme_color(COLOR_ACCENT_PRIMARY), (lv_style_selector_t)LV_PART_MAIN | LV_STATE_PRESSED);
+
             lv_obj_set_style_border_color(btn, theme_color(COLOR_BORDER), 0);
             lv_obj_set_style_border_width(btn, 1, 0);
             lv_obj_set_style_radius(btn, 4, 0);
@@ -120,9 +120,9 @@ namespace ui {
             lv_obj_t* lbl = lv_label_create(btn);
             lv_label_set_text(lbl, ITEMS[i].label);
             lv_obj_set_style_text_font(lbl, &font_jetbrains_14, 0);
-            
-            lv_obj_set_style_text_color(lbl, theme_color(COLOR_TEXT_MAIN), LV_PART_MAIN | LV_STATE_DEFAULT);
-            lv_obj_set_style_text_color(lbl, theme_color(COLOR_TEXT_ON_ACCENT), LV_PART_MAIN | LV_STATE_PRESSED);
+
+            lv_obj_set_style_text_color(lbl, theme_color(COLOR_TEXT_MAIN), (lv_style_selector_t)LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_text_color(lbl, theme_color(COLOR_TEXT_ON_ACCENT), (lv_style_selector_t)LV_PART_MAIN | LV_STATE_PRESSED);
             lv_obj_center(lbl);
         }
     }
