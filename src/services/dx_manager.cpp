@@ -1,3 +1,7 @@
+#include "sources.h"
+#include "link_watch.h"
+#include "fresh_registry.h"
+#include "list_release.h"
 #include "../core/crashlog.h"
 #include "../hw/led_rgb.h"
 #include "net_connect.h"
@@ -28,6 +32,7 @@ namespace services {
     // only until it hands over by setting status = CONNECTING; after that only update() does.
     static std::atomic<bool> dial_alive{false};
     static std::atomic<bool> stop_requested{false};
+    static uint32_t last_rx = 0;  // millis() of the last byte received (link_watch.h); main loop only
 
     void DxManager::start() {
         if (status != DX_STATUS_DISCONNECTED || dial_alive) return;
@@ -46,7 +51,7 @@ namespace services {
         stop_requested = false;
         status = DX_STATUS_DIALING;
         dial_alive = true;
-        if (xTaskCreate(dial_task, "dx_dial", 4096, NULL, 1, NULL) != pdPASS) {
+        if (xTaskCreate(dial_task, "dx_dial", jobs::job_stack(jobs::DX), NULL, 1, NULL) != pdPASS) {
             dial_alive = false;
             status = DX_STATUS_DISCONNECTED;
             Serial.println("[DX Engine] Dial task creation failed (heap).");
@@ -75,6 +80,7 @@ namespace services {
             state_timer = millis();
             status = DX_STATUS_CONNECTING;  // hand-over: update() owns the socket from here
         } else {
+            fresh::fail(fresh::DX);
             Serial.println("[DX Engine] Secondary connection failed completely.");
             status = DX_STATUS_DISCONNECTED;
         }
@@ -100,6 +106,17 @@ namespace services {
         Serial.println("[DX Engine] Socket safely suspended for Time-Slicing.");
     }
 
+    // update() (main loop) is the only writer once connected; the dial task never touches the list.
+    bool DxManager::release_spots(bool shown, bool cycle_keeps) {
+        const bool writer = status != DX_STATUS_DISCONNECTED || dial_alive;
+        if (!may_release_list(spots != nullptr, writer, shown, cycle_keeps)) return false;
+        free(spots);
+        spots = nullptr;
+        spot_count = 0;
+        buffer_dirty = true;
+        return true;
+    }
+
     void DxManager::clear_spots() {
         if (spots) {
             memset(spots, 0, 50 * sizeof(DxSpot));
@@ -121,7 +138,8 @@ namespace services {
 
         while (client.available()) {
             char c = client.read();
-            
+            last_rx = millis();
+
             if (line_idx < sizeof(line_buffer) - 1) {
                 line_buffer[line_idx++] = c;
                 line_buffer[line_idx] = '\0';
@@ -149,6 +167,7 @@ namespace services {
             if (status == DX_STATUS_AUTHORIZING) {
                 if (c == '>' || strcasestr(line_buffer, "welcome") || strcasestr(line_buffer, "cluster")) {
                     status = DX_STATUS_CONNECTED;
+                    last_rx = millis();
                     Serial.println("[DX Engine] Full pipeline established.");
                     line_idx = 0;
                     line_buffer[0] = '\0';
@@ -169,6 +188,10 @@ namespace services {
             }
         }
 
+        if (status == DX_STATUS_CONNECTED && link_silent(last_rx, millis(), LINK_SILENT_DX_MS)) {
+            Serial.printf("[DX Engine] Link silent %u min; dropping it\n", (unsigned)(LINK_SILENT_DX_MS / 60000));
+            client.stop();  // handled as a lost connection below
+        }
         if (!client.connected() && status != DX_STATUS_DISCONNECTED) {
             Serial.println("[DX Engine] Connection lost to remote node.");
             stop(); 
@@ -176,6 +199,7 @@ namespace services {
     }
 
     void DxManager::handle_line(const char* line) {
+        fresh::ok(fresh::DX);
         if (strncmp(line, "DX de ", 6) == 0) {
             parse_dx_line(line);
         }

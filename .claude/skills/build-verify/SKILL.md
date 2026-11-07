@@ -66,3 +66,7 @@ Needs on-device check: <list or "none">
 | Committing binaries | Never; `release/` is ignored and CI publishes release binaries. |
 | Running `buildfs` only, after editing C++ | The `data/` and firmware builds are independent; run whichever ones the change touches. |
 | Claiming an OTA or memory fix works because it compiles | Compiling proves nothing at runtime. List it as needing an on-device check. |
+| Skipping the format check or the warning grep on a "small" commit | Every commit runs the full list: clean build + warning grep, native tests, cppcheck, `scripts/check_format.sh main` (v0.2.8's PR failed on one warning; a v0.3 commit slipped a format error). |
+| Choosing a stack size, buffer, timeout or sdkconfig value before reading the code's history and measuring | Read the comments and `git log` for why the value is what it is, size the change, and re-measure on the platform you change. Values picked first were reverted repeatedly in v0.3 (stack 8 -> 9 KB, limit 60 min -> 4 h, IPv6 off -> on). |
+| Writing a doc line for behaviour that a later task will build | Docs describe what is built; write them in the same commit as the code. |
+| Testing only the path the test script uses | Test every entry path of the change (manual visit and cycling visit, button and timer). v0.2.8 shipped a POTA bug that only the manual xOTA path had. |

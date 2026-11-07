@@ -1,3 +1,6 @@
+#include "sources.h"
+#include "fresh_registry.h"
+#include "list_release.h"
 #include "net_lock.h"
 #include "../core/mem_stats.h"
 #include "../hw/led_rgb.h"
@@ -88,25 +91,40 @@ namespace services {
         return false;
     }
 
-    void PotaManager::fetch_async() {
+    bool PotaManager::release_spots(bool shown, bool cycle_keeps) {
+        if (!may_release_list(spots != nullptr, fetching, shown, cycle_keeps)) return false;
+        free(spots);
+        spots = nullptr;
+        spot_count = 0;
+        last_fetch_time = 0;  // the next xOTA visit fetches at once
+        dirty = true;
+        return true;
+    }
+
+    bool PotaManager::fetch_async() {
+        // Another download holds the network: no list, no task yet (xOTA's fetch timer retries).
+        if (net_lock_busy()) return false;
         if (!spots) {
             spots = (PotaSpot*)calloc(30, sizeof(PotaSpot));
-            if (!spots) return;
+            if (!spots) return true;  // no memory: reported by the empty list
         }
 
-        if (fetching || (millis() - last_fetch_time < 30000 && last_fetch_time != 0)) return;
+        if (fetching || (millis() - last_fetch_time < 30000 && last_fetch_time != 0)) return true;
         fetching = true;
         // Off the UI thread (review 3.3): the TLS handshake and stream used to freeze the screen.
         // 6 KB: 4.2 KB of 8 KB was never used (mem.stack_free.pota); the 2 KB go to the TLS session.
-        if (xTaskCreate(fetch_task, "pota_fetch", 6144, NULL, 1, NULL) != pdPASS) {
+        if (xTaskCreate(fetch_task, "pota_fetch", jobs::job_stack(jobs::POTA), NULL, 1, NULL) != pdPASS) {
             fetching = false;
             Serial.println("[POTA] Task creation failed (heap).");
         }
+        return true;
     }
 
     void PotaManager::fetch_task(void*) {
         mem_stats::job_begin("pota");
         run_fetch();
+        if (failed) fresh::fail(fresh::POTA);
+        else fresh::ok(fresh::POTA);
         mem_stats::job_end();
         mem_stats::note_stack(mem_stats::STK_POTA);
         vTaskDelete(NULL);

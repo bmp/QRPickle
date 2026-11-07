@@ -64,6 +64,8 @@ namespace services {
 
     const char* net_lock_last_stuck() { return last_stuck; }
 
+    bool net_lock_busy() { return held_since_ms != 0; }
+
     void net_lock_watch() {
         static bool warned = false;
         const uint32_t since = held_since_ms;

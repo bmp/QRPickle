@@ -18,7 +18,8 @@ namespace services {
 
     class PotaManager {
     public:
-        static void fetch_async();
+        // false only when another download holds the network (nothing started; call again).
+        static bool fetch_async();
         static const PotaSpot* get_spots() { return spots; }
         static size_t get_spot_count() { return spot_count; }
         static bool is_fetching() { return fetching; }
@@ -27,6 +28,8 @@ namespace services {
         static uint32_t get_last_fetch_time() { return last_fetch_time; }
         static bool last_fetch_failed() { return failed; }  // the last try got no list (shown on xOTA)
         static void expire_timer() { last_fetch_time = 0; } // Forces refresh on button tap
+        // Frees the list when nothing uses it (list_release.h); main loop only. True if freed.
+        static bool release_spots(bool shown, bool cycle_keeps);
 
     private:
         static PotaSpot* spots;

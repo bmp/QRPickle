@@ -26,3 +26,10 @@ __pycache__/
 # Private notes, reviews, plans and specs (docs/private/{notes,reviews,plans,specs}): this machine only, never committed
 docs/private/
 docs/reviews/
+
+# pioarduino generates these in the project root
+/.dummy/
+/CMakeLists.txt
+/dependencies.lock
+/managed_components/
+/sdkconfig.*

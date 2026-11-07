@@ -1,3 +1,6 @@
+#include "sources.h"
+#include "link_watch.h"
+#include "fresh_registry.h"
 #include "net_connect.h"
 #include "../core/mem_stats.h"
 #include "../core/crashlog.h"
@@ -21,10 +24,11 @@ namespace services {
     bool HamAlertManager::running = false;
 
     // The task is created once and then parks (socket closed, stack kept) instead of exiting when
-    // stopped: deleting and re-creating it moved its 4 KB stack around the heap on every quiet
-    // window and fragmented it (docs/MEMORY.md, v0.2.5 coordinator).
+    // stopped: deleting and re-creating it moved its stack around the heap on every stop and
+    // fragmented it (docs/MEMORY.md, v0.2.5 coordinator).
     static std::atomic<bool> task_alive{false};
     static std::atomic<bool> parked{false};
+    static uint32_t last_rx = 0;  // millis() of the last byte received (link_watch.h)
 
     void HamAlertManager::start() {
         if (running) return;
@@ -46,7 +50,7 @@ namespace services {
         running = true;
         task_alive = true;
         TaskHandle_t handle = nullptr;
-        if (xTaskCreate(task_loop, "hamalert_task", 4096, NULL, 1, &handle) /* 3072 was tight (review 3.9) */ != pdPASS) {
+        if (xTaskCreate(task_loop, "hamalert_task", jobs::job_stack(jobs::HAMALERT), NULL, 1, &handle) /* 3072 was tight (review 3.9) */ != pdPASS) {
             running = false;
             task_alive = false;
             Serial.println("[HamAlert-Engine] Task creation failed (heap).");
@@ -66,6 +70,7 @@ namespace services {
     size_t HamAlertManager::get_message_count() { return message_count; }
 
     void HamAlertManager::process_line(char* line) {
+        fresh::ok(fresh::HAMALERT);
         Serial.printf("[HamAlert-Raw] '%s'\n", line);
 
         if (strstr(line, "DX de") == nullptr) return;
@@ -132,8 +137,8 @@ namespace services {
         vTaskDelay(pdMS_TO_TICKS(5000)); 
 
         WiFiClient client;
-        client.setTimeout(5); 
-        
+        client.setTimeout(5000);  // ms (core 3 Stream::setTimeout; core 2's WiFiClient took seconds)
+
         char buffer[256];
         size_t buf_idx = 0;
 
@@ -155,7 +160,9 @@ namespace services {
                     Serial.println("[HamAlert-Socket] Directing link to hamalert.org:7300...");
 
                     crashlog::mark(crashlog::SLOT_HAMALERT, 2);
-                    if (connect_host(client, "hamalert.org", 7300, 5000, crashlog::SLOT_HAMALERT)) {
+                    const bool conn = connect_host(client, "hamalert.org", 7300, 5000, crashlog::SLOT_HAMALERT);
+                    if (!conn) fresh::fail(fresh::HAMALERT);
+                    if (conn) {
                         unsigned long timeout_mark = millis();
                         bool authenticated = false;
 
@@ -180,6 +187,7 @@ namespace services {
                                 // Only HamAlert's greeting proves the login worked (review 3.8).
                                 else if (strstr(buffer, "Hello ")) {
                                     connected = true;
+                                    last_rx = millis();
                                     authenticated = true;
                                     buf_idx = 0;
                                     buffer[0] = '\0';
@@ -208,6 +216,7 @@ namespace services {
 
                 while (client.available() && running) {
                     char c = client.read();
+                    last_rx = millis();
                     if (c == '\n') {
                         buffer[buf_idx] = '\0';
                         if (buf_idx > 0 && buffer[buf_idx - 1] == '\r') buffer[buf_idx - 1] = '\0';
@@ -222,6 +231,10 @@ namespace services {
                     }
                 }
 
+                if (connected && link_silent(last_rx, millis(), LINK_SILENT_QUIET_MS)) {
+                    Serial.printf("[HamAlert] Link silent %u h; reconnecting\n", (unsigned)(LINK_SILENT_QUIET_MS / 3600000));
+                    client.stop();  // the branch below reconnects
+                }
                 if (!client.connected() && connected) {
                     client.stop();
                     connected = false;
@@ -235,7 +248,7 @@ namespace services {
             client.stop();
             connected = false;
             Serial.println("[HamAlert-Socket] Safely suspended for Time-Slicing.");
-            parked = true;  // socket closed: quiet::settled() may go ahead
+            parked = true;  // socket closed by stop(); start() wakes the task
             while (!running) vTaskDelay(pdMS_TO_TICKS(200));
             parked = false;
             buf_idx = 0;

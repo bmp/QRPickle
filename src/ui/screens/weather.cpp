@@ -1,4 +1,5 @@
 #include "weather.h"
+#include "../fresh_text.h"
 #include "../layout.h"
 #include "../status_bar.h"
 #include "../theme.h"
@@ -282,10 +283,10 @@ namespace ui {
         lv_obj_set_style_bg_color(tab_btns, theme_color(COLOR_BG_PANEL), 0);
         lv_obj_set_style_text_font(tab_btns, &font_atkinson_14, 0);
         lv_obj_set_style_text_color(tab_btns, theme_color(COLOR_TEXT_MUTED), 0);
-        lv_obj_set_style_text_color(tab_btns, theme_color(COLOR_ACCENT_PRIMARY), LV_PART_ITEMS | LV_STATE_CHECKED);
-        lv_obj_set_style_border_color(tab_btns, theme_color(COLOR_ACCENT_PRIMARY), LV_PART_ITEMS | LV_STATE_CHECKED);
-        lv_obj_set_style_border_width(tab_btns, 2, LV_PART_ITEMS | LV_STATE_CHECKED);
-        lv_obj_set_style_border_side(tab_btns, LV_BORDER_SIDE_BOTTOM, LV_PART_ITEMS | LV_STATE_CHECKED);
+        lv_obj_set_style_text_color(tab_btns, theme_color(COLOR_ACCENT_PRIMARY), (lv_style_selector_t)LV_PART_ITEMS | LV_STATE_CHECKED);
+        lv_obj_set_style_border_color(tab_btns, theme_color(COLOR_ACCENT_PRIMARY), (lv_style_selector_t)LV_PART_ITEMS | LV_STATE_CHECKED);
+        lv_obj_set_style_border_width(tab_btns, 2, (lv_style_selector_t)LV_PART_ITEMS | LV_STATE_CHECKED);
+        lv_obj_set_style_border_side(tab_btns, LV_BORDER_SIDE_BOTTOM, (lv_style_selector_t)LV_PART_ITEMS | LV_STATE_CHECKED);
 
         lv_obj_t* t1 = lv_tabview_add_tab(tabview, "LOCAL");
         lv_obj_t* t2 = lv_tabview_add_tab(tabview, "OPENWEATHER");
@@ -341,7 +342,13 @@ namespace ui {
         if (cur.valid) {
             if (lbl_cur_temp) { snprintf(buf, sizeof(buf), "%.0f", cur.temp); lv_label_set_text(lbl_cur_temp, buf); }
             if (lbl_cur_desc) lv_label_set_text(lbl_cur_desc, cur.description);
-            if (lbl_cur_loc)  lv_label_set_text(lbl_cur_loc, cur.location);
+            if (lbl_cur_loc) {
+                char age[32], line[sizeof(cur.location) + sizeof(age) + 4];
+                const bool stale = fresh_text(age, sizeof(age), services::fresh::WEATHER);
+                snprintf(line, sizeof(line), "%s - %s", cur.location, age);
+                lv_label_set_text(lbl_cur_loc, line);
+                lv_obj_set_style_text_color(lbl_cur_loc, theme_color(stale ? COLOR_STATUS_WARN : COLOR_TEXT_MUTED), 0);
+            }
 
             if (lbl_cur_sr) { format_local_time(cur.sunrise, buf, sizeof(buf)); lv_label_set_text(lbl_cur_sr, buf); }
             if (lbl_cur_ss) { format_local_time(cur.sunset, buf, sizeof(buf)); lv_label_set_text(lbl_cur_ss, buf); }

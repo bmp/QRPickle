@@ -105,5 +105,6 @@ The `build-verify` skill (`.claude/skills/build-verify/`) runs the full checklis
 `-DQRP_TEST_CRASH_AT_BOOT` makes the firmware abort 3s after boot. It exists only to prove the OTA rollback guard (see `docs/RELEASING.md`). **Never release it.**
 
 `-DQRP_TEST_NETLOCK_HOLD` holds the network lock for 45 s at 2 minutes (docs/TESTING.md). **Never release it.**
+`-DQRP_TEST_BAD_FIRST_ADDR` puts an unreachable address (10.255.255.1) first in every DNS answer, so each connection must fall back to the next address (`[Net] host: 10.255.255.1 didn't answer, trying ...`). **Never release it.**
 
 `-DQRP_STRESS` forces downloads far more often than normal (docs/TESTING.md, "Stress build"). **Never release it.**

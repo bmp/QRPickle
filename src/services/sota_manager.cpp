@@ -1,3 +1,7 @@
+#include "sources.h"
+#include "link_watch.h"
+#include "fresh_registry.h"
+#include "list_release.h"
 #include "net_connect.h"
 #include "../hw/led_rgb.h"
 #include "../core/crashlog.h"
@@ -24,6 +28,7 @@ namespace services {
 
     // Set before the task is created, cleared by the task as its last action.
     static std::atomic<bool> task_alive{false};
+    static uint32_t last_rx = 0;  // millis() of the last byte received (link_watch.h); task only
     // Guards the spot list while the task reorders it; the UI reads it from loop().
     static portMUX_TYPE spots_mux = portMUX_INITIALIZER_UNLOCKED;
 
@@ -43,12 +48,20 @@ namespace services {
         running = true;
         task_alive = true;
         fetching = true;
-        if (xTaskCreate(task_loop, "sota_cluster", 4096, NULL, 1, NULL) != pdPASS) {
+        if (xTaskCreate(task_loop, "sota_cluster", jobs::job_stack(jobs::SOTA), NULL, 1, NULL) != pdPASS) {
             running = false;
             task_alive = false;
             fetching = false;
             Serial.println("[SOTA] Task creation failed (heap).");
         }
+    }
+
+    bool SotaManager::release_spots(bool shown, bool cycle_keeps) {
+        if (!may_release_list(spots != nullptr, running || task_alive, shown, cycle_keeps)) return false;
+        free(spots);
+        spots = nullptr;
+        spot_count = 0;
+        return true;
     }
 
     void SotaManager::stop() { running = false; }
@@ -99,10 +112,13 @@ namespace services {
 
             if (!client.connected()) {
                 Serial.printf("[SOTA] Connecting to %s:%u...\n", CLUSTER_HOST, CLUSTER_PORT);
-                crashlog::mark(crashlog::SLOT_SOTA, 1); 
-                client.setTimeout(10);  // seconds; bounds the wait for the login prompt
+                crashlog::mark(crashlog::SLOT_SOTA, 1);
+                // Milliseconds: core 3 uses Stream::setTimeout(); core 2's WiFiClient took seconds, and
+                // setTimeout(10) became 10 ms, so find("login:") never waited (v0.3.0 stress run).
+                client.setTimeout(10000);  // bounds the wait for the login prompt
                 if (!connect_host(client, CLUSTER_HOST, CLUSTER_PORT, 5000, crashlog::SLOT_SOTA) || !client.find("login:")) {
                     client.stop();
+                    fresh::fail(fresh::SOTA);
                     Serial.println("[SOTA] Cluster unreachable; retrying in 30 s.");
                     for (int i = 0; i < 300 && running; i++) vTaskDelay(pdMS_TO_TICKS(100));
                     continue;
@@ -111,12 +127,15 @@ namespace services {
                 idx = 0;
                 fetching = false;
                 Serial.println("[SOTA] Logged in to SOTA cluster.");
+                last_rx = millis();
             }
 
             while (client.available() && running) {
                 char c = client.read();
+                last_rx = millis();
                 if (c == '\n') {
                     line[idx] = '\0';
+                    fresh::ok(fresh::SOTA);
                     sota_cluster::ParsedSpot p;
                     crashlog::mark(crashlog::SLOT_SOTA, 2); if (sota_cluster::parse_line(line, p)) store_spot(p);
                     idx = 0;
@@ -125,6 +144,11 @@ namespace services {
                 }
             }
 
+            if (link_silent(last_rx, millis(), LINK_SILENT_QUIET_MS)) {
+                Serial.printf("[SOTA] Link silent %u h; reconnecting\n", (unsigned)(LINK_SILENT_QUIET_MS / 3600000));
+                client.stop();  // the connect branch above runs on the next pass
+                last_rx = 0;
+            }
             last_fetch_time = millis();  // live feed: never stale while connected
             vTaskDelay(pdMS_TO_TICKS(50));
         }

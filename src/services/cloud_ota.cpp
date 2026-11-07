@@ -1,3 +1,5 @@
+#include "sources.h"
+#include "fresh_registry.h"
 #include "net_lock.h"
 #include "../core/mem_stats.h"
 #include "ota_ca_certs.h"
@@ -7,8 +9,8 @@
 #include "version.h"
 #include "hamalert_manager.h"
 #include "aprs_manager.h"
-#include "quiet_window.h"
 #include "two_step_tls.h"
+#include <WiFi.h>
 #include "../core/metadata.h"
 #include <WiFiClientSecure.h>
 #include "safe_client.h"
@@ -134,16 +136,16 @@ namespace services {
             last_check_ms = millis();
         }
 
-        // Quiet window (review 2.10): TLS needs ~33 KB of contiguous heap plus this task's stack,
-        // but with HamAlert/APRS running the largest free block can be too small. Pause them for
-        // the few seconds of the check (as xOTA does), then resume the ones that were running.
+        // HamAlert/APRS stay connected during the check (their reconnects split the heap; v0.2.8);
+        // the TLS heap gate in fetch_ota_json() postpones the check when memory is short.
         static void background_check_task(void*) {
             {
-                quiet::Hold hold;  // quiet window (review 2.10)
                 mem_stats::job_begin("ota_check");
                 fetch_ota_json();
                 mem_stats::job_end();
             }
+            if (cached_info.latest_version[0]) fresh::ok(fresh::OTA_CHECK);
+            else fresh::fail(fresh::OTA_CHECK);
             Serial.printf("[OTA] Update check %s (latest: %s, local: %s)\n",
                           cached_info.latest_version[0] ? "OK" : "FAILED",
                           cached_info.latest_version[0] ? cached_info.latest_version : "-", meta::FW_VERSION);
@@ -152,21 +154,24 @@ namespace services {
             vTaskDelete(NULL);
         }
 
-        static void spawn_check() {
+        // scheduled: wait for a free network (net_lock_busy()); a manual check starts at once.
+        static bool spawn_check(bool scheduled) {
+            if (scheduled && net_lock_busy()) return false;
             bool expected = false;
-            if (is_flashing_active || !check_running.compare_exchange_strong(expected, true)) return;
-            // 12 KB: certificate verification overflowed 8 KB (feat/ota-tls findings).
-            if (xTaskCreatePinnedToCore(background_check_task, "gh_ota_check", 12288, NULL, 1, NULL, 0) != pdPASS) {
+            if (is_flashing_active || !check_running.compare_exchange_strong(expected, true)) return false;
+            // 9 KB: 12 KB left 5.8 KB unused (v0.2.8 stress run); 8 KB overflowed before v0.2.6 moved
+            // certificate verification out of the TLS handshake, so keep a wider margin here.
+            if (xTaskCreatePinnedToCore(background_check_task, "gh_ota_check", jobs::job_stack(jobs::OTA_CHECK), NULL, 1, NULL, 0) != pdPASS) {
                 check_running = false;
+                return false;
             }
+            return true;
         }
 
-        void start_background_check() {
-            if (!check_complete) spawn_check();
-        }
+        bool start_background_check() { return !check_complete && spawn_check(true); }
 
         void force_update_check() {
-            if (WiFi.status() == WL_CONNECTED) spawn_check();
+            if (WiFi.status() == WL_CONNECTED) spawn_check(false);
         }
 
         bool is_update_available() { return cached_info.update_available; }
@@ -215,7 +220,7 @@ namespace services {
 
             mbedtls_sha256_context sha;
             mbedtls_sha256_init(&sha);
-            mbedtls_sha256_starts_ret(&sha, 0);
+            mbedtls_sha256_starts(&sha, 0);
 
             WiFiClient* stream = http.getStreamPtr();
             uint8_t buffer[1024];
@@ -227,7 +232,7 @@ namespace services {
                 if (avail) {
                     int c = stream->readBytes(buffer, avail > sizeof(buffer) ? sizeof(buffer) : avail);
                     if (c <= 0) continue;
-                    mbedtls_sha256_update_ret(&sha, buffer, c);
+                    mbedtls_sha256_update(&sha, buffer, c);
                     if (Update.write(buffer, c) != (size_t)c) fail_and_restart(Update.errorString());
                     remaining -= c;
                     last_data = millis();
@@ -239,7 +244,7 @@ namespace services {
             http.end();
 
             uint8_t digest[32];
-            mbedtls_sha256_finish_ret(&sha, digest);
+            mbedtls_sha256_finish(&sha, digest);
             mbedtls_sha256_free(&sha);
             if (remaining != 0) fail_and_restart("download incomplete");
 
@@ -258,7 +263,7 @@ namespace services {
         bool execute_firmware_flash() {
             if (strlen(cached_info.firmware_url) == 0 || is_flashing_active) return false;
             is_flashing_active = true;
-            if (xTaskCreatePinnedToCore(ota_worker_task, "ota_flash_worker", 12288, NULL, 5, NULL, 0) != pdPASS) {
+            if (xTaskCreatePinnedToCore(ota_worker_task, "ota_flash_worker", jobs::job_stack(jobs::OTA_INSTALL), NULL, 5, NULL, 0) != pdPASS) {
                 is_flashing_active = false;
                 return false;
             }

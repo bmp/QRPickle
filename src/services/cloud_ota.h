@@ -14,7 +14,7 @@ namespace services {
         };
 
         // Starts a background task that reads ota.json.
-        void start_background_check();
+        bool start_background_check();  // false: not started (network busy or already done); retry soon
 
         // Re-runs the check in the background (non-blocking; review 2.5). Ignored while a
         // check or flash is already running.

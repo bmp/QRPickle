@@ -8,6 +8,8 @@
 #include "../config/config_validation.h"
 #include "../services/display_manager.h"
 #include "../services/dx_manager.h"
+#include "../services/pota_manager.h"
+#include "../services/sota_manager.h"
 #include <Arduino.h>
 #include <lvgl.h>
 
@@ -78,8 +80,21 @@ namespace ui {
             last_switch_ms = millis();
         }
 
+        // Frees the spot lists no screen shows (services/list_release.h): xOTA shows POTA and SOTA,
+        // the Spots page shows DX; a list stays while cycling includes its screen.
+        static void release_tick(lv_timer_t*) {
+            const auto& cfg = config::get();
+            const auto page = ui_active_page();
+            const bool xota = page == PAGE_XOTA, spots = page == PAGE_SPOTS;
+            const auto cycles = [&](Screen s) { return cfg.cycle_enabled && (cfg.cycle_screens & (1u << s)); };
+            if (services::PotaManager::release_spots(xota, cycles(POTA))) Serial.println("[Mem] POTA list freed");
+            if (services::SotaManager::release_spots(xota, cycles(SOTA))) Serial.println("[Mem] SOTA list freed");
+            if (services::DxManager::release_spots(spots, keeps_dx_connected())) Serial.println("[Mem] DX list freed");
+        }
+
         void init() {
             lv_timer_create(tick, 500, nullptr);
+            lv_timer_create(release_tick, 5000, nullptr);
             status_bar_set_cycle(static_cast<int>(State::OFF));
         }
 

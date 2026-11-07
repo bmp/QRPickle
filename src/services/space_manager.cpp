@@ -1,8 +1,9 @@
+#include "sources.h"
+#include "fresh_registry.h"
 #include "../core/crashlog.h"
 #include "space_schedule.h"
 #include "space_manager.h"
 #include "net_lock.h"
-#include "quiet_window.h"
 #include "safe_client.h"
 #include "sun_calc.h"
 #include "wifi_manager.h"
@@ -46,6 +47,39 @@ namespace services {
     static constexpr uint32_t FETCH_EVERY_S = 6 * 3600, RETRY_MS = 15 * 60000, PASS_EVERY_MS = 30 * 60000;
     static constexpr uint32_t MIN_VALID_UTC = 1700000000, WINDOW_S = 24 * 3600;
     static constexpr size_t OBJ_BUF = 1280;  // one feed object (a satellite is ~0.6 KB)
+
+    // Copy the response body into the file with a size and time limit. HTTPClient::writeToStream()
+    // waited for the connection to close and, on Arduino core 3, never returned (the board went off
+    // the network until the NetLock watch restarted it; PLATFORM_SPIKE.md). Stops at Content-Length
+    // when the server sends one (raw.githubusercontent.com does), else when the stream closes or
+    // stays idle. Returns the bytes written, or -1 when the body was cut short.
+    static constexpr int MAX_FEED_B = 64 * 1024;
+    static constexpr uint32_t BODY_DEADLINE_MS = 30000, BODY_IDLE_MS = 10000;
+    static int copy_body(HTTPClient& http, File& f) {
+        const int len = http.getSize();  // -1 when unknown
+        if (len > MAX_FEED_B) return -1;
+        WiFiClient* s = http.getStreamPtr();
+        uint8_t buf[256];  // on the fetch task's stack (~2.6 KB free)
+        int n = 0;
+        const uint32_t start = millis();
+        uint32_t last = start;
+        while ((len < 0 || n < len) && n < MAX_FEED_B && millis() - start < BODY_DEADLINE_MS) {
+            const int avail = s->available();
+            if (avail > 0) {
+                const int want = min(avail, (int)sizeof(buf));
+                const int c = s->read(buf, len < 0 ? want : min(want, len - n));
+                if (c <= 0) continue;
+                if (f.write(buf, c) != (size_t)c) return -1;
+                n += c;
+                last = millis();
+            } else if (!s->connected() || millis() - last > BODY_IDLE_MS) {
+                break;
+            } else {
+                vTaskDelay(pdMS_TO_TICKS(10));
+            }
+        }
+        return (len >= 0 && n != len) ? -1 : n;
+    }
 
     static uint32_t jd_to_unix(double jd) { return (uint32_t)((jd - 2440587.5) * 86400.0 + 0.5); }
 
@@ -120,11 +154,6 @@ namespace services {
         char url[sizeof(config::Config::space_url) + 40];
         feed_url(url, sizeof(url));
         const bool https = strncmp(url, "https://", 8) == 0;
-        if (https) {  // quiet window (quiet_window.h)
-            quiet::acquire();
-            for (int i = 0; i < 80 && !quiet::settled(); i++) vTaskDelay(pdMS_TO_TICKS(100));
-            vTaskDelay(pdMS_TO_TICKS(500));
-        }
 
         int code = 0, written = 0;
         crashlog::mark(crashlog::SLOT_SPACE, 1);
@@ -145,11 +174,19 @@ namespace services {
                     http.setTimeout(15000);
                     crashlog::mark(crashlog::SLOT_SPACE, 3);
                     code = http.GET();
+                    if (code < 0 && https) {
+                        // The feed's connect fails now and then with plenty of memory free (TASKS.md):
+                        // say whether DNS, the address or the TLS handshake failed.
+                        char err[64] = "";
+                        const int e = tls.lastError(err, sizeof(err));
+                        Serial.printf("[Space] Connect failed: %s; address %s; TLS %d (%s)\n",
+                                      http.errorToString(code).c_str(), tls.last_ip.toString().c_str(), e, err);
+                    }
                     if (code == HTTP_CODE_OK) {
                         File f = LittleFS.open(TMP_PATH, "w");
                         if (f) {
                             crashlog::mark(crashlog::SLOT_SPACE, 4);
-                            written = http.writeToStream(&f);
+                            written = copy_body(http, f);
                             f.close();
                         }
                     }
@@ -158,7 +195,6 @@ namespace services {
             }
         }
         crashlog::mark(crashlog::SLOT_SPACE, 5);
-        if (https) quiet::release();
 
         int n_sats = 0;
         if (written > 0) {
@@ -171,9 +207,11 @@ namespace services {
         const bool ok = n_sats > 0 && LittleFS.rename(TMP_PATH, FEED_PATH);
         if (!ok) LittleFS.remove(TMP_PATH);
         if (ok) {
+            fresh::ok(fresh::FEED);
             Serial.printf("[Space] Feed downloaded: %d satellites, %d B\n", n_sats, written);
             hw::led_rgb::trigger_traffic_pulse();
         } else {
+            fresh::fail(fresh::FEED);
             Serial.printf("[Space] Feed download failed (HTTP %d, %d B, %d satellites)\n", code, written, n_sats);
         }
         fetch_ok = ok;
@@ -342,11 +380,11 @@ namespace services {
 
     // Fetch and pass runs never overlap: the pass run reads the file the fetch replaces.
     static bool start_fetch() {
-        if (computing) return false;
+        if (computing || net_lock_busy()) return false;  // next tick tries again (next_fetch_ms unchanged)
         bool expected = false;
         if (!fetching.compare_exchange_strong(expected, true)) return false;
         last_try_ms = millis();
-        if (xTaskCreatePinnedToCore(fetch_task, "space_fetch", 6144, NULL, 1, NULL, 0) != pdPASS) {
+        if (xTaskCreatePinnedToCore(fetch_task, "space_fetch", jobs::job_stack(jobs::FEED), NULL, 1, NULL, 0) != pdPASS) {
             fetching = false;
             return false;
         }
@@ -359,7 +397,8 @@ namespace services {
         if (!computing.compare_exchange_strong(expected, true)) return;
         pass_inputs = inputs_hash();
         view_.computing = true;
-        if (xTaskCreatePinnedToCore(pass_task, "space_passes", 8192, NULL, 1, NULL, 0) != pdPASS) {
+        // 6 KB: 8 KB left 4.7 KB unused (v0.2.8 stress run).
+        if (xTaskCreatePinnedToCore(pass_task, "space_passes", jobs::job_stack(jobs::PASSES), NULL, 1, NULL, 0) != pdPASS) {
             computing = false;
             view_.computing = false;
         }
@@ -415,7 +454,7 @@ namespace services {
             pass_inputs = inputs_hash();
             next_pass_ms = now_ms;
         }
-        if (clock_ok && !computing && !fetching && (int32_t)(now_ms - next_pass_ms) >= 0) {
+        if (clock_ok && !computing && !fetching && !net_lock_busy() && (int32_t)(now_ms - next_pass_ms) >= 0) {
             next_pass_ms = now_ms + PASS_EVERY_MS;
             start_passes();
         }

@@ -15,5 +15,13 @@ namespace services {
     // Thread-safe DNS (getaddrinfo, inside the lwIP thread). Never use WiFi.hostByName() or a
     // client's connect(hostname, ...) from a task: see SafeClient / SafeTlsClient (safe_client.h).
     bool resolve_host(const char* host, IPAddress& out);
+    // All of `host`'s IPv4 addresses (up to `max`, MAX_HOST_ADDRS in addr_try.h), in DNS order; 0 when
+    // the lookup failed. Callers try them in turn (connect_any()): one address of a host can be
+    // unreachable from a network while the others answer.
+    int resolve_host_all(const char* host, IPAddress* out, int max);
+    // Logs that `ip` of `host` didn't answer and the next one is tried.
+    void log_next_address(const char* host, const IPAddress& failed, const IPAddress& next);
+    // SO_KEEPALIVE with a ~90 s dead-peer timeout (connect_host() calls it).
+    void enable_keepalive(WiFiClient& client);
 
 }  // namespace services

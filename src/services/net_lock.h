@@ -12,6 +12,9 @@ namespace services {
     // (lock_watch.h); the holder's task name survives the restart.
     void net_lock_watch();
     void net_lock_boot_report();  // setup(): prints the previous restart's holder, if any
+    // True while a task holds NetLock. Schedulers start a download task only when it is false, so
+    // the new task's stack isn't allocated while another download's TLS session is open (review M1).
+    bool net_lock_busy();
     const char* net_lock_last_stuck();  // "" if none; /api/status mem.netlock_restart
 
     class NetLock {
@@ -26,7 +29,7 @@ namespace services {
     };
 
     // TLS needs ~40 KB in total from the byte-addressable heap, its biggest piece a ~17 KB receive
-    // buffer (docs/MEMORY.md). Call after taking NetLock (and the quiet window): waits up to
+    // buffer (docs/MEMORY.md). Call after taking NetLock: waits up to
     // wait_ms for that much to be free and returns false, with a log line naming `who`, when it
     // isn't, so the caller postpones instead of failing inside mbedTLS.
     constexpr uint32_t TLS_MIN_FREE = 40000;

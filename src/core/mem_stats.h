@@ -29,6 +29,8 @@ namespace mem_stats {
         STK_LOOP,  // Arduino's loopTask (LVGL, UI)
         STK_SPACE,  // space feed download
         STK_SPACE_PASS,  // SGP4 pass calculation
+        STK_TCPIP,  // lwIP's network task "tiT" (CONFIG_LWIP_TCPIP_TASK_STACK_SIZE)
+        STK_TIMER,  // FreeRTOS timer task "Tmr Svc" (CONFIG_FREERTOS_TIMER_TASK_STACK_DEPTH)
         STK_COUNT
     };
     // Long-lived tasks: sampled by update() through their handle.

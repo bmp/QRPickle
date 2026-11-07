@@ -21,10 +21,19 @@ jobs:
 
       - uses: actions/setup-python@v7
         with:
-          python-version: '3.x'
+          python-version: '3.14'   # pioarduino (core 3) needs <= 3.14
 
       - name: Install PlatformIO and linters (pinned)
         run: pip install "platformio==6.2.0" "clang-format==19.1.7" "ruff==0.16.10"
+
+      - name: Prepare pioarduino (PlatformIO 6.2.0 in its own environment)
+        # pioarduino (Arduino core 3) creates ~/.platformio/penv with a PlatformIO it then rejects
+        # (6.2.0.post1); pin 6.2.0 there. See docs/DEVELOPMENT.md.
+        run: |
+          pio pkg install -e cyd
+          PENV="$HOME/.platformio/penv"
+          "$PENV/bin/uv" pip install -p "$PENV/bin/python" "platformio==6.2.0"
+          "$PENV/bin/pio" --version
 
       - name: Python lint (ruff)
         run: ruff check
@@ -42,6 +51,10 @@ jobs:
           node test/js/install_plan_test.mjs
           python3 -m unittest scripts/test_make_pages_site.py
           python3 -m unittest scripts/test_source_tables.py
+          python3 -m unittest scripts/test_data_flow.py
+
+      - name: Data-flow doc matches the code (docs/DATA_FLOW.md vs src/services/sources.h)
+        run: python3 scripts/check_data_flow.py
 
       - name: Release notes exist for FW_VERSION (CHANGELOG.md)
         run: python3 scripts/release_notes.py "$(grep FW_VERSION src/core/metadata.h | cut -d'"' -f2)" > /dev/null

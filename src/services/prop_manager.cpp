@@ -1,8 +1,9 @@
+#include "sources.h"
+#include "fresh_registry.h"
 #include "prop_manager.h"
 #include "net_lock.h"
 #include "safe_client.h"
 #include "wifi_manager.h"
-#include "quiet_window.h"
 #include "../config/config.h"
 #include "../core/crashlog.h"
 #include "../core/mem_stats.h"
@@ -97,14 +98,6 @@ namespace services {
         const bool own_source = own[0] != '\0';
         const bool https = strncmp(url, "https://", 8) == 0;
 
-        // Quiet window (quiet_window.h): the TLS handshake needs ~40 KB of contiguous heap, which
-        // HamAlert/APRS and open screens can leave short ("start_ssl_client: -1").
-        if (https) {
-            quiet::acquire();
-            for (int i = 0; i < 80 && !quiet::settled(); i++) vTaskDelay(pdMS_TO_TICKS(100));
-            vTaskDelay(pdMS_TO_TICKS(500));  // stacks are freed later by the idle task (quiet_window.cpp)
-        }
-
         bool ok = false;
         int code = 0;
         int body_n = -1;
@@ -155,8 +148,9 @@ namespace services {
             }
         }
         crashlog::mark(crashlog::SLOT_SOLAR, 5);
-        if (https) quiet::release();
         log_result(ok, parsed, code, body_n, own_source);
+        if (ok) fresh::ok(fresh::SOLAR);
+        else fresh::fail(fresh::SOLAR);
         if (ok) hw::led_rgb::trigger_traffic_pulse();  // data ingress (docs/LEDColours.md)
 
         portENTER_CRITICAL(&result_mux);
@@ -173,11 +167,12 @@ namespace services {
     }
 
     bool PropagationManager::start_fetch(uint32_t now_utc) {
+        if (net_lock_busy()) return false;  // another download: the schedule asks again next tick
         bool expected = false;
         if (!fetching.compare_exchange_strong(expected, true)) return false;
         schedule.last_attempt_utc = now_utc;
-        // 8 KB like the POTA fetch (insecure TLS, no certificate verification).
-        if (xTaskCreatePinnedToCore(fetch_task, "solar_fetch", 8192, NULL, 1, NULL, 0) != pdPASS) {
+        // 6 KB like the POTA fetch (insecure TLS); 8 KB left 4.2 KB unused (v0.2.8 stress run).
+        if (xTaskCreatePinnedToCore(fetch_task, "solar_fetch", jobs::job_stack(jobs::SOLAR), NULL, 1, NULL, 0) != pdPASS) {
             Serial.println("[SOLAR] Task creation failed (heap).");
             fetching = false;
             return false;
@@ -285,6 +280,10 @@ namespace services {
         }
 
         if (fetching || now < MIN_VALID_UTC || !wifi_manager_is_connected()) return;
+        // Not in the first minute: the boot (screens, web server, weather) still allocates, and a
+        // TLS session started 6 s after boot failed for memory on core 3 (docs/MEMORY.md rule 7).
+        constexpr uint32_t FIRST_FETCH_MS = 60000;
+        if (millis() < FIRST_FETCH_MS) return;
         if (solar::fetch_due(schedule, now)) start_fetch(now);
     }
 

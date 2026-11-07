@@ -46,7 +46,7 @@ If the web console changed, also run `QRP_ADMIN_PW=<pw> tools/web_security_check
 
 If the web console's look changed, regenerate the screenshots in `docs/screenshots/` (see `tools/webui_screenshots/README.md`) after the version bump, so they show the new version.
 
-The release build must **not** use the `cyd-debug` environment, `-DQRP_TEST_CRASH_AT_BOOT`, `-DQRP_TEST_NETLOCK_HOLD` or `-DQRP_STRESS`.
+The release build must **not** use the `cyd-debug` environment, `-DQRP_TEST_CRASH_AT_BOOT`, `-DQRP_TEST_NETLOCK_HOLD`, `-DQRP_TEST_BAD_FIRST_ADDR` or `-DQRP_STRESS`.
 
 ### 1b. Features, screenshots and the website
 Nothing here is automatic; tick each one that applies before the version bump.
@@ -55,6 +55,7 @@ Nothing here is automatic; tick each one that applies before the version bump.
 - [ ] `README.md` → **Features and Data Sources**: the screen's row (what it shows, where its data comes from) and the bullets under the table. The manual (PDF and the website's Manual page) is built from the README, so it follows.
 - [ ] `web-installer/pages/home.html` → **Features** list on the website's home page.
 - [ ] `docs/SETUP.md` (**First-time Setup**, also a manual chapter): new or changed settings, accounts a service needs, first-start steps, menu or button names, and the troubleshooting table.
+- [ ] A changed download, background job, list or screen visit: `src/services/sources.h` and `docs/DATA_FLOW.md` (`python3 -I scripts/gen_data_flow.py`; the build checks they match).
 - [ ] A new data source or library: `THIRD_PARTY_NOTICES.md` (the build's licence check catches libraries, not web services).
 - [ ] `web-installer/pages/install.html` → **What you need**, only if the hardware changes.
 

@@ -2,6 +2,51 @@
 
 User-facing changes per release, newest first. Each section is also the release commit message (see `docs/RELEASING.md`).
 
+## v0.3.0 (2026-11-08)
+
+New platform with security updates, POTA spots load again when you open xOTA, faster WiFi recovery, and data that says how old it is
+
+Update with Cloud OTA (from v0.2.8) or the web console; your settings,
+profiles and logos stay. This release moves to a newer platform (Arduino
+core 3 / ESP-IDF 5): going back to v0.2.x needs a web console upload of
+that version.
+
+New
+- Weather (OpenWeather tab) and xOTA (POTA tab) say how old their data is
+  ("updated 5 min ago"), in the warning colour when it is stale.
+- The firmware runs on Arduino core 3.3.12 / ESP-IDF 5.5, which still gets
+  security fixes (TLS included); v0.2.x used a platform that no longer
+  does.
+
+Fixes
+- Opening xOTA by hand never loaded POTA spots while HamAlert or APRS-IS
+  was on (since v0.2.8; screen cycling still worked).
+- Leaving xOTA no longer reconnects the DX cluster in the background
+  (it held about 5 KB of memory for nothing).
+- After a missed WiFi connect at start-up the device tries the saved
+  network every 15 seconds for 5 minutes (was every minute), and the log
+  says why the connection failed.
+- HamAlert, APRS-IS and the DX and SOTA clusters notice a dead connection
+  (after a router restart, for example) and reconnect, instead of looking
+  connected with no data. The Spots page reconnects DX while it is open.
+- More free memory for downloads: unused spot lists are freed, task stacks
+  are sized from measurements, and downloads no longer start while
+  another one is running.
+- The satellite feed download can no longer hang (it waited for the
+  server to close the connection).
+- When a server has several addresses and one doesn't answer from your
+  network, the device tries the next one. The satellite feed failed now
+  and then because one of GitHub's addresses was unreachable from some
+  networks; Cloud OTA and every other download now do the same.
+
+For developers
+- /api/status: `fresh` (age, failures and state per data source); free
+  stack of the network and timer tasks.
+- docs/DATA_FLOW.md lists every download and background job; its table is
+  generated from src/services/sources.h and checked by the build.
+- Building needs Python 3.14 or older and PlatformIO 6.2.0, also inside
+  pioarduino's own environment (docs/DEVELOPMENT.md).
+
 ## v0.2.8 (2026-11-07)
 
 Downloads work while screens cycle, no crash on the xOTA screen, and a splash logo preview

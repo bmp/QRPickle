@@ -183,8 +183,8 @@ namespace ui {
                         lv_timer_delete(t);
                         return;
                     }
-                    services::cloud_ota::start_background_check();
-                    lv_timer_set_period(t, 600000);
+                    // Network busy (another download): try again in 30 s, else every 10 minutes.
+                    lv_timer_set_period(t, services::cloud_ota::start_background_check() ? 600000 : 30000);
                 },
                 120000, nullptr);
 #endif

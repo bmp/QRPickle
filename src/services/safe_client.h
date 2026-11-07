@@ -2,6 +2,7 @@
 #include <WiFiClient.h>
 #include <WiFiClientSecure.h>
 #include "net_connect.h"
+#include "addr_try.h"
 
 // Drop-in replacements for WiFiClient / WiFiClientSecure whose connect(hostname, ...) resolves
 // with services::resolve_host() (getaddrinfo, thread-safe) and then connects by IP.
@@ -20,19 +21,34 @@ namespace services {
         using WiFiClient::connect;
         int connect(const char* host, uint16_t port) override { return connect(host, port, 30000); }
         int connect(const char* host, uint16_t port, int32_t timeout_ms) override {
-            IPAddress ip;
-            return resolve_host(host, ip) ? WiFiClient::connect(ip, port, timeout_ms) : 0;
+            IPAddress ips[MAX_HOST_ADDRS];
+            const int n = resolve_host_all(host, ips, MAX_HOST_ADDRS);
+            return connect_any(n, [&](int i) {
+                       if (WiFiClient::connect(ips[i], port, timeout_ms)) return true;
+                       WiFiClient::stop();
+                       if (i + 1 < n) log_next_address(host, ips[i], ips[i + 1]);
+                       return false;
+                   }) >= 0;
         }
     };
 
     class SafeTlsClient : public WiFiClientSecure {
     public:
+        IPAddress last_ip;  // the address the last connect() resolved (0.0.0.0: DNS failed); for logs
         using WiFiClientSecure::connect;
         int connect(const char* host, uint16_t port) override {
-            IPAddress ip;
-            if (!resolve_host(host, ip)) return 0;
-            // Same as WiFiClientSecure::connect(host, port), minus the unsafe hostByName().
-            return WiFiClientSecure::connect(ip, port, host, _CA_cert, _cert, _private_key);
+            last_ip = IPAddress();
+            IPAddress ips[MAX_HOST_ADDRS];
+            const int n = resolve_host_all(host, ips, MAX_HOST_ADDRS);
+            // Same as WiFiClientSecure::connect(host, port), minus the unsafe hostByName(), and trying
+            // each address in turn (addr_try.h).
+            return connect_any(n, [&](int i) {
+                       last_ip = ips[i];
+                       if (WiFiClientSecure::connect(ips[i], port, host, _CA_cert, _cert, _private_key)) return true;
+                       WiFiClientSecure::stop();
+                       if (i + 1 < n) log_next_address(host, ips[i], ips[i + 1]);
+                       return false;
+                   }) >= 0;
         }
         int connect(const char* host, uint16_t port, int32_t timeout_ms) override {
             _timeout = timeout_ms;

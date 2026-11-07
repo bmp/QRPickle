@@ -4,12 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-QRPickle is ESP32 firmware for a ham-radio dashboard running on the "Cheap Yellow Display" (CYD: ESP32, 4MB flash, **no PSRAM**, ILI9341 320x240 + XPT2046 touch). Arduino framework on PlatformIO, UI in LVGL 9, plus an on-device web console served from LittleFS.
+QRPickle is ESP32 firmware for a ham-radio dashboard running on the "Cheap Yellow Display" (CYD: ESP32, 4MB flash, **no PSRAM**, ILI9341 320x240 + XPT2046 touch). Arduino framework (core 3.3.12 / ESP-IDF 5.5, pioarduino platform; since v0.3.0) on PlatformIO, UI in LVGL 9, plus an on-device web console served from LittleFS.
 
 ## Commands
 
 ```bash
-pio run                        # build firmware (default env: cyd, CORE_DEBUG_LEVEL=1)
+pio run                        # build firmware (default env: cyd, CORE_DEBUG_LEVEL=1); core 3 setup: docs/DEVELOPMENT.md (Python <= 3.14, PlatformIO 6.2.0 also in pioarduino's penv, first build ~7 min)
 pio run -e cyd-debug -t upload # verbose framework logs (level 4); never release (docs/DEBUGGING.md)
 pio run -t buildfs             # build littlefs.bin from data/
 pio run -t upload              # flash firmware over USB (needs device attached)
@@ -71,14 +71,16 @@ Work happens on a branch per release from `main` (`release/vX.Y.Z`), merged by p
 **Memory constraints drive the design** (budgets and rules: `docs/MEMORY.md`). There is no PSRAM, and a TLS session (mbedTLS) needs ~40 KB in total, including two ~16.7 KB buffers from the byte-addressable (8-bit) heap, which fragments over time. Network fetches therefore:
 - use `WiFiClientSecure::setInsecure()` (except Cloud OTA, which verifies certificates),
 - stream-parse JSON element by element with ArduinoJson, or parse small bodies in one buffer,
-- are serialised so that two TLS sessions never overlap (`NetLock`), and background TLS takes the quiet window (`services::quiet`, pauses HamAlert/APRS; counted, the last holder restarts them),
+- are serialised so that two TLS sessions never overlap (`NetLock`); HamAlert and APRS stay connected during downloads (their reconnects split the heap), and `tls_heap_ready()` postpones a download when memory is short,
 - measure with `heap_caps_get_largest_free_block(MALLOC_CAP_8BIT)` or `/api/status` → `mem`, never `ESP.getMaxAllocHeap()` (it counts 32-bit-only IRAM).
 
 Out-of-memory panics during HTTPS fetches and OTA are a recurring bug class (see git log).
 
+**Data flow:** `docs/DATA_FLOW.md` lists every download and background job (refresh, retry, task and stack, where the data is kept, which screens use it). Its table is generated from `src/services/sources.h` (`python3 -I scripts/gen_data_flow.py`) and `scripts/check_data_flow.py` fails the build when they disagree. Changing a download, task, list or screen visit means updating `sources.h` and the doc in the same commit.
+
 **Network sessions:** wrap every DNS+connect or HTTP(S) request in `services::NetLock` (`net_lock.h`); one session at a time, which keeps TLS heap use and lookups serialised. `connect_host()` takes it already.
 
-**DNS:** never call `WiFi.hostByName()` or `WiFiClient::connect(hostname, …)` from tasks. The Arduino 2.0.17 implementation isn't thread-safe and caused boot-time watchdog resets (review 3.14). Use `services::connect_host()` (`src/services/net_connect.h`), which uses `getaddrinfo()`. After an abnormal reset, `[CRASHLOG]` lines at boot show each task's last breadcrumb (`src/core/crashlog.h`). When adding a network feature, check the heap: TLS needs byte-addressable memory, so use `heap_caps_get_largest_free_block(MALLOC_CAP_8BIT)` (or `mem` in `/api/status`); `ESP.getMaxAllocHeap()` also counts 32-bit-only IRAM and overstates it. Don't start a TLS request while another is in flight.
+**DNS:** never call `WiFi.hostByName()` or `WiFiClient::connect(hostname, …)` from tasks. Arduino 2.0.17's implementation wasn't thread-safe and caused boot-time watchdog resets (review 3.14); keep using one way to connect on core 3 too. Use `services::connect_host()` (`src/services/net_connect.h`), which uses `getaddrinfo()`. After an abnormal reset, `[CRASHLOG]` lines at boot show each task's last breadcrumb (`src/core/crashlog.h`). When adding a network feature, check the heap: TLS needs byte-addressable memory, so use `heap_caps_get_largest_free_block(MALLOC_CAP_8BIT)` (or `mem` in `/api/status`); `ESP.getMaxAllocHeap()` also counts 32-bit-only IRAM and overstates it. Don't start a TLS request while another is in flight.
 
 **Layers:**
 - `src/hw/`: board drivers (display, touch, BME280 sensor, RGB status LED). `User_Setup.h` holds the TFT_eSPI pin config, force-included via `build_flags`. LED state meanings are documented in `docs/LEDColours.md`.

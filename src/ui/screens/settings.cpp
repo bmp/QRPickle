@@ -91,7 +91,7 @@ namespace ui {
 
         // Safely map scrollbar tracking colors using valid standard selectors
         lv_obj_set_style_bg_color(form, border, LV_PART_SCROLLBAR);
-        lv_obj_set_style_bg_color(form, accent, LV_PART_SCROLLBAR | LV_STATE_PRESSED);
+        lv_obj_set_style_bg_color(form, accent, (lv_style_selector_t)LV_PART_SCROLLBAR | LV_STATE_PRESSED);
         lv_obj_set_style_bg_opa(form, LV_OPA_COVER, LV_PART_SCROLLBAR);
 
         if (ta_call) { lv_obj_set_style_bg_color(ta_call, bg_panel, 0); lv_obj_set_style_text_color(ta_call, txt_main, 0); lv_obj_set_style_border_color(ta_call, border, 0); }
@@ -114,15 +114,15 @@ namespace ui {
             if (!cb) continue;
             lv_obj_set_style_text_color(cb, txt_main, 0);
             lv_obj_set_style_bg_color(cb, bg_panel, LV_PART_INDICATOR);
-            lv_obj_set_style_bg_color(cb, accent, LV_PART_INDICATOR | LV_STATE_CHECKED);
+            lv_obj_set_style_bg_color(cb, accent, (lv_style_selector_t)LV_PART_INDICATOR | LV_STATE_CHECKED);
         }
 
         if (slider_bright) {
             lv_obj_set_style_bg_color(slider_bright, bg_panel, LV_PART_MAIN);
             lv_obj_set_style_bg_color(slider_bright, accent, LV_PART_INDICATOR);
-            lv_obj_set_style_bg_color(slider_bright, txt_muted, LV_PART_INDICATOR | LV_STATE_DISABLED);
+            lv_obj_set_style_bg_color(slider_bright, txt_muted, (lv_style_selector_t)LV_PART_INDICATOR | LV_STATE_DISABLED);
             lv_obj_set_style_bg_color(slider_bright, txt_main, LV_PART_KNOB);
-            lv_obj_set_style_bg_color(slider_bright, txt_muted, LV_PART_KNOB | LV_STATE_DISABLED);
+            lv_obj_set_style_bg_color(slider_bright, txt_muted, (lv_style_selector_t)LV_PART_KNOB | LV_STATE_DISABLED);
         }
 
         auto style_btn_row = [&](lv_obj_t* b) {

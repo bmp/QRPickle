@@ -1,3 +1,6 @@
+#include "sources.h"
+#include "link_watch.h"
+#include "fresh_registry.h"
 #include "aprs_parse.h"
 #include "../core/mem_stats.h"
 #include "net_connect.h"
@@ -26,10 +29,11 @@ namespace services {
     bool AprsManager::msg_dirty = false;
     bool AprsManager::running = false;
 
-    // Created once, then parked (socket closed, 10 KB stack kept) instead of deleted when stopped,
-    // so quiet windows don't move the stack around the heap (docs/MEMORY.md, v0.2.5 coordinator).
+    // Created once, then parked (socket closed, stack kept) instead of deleted when stopped, so a
+    // stop/start doesn't move the stack around the heap (docs/MEMORY.md, v0.2.5 coordinator).
     static std::atomic<bool> task_alive{false};
     static std::atomic<bool> parked{false};
+    static uint32_t last_rx = 0;  // millis() of the last byte received (link_watch.h)
 
     uint32_t AprsManager::tx_count = 0;
     uint32_t AprsManager::last_tx_time = 0;
@@ -55,8 +59,9 @@ namespace services {
         running = true;
         task_alive = true;
         TaskHandle_t handle = nullptr;
-        // 4 KB: measured high-water ~2.3 KB used of the former 10 KB (mem_stats, 2026-10-11).
-        if (xTaskCreate(task_loop, "aprs_task", 4096, NULL, 1, &handle) != pdPASS) {
+        // 4.5 KB: ~2.3 KB used on core 2 (mem_stats, 2026-10-11); 4 KB left only 1.4 KB unused on
+        // core 3 (v0.3.0 stress run).
+        if (xTaskCreate(task_loop, "aprs_task", jobs::job_stack(jobs::APRS), NULL, 1, &handle) != pdPASS) {
             running = false;
             task_alive = false;
             Serial.println("[APRS] Task creation failed (heap).");
@@ -305,6 +310,7 @@ namespace services {
     }
 
     void AprsManager::process_line(char* line) {
+        fresh::ok(fresh::APRS);
         char* colon = strchr(line, ':');
         if (!colon) return;
         
@@ -344,7 +350,9 @@ namespace services {
                 if (!client.connected()) {
                     connected = false;
                     crashlog::mark(crashlog::SLOT_APRS, 2);
-                    if (connect_host(client, "rotate.aprs.net", 14580, 3000, crashlog::SLOT_APRS)) {
+                    const bool conn = connect_host(client, "rotate.aprs.net", 14580, 3000, crashlog::SLOT_APRS);
+                    if (!conn) fresh::fail(fresh::APRS);
+                    if (conn) {
                         char login[128];
                         char src_call[20];
                         if (cfg.aprs_ssid == 0) snprintf(src_call, sizeof(src_call), "%s", cfg.callsign);
@@ -357,7 +365,8 @@ namespace services {
                         crashlog::mark(crashlog::SLOT_APRS, 3);
                         client.print(login);
                         connected = true;
-                        // No beacon on every reconnect (quiet windows reconnect often): the first
+                        last_rx = millis();
+                        // No beacon on every reconnect (reconnects can be frequent): the first
                         // connect beacons (timer still 0), then every 30 min as usual.
                     } else {
                         vTaskDelay(pdMS_TO_TICKS(5000));
@@ -399,6 +408,7 @@ namespace services {
 
                 while (client.available() && running) {
                     char c = client.read();
+                    last_rx = millis();  // "#" keepalives count: the link is alive
                     if (c == '\n') {
                         buffer[buf_idx] = '\0';
                         if (buf_idx > 0 && buffer[buf_idx - 1] == '\r') buffer[buf_idx - 1] = '\0';
@@ -411,12 +421,17 @@ namespace services {
                         buffer[buf_idx++] = c;
                     }
                 }
+                if (connected && link_silent(last_rx, millis(), LINK_SILENT_APRS_MS)) {
+                    Serial.printf("[APRS] Link silent %u min; reconnecting\n", (unsigned)(LINK_SILENT_APRS_MS / 60000));
+                    client.stop();  // the connect branch above runs on the next pass
+                    connected = false;
+                }
                 crashlog::mark(crashlog::SLOT_APRS, 8);
                 vTaskDelay(pdMS_TO_TICKS(30));
             }
             client.stop();
             connected = false;
-            parked = true;  // socket closed: quiet::settled() may go ahead
+            parked = true;  // socket closed by stop(); start() wakes the task
             while (!running) vTaskDelay(pdMS_TO_TICKS(200));
             parked = false;
             buf_idx = 0;

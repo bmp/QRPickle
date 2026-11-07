@@ -115,7 +115,7 @@ namespace ui {
                 char demo[16];
                 snprintf(demo, sizeof(demo), "Network %d", i + 1);
                 snprintf(buf, sizeof(buf), "%s (%d dBm)", privacy::SCREENSHOT_BUILD ? demo : WiFi.SSID(i).c_str(),
-                         WiFi.RSSI(i));
+                         (int)WiFi.RSSI(i));
 
                 lv_obj_t* list_btn = lv_button_create(list);
                 lv_obj_set_width(list_btn, lv_pct(100));

@@ -25,6 +25,8 @@ namespace services {
         static void stop();
         // True once the background task has fully exited (stop() only requests the exit).
         static bool is_stopped();
+        // Frees the list when nothing uses it (list_release.h); main loop only. True if freed.
+        static bool release_spots(bool shown, bool cycle_keeps);
 
         // Kept for the xOTA screen: starts the cluster connection if it isn't running.
         static void fetch_async() { start(); }

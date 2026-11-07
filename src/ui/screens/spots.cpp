@@ -6,6 +6,7 @@
 #include "../fonts.h"
 #include "../../services/dx_manager.h"
 #include "../../services/dx_status_text.h"
+#include <Arduino.h>
 #include <lvgl.h>
 #include <cstdio>
 #include <cstring>
@@ -91,6 +92,18 @@ namespace ui {
 
         // 2. Refresh top system status connection indicators
         auto current_status = services::DxManager::get_status();
+
+        // A lost link (cluster restart, silence timeout, lost WiFi) used to stay down until the page
+        // was opened again: while the page is open, reconnect every 30 s (docs/DATA_FLOW.md).
+        static uint32_t disconnected_since = 0;
+        if (current_status != services::DX_STATUS_DISCONNECTED) {
+            disconnected_since = 0;
+        } else if (!disconnected_since) {
+            disconnected_since = millis() | 1;
+        } else if (millis() - disconnected_since > 30000) {
+            disconnected_since = 0;
+            services::DxManager::start();
+        }
         if (status_dot) {
             if (current_status == services::DX_STATUS_CONNECTED) {
                 lv_obj_set_style_bg_color(status_dot, theme_color(COLOR_STATUS_OK), 0);

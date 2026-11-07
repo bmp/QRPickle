@@ -36,7 +36,7 @@ and follow the rules at the end. Measured on a CYD with v0.2.4 on 2026-10-10.
 | LVGL layer buffer (`LV_DRAW_LAYER_SIMPLE_BUF_SIZE`) | 8 KB chunks | inside the pool | only for objects drawn through a layer (object opacity, transforms) |
 | Display draw buffer | 12.8 KB | static | `320 x 10` RGB565 x 2 |
 | TLS session (mbedTLS) | ~40 KB in total | heap | two ~16.7 KB buffers plus contexts; certificate checks add more |
-| Task stacks | 2-12 KB each | heap | sized from measurements (below): APRS 4 KB, HamAlert 4 KB, AsyncTCP 8 KB, Cloud OTA check 12 KB, solar/POTA fetch 8 KB, DX dial/SOTA 4 KB, LED 2 KB, loopTask 8 KB |
+| Task stacks | 2-12 KB each | heap | sized from measurements; current sizes per job in `docs/DATA_FLOW.md` (generated from `src/services/sources.h`); AsyncTCP 6 KB, loopTask 8 KB, LED 2 KB, lwIP 3 KB, timer 2.5 KB |
 | WiFi, lwIP, web server | varies | heap | buffers come and go with traffic |
 | Satellites (`space_manager`) | ~3.3 KB static; ~15 KB while passes are computed | static, heap | the feed (~13 KB) lives in LittleFS (`/space.json`), read one object at a time |
 
@@ -46,16 +46,9 @@ failing for memory. In v0.2.5 (tasks parked, stacks sized from measurements): ab
 the largest block a steady 45 KB, the lowest since boot 4.4 KB, and the check passing 6 of 6
 (2026-10-11).
 
-Stack use, from `/api/status` → `mem.stack_free` (bytes never used, lowest seen):
-
-| Task | Stack | Never used | Note |
-|---|---|---|---|
-| aprs_task | 4 KB (was 10) | ~1.8 KB | |
-| hamalert_task | 4 KB | ~2.0 KB | 3 KB was too tight (review 3.9) |
-| async_tcp (web server) | 8 KB (was 16) | ~4.8 KB | `CONFIG_ASYNC_TCP_STACK_SIZE` in platformio.ini |
-| gh_ota_check | 12 KB | ~6.8 KB | with certificate verification |
-| solar_fetch | 8 KB | ~4.2 KB | |
-| loopTask | 8 KB | ~2.1 KB | LVGL and the UI |
+Stack use: `/api/status` → `mem.stack_free` reports the bytes each task never used (lowest seen).
+Size every stack from it with ~1.5 KB to spare. The current sizes of the download and connection
+tasks are in the jobs table of `docs/DATA_FLOW.md`, which the build checks against the code.
 
 ## Rules
 
@@ -63,11 +56,15 @@ Stack use, from `/api/status` → `mem.stack_free` (bytes never used, lowest see
    it. Allocate at init instead (the LVGL pool does).
 2. **Long-lived tasks are created once and parked, never deleted** (HamAlert, APRS: on `stop()`
    they close the socket and wait; `start()` wakes them). Deleting and re-creating them moved their
-   stacks around the heap on every quiet window. **Size every stack from `mem.stack_free`** with
+   stacks around the heap on every stop. **Size every stack from `mem.stack_free`** with
    ~1.5-2 KB to spare, and add new tasks to `mem_stats` (`watch_stack` or `note_stack`).
 3. **Allocate long-lived memory early, once.** Every allocation made at run time, and every task
    that is stopped and restarted, can land somewhere new and split the big region. Prefer one
-   buffer kept for the device's lifetime over repeated allocate/free.
+   buffer kept for the device's lifetime over repeated allocate/free. Exception (v0.3.0): the POTA,
+   SOTA and DX lists (3.4-3.8 KB each) are freed when no screen shows them and cycling doesn't come
+   back to them (`services/list_release.h`): they held ~11 KB for good once opened. The POTA and
+   SOTA lists are allocated only while no download runs (`net_lock_busy()`), so they don't land in
+   the middle of a TLS session's space; the DX list is allocated when its page opens.
 4. **The main loop never waits for NetLock** (`NetLock lock(0)`, retry later): a task download can
    hold it for 20 s or more, and the loop watchdog fires at 30 s (weather reset the board this way,
    2026-11-06).
@@ -76,7 +73,8 @@ Stack use, from `/api/status` → `mem.stack_free` (bytes never used, lowest see
 5. **HamAlert and APRS stay connected during downloads** (since v0.2.8). Stopping them for each
    TLS session and reconnecting afterwards put their new socket buffers (1,436 B each plus lwIP
    records) in the middle of the space TLS had just freed, which split the largest block every
-   time. `services::quiet` is still called around TLS work but only counts holders.
+   time. The quiet window that did this (`services::quiet`) was removed in v0.3.0; xOTA had kept
+   waiting for it and never loaded POTA when opened by hand (v0.2.8 bug).
 6. **Check the 8-bit heap**, not `ESP.getMaxAllocHeap()` (above). Log the largest 8-bit block when a
    TLS request fails.
 7. **Don't start heavy work in the first seconds after boot.** WiFi, NTP, the solar fetch and the
@@ -111,6 +109,17 @@ Stack use, from `/api/status` → `mem.stack_free` (bytes never used, lowest see
    all downloads, instead of short-lived tasks) was built and measured in v0.2.8 and dropped: later
    downloads started with 3-9 KB less free heap, weather failed twice and the lowest free heap fell
    to 72 B (7.8 KB before). The code is on the `wip/net-worker` branch for v0.3.
+
+## Core 3 settings (v0.3.0)
+
+Measured on the CYD with `release/logs/p3_measure.sh` (steady free 8-bit heap, one boot each).
+Kept (in `platformio.ini` `custom_sdkconfig`): Bluetooth off; WiFi RX buffers 6 static / 16
+dynamic; TLS out buffer 4 KB; lwIP task stack 3 KB and timer task 2.5 KB (core 3 defaults are
+4 KB each; measured use ~1.2 / ~0.8 KB, `mem.stack_free` `tcpip`/`timer`; +2.2 KB); unused bundled
+components removed and the error-name table off (flash). Not pursued: fewer sockets and a smaller
+AsyncTCP queue (a few hundred bytes), 5 static WiFi RX buffers (1.6 KB, slower downloads incl.
+Cloud OTA), a smaller TLS receive buffer (servers send 16 KB records), dynamic TLS buffers
+(fragmented the heap in the platform spike).
 
 ## Measuring
 
