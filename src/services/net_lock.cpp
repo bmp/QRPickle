@@ -71,7 +71,7 @@ namespace services {
             warned = false;
             return;
         }
-        const unsigned s = (millis() - since) / 1000;
+        const unsigned s = lock_held_s(since, millis());
         const char* who = holder_name ? holder_name : "?";
         switch (lock_watch(s)) {
             case LockWatch::OK:
