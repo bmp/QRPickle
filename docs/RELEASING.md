@@ -46,7 +46,7 @@ If the web console changed, also run `QRP_ADMIN_PW=<pw> tools/web_security_check
 
 If the web console's look changed, regenerate the screenshots in `docs/screenshots/` (see `tools/webui_screenshots/README.md`) after the version bump, so they show the new version.
 
-The release build must **not** use the `cyd-debug` environment, `-DQRP_TEST_CRASH_AT_BOOT`, `-DQRP_TEST_NETLOCK_HOLD` or `-DQRP_STRESS`.
+The release build must **not** use the `cyd-debug` environment, `-DQRP_TEST_CRASH_AT_BOOT`, `-DQRP_TEST_NETLOCK_HOLD`, `-DQRP_TEST_BAD_FIRST_ADDR` or `-DQRP_STRESS`.
 
 ### 1b. Features, screenshots and the website
 Nothing here is automatic; tick each one that applies before the version bump.

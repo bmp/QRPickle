@@ -34,6 +34,10 @@ Fixes
   another one is running.
 - The satellite feed download can no longer hang (it waited for the
   server to close the connection).
+- When a server has several addresses and one doesn't answer from your
+  network, the device tries the next one. The satellite feed failed now
+  and then because one of GitHub's addresses was unreachable from some
+  networks; Cloud OTA and every other download now do the same.
 
 For developers
 - /api/status: `fresh` (age, failures and state per data source); free
