@@ -2,7 +2,6 @@
 #include "space_schedule.h"
 #include "space_manager.h"
 #include "net_lock.h"
-#include "quiet_window.h"
 #include "safe_client.h"
 #include "sun_calc.h"
 #include "wifi_manager.h"
@@ -153,11 +152,6 @@ namespace services {
         char url[sizeof(config::Config::space_url) + 40];
         feed_url(url, sizeof(url));
         const bool https = strncmp(url, "https://", 8) == 0;
-        if (https) {  // quiet window (quiet_window.h)
-            quiet::acquire();
-            for (int i = 0; i < 80 && !quiet::settled(); i++) vTaskDelay(pdMS_TO_TICKS(100));
-            vTaskDelay(pdMS_TO_TICKS(500));
-        }
 
         int code = 0, written = 0;
         crashlog::mark(crashlog::SLOT_SPACE, 1);
@@ -191,7 +185,6 @@ namespace services {
             }
         }
         crashlog::mark(crashlog::SLOT_SPACE, 5);
-        if (https) quiet::release();
 
         int n_sats = 0;
         if (written > 0) {

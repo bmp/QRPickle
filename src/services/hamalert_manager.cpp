@@ -21,8 +21,8 @@ namespace services {
     bool HamAlertManager::running = false;
 
     // The task is created once and then parks (socket closed, stack kept) instead of exiting when
-    // stopped: deleting and re-creating it moved its 4 KB stack around the heap on every quiet
-    // window and fragmented it (docs/MEMORY.md, v0.2.5 coordinator).
+    // stopped: deleting and re-creating it moved its stack around the heap on every stop and
+    // fragmented it (docs/MEMORY.md, v0.2.5 coordinator).
     static std::atomic<bool> task_alive{false};
     static std::atomic<bool> parked{false};
 
@@ -235,7 +235,7 @@ namespace services {
             client.stop();
             connected = false;
             Serial.println("[HamAlert-Socket] Safely suspended for Time-Slicing.");
-            parked = true;  // socket closed: quiet::settled() may go ahead
+            parked = true;  // socket closed by stop(); start() wakes the task
             while (!running) vTaskDelay(pdMS_TO_TICKS(200));
             parked = false;
             buf_idx = 0;

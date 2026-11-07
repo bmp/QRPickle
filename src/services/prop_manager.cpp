@@ -2,7 +2,6 @@
 #include "net_lock.h"
 #include "safe_client.h"
 #include "wifi_manager.h"
-#include "quiet_window.h"
 #include "../config/config.h"
 #include "../core/crashlog.h"
 #include "../core/mem_stats.h"
@@ -97,14 +96,6 @@ namespace services {
         const bool own_source = own[0] != '\0';
         const bool https = strncmp(url, "https://", 8) == 0;
 
-        // Quiet window (quiet_window.h): the TLS handshake needs ~40 KB of contiguous heap, which
-        // HamAlert/APRS and open screens can leave short ("start_ssl_client: -1").
-        if (https) {
-            quiet::acquire();
-            for (int i = 0; i < 80 && !quiet::settled(); i++) vTaskDelay(pdMS_TO_TICKS(100));
-            vTaskDelay(pdMS_TO_TICKS(500));  // stacks are freed later by the idle task (quiet_window.cpp)
-        }
-
         bool ok = false;
         int code = 0;
         int body_n = -1;
@@ -155,7 +146,6 @@ namespace services {
             }
         }
         crashlog::mark(crashlog::SLOT_SOLAR, 5);
-        if (https) quiet::release();
         log_result(ok, parsed, code, body_n, own_source);
         if (ok) hw::led_rgb::trigger_traffic_pulse();  // data ingress (docs/LEDColours.md)
 

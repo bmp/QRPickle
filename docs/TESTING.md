@@ -36,7 +36,7 @@ everything in the first table on every push and pull request.
 |---|---|---|
 | Out of memory, heap (21) | `/api/status` `mem`, check_size, device runs | No automated heap regression test; measured by hand per change (docs/MEMORY.md) |
 | DNS / thread safety (7), network wedge | `connect_host()` by design; device runs | The wedge (no DNS while "connected", 2026-11-04) has no detector yet (docs/TASKS.md) |
-| Quiet window / NetLock (10) | Code review; device runs | No host test (FreeRTOS-bound; the counter is a few lines) |
+| NetLock (10) | `test_lock_watch_*` (lock watch); device runs | The lock itself is FreeRTOS-bound (the quiet window was removed in v0.3.0) |
 | Watchdog (11) | `device_check.py` | Manual |
 | Config validation (22) | `test_config`, `test_source_tables.py` | - |
 | Parsers (10) | `test_parsers` | - |

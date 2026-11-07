@@ -14,6 +14,7 @@
 #include "aprs_row_tests.h"
 #include "lock_watch_tests.h"
 #include "list_release_tests.h"
+#include "xota_fetch_tests.h"
 
 using services::sota_cluster::ParsedSpot;
 using services::sota_cluster::parse_line;
@@ -153,5 +154,6 @@ int main(int, char**) {
     RUN_TEST(test_lock_watch_warns_then_restarts);
     RUN_TEST(test_lock_held_s_never_wraps);
     RUN_TEST(test_list_release_only_when_unused);
+    RUN_TEST(test_xota_fetch_manual_and_cycle_share_one_rule);
     return UNITY_END();
 }

@@ -7,7 +7,6 @@
 #include "version.h"
 #include "hamalert_manager.h"
 #include "aprs_manager.h"
-#include "quiet_window.h"
 #include "two_step_tls.h"
 #include <WiFi.h>
 #include "../core/metadata.h"
@@ -135,12 +134,10 @@ namespace services {
             last_check_ms = millis();
         }
 
-        // Quiet window (review 2.10): TLS needs ~33 KB of contiguous heap plus this task's stack,
-        // but with HamAlert/APRS running the largest free block can be too small. Pause them for
-        // the few seconds of the check (as xOTA does), then resume the ones that were running.
+        // HamAlert/APRS stay connected during the check (their reconnects split the heap; v0.2.8);
+        // the TLS heap gate in fetch_ota_json() postpones the check when memory is short.
         static void background_check_task(void*) {
             {
-                quiet::Hold hold;  // quiet window (review 2.10)
                 mem_stats::job_begin("ota_check");
                 fetch_ota_json();
                 mem_stats::job_end();

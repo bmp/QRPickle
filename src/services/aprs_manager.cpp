@@ -26,8 +26,8 @@ namespace services {
     bool AprsManager::msg_dirty = false;
     bool AprsManager::running = false;
 
-    // Created once, then parked (socket closed, 10 KB stack kept) instead of deleted when stopped,
-    // so quiet windows don't move the stack around the heap (docs/MEMORY.md, v0.2.5 coordinator).
+    // Created once, then parked (socket closed, stack kept) instead of deleted when stopped, so a
+    // stop/start doesn't move the stack around the heap (docs/MEMORY.md, v0.2.5 coordinator).
     static std::atomic<bool> task_alive{false};
     static std::atomic<bool> parked{false};
 
@@ -358,7 +358,7 @@ namespace services {
                         crashlog::mark(crashlog::SLOT_APRS, 3);
                         client.print(login);
                         connected = true;
-                        // No beacon on every reconnect (quiet windows reconnect often): the first
+                        // No beacon on every reconnect (reconnects can be frequent): the first
                         // connect beacons (timer still 0), then every 30 min as usual.
                     } else {
                         vTaskDelay(pdMS_TO_TICKS(5000));
@@ -417,7 +417,7 @@ namespace services {
             }
             client.stop();
             connected = false;
-            parked = true;  // socket closed: quiet::settled() may go ahead
+            parked = true;  // socket closed by stop(); start() wakes the task
             while (!running) vTaskDelay(pdMS_TO_TICKS(200));
             parked = false;
             buf_idx = 0;

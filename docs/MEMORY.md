@@ -63,11 +63,14 @@ Stack use, from `/api/status` → `mem.stack_free` (bytes never used, lowest see
    it. Allocate at init instead (the LVGL pool does).
 2. **Long-lived tasks are created once and parked, never deleted** (HamAlert, APRS: on `stop()`
    they close the socket and wait; `start()` wakes them). Deleting and re-creating them moved their
-   stacks around the heap on every quiet window. **Size every stack from `mem.stack_free`** with
+   stacks around the heap on every stop. **Size every stack from `mem.stack_free`** with
    ~1.5-2 KB to spare, and add new tasks to `mem_stats` (`watch_stack` or `note_stack`).
 3. **Allocate long-lived memory early, once.** Every allocation made at run time, and every task
    that is stopped and restarted, can land somewhere new and split the big region. Prefer one
-   buffer kept for the device's lifetime over repeated allocate/free.
+   buffer kept for the device's lifetime over repeated allocate/free. Exception (v0.3.0): the POTA,
+   SOTA and DX lists (3.4-3.8 KB each) are freed when no screen shows them and cycling doesn't come
+   back to them (`services/list_release.h`): they held ~11 KB for good once opened. They are
+   allocated only while no download runs, so they don't land in the middle of a TLS session's space.
 4. **The main loop never waits for NetLock** (`NetLock lock(0)`, retry later): a task download can
    hold it for 20 s or more, and the loop watchdog fires at 30 s (weather reset the board this way,
    2026-11-06).
@@ -76,7 +79,8 @@ Stack use, from `/api/status` → `mem.stack_free` (bytes never used, lowest see
 5. **HamAlert and APRS stay connected during downloads** (since v0.2.8). Stopping them for each
    TLS session and reconnecting afterwards put their new socket buffers (1,436 B each plus lwIP
    records) in the middle of the space TLS had just freed, which split the largest block every
-   time. `services::quiet` is still called around TLS work but only counts holders.
+   time. The quiet window that did this (`services::quiet`) was removed in v0.3.0; xOTA had kept
+   waiting for it and never loaded POTA when opened by hand (v0.2.8 bug).
 6. **Check the 8-bit heap**, not `ESP.getMaxAllocHeap()` (above). Log the largest 8-bit block when a
    TLS request fails.
 7. **Don't start heavy work in the first seconds after boot.** WiFi, NTP, the solar fetch and the

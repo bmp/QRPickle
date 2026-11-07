@@ -71,7 +71,7 @@ Work happens on a branch per release from `main` (`release/vX.Y.Z`), merged by p
 **Memory constraints drive the design** (budgets and rules: `docs/MEMORY.md`). There is no PSRAM, and a TLS session (mbedTLS) needs ~40 KB in total, including two ~16.7 KB buffers from the byte-addressable (8-bit) heap, which fragments over time. Network fetches therefore:
 - use `WiFiClientSecure::setInsecure()` (except Cloud OTA, which verifies certificates),
 - stream-parse JSON element by element with ArduinoJson, or parse small bodies in one buffer,
-- are serialised so that two TLS sessions never overlap (`NetLock`), and background TLS takes the quiet window (`services::quiet`, pauses HamAlert/APRS; counted, the last holder restarts them),
+- are serialised so that two TLS sessions never overlap (`NetLock`); HamAlert and APRS stay connected during downloads (their reconnects split the heap), and `tls_heap_ready()` postpones a download when memory is short,
 - measure with `heap_caps_get_largest_free_block(MALLOC_CAP_8BIT)` or `/api/status` → `mem`, never `ESP.getMaxAllocHeap()` (it counts 32-bit-only IRAM).
 
 Out-of-memory panics during HTTPS fetches and OTA are a recurring bug class (see git log).
