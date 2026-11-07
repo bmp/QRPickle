@@ -15,9 +15,9 @@ namespace services {
                 3 * 3600000UL,  // solar: after each 3-hourly update
                 6 * 3600000UL,  // satellite feed
                 5 * 60000UL,  // POTA: 5 min while cycled, 30 s on a manual visit
-                15 * 60000UL,  // SOTA cluster
+                60 * 60000UL,  // SOTA cluster: can be quiet for long (link_watch.h)
                 15 * 60000UL,  // DX cluster
-                15 * 60000UL,  // HamAlert
+                60 * 60000UL,  // HamAlert: alerts can be an hour apart (link_watch.h)
                 15 * 60000UL,  // APRS-IS
                 24 * 3600000UL  // update check
             };

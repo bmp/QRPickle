@@ -1,3 +1,4 @@
+#include "link_watch.h"
 #include "fresh_registry.h"
 #include "net_connect.h"
 #include "../core/mem_stats.h"
@@ -26,6 +27,7 @@ namespace services {
     // fragmented it (docs/MEMORY.md, v0.2.5 coordinator).
     static std::atomic<bool> task_alive{false};
     static std::atomic<bool> parked{false};
+    static uint32_t last_rx = 0;  // millis() of the last byte received (link_watch.h)
 
     void HamAlertManager::start() {
         if (running) return;
@@ -184,6 +186,7 @@ namespace services {
                                 // Only HamAlert's greeting proves the login worked (review 3.8).
                                 else if (strstr(buffer, "Hello ")) {
                                     connected = true;
+                                    last_rx = millis();
                                     authenticated = true;
                                     buf_idx = 0;
                                     buffer[0] = '\0';
@@ -212,6 +215,7 @@ namespace services {
 
                 while (client.available() && running) {
                     char c = client.read();
+                    last_rx = millis();
                     if (c == '\n') {
                         buffer[buf_idx] = '\0';
                         if (buf_idx > 0 && buffer[buf_idx - 1] == '\r') buffer[buf_idx - 1] = '\0';
@@ -226,6 +230,10 @@ namespace services {
                     }
                 }
 
+                if (connected && link_silent(last_rx, millis(), LINK_SILENT_QUIET_MS)) {
+                    Serial.printf("[HamAlert] Link silent %u h; reconnecting\n", (unsigned)(LINK_SILENT_QUIET_MS / 3600000));
+                    client.stop();  // the branch below reconnects
+                }
                 if (!client.connected() && connected) {
                     client.stop();
                     connected = false;

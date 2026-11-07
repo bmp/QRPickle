@@ -1,3 +1,4 @@
+#include "link_watch.h"
 #include "fresh_registry.h"
 #include "list_release.h"
 #include "../core/crashlog.h"
@@ -30,6 +31,7 @@ namespace services {
     // only until it hands over by setting status = CONNECTING; after that only update() does.
     static std::atomic<bool> dial_alive{false};
     static std::atomic<bool> stop_requested{false};
+    static uint32_t last_rx = 0;  // millis() of the last byte received (link_watch.h); main loop only
 
     void DxManager::start() {
         if (status != DX_STATUS_DISCONNECTED || dial_alive) return;
@@ -135,7 +137,8 @@ namespace services {
 
         while (client.available()) {
             char c = client.read();
-            
+            last_rx = millis();
+
             if (line_idx < sizeof(line_buffer) - 1) {
                 line_buffer[line_idx++] = c;
                 line_buffer[line_idx] = '\0';
@@ -163,6 +166,7 @@ namespace services {
             if (status == DX_STATUS_AUTHORIZING) {
                 if (c == '>' || strcasestr(line_buffer, "welcome") || strcasestr(line_buffer, "cluster")) {
                     status = DX_STATUS_CONNECTED;
+                    last_rx = millis();
                     Serial.println("[DX Engine] Full pipeline established.");
                     line_idx = 0;
                     line_buffer[0] = '\0';
@@ -183,6 +187,10 @@ namespace services {
             }
         }
 
+        if (status == DX_STATUS_CONNECTED && link_silent(last_rx, millis(), LINK_SILENT_DX_MS)) {
+            Serial.printf("[DX Engine] Link silent %u min; dropping it\n", (unsigned)(LINK_SILENT_DX_MS / 60000));
+            client.stop();  // handled as a lost connection below
+        }
         if (!client.connected() && status != DX_STATUS_DISCONNECTED) {
             Serial.println("[DX Engine] Connection lost to remote node.");
             stop(); 

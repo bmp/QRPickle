@@ -1,3 +1,4 @@
+#include "link_watch.h"
 #include "fresh_registry.h"
 #include "aprs_parse.h"
 #include "../core/mem_stats.h"
@@ -31,6 +32,7 @@ namespace services {
     // stop/start doesn't move the stack around the heap (docs/MEMORY.md, v0.2.5 coordinator).
     static std::atomic<bool> task_alive{false};
     static std::atomic<bool> parked{false};
+    static uint32_t last_rx = 0;  // millis() of the last byte received (link_watch.h)
 
     uint32_t AprsManager::tx_count = 0;
     uint32_t AprsManager::last_tx_time = 0;
@@ -362,6 +364,7 @@ namespace services {
                         crashlog::mark(crashlog::SLOT_APRS, 3);
                         client.print(login);
                         connected = true;
+                        last_rx = millis();
                         // No beacon on every reconnect (reconnects can be frequent): the first
                         // connect beacons (timer still 0), then every 30 min as usual.
                     } else {
@@ -404,6 +407,7 @@ namespace services {
 
                 while (client.available() && running) {
                     char c = client.read();
+                    last_rx = millis();  // "#" keepalives count: the link is alive
                     if (c == '\n') {
                         buffer[buf_idx] = '\0';
                         if (buf_idx > 0 && buffer[buf_idx - 1] == '\r') buffer[buf_idx - 1] = '\0';
@@ -415,6 +419,11 @@ namespace services {
                     } else if (buf_idx < sizeof(buffer) - 1) {
                         buffer[buf_idx++] = c;
                     }
+                }
+                if (connected && link_silent(last_rx, millis(), LINK_SILENT_APRS_MS)) {
+                    Serial.printf("[APRS] Link silent %u min; reconnecting\n", (unsigned)(LINK_SILENT_APRS_MS / 60000));
+                    client.stop();  // the connect branch above runs on the next pass
+                    connected = false;
                 }
                 crashlog::mark(crashlog::SLOT_APRS, 8);
                 vTaskDelay(pdMS_TO_TICKS(30));

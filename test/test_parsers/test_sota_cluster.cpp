@@ -16,6 +16,7 @@
 #include "list_release_tests.h"
 #include "xota_fetch_tests.h"
 #include "freshness_tests.h"
+#include "link_watch_tests.h"
 
 using services::sota_cluster::ParsedSpot;
 using services::sota_cluster::parse_line;
@@ -158,5 +159,6 @@ int main(int, char**) {
     RUN_TEST(test_xota_fetch_manual_and_cycle_share_one_rule);
     RUN_TEST(test_freshness_states);
     RUN_TEST(test_freshness_age_text);
+    RUN_TEST(test_link_silent_after_limit);
     return UNITY_END();
 }

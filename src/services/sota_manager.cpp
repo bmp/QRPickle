@@ -1,3 +1,4 @@
+#include "link_watch.h"
 #include "fresh_registry.h"
 #include "list_release.h"
 #include "net_connect.h"
@@ -26,6 +27,7 @@ namespace services {
 
     // Set before the task is created, cleared by the task as its last action.
     static std::atomic<bool> task_alive{false};
+    static uint32_t last_rx = 0;  // millis() of the last byte received (link_watch.h); task only
     // Guards the spot list while the task reorders it; the UI reads it from loop().
     static portMUX_TYPE spots_mux = portMUX_INITIALIZER_UNLOCKED;
 
@@ -122,10 +124,12 @@ namespace services {
                 idx = 0;
                 fetching = false;
                 Serial.println("[SOTA] Logged in to SOTA cluster.");
+                last_rx = millis();
             }
 
             while (client.available() && running) {
                 char c = client.read();
+                last_rx = millis();
                 if (c == '\n') {
                     line[idx] = '\0';
                     fresh::ok(fresh::SOTA);
@@ -137,6 +141,11 @@ namespace services {
                 }
             }
 
+            if (link_silent(last_rx, millis(), LINK_SILENT_QUIET_MS)) {
+                Serial.printf("[SOTA] Link silent %u h; reconnecting\n", (unsigned)(LINK_SILENT_QUIET_MS / 3600000));
+                client.stop();  // the connect branch above runs on the next pass
+                last_rx = 0;
+            }
             last_fetch_time = millis();  // live feed: never stale while connected
             vTaskDelay(pdMS_TO_TICKS(50));
         }

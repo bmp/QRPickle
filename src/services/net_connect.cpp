@@ -2,6 +2,7 @@
 #include "net_connect.h"
 #include <WiFi.h>
 #include <lwip/netdb.h>
+#include <lwip/sockets.h>
 
 namespace services {
 
@@ -22,7 +23,21 @@ namespace services {
         crashlog::mark(slot, 100 + (3));
         bool ok = client.connect(ip, port, timeout_ms);
         crashlog::mark(slot, 100 + (ok ? 4 : 5));
+        if (ok) enable_keepalive(client);
         return ok;
+    }
+
+    // TCP keepalive: a peer that vanished (router restart, NAT timeout) is found after ~90 s of
+    // silence (60 s idle, then 3 probes 10 s apart) and the socket reports disconnected, so the
+    // service reconnects instead of waiting on a dead link (review F2, v0.3.0).
+    void enable_keepalive(WiFiClient& client) {
+        const int fd = client.fd();
+        if (fd < 0) return;
+        int on = 1, idle = 60, intvl = 10, cnt = 3;
+        setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof(on));
+        setsockopt(fd, IPPROTO_TCP, TCP_KEEPIDLE, &idle, sizeof(idle));
+        setsockopt(fd, IPPROTO_TCP, TCP_KEEPINTVL, &intvl, sizeof(intvl));
+        setsockopt(fd, IPPROTO_TCP, TCP_KEEPCNT, &cnt, sizeof(cnt));
     }
 
     bool resolve_host(const char* host, IPAddress& out) {
