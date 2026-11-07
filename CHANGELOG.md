@@ -35,11 +35,21 @@ Fixes
 - The device could restart (watchdog) when a weather update was due while
   another download was running: the screen waited for the network for up to
   40 seconds. Weather now tries again 30 seconds later instead.
+- A firmware or filesystem upload in the web console failed ("Could Not
+  Activate The Firmware" or "SESSION_ABORTED") when the upload before it had
+  been cut off. Each upload now starts clean.
+- Switching APRS-IS on or off in the web console (or with a profile) takes
+  effect at once; it used to wait for a restart.
+- A download that never finishes can no longer keep the device off the
+  network: after 3 minutes the device restarts and /api/status names the
+  task that was stuck.
 - The log no longer reports a skipped weather update as "OK".
 
 For developers
 - /api/status: memory per download job, fragmentation, screen memory per
-  page, refused web requests, the reset reason; [HEAP] lines trace the boot.
+  page, refused web requests, the reset reason, the background connections
+  (links), and the task behind a network-lock restart; [HEAP] lines trace
+  the boot.
 
 ## v0.2.7 (2026-11-04)
 

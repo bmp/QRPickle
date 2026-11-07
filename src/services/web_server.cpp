@@ -1,4 +1,5 @@
 #include "web_server.h"
+#include "net_lock.h"
 #include "../ui/screens/splash.h"
 #include "../core/mem_stats.h"
 #include "profile_manager.h"  
@@ -218,7 +219,11 @@ void web_server_init() {
         AsyncResponseStream *response = request->beginResponseStream("application/json");
         JsonDocument doc;
         doc["uptime"] = millis() / 1000;
-        doc["reset_reason"] = (int)esp_reset_reason();  // esp_reset_reason_t: 1 power-on, 3 software, 4 panic
+        doc["reset_reason"] = (int)esp_reset_reason();
+        JsonObject links = doc["links"].to<JsonObject>();  // background connections (diagnostics)
+        links["aprs"] = services::AprsManager::is_connected();
+        links["hamalert"] = services::HamAlertManager::is_connected();
+        links["dx"] = (int)services::DxManager::get_status();  // 0 off .. 4 connected  // esp_reset_reason_t: 1 power-on, 3 software, 4 panic
         doc["ui_page"] = static_cast<int>(ui::ui_active_page());  // ui::LocalPage (tests, screen cycling)
         doc["heap"] = ESP.getFreeHeap();
         const auto& m = mem_stats::get();  // sampled on the main loop every 5 s
@@ -232,6 +237,7 @@ void web_server_init() {
         mem["lvgl_max_used"] = m.lvgl_max_used;
         mem["frag_pct"] = mem::frag_pct(m.heap_free, m.largest_block);
         mem["web_refused"] = web_refused.load();
+        mem["netlock_restart"] = services::net_lock_last_stuck();  // task that held the network > 180 s
         JsonObject pages = mem["lvgl_page_peak"].to<JsonObject>();  // ui::LocalPage number -> bytes
         for (int i = 0; i < mem_stats::PAGES; i++)
             if (mem_stats::lvgl_page_peak(i)) pages[String(i)] = mem_stats::lvgl_page_peak(i);
@@ -528,7 +534,17 @@ void web_server_init() {
         },
         [](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
             if (!authorized(request)) return;  // never write flash for an unauthenticated upload
+            // One update session belongs to one request. An upload cut off mid-way left its session
+            // open; the next upload's begin() then failed and its later chunks were appended to the old
+            // half image ("Could Not Activate The Firmware", 2026-11-06). Now a new upload aborts a
+            // stale session, only the owner writes, and a dropped connection aborts its session.
+            static AsyncWebServerRequest* owner = nullptr;
             if (index == 0) {
+                if (Update.isRunning()) {
+                    Serial.println("[OTA Engine] Aborting an unfinished upload session.");
+                    services::ota_manager::abort();
+                }
+                owner = nullptr;
                 services::ota_manager::UpdateType type = services::ota_manager::UPDATE_TYPE_UNKNOWN;
                 if (request->hasParam("target")) {
                     String target = request->getParam("target")->value();
@@ -536,7 +552,15 @@ void web_server_init() {
                     else if (target == "filesystem") type = services::ota_manager::UPDATE_TYPE_FILESYSTEM;
                 }
                 if (!services::ota_manager::begin(type)) return;  // completion handler reports the error (2.8)
+                owner = request;
+                request->onDisconnect([request]() {
+                    if (owner == request) {
+                        owner = nullptr;
+                        if (Update.isRunning()) services::ota_manager::abort();
+                    }
+                });
             }
+            if (owner != request || !Update.isRunning()) return;  // not this request's session
             if (len > 0) {
                 if (!services::ota_manager::write_chunk(data, len)) {
                     services::ota_manager::abort();
@@ -545,6 +569,7 @@ void web_server_init() {
             }
             if (final) {
                 if (!services::ota_manager::end()) Serial.println("[OTA CRITICAL] Error validating terminal binary block.");
+                owner = nullptr;
             }
         }
     );
@@ -682,6 +707,9 @@ void web_server_init() {
 void web_server_stop() { server.end(); }
 
 void web_server_update() {
+    // APRS-IS on/off from the web console or a profile applies at once, as on the device's Settings
+    // screen (it used to wait for a restart).
+    const bool aprs_was = config::get().aprs_enabled;
     if (config::Config* staged = pending_config.exchange(nullptr)) {
         config::mutable_get() = *staged;
         delete staged;
@@ -690,6 +718,10 @@ void web_server_update() {
     }
     if (pending_profile_flag.exchange(false)) {
         if (services::profile_manager::apply_profile_to_live(pending_profile)) flag_trigger_ui_refresh = true;
+    }
+    if (config::get().aprs_enabled != aprs_was) {
+        if (config::get().aprs_enabled) services::AprsManager::start();
+        else services::AprsManager::stop();
     }
     if (flag_trigger_ui_refresh) {
         flag_trigger_ui_refresh = false;

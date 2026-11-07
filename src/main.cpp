@@ -39,6 +39,7 @@ void setup() {
     heap_step("start");
     delay(500);
     crashlog::report_previous();
+    services::net_lock_boot_report();
     services::ota_manager::rollback_boot_check();  // may reboot into the previous image
 #ifdef QRP_TEST_CRASH_AT_BOOT
     // Test-only build (never released): proves the OTA rollback guard. See ota_manager.h and docs/RELEASING.md.
@@ -115,10 +116,12 @@ void loop() {
     crashlog::mark(crashlog::SLOT_LOOP, 5); services::display_manager::update();
     crashlog::mark(crashlog::SLOT_LOOP, 6); services::weather_manager::update();
     crashlog::mark(crashlog::SLOT_LOOP, 8);
+    services::net_lock_watch();  // a download that never returns: warn, then restart (lock_watch.h)
     services::PropagationManager::update();
     services::SpaceManager::update();
     mem_stats::update();
-#ifdef QRP_TEST_NETLOCK_HOLD  // test builds only (docs/TESTING.md): a task holds NetLock for 45 s at
+#ifdef QRP_TEST_NETLOCK_HOLD  // test builds only (docs/TESTING.md): a task holds NetLock for 45 s (or
+    // QRP_TEST_NETLOCK_HOLD_S) at
     // 2 min while weather is due; the main loop must not wait for it (30 s loop watchdog). Never release.
     {
         static bool started = false;
@@ -127,8 +130,11 @@ void loop() {
             xTaskCreate([](void*) {
                 {
                     services::NetLock lock;
-                    Serial.printf("[Test] NetLock held: %d (45 s)\n", lock.held());
-                    vTaskDelay(pdMS_TO_TICKS(45000));
+#ifndef QRP_TEST_NETLOCK_HOLD_S
+#define QRP_TEST_NETLOCK_HOLD_S 45  // 200: past the lock watch's 180 s (lock_watch.h)
+#endif
+                    Serial.printf("[Test] NetLock held: %d (%d s)\n", lock.held(), QRP_TEST_NETLOCK_HOLD_S);
+                    vTaskDelay(pdMS_TO_TICKS(QRP_TEST_NETLOCK_HOLD_S * 1000));
                 }
                 Serial.println("[Test] NetLock released");
                 vTaskDelete(nullptr);

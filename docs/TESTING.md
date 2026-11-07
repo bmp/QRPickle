@@ -27,7 +27,7 @@ everything in the first table on every push and pull request.
 | `tools/device_screens.py` | Screenshots of every page, tab and theme (screenshot build); the corner rule (docs/UI_GUIDE.md) |
 | `tools/serial_soak.py`, `/api/status` `mem` | Long runs, heap and LVGL pool, crash backtraces |
 | `tools/cycle_run.sh <minutes>` | All 7 screens every 10 s with `/api/status` every 2 s (the xOTA crash's trigger), serial logged; restarts, aborts, download results (`[Mem] job` lines). The workload for judging memory changes (docs/MEMORY.md rule 13) |
-| `-DQRP_TEST_NETLOCK_HOLD` build | A task holds NetLock for 45 s at 2 minutes while weather is due: the main loop must not wait (30 s loop watchdog). Before the fix: reset reason 6; after: "Network busy", weather retries 30 s later. **Never release it** |
+| `-DQRP_TEST_NETLOCK_HOLD` build (`-DQRP_TEST_NETLOCK_HOLD_S=200` for the lock watch) | A task holds NetLock for 45 s at 2 minutes while weather is due: the main loop must not wait (30 s loop watchdog). Before the fix: reset reason 6; after: "Network busy", weather retries 30 s later. With 200 s: a warning at 60 s, a restart at 181 s, `mem.netlock_restart` names the task. **Never release it** |
 | Stress build (`PLATFORMIO_BUILD_FLAGS=-DQRP_STRESS`) + `cycle_run.sh 60` | Downloads 10-20x as often: weather every 3 min, satellite feed every 15, solar and the update check every 10, an APRS-IS reconnect every 10 (`main.cpp`). Crashes and heap splitting show within an hour. **Never release it**; finish with an hour on the real build |
 
 ## Bug classes from the history and their cover
