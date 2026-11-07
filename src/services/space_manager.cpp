@@ -173,6 +173,14 @@ namespace services {
                     http.setTimeout(15000);
                     crashlog::mark(crashlog::SLOT_SPACE, 3);
                     code = http.GET();
+                    if (code < 0 && https) {
+                        // The feed's connect fails now and then with plenty of memory free (TASKS.md):
+                        // say whether DNS, the address or the TLS handshake failed.
+                        char err[64] = "";
+                        const int e = tls.lastError(err, sizeof(err));
+                        Serial.printf("[Space] Connect failed: %s; address %s; TLS %d (%s)\n",
+                                      http.errorToString(code).c_str(), tls.last_ip.toString().c_str(), e, err);
+                    }
                     if (code == HTTP_CODE_OK) {
                         File f = LittleFS.open(TMP_PATH, "w");
                         if (f) {

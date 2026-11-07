@@ -27,12 +27,13 @@ namespace services {
 
     class SafeTlsClient : public WiFiClientSecure {
     public:
+        IPAddress last_ip;  // the address the last connect() resolved (0.0.0.0: DNS failed); for logs
         using WiFiClientSecure::connect;
         int connect(const char* host, uint16_t port) override {
-            IPAddress ip;
-            if (!resolve_host(host, ip)) return 0;
+            last_ip = IPAddress();
+            if (!resolve_host(host, last_ip)) return 0;
             // Same as WiFiClientSecure::connect(host, port), minus the unsafe hostByName().
-            return WiFiClientSecure::connect(ip, port, host, _CA_cert, _cert, _private_key);
+            return WiFiClientSecure::connect(last_ip, port, host, _CA_cert, _cert, _private_key);
         }
         int connect(const char* host, uint16_t port, int32_t timeout_ms) override {
             _timeout = timeout_ms;
