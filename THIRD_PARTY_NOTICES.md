@@ -24,8 +24,9 @@ QRPickle's own code is MIT-licensed (see [`License`](License)). The firmware and
 | XPT2046_Touchscreen | MIT-style | © 2015 Paul Stoffregen | in the library |
 | Sgp4 (Hopperpop) 1.0.3, satellite passes | MIT | © 2016 Hopperpop; SGP4 code from "Fundamentals of Astrodynamics and Applications" by David Vallado (freely distributed) | in the library |
 | Space feed data (fetched at run time) | CC BY-SA 4.0 (SatNOGS DB); CelesTrak and ARISS credited | SatNOGS, CelesTrak, ARISS | built by `tools/space_feed/build_feed.py`; credited in About |
-| Arduino-ESP32 core 2.0.17 (platform `espressif32 @ 6.13.0`) | LGPL-2.1 | © Espressif Systems and contributors | [espressif/arduino-esp32](https://github.com/espressif/arduino-esp32) |
-| ESP-IDF 4.4 (incl. FreeRTOS, lwIP, mbedTLS) | Apache-2.0 (FreeRTOS: MIT, lwIP: BSD) | © Espressif Systems and the respective authors | [espressif/esp-idf](https://github.com/espressif/esp-idf) |
+| Arduino-ESP32 core 3.3.12 (platform `https://github.com/pioarduino/platform-espressif32/releases/download/55.03.312/platform-espressif32.zip`) | LGPL-2.1 | © Espressif Systems and contributors | [espressif/arduino-esp32](https://github.com/espressif/arduino-esp32) |
+| pioarduino platform-espressif32 55.03.312 (build platform) | Apache-2.0 | © pioarduino and contributors | [pioarduino/platform-espressif32](https://github.com/pioarduino/platform-espressif32) |
+| ESP-IDF 5.5 (incl. FreeRTOS, lwIP, mbedTLS 3) | Apache-2.0 (FreeRTOS: MIT, lwIP: BSD) | © Espressif Systems and the respective authors | [espressif/esp-idf](https://github.com/espressif/esp-idf) |
 
 The libraries are fetched by PlatformIO at the versions pinned in `platformio.ini`; their licence files come with them. Image assets and their sources are listed in [`assets/img/SOURCES.md`](assets/img/SOURCES.md).
 

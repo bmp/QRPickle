@@ -47,6 +47,39 @@ namespace services {
     static constexpr uint32_t MIN_VALID_UTC = 1700000000, WINDOW_S = 24 * 3600;
     static constexpr size_t OBJ_BUF = 1280;  // one feed object (a satellite is ~0.6 KB)
 
+    // Copy the response body into the file with a size and time limit. HTTPClient::writeToStream()
+    // waited for the connection to close and, on Arduino core 3, never returned (the board went off
+    // the network until the NetLock watch restarted it; PLATFORM_SPIKE.md). Stops at Content-Length
+    // when the server sends one (raw.githubusercontent.com does), else when the stream closes or
+    // stays idle. Returns the bytes written, or -1 when the body was cut short.
+    static constexpr int MAX_FEED_B = 64 * 1024;
+    static constexpr uint32_t BODY_DEADLINE_MS = 30000, BODY_IDLE_MS = 10000;
+    static int copy_body(HTTPClient& http, File& f) {
+        const int len = http.getSize();  // -1 when unknown
+        if (len > MAX_FEED_B) return -1;
+        WiFiClient* s = http.getStreamPtr();
+        uint8_t buf[256];  // on the fetch task's stack (~2.6 KB free)
+        int n = 0;
+        const uint32_t start = millis();
+        uint32_t last = start;
+        while ((len < 0 || n < len) && n < MAX_FEED_B && millis() - start < BODY_DEADLINE_MS) {
+            const int avail = s->available();
+            if (avail > 0) {
+                const int want = min(avail, (int)sizeof(buf));
+                const int c = s->read(buf, len < 0 ? want : min(want, len - n));
+                if (c <= 0) continue;
+                if (f.write(buf, c) != (size_t)c) return -1;
+                n += c;
+                last = millis();
+            } else if (!s->connected() || millis() - last > BODY_IDLE_MS) {
+                break;
+            } else {
+                vTaskDelay(pdMS_TO_TICKS(10));
+            }
+        }
+        return (len >= 0 && n != len) ? -1 : n;
+    }
+
     static uint32_t jd_to_unix(double jd) { return (uint32_t)((jd - 2440587.5) * 86400.0 + 0.5); }
 
     // ---- Reading the feed ------------------------------------------------------------------
@@ -149,7 +182,7 @@ namespace services {
                         File f = LittleFS.open(TMP_PATH, "w");
                         if (f) {
                             crashlog::mark(crashlog::SLOT_SPACE, 4);
-                            written = http.writeToStream(&f);
+                            written = copy_body(http, f);
                             f.close();
                         }
                     }

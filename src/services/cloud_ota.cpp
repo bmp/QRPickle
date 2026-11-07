@@ -9,6 +9,17 @@
 #include "aprs_manager.h"
 #include "quiet_window.h"
 #include "two_step_tls.h"
+#include <WiFi.h>
+#include <mbedtls/version.h>
+#if MBEDTLS_VERSION_MAJOR >= 3  // mbedTLS 3 (ESP-IDF 5) dropped the _ret suffixes
+#define qrp_sha256_starts mbedtls_sha256_starts
+#define qrp_sha256_update mbedtls_sha256_update
+#define qrp_sha256_finish mbedtls_sha256_finish
+#else
+#define qrp_sha256_starts mbedtls_sha256_starts_ret
+#define qrp_sha256_update mbedtls_sha256_update_ret
+#define qrp_sha256_finish mbedtls_sha256_finish_ret
+#endif
 #include "../core/metadata.h"
 #include <WiFiClientSecure.h>
 #include "safe_client.h"
@@ -215,7 +226,7 @@ namespace services {
 
             mbedtls_sha256_context sha;
             mbedtls_sha256_init(&sha);
-            mbedtls_sha256_starts_ret(&sha, 0);
+            qrp_sha256_starts(&sha, 0);
 
             WiFiClient* stream = http.getStreamPtr();
             uint8_t buffer[1024];
@@ -227,7 +238,7 @@ namespace services {
                 if (avail) {
                     int c = stream->readBytes(buffer, avail > sizeof(buffer) ? sizeof(buffer) : avail);
                     if (c <= 0) continue;
-                    mbedtls_sha256_update_ret(&sha, buffer, c);
+                    qrp_sha256_update(&sha, buffer, c);
                     if (Update.write(buffer, c) != (size_t)c) fail_and_restart(Update.errorString());
                     remaining -= c;
                     last_data = millis();
@@ -239,7 +250,7 @@ namespace services {
             http.end();
 
             uint8_t digest[32];
-            mbedtls_sha256_finish_ret(&sha, digest);
+            qrp_sha256_finish(&sha, digest);
             mbedtls_sha256_free(&sha);
             if (remaining != 0) fail_and_restart("download incomplete");
 
