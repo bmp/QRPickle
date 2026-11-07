@@ -9,7 +9,9 @@
 #include "../../services/sota_manager.h"
 #include "../../services/dx_manager.h"
 #include "../xota_fetch.h"
+#include "../fresh_text.h"
 #include "../screen_cycle.h"
+#include <cctype>
 #include <cstdio>
 #include <cstring>
 #include <strings.h>
@@ -33,6 +35,8 @@ namespace ui {
     static lv_obj_t* btn_qrp = nullptr;
     static lv_obj_t* list_container = nullptr;
     static lv_obj_t* lbl_comment = nullptr;
+    static bool footer_default = true;  // the footer shows the default line, not a tapped row's comment
+    static char footer_last[64] = "";
     static bool failed_shown = false;  // the comment bar shows the POTA download failure
     static lv_obj_t* lbl_loading = nullptr; 
     static lv_obj_t* status_dot = nullptr;
@@ -100,6 +104,8 @@ namespace ui {
 
         if (lbl_comment) {
             lv_label_set_text(lbl_comment, "COMMENT: Tap a row to read.");
+            footer_default = true;
+            footer_last[0] = '\0';
         }
         services::PotaManager::clear_dirty();
         services::SotaManager::clear_dirty();
@@ -188,6 +194,7 @@ namespace ui {
             if(si < services::SotaManager::get_spot_count()) strncat(b, sp[si].comment, sizeof(b)-10);
         }
         if(lbl_comment) lv_label_set_text(lbl_comment, b);
+        footer_default = false;
     }
 
     static void update_ui(lv_timer_t* t) {
@@ -204,8 +211,22 @@ namespace ui {
         }
         if (lbl_comment && failed != failed_shown) {
             failed_shown = failed;
+            footer_default = true;
+            footer_last[0] = '\0';
             lv_label_set_text(lbl_comment, failed ? "POTA download failed. Tap refresh to retry." : "COMMENT: Tap a row to read.");
             lv_obj_set_style_text_color(lbl_comment, theme_color(failed ? COLOR_STATUS_WARN : COLOR_TEXT_MUTED), 0);
+        }
+        // POTA tab, nothing tapped: say how old the list is (services/fresh_registry.h).
+        if (lbl_comment && footer_default && !failed && !fetching && active_tab == TAB_POTA) {
+            char age[32], line[64];
+            const bool stale = fresh_text(age, sizeof(age), services::fresh::POTA);
+            snprintf(line, sizeof(line), "%s - tap a row to read", age);
+            line[0] = (char)toupper((unsigned char)line[0]);
+            if (strcmp(line, footer_last) != 0) {
+                strlcpy(footer_last, line, sizeof(footer_last));
+                lv_label_set_text(lbl_comment, line);
+                lv_obj_set_style_text_color(lbl_comment, theme_color(stale ? COLOR_STATUS_WARN : COLOR_TEXT_MUTED), 0);
+            }
         }
 
         if (dirty || t == nullptr) {
@@ -366,6 +387,8 @@ namespace ui {
 
         lbl_comment = lv_label_create(foot);
         failed_shown = false;
+        footer_default = true;
+        footer_last[0] = '\0';
         lv_label_set_text(lbl_comment, "INITIALIZING...");
         lv_obj_set_style_text_font(lbl_comment, &font_jetbrains_10, 0);
         lv_obj_set_style_text_color(lbl_comment, theme_color(COLOR_TEXT_MUTED), 0);

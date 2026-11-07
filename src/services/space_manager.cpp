@@ -1,3 +1,4 @@
+#include "fresh_registry.h"
 #include "../core/crashlog.h"
 #include "space_schedule.h"
 #include "space_manager.h"
@@ -197,9 +198,11 @@ namespace services {
         const bool ok = n_sats > 0 && LittleFS.rename(TMP_PATH, FEED_PATH);
         if (!ok) LittleFS.remove(TMP_PATH);
         if (ok) {
+            fresh::ok(fresh::FEED);
             Serial.printf("[Space] Feed downloaded: %d satellites, %d B\n", n_sats, written);
             hw::led_rgb::trigger_traffic_pulse();
         } else {
+            fresh::fail(fresh::FEED);
             Serial.printf("[Space] Feed download failed (HTTP %d, %d B, %d satellites)\n", code, written, n_sats);
         }
         fetch_ok = ok;

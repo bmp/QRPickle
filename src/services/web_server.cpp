@@ -1,5 +1,6 @@
 #include "web_server.h"
 #include "net_lock.h"
+#include "fresh_registry.h"
 #include "../ui/screens/splash.h"
 #include "../core/mem_stats.h"
 #include "profile_manager.h"  
@@ -220,6 +221,7 @@ void web_server_init() {
         JsonDocument doc;
         doc["uptime"] = millis() / 1000;
         doc["reset_reason"] = (int)esp_reset_reason();
+        services::fresh::to_json(doc["fresh"].to<JsonObject>());  // per-source data age and state (fresh_registry.h)
         JsonObject links = doc["links"].to<JsonObject>();  // background connections (diagnostics)
         links["aprs"] = services::AprsManager::is_connected();
         links["hamalert"] = services::HamAlertManager::is_connected();

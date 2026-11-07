@@ -19,4 +19,7 @@ cause=$(tr -cd '\11\12\15\40-\176' < $LOG | grep -m1 -E "abort\(\) was called|Gu
 echo "cycling $MIN min: polls ok $ok, no answer $miss, restarts $restarts | ${cause:-no abort}"
 echo "after: $m"
 tr -cd '\11\12\15\40-\176' < $LOG | grep -E "\[Mem\] job" | tail -8
-[ $restarts = 0 ] && [ -z "$cause" ]
+# Freshness per source (/api/status "fresh"): any FAILING source fails the run.
+fresh=$(curl -s -m 8 $A http://$IP/api/status | python3 -c "import json,sys; f=json.load(sys.stdin).get('fresh',{}); print(' '.join(k+'='+v['state']+('/'+str(v['age_s'])+'s' if 'age_s' in v else '')+('/f'+str(v['fails']) if v['fails'] else '') for k,v in f.items()))" 2>/dev/null)
+echo "fresh: ${fresh:-n/a}"
+[ $restarts = 0 ] && [ -z "$cause" ] && ! echo "$fresh" | grep -q FAILING

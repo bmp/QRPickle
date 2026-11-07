@@ -1,3 +1,4 @@
+#include "fresh_registry.h"
 #include "net_connect.h"
 #include "../core/mem_stats.h"
 #include "../core/crashlog.h"
@@ -66,6 +67,7 @@ namespace services {
     size_t HamAlertManager::get_message_count() { return message_count; }
 
     void HamAlertManager::process_line(char* line) {
+        fresh::ok(fresh::HAMALERT);
         Serial.printf("[HamAlert-Raw] '%s'\n", line);
 
         if (strstr(line, "DX de") == nullptr) return;
@@ -155,7 +157,9 @@ namespace services {
                     Serial.println("[HamAlert-Socket] Directing link to hamalert.org:7300...");
 
                     crashlog::mark(crashlog::SLOT_HAMALERT, 2);
-                    if (connect_host(client, "hamalert.org", 7300, 5000, crashlog::SLOT_HAMALERT)) {
+                    const bool conn = connect_host(client, "hamalert.org", 7300, 5000, crashlog::SLOT_HAMALERT);
+                    if (!conn) fresh::fail(fresh::HAMALERT);
+                    if (conn) {
                         unsigned long timeout_mark = millis();
                         bool authenticated = false;
 

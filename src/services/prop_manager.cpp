@@ -1,3 +1,4 @@
+#include "fresh_registry.h"
 #include "prop_manager.h"
 #include "net_lock.h"
 #include "safe_client.h"
@@ -147,6 +148,8 @@ namespace services {
         }
         crashlog::mark(crashlog::SLOT_SOLAR, 5);
         log_result(ok, parsed, code, body_n, own_source);
+        if (ok) fresh::ok(fresh::SOLAR);
+        else fresh::fail(fresh::SOLAR);
         if (ok) hw::led_rgb::trigger_traffic_pulse();  // data ingress (docs/LEDColours.md)
 
         portENTER_CRITICAL(&result_mux);

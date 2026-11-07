@@ -1,3 +1,4 @@
+#include "fresh_registry.h"
 #include "list_release.h"
 #include "../core/crashlog.h"
 #include "../hw/led_rgb.h"
@@ -76,6 +77,7 @@ namespace services {
             state_timer = millis();
             status = DX_STATUS_CONNECTING;  // hand-over: update() owns the socket from here
         } else {
+            fresh::fail(fresh::DX);
             Serial.println("[DX Engine] Secondary connection failed completely.");
             status = DX_STATUS_DISCONNECTED;
         }
@@ -188,6 +190,7 @@ namespace services {
     }
 
     void DxManager::handle_line(const char* line) {
+        fresh::ok(fresh::DX);
         if (strncmp(line, "DX de ", 6) == 0) {
             parse_dx_line(line);
         }

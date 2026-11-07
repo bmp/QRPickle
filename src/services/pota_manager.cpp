@@ -1,3 +1,4 @@
+#include "fresh_registry.h"
 #include "list_release.h"
 #include "net_lock.h"
 #include "../core/mem_stats.h"
@@ -118,6 +119,8 @@ namespace services {
     void PotaManager::fetch_task(void*) {
         mem_stats::job_begin("pota");
         run_fetch();
+        if (failed) fresh::fail(fresh::POTA);
+        else fresh::ok(fresh::POTA);
         mem_stats::job_end();
         mem_stats::note_stack(mem_stats::STK_POTA);
         vTaskDelete(NULL);

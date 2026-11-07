@@ -1,3 +1,4 @@
+#include "fresh_registry.h"
 #include "../core/mem_stats.h"
 #include <WiFiClientSecure.h>
 #include "safe_client.h"
@@ -158,6 +159,8 @@ namespace services {
                 const bool cur = fetch_current(cfg);
                 const bool fore = fetch_forecast(cfg);
                 mem_stats::job_end();
+                if (cur && fore) fresh::ok(fresh::WEATHER);
+                else fresh::fail(fresh::WEATHER);
                 Serial.printf("[Weather] OpenWeather: current %s, forecast %s%s\n", cur ? "OK" : "failed",
                               fore ? "OK" : "failed",
                               cur && fore                             ? ""

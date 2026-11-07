@@ -1,3 +1,4 @@
+#include "fresh_registry.h"
 #include "aprs_parse.h"
 #include "../core/mem_stats.h"
 #include "net_connect.h"
@@ -306,6 +307,7 @@ namespace services {
     }
 
     void AprsManager::process_line(char* line) {
+        fresh::ok(fresh::APRS);
         char* colon = strchr(line, ':');
         if (!colon) return;
         
@@ -345,7 +347,9 @@ namespace services {
                 if (!client.connected()) {
                     connected = false;
                     crashlog::mark(crashlog::SLOT_APRS, 2);
-                    if (connect_host(client, "rotate.aprs.net", 14580, 3000, crashlog::SLOT_APRS)) {
+                    const bool conn = connect_host(client, "rotate.aprs.net", 14580, 3000, crashlog::SLOT_APRS);
+                    if (!conn) fresh::fail(fresh::APRS);
+                    if (conn) {
                         char login[128];
                         char src_call[20];
                         if (cfg.aprs_ssid == 0) snprintf(src_call, sizeof(src_call), "%s", cfg.callsign);

@@ -1,3 +1,4 @@
+#include "fresh_registry.h"
 #include "list_release.h"
 #include "net_connect.h"
 #include "../hw/led_rgb.h"
@@ -112,6 +113,7 @@ namespace services {
                 client.setTimeout(10);  // seconds; bounds the wait for the login prompt
                 if (!connect_host(client, CLUSTER_HOST, CLUSTER_PORT, 5000, crashlog::SLOT_SOTA) || !client.find("login:")) {
                     client.stop();
+                    fresh::fail(fresh::SOTA);
                     Serial.println("[SOTA] Cluster unreachable; retrying in 30 s.");
                     for (int i = 0; i < 300 && running; i++) vTaskDelay(pdMS_TO_TICKS(100));
                     continue;
@@ -126,6 +128,7 @@ namespace services {
                 char c = client.read();
                 if (c == '\n') {
                     line[idx] = '\0';
+                    fresh::ok(fresh::SOTA);
                     sota_cluster::ParsedSpot p;
                     crashlog::mark(crashlog::SLOT_SOTA, 2); if (sota_cluster::parse_line(line, p)) store_spot(p);
                     idx = 0;

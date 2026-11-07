@@ -1,3 +1,4 @@
+#include "fresh_registry.h"
 #include "net_lock.h"
 #include "../core/mem_stats.h"
 #include "ota_ca_certs.h"
@@ -142,6 +143,8 @@ namespace services {
                 fetch_ota_json();
                 mem_stats::job_end();
             }
+            if (cached_info.latest_version[0]) fresh::ok(fresh::OTA_CHECK);
+            else fresh::fail(fresh::OTA_CHECK);
             Serial.printf("[OTA] Update check %s (latest: %s, local: %s)\n",
                           cached_info.latest_version[0] ? "OK" : "FAILED",
                           cached_info.latest_version[0] ? cached_info.latest_version : "-", meta::FW_VERSION);
