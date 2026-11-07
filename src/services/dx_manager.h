@@ -30,6 +30,8 @@ namespace services {
         static const DxSpot* get_spots() { return spots; } 
         static size_t get_spot_count() { return spot_count; }
         static void clear_spots();
+        // Frees the list when nothing uses it (list_release.h); main loop only. True if freed.
+        static bool release_spots(bool shown, bool cycle_keeps);
 
         // Added high-speed cache dirty validation flags
         static bool is_dirty() { return buffer_dirty; }

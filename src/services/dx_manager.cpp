@@ -1,3 +1,4 @@
+#include "list_release.h"
 #include "../core/crashlog.h"
 #include "../hw/led_rgb.h"
 #include "net_connect.h"
@@ -98,6 +99,17 @@ namespace services {
         // We intentionally DO NOT free the spots array here anymore. 
         // This prevents Use-After-Free race conditions during time-slicing pauses!
         Serial.println("[DX Engine] Socket safely suspended for Time-Slicing.");
+    }
+
+    // update() (main loop) is the only writer once connected; the dial task never touches the list.
+    bool DxManager::release_spots(bool shown, bool cycle_keeps) {
+        const bool writer = status != DX_STATUS_DISCONNECTED || dial_alive;
+        if (!may_release_list(spots != nullptr, writer, shown, cycle_keeps)) return false;
+        free(spots);
+        spots = nullptr;
+        spot_count = 0;
+        buffer_dirty = true;
+        return true;
     }
 
     void DxManager::clear_spots() {

@@ -13,6 +13,7 @@
 #include "xota_tests.h"
 #include "aprs_row_tests.h"
 #include "lock_watch_tests.h"
+#include "list_release_tests.h"
 
 using services::sota_cluster::ParsedSpot;
 using services::sota_cluster::parse_line;
@@ -151,5 +152,6 @@ int main(int, char**) {
     RUN_TEST(test_aprs_row_text_columns);
     RUN_TEST(test_lock_watch_warns_then_restarts);
     RUN_TEST(test_lock_held_s_never_wraps);
+    RUN_TEST(test_list_release_only_when_unused);
     return UNITY_END();
 }

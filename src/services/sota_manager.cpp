@@ -1,3 +1,4 @@
+#include "list_release.h"
 #include "net_connect.h"
 #include "../hw/led_rgb.h"
 #include "../core/crashlog.h"
@@ -49,6 +50,14 @@ namespace services {
             fetching = false;
             Serial.println("[SOTA] Task creation failed (heap).");
         }
+    }
+
+    bool SotaManager::release_spots(bool shown, bool cycle_keeps) {
+        if (!may_release_list(spots != nullptr, running || task_alive, shown, cycle_keeps)) return false;
+        free(spots);
+        spots = nullptr;
+        spot_count = 0;
+        return true;
     }
 
     void SotaManager::stop() { running = false; }

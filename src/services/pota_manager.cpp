@@ -1,3 +1,4 @@
+#include "list_release.h"
 #include "net_lock.h"
 #include "../core/mem_stats.h"
 #include "../hw/led_rgb.h"
@@ -86,6 +87,16 @@ namespace services {
             }
         }
         return false;
+    }
+
+    bool PotaManager::release_spots(bool shown, bool cycle_keeps) {
+        if (!may_release_list(spots != nullptr, fetching, shown, cycle_keeps)) return false;
+        free(spots);
+        spots = nullptr;
+        spot_count = 0;
+        last_fetch_time = 0;  // the next xOTA visit fetches at once
+        dirty = true;
+        return true;
     }
 
     void PotaManager::fetch_async() {
