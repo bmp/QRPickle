@@ -50,5 +50,9 @@ platform (pinned in `platformio.ini`). Three things differ from the old espressi
   `dependencies.lock` into the project root (gitignored). A build after a settings change may
   stop once with `FileNotFoundError: .pio/build/cyd`; run it again.
 
+- **`setTimeout()` on a network client takes milliseconds on core 3** (it falls through to
+  `Stream::setTimeout()`); core 2's `WiFiClient::setTimeout()` took seconds. A leftover
+  `setTimeout(10)` made the SOTA login wait 10 ms (found by the v0.3.0 stress run).
+
 A PlatformIO folder shared with older projects on core 2 can break their toolchain; use a separate
 one if you need both (`PLATFORMIO_CORE_DIR=/path/to/other pio run`).

@@ -112,8 +112,10 @@ namespace services {
 
             if (!client.connected()) {
                 Serial.printf("[SOTA] Connecting to %s:%u...\n", CLUSTER_HOST, CLUSTER_PORT);
-                crashlog::mark(crashlog::SLOT_SOTA, 1); 
-                client.setTimeout(10);  // seconds; bounds the wait for the login prompt
+                crashlog::mark(crashlog::SLOT_SOTA, 1);
+                // Milliseconds: core 3 uses Stream::setTimeout(); core 2's WiFiClient took seconds, and
+                // setTimeout(10) became 10 ms, so find("login:") never waited (v0.3.0 stress run).
+                client.setTimeout(10000);  // bounds the wait for the login prompt
                 if (!connect_host(client, CLUSTER_HOST, CLUSTER_PORT, 5000, crashlog::SLOT_SOTA) || !client.find("login:")) {
                     client.stop();
                     fresh::fail(fresh::SOTA);

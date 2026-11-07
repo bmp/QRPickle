@@ -137,8 +137,8 @@ namespace services {
         vTaskDelay(pdMS_TO_TICKS(5000)); 
 
         WiFiClient client;
-        client.setTimeout(5); 
-        
+        client.setTimeout(5000);  // ms (core 3 Stream::setTimeout; core 2's WiFiClient took seconds)
+
         char buffer[256];
         size_t buf_idx = 0;
 
