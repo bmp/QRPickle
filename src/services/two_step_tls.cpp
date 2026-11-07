@@ -33,11 +33,7 @@ namespace services {
         }
 
         void sha256_der(const mbedtls_x509_crt* c, uint8_t out[32]) {
-#if MBEDTLS_VERSION_MAJOR >= 3
             mbedtls_sha256(c->raw.p, c->raw.len, out, 0);
-#else
-            mbedtls_sha256_ret(c->raw.p, c->raw.len, out, 0);
-#endif
         }
     }  // namespace
 

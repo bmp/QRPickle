@@ -104,13 +104,9 @@ void setup() {
     // Watch the main loop: a hang now reboots after 30 s with a backtrace and [CRASHLOG]
     // breadcrumbs instead of freezing silently (found with the DX screen, 2026-10-09).
     // 30 s leaves room for the slowest legitimate loop work (a weather HTTPS fetch).
-#if ESP_IDF_VERSION_MAJOR >= 5
-    // ESP-IDF 5: the task watchdog is already running (Arduino core 3); set 30 s and panic.
+    // The task watchdog already runs (Arduino core 3 / IDF 5); set 30 s and panic.
     const esp_task_wdt_config_t wdt = {.timeout_ms = 30000, .idle_core_mask = 0, .trigger_panic = true};
     esp_task_wdt_reconfigure(&wdt);
-#else
-    esp_task_wdt_init(30, true);
-#endif
     enableLoopWDT();
 }
 
