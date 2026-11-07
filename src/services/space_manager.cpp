@@ -1,3 +1,4 @@
+#include "sources.h"
 #include "fresh_registry.h"
 #include "../core/crashlog.h"
 #include "space_schedule.h"
@@ -383,7 +384,7 @@ namespace services {
         bool expected = false;
         if (!fetching.compare_exchange_strong(expected, true)) return false;
         last_try_ms = millis();
-        if (xTaskCreatePinnedToCore(fetch_task, "space_fetch", 6144, NULL, 1, NULL, 0) != pdPASS) {
+        if (xTaskCreatePinnedToCore(fetch_task, "space_fetch", jobs::job_stack(jobs::FEED), NULL, 1, NULL, 0) != pdPASS) {
             fetching = false;
             return false;
         }
@@ -397,7 +398,7 @@ namespace services {
         pass_inputs = inputs_hash();
         view_.computing = true;
         // 6 KB: 8 KB left 4.7 KB unused (v0.2.8 stress run).
-        if (xTaskCreatePinnedToCore(pass_task, "space_passes", 6144, NULL, 1, NULL, 0) != pdPASS) {
+        if (xTaskCreatePinnedToCore(pass_task, "space_passes", jobs::job_stack(jobs::PASSES), NULL, 1, NULL, 0) != pdPASS) {
             computing = false;
             view_.computing = false;
         }

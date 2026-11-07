@@ -1,3 +1,4 @@
+#include "sources.h"
 #include "link_watch.h"
 #include "fresh_registry.h"
 #include "list_release.h"
@@ -47,7 +48,7 @@ namespace services {
         running = true;
         task_alive = true;
         fetching = true;
-        if (xTaskCreate(task_loop, "sota_cluster", 4096, NULL, 1, NULL) != pdPASS) {
+        if (xTaskCreate(task_loop, "sota_cluster", jobs::job_stack(jobs::SOTA), NULL, 1, NULL) != pdPASS) {
             running = false;
             task_alive = false;
             fetching = false;

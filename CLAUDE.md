@@ -76,6 +76,8 @@ Work happens on a branch per release from `main` (`release/vX.Y.Z`), merged by p
 
 Out-of-memory panics during HTTPS fetches and OTA are a recurring bug class (see git log).
 
+**Data flow:** `docs/DATA_FLOW.md` lists every download and background job (refresh, retry, task and stack, where the data is kept, which screens use it). Its table is generated from `src/services/sources.h` (`python3 -I scripts/gen_data_flow.py`) and `scripts/check_data_flow.py` fails the build when they disagree. Changing a download, task, list or screen visit means updating `sources.h` and the doc in the same commit.
+
 **Network sessions:** wrap every DNS+connect or HTTP(S) request in `services::NetLock` (`net_lock.h`); one session at a time, which keeps TLS heap use and lookups serialised. `connect_host()` takes it already.
 
 **DNS:** never call `WiFi.hostByName()` or `WiFiClient::connect(hostname, …)` from tasks. The Arduino 2.0.17 implementation isn't thread-safe and caused boot-time watchdog resets (review 3.14). Use `services::connect_host()` (`src/services/net_connect.h`), which uses `getaddrinfo()`. After an abnormal reset, `[CRASHLOG]` lines at boot show each task's last breadcrumb (`src/core/crashlog.h`). When adding a network feature, check the heap: TLS needs byte-addressable memory, so use `heap_caps_get_largest_free_block(MALLOC_CAP_8BIT)` (or `mem` in `/api/status`); `ESP.getMaxAllocHeap()` also counts 32-bit-only IRAM and overstates it. Don't start a TLS request while another is in flight.

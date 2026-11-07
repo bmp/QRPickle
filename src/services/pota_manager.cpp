@@ -1,3 +1,4 @@
+#include "sources.h"
 #include "fresh_registry.h"
 #include "list_release.h"
 #include "net_lock.h"
@@ -112,7 +113,7 @@ namespace services {
         fetching = true;
         // Off the UI thread (review 3.3): the TLS handshake and stream used to freeze the screen.
         // 6 KB: 4.2 KB of 8 KB was never used (mem.stack_free.pota); the 2 KB go to the TLS session.
-        if (xTaskCreate(fetch_task, "pota_fetch", 6144, NULL, 1, NULL) != pdPASS) {
+        if (xTaskCreate(fetch_task, "pota_fetch", jobs::job_stack(jobs::POTA), NULL, 1, NULL) != pdPASS) {
             fetching = false;
             Serial.println("[POTA] Task creation failed (heap).");
         }

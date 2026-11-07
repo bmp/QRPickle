@@ -36,7 +36,7 @@ and follow the rules at the end. Measured on a CYD with v0.2.4 on 2026-10-10.
 | LVGL layer buffer (`LV_DRAW_LAYER_SIMPLE_BUF_SIZE`) | 8 KB chunks | inside the pool | only for objects drawn through a layer (object opacity, transforms) |
 | Display draw buffer | 12.8 KB | static | `320 x 10` RGB565 x 2 |
 | TLS session (mbedTLS) | ~40 KB in total | heap | two ~16.7 KB buffers plus contexts; certificate checks add more |
-| Task stacks | 2-12 KB each | heap | sized from measurements (below): APRS 4 KB, HamAlert 4 KB, AsyncTCP 8 KB, Cloud OTA check 12 KB, solar/POTA fetch 8 KB, DX dial/SOTA 4 KB, LED 2 KB, loopTask 8 KB |
+| Task stacks | 2-12 KB each | heap | sized from measurements; current sizes per job in `docs/DATA_FLOW.md` (generated from `src/services/sources.h`); AsyncTCP 6 KB, loopTask 8 KB, LED 2 KB, lwIP 3 KB, timer 2.5 KB |
 | WiFi, lwIP, web server | varies | heap | buffers come and go with traffic |
 | Satellites (`space_manager`) | ~3.3 KB static; ~15 KB while passes are computed | static, heap | the feed (~13 KB) lives in LittleFS (`/space.json`), read one object at a time |
 
@@ -46,16 +46,9 @@ failing for memory. In v0.2.5 (tasks parked, stacks sized from measurements): ab
 the largest block a steady 45 KB, the lowest since boot 4.4 KB, and the check passing 6 of 6
 (2026-10-11).
 
-Stack use, from `/api/status` → `mem.stack_free` (bytes never used, lowest seen):
-
-| Task | Stack | Never used | Note |
-|---|---|---|---|
-| aprs_task | 4 KB (was 10) | ~1.8 KB | |
-| hamalert_task | 4 KB | ~2.0 KB | 3 KB was too tight (review 3.9) |
-| async_tcp (web server) | 8 KB (was 16) | ~4.8 KB | `CONFIG_ASYNC_TCP_STACK_SIZE` in platformio.ini |
-| gh_ota_check | 12 KB | ~6.8 KB | with certificate verification |
-| solar_fetch | 8 KB | ~4.2 KB | |
-| loopTask | 8 KB | ~2.1 KB | LVGL and the UI |
+Stack use: `/api/status` → `mem.stack_free` reports the bytes each task never used (lowest seen).
+Size every stack from it with ~1.5 KB to spare. The current sizes of the download and connection
+tasks are in the jobs table of `docs/DATA_FLOW.md`, which the build checks against the code.
 
 ## Rules
 

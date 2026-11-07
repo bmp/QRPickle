@@ -1,3 +1,4 @@
+#include "sources.h"
 #include "fresh_registry.h"
 #include "net_lock.h"
 #include "../core/mem_stats.h"
@@ -160,7 +161,7 @@ namespace services {
             if (is_flashing_active || !check_running.compare_exchange_strong(expected, true)) return false;
             // 9 KB: 12 KB left 5.8 KB unused (v0.2.8 stress run); 8 KB overflowed before v0.2.6 moved
             // certificate verification out of the TLS handshake, so keep a wider margin here.
-            if (xTaskCreatePinnedToCore(background_check_task, "gh_ota_check", 9216, NULL, 1, NULL, 0) != pdPASS) {
+            if (xTaskCreatePinnedToCore(background_check_task, "gh_ota_check", jobs::job_stack(jobs::OTA_CHECK), NULL, 1, NULL, 0) != pdPASS) {
                 check_running = false;
                 return false;
             }
@@ -262,7 +263,7 @@ namespace services {
         bool execute_firmware_flash() {
             if (strlen(cached_info.firmware_url) == 0 || is_flashing_active) return false;
             is_flashing_active = true;
-            if (xTaskCreatePinnedToCore(ota_worker_task, "ota_flash_worker", 12288, NULL, 5, NULL, 0) != pdPASS) {
+            if (xTaskCreatePinnedToCore(ota_worker_task, "ota_flash_worker", jobs::job_stack(jobs::OTA_INSTALL), NULL, 5, NULL, 0) != pdPASS) {
                 is_flashing_active = false;
                 return false;
             }

@@ -1,26 +1,21 @@
 #include "fresh_registry.h"
+#include "sources.h"
 #include <Arduino.h>
 
 namespace services {
     namespace fresh {
 
         namespace {
-            const char* const NAMES[COUNT] = {"weather", "solar", "feed", "pota", "sota",
-                                              "dx", "hamalert", "aprs", "ota_check"};
-            // Normal refresh interval per source; STALE after twice this without a success. The
-            // spot sources and connections only refresh while used, so their state matters while
-            // their screen is open or cycled.
-            const uint32_t INTERVAL_MS[COUNT] = {
-                2 * 3600000UL,  // weather: every 2 h (3 min around sunrise/sunset)
-                3 * 3600000UL,  // solar: after each 3-hourly update
-                6 * 3600000UL,  // satellite feed
-                5 * 60000UL,  // POTA: 5 min while cycled, 30 s on a manual visit
-                60 * 60000UL,  // SOTA cluster: can be quiet for long (link_watch.h)
-                15 * 60000UL,  // DX cluster
-                60 * 60000UL,  // HamAlert: alerts can be an hour apart (link_watch.h)
-                15 * 60000UL,  // APRS-IS
-                24 * 3600000UL  // update check
-            };
+            // Names and normal intervals come from the jobs table (sources.h, docs/DATA_FLOW.md);
+            // the first COUNT jobs are the data sources, in the same order.
+            constexpr bool same(jobs::Job j, Source f) { return static_cast<int>(j) == static_cast<int>(f); }
+            static_assert(same(jobs::WEATHER, WEATHER) && same(jobs::SOLAR, SOLAR) && same(jobs::FEED, FEED) &&
+                              same(jobs::POTA, POTA) && same(jobs::SOTA, SOTA) && same(jobs::DX, DX) &&
+                              same(jobs::HAMALERT, HAMALERT) && same(jobs::APRS, APRS) &&
+                              same(jobs::OTA_CHECK, OTA_CHECK),
+                          "fresh::Source must follow the order of QRP_JOBS");
+            const char* name_of(uint8_t i) { return jobs::job_name(static_cast<jobs::Job>(i)); }
+            uint32_t interval_of(uint8_t i) { return jobs::job_interval_ms(static_cast<jobs::Job>(i)); }
             Freshness recs[COUNT];
             portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
         }  // namespace
@@ -53,13 +48,13 @@ namespace services {
             return f.last_ok_ms ? (millis() - f.last_ok_ms) / 1000 : UINT32_MAX;
         }
 
-        FreshState state(Source s) { return s < COUNT ? fresh_state(get(s), millis(), INTERVAL_MS[s]) : FreshState::NONE; }
+        FreshState state(Source s) { return s < COUNT ? fresh_state(get(s), millis(), interval_of(s)) : FreshState::NONE; }
 
         void to_json(JsonObject out) {
             for (uint8_t i = 0; i < COUNT; i++) {
                 const Source s = static_cast<Source>(i);
                 const Freshness f = get(s);
-                JsonObject o = out[NAMES[i]].to<JsonObject>();
+                JsonObject o = out[name_of(i)].to<JsonObject>();
                 if (f.last_ok_ms) o["age_s"] = (millis() - f.last_ok_ms) / 1000;
                 o["fails"] = f.fails;
                 o["state"] = fresh_name(state(s));

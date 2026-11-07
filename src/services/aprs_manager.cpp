@@ -1,3 +1,4 @@
+#include "sources.h"
 #include "link_watch.h"
 #include "fresh_registry.h"
 #include "aprs_parse.h"
@@ -60,7 +61,7 @@ namespace services {
         TaskHandle_t handle = nullptr;
         // 4.5 KB: ~2.3 KB used on core 2 (mem_stats, 2026-10-11); 4 KB left only 1.4 KB unused on
         // core 3 (v0.3.0 stress run).
-        if (xTaskCreate(task_loop, "aprs_task", 4608, NULL, 1, &handle) != pdPASS) {
+        if (xTaskCreate(task_loop, "aprs_task", jobs::job_stack(jobs::APRS), NULL, 1, &handle) != pdPASS) {
             running = false;
             task_alive = false;
             Serial.println("[APRS] Task creation failed (heap).");

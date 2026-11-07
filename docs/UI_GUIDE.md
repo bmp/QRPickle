@@ -189,10 +189,12 @@ Tile rules:
   Settings, the menu or APRS messages are open. The loop icon in the status bar (next to sleep and
   WiFi) is accent-coloured while cycling, muted while paused; tapping it holds the current screen
   until tapped again.
-- **A screen that starts network work on open needs a passive visit for cycling.** xOTA:
-  `xota_open_for_cycle()` shows the spots already held, pauses nothing and refreshes only old data
-  (POTA 5 min, SOTA 10 min). DX: while it is cycled the cluster stays connected and the cycle
-  reads its socket (`cycle::keeps_dx_connected()`), instead of a new login every round.
+- **A screen that starts network work on open uses one rule for both kinds of visit**, with only
+  the age limit differing (xOTA: `src/ui/xota_fetch.h`, tested in `test_parsers`). A cycling visit
+  shows the data already held and refreshes only old data; DX stays connected while it is cycled
+  (`cycle::keeps_dx_connected()`). Test both a visit by hand and a cycling visit: v0.2.8 shipped a
+  bug only the visit by hand had. When, how and how often each screen's data refreshes:
+  `docs/DATA_FLOW.md`.
 - **Adding a screen to the cycle:** a value in `cycle::Screen` (keep the order: it is the bit in
   `config::cycle_screens`), raise `CYCLE_SCREENS_ALL`, a case in `show()`, a tick box in the web
   console, and a passive visit if the screen fetches or connects when opened.

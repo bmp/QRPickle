@@ -1,3 +1,4 @@
+#include "sources.h"
 #include "link_watch.h"
 #include "fresh_registry.h"
 #include "list_release.h"
@@ -50,7 +51,7 @@ namespace services {
         stop_requested = false;
         status = DX_STATUS_DIALING;
         dial_alive = true;
-        if (xTaskCreate(dial_task, "dx_dial", 4096, NULL, 1, NULL) != pdPASS) {
+        if (xTaskCreate(dial_task, "dx_dial", jobs::job_stack(jobs::DX), NULL, 1, NULL) != pdPASS) {
             dial_alive = false;
             status = DX_STATUS_DISCONNECTED;
             Serial.println("[DX Engine] Dial task creation failed (heap).");

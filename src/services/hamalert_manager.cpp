@@ -1,3 +1,4 @@
+#include "sources.h"
 #include "link_watch.h"
 #include "fresh_registry.h"
 #include "net_connect.h"
@@ -49,7 +50,7 @@ namespace services {
         running = true;
         task_alive = true;
         TaskHandle_t handle = nullptr;
-        if (xTaskCreate(task_loop, "hamalert_task", 4096, NULL, 1, &handle) /* 3072 was tight (review 3.9) */ != pdPASS) {
+        if (xTaskCreate(task_loop, "hamalert_task", jobs::job_stack(jobs::HAMALERT), NULL, 1, &handle) /* 3072 was tight (review 3.9) */ != pdPASS) {
             running = false;
             task_alive = false;
             Serial.println("[HamAlert-Engine] Task creation failed (heap).");

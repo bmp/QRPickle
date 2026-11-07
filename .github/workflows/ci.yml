@@ -51,6 +51,10 @@ jobs:
           node test/js/install_plan_test.mjs
           python3 -m unittest scripts/test_make_pages_site.py
           python3 -m unittest scripts/test_source_tables.py
+          python3 -m unittest scripts/test_data_flow.py
+
+      - name: Data-flow doc matches the code (docs/DATA_FLOW.md vs src/services/sources.h)
+        run: python3 scripts/check_data_flow.py
 
       - name: Release notes exist for FW_VERSION (CHANGELOG.md)
         run: python3 scripts/release_notes.py "$(grep FW_VERSION src/core/metadata.h | cut -d'"' -f2)" > /dev/null
