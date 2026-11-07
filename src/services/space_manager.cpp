@@ -371,7 +371,7 @@ namespace services {
 
     // Fetch and pass runs never overlap: the pass run reads the file the fetch replaces.
     static bool start_fetch() {
-        if (computing) return false;
+        if (computing || net_lock_busy()) return false;  // next tick tries again (next_fetch_ms unchanged)
         bool expected = false;
         if (!fetching.compare_exchange_strong(expected, true)) return false;
         last_try_ms = millis();
@@ -445,7 +445,7 @@ namespace services {
             pass_inputs = inputs_hash();
             next_pass_ms = now_ms;
         }
-        if (clock_ok && !computing && !fetching && (int32_t)(now_ms - next_pass_ms) >= 0) {
+        if (clock_ok && !computing && !fetching && !net_lock_busy() && (int32_t)(now_ms - next_pass_ms) >= 0) {
             next_pass_ms = now_ms + PASS_EVERY_MS;
             start_passes();
         }

@@ -1,3 +1,4 @@
+#include "../../services/net_lock.h"
 #include "xota.h"
 #include "../layout.h"
 #include "../theme.h"
@@ -95,9 +96,11 @@ namespace ui {
             // POTA uses TLS: wait until the SOTA cluster task (stopped when its tab closes) has
             // exited and released its stack; stop() only requests the exit. Retry in 100 ms.
             // HamAlert and APRS stay connected (the TLS heap gate protects the download).
-            if (!services::SotaManager::is_stopped()) return;
+            if (!services::SotaManager::is_stopped() || services::net_lock_busy()) return;
             if (xota_should_fetch(visit_passive, true, services::PotaManager::get_last_fetch_time(), millis()))
-                services::PotaManager::fetch_async();
+                if (!services::PotaManager::fetch_async()) return;  // network taken meanwhile: retry
+        } else if (services::net_lock_busy()) {
+            return;  // another download: retry in 100 ms (the SOTA list is allocated on start)
         } else if (xota_should_fetch(visit_passive, false, services::SotaManager::get_last_fetch_time(), millis())) {
             services::SotaManager::fetch_async();  // starts the cluster client; spots arrive asynchronously
         }

@@ -100,13 +100,15 @@ namespace services {
         return true;
     }
 
-    void PotaManager::fetch_async() {
+    bool PotaManager::fetch_async() {
+        // Another download holds the network: no list, no task yet (xOTA's fetch timer retries).
+        if (net_lock_busy()) return false;
         if (!spots) {
             spots = (PotaSpot*)calloc(30, sizeof(PotaSpot));
-            if (!spots) return;
+            if (!spots) return true;  // no memory: reported by the empty list
         }
 
-        if (fetching || (millis() - last_fetch_time < 30000 && last_fetch_time != 0)) return;
+        if (fetching || (millis() - last_fetch_time < 30000 && last_fetch_time != 0)) return true;
         fetching = true;
         // Off the UI thread (review 3.3): the TLS handshake and stream used to freeze the screen.
         // 6 KB: 4.2 KB of 8 KB was never used (mem.stack_free.pota); the 2 KB go to the TLS session.
@@ -114,6 +116,7 @@ namespace services {
             fetching = false;
             Serial.println("[POTA] Task creation failed (heap).");
         }
+        return true;
     }
 
     void PotaManager::fetch_task(void*) {

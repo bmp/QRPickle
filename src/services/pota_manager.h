@@ -18,7 +18,8 @@ namespace services {
 
     class PotaManager {
     public:
-        static void fetch_async();
+        // false only when another download holds the network (nothing started; call again).
+        static bool fetch_async();
         static const PotaSpot* get_spots() { return spots; }
         static size_t get_spot_count() { return spot_count; }
         static bool is_fetching() { return fetching; }

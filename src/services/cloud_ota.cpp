@@ -153,22 +153,24 @@ namespace services {
             vTaskDelete(NULL);
         }
 
-        static void spawn_check() {
+        // scheduled: wait for a free network (net_lock_busy()); a manual check starts at once.
+        static bool spawn_check(bool scheduled) {
+            if (scheduled && net_lock_busy()) return false;
             bool expected = false;
-            if (is_flashing_active || !check_running.compare_exchange_strong(expected, true)) return;
+            if (is_flashing_active || !check_running.compare_exchange_strong(expected, true)) return false;
             // 9 KB: 12 KB left 5.8 KB unused (v0.2.8 stress run); 8 KB overflowed before v0.2.6 moved
             // certificate verification out of the TLS handshake, so keep a wider margin here.
             if (xTaskCreatePinnedToCore(background_check_task, "gh_ota_check", 9216, NULL, 1, NULL, 0) != pdPASS) {
                 check_running = false;
+                return false;
             }
+            return true;
         }
 
-        void start_background_check() {
-            if (!check_complete) spawn_check();
-        }
+        bool start_background_check() { return !check_complete && spawn_check(true); }
 
         void force_update_check() {
-            if (WiFi.status() == WL_CONNECTED) spawn_check();
+            if (WiFi.status() == WL_CONNECTED) spawn_check(false);
         }
 
         bool is_update_available() { return cached_info.update_available; }

@@ -12,6 +12,9 @@ namespace services {
     // (lock_watch.h); the holder's task name survives the restart.
     void net_lock_watch();
     void net_lock_boot_report();  // setup(): prints the previous restart's holder, if any
+    // True while a task holds NetLock. Schedulers start a download task only when it is false, so
+    // the new task's stack isn't allocated while another download's TLS session is open (review M1).
+    bool net_lock_busy();
     const char* net_lock_last_stuck();  // "" if none; /api/status mem.netlock_restart
 
     class NetLock {

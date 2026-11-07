@@ -166,6 +166,7 @@ namespace services {
     }
 
     bool PropagationManager::start_fetch(uint32_t now_utc) {
+        if (net_lock_busy()) return false;  // another download: the schedule asks again next tick
         bool expected = false;
         if (!fetching.compare_exchange_strong(expected, true)) return false;
         schedule.last_attempt_utc = now_utc;
@@ -278,6 +279,10 @@ namespace services {
         }
 
         if (fetching || now < MIN_VALID_UTC || !wifi_manager_is_connected()) return;
+        // Not in the first minute: the boot (screens, web server, weather) still allocates, and a
+        // TLS session started 6 s after boot failed for memory on core 3 (docs/MEMORY.md rule 7).
+        constexpr uint32_t FIRST_FETCH_MS = 60000;
+        if (millis() < FIRST_FETCH_MS) return;
         if (solar::fetch_due(schedule, now)) start_fetch(now);
     }
 

@@ -69,8 +69,9 @@ Stack use, from `/api/status` → `mem.stack_free` (bytes never used, lowest see
    that is stopped and restarted, can land somewhere new and split the big region. Prefer one
    buffer kept for the device's lifetime over repeated allocate/free. Exception (v0.3.0): the POTA,
    SOTA and DX lists (3.4-3.8 KB each) are freed when no screen shows them and cycling doesn't come
-   back to them (`services/list_release.h`): they held ~11 KB for good once opened. They are
-   allocated only while no download runs, so they don't land in the middle of a TLS session's space.
+   back to them (`services/list_release.h`): they held ~11 KB for good once opened. The POTA and
+   SOTA lists are allocated only while no download runs (`net_lock_busy()`), so they don't land in
+   the middle of a TLS session's space; the DX list is allocated when its page opens.
 4. **The main loop never waits for NetLock** (`NetLock lock(0)`, retry later): a task download can
    hold it for 20 s or more, and the loop watchdog fires at 30 s (weather reset the board this way,
    2026-11-06).
