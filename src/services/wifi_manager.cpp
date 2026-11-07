@@ -1,3 +1,4 @@
+#include "wifi_retry.h"
 #include "wifi_manager.h"
 #include "../config/config.h" 
 #include "web_server.h"
@@ -14,9 +15,9 @@ static unsigned long connection_timeout_mark = 0;
 static unsigned long last_drop_mark = 0; 
 static char status_msg[64] = "DISCONNECTED";
 
-// While the fallback setup AP is up, retry the saved network this often.
-static const unsigned long STA_RETRY_INTERVAL_MS = 60000;
+// While the fallback setup AP is up, retry the saved network (wifi_retry.h: 15 s, after 5 min 60 s).
 static unsigned long last_sta_retry_mark = 0;
+static unsigned long fallback_since_mark = 0;
 
 void wifi_manager_init() {
     Serial.println("[Wi-Fi] Querying NVS parameters for link parameters...");
@@ -36,6 +37,18 @@ void wifi_manager_init() {
 
     // THE MISSING PIECE: Protect the CYD from brownout crashes! (52 = 13 dBm)
     esp_wifi_set_max_tx_power(60);
+
+    // Why a connect fails or drops (WIFI_REASON_*: e.g. 2 auth expired, 15 handshake timeout,
+    // 201 no AP found), logged when it changes; many boots miss the first connect (TASKS.md).
+    // Runs in the event task: Serial and a static only.
+    WiFi.onEvent(
+        [](arduino_event_id_t, arduino_event_info_t info) {
+            static uint8_t last = 0;
+            const uint8_t r = info.wifi_sta_disconnected.reason;
+            if (r != last) Serial.printf("[Wi-Fi] Disconnected, reason %u\n", (unsigned)r);
+            last = r;
+        },
+        ARDUINO_EVENT_WIFI_STA_DISCONNECTED);
 
     WiFi.begin(cfg.wifi_ssid, cfg.wifi_password);
 
@@ -76,6 +89,7 @@ static void start_fallback_ap() {
     if (bring_up_ap(WIFI_AP_STA)) {
         current_state = WIFI_STATE_AP_FALLBACK;
         last_sta_retry_mark = millis();
+        fallback_since_mark = last_sta_retry_mark;
     }
 }
 
@@ -88,7 +102,7 @@ void wifi_manager_update() {
 
     if (current_state == WIFI_STATE_AP_FALLBACK) {
         if (WiFi.status() != WL_CONNECTED) {
-            if (millis() - last_sta_retry_mark > STA_RETRY_INTERVAL_MS) {
+            if (millis() - last_sta_retry_mark > services::sta_retry_interval_ms(millis() - fallback_since_mark)) {
                 Serial.println("[Wi-Fi] Fallback AP up. Retrying saved network...");
                 WiFi.begin(config::get().wifi_ssid, config::get().wifi_password);
                 last_sta_retry_mark = millis();

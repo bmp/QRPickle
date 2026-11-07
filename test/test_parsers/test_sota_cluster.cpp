@@ -17,6 +17,7 @@
 #include "xota_fetch_tests.h"
 #include "freshness_tests.h"
 #include "link_watch_tests.h"
+#include "wifi_retry_tests.h"
 
 using services::sota_cluster::ParsedSpot;
 using services::sota_cluster::parse_line;
@@ -160,5 +161,6 @@ int main(int, char**) {
     RUN_TEST(test_freshness_states);
     RUN_TEST(test_freshness_age_text);
     RUN_TEST(test_link_silent_after_limit);
+    RUN_TEST(test_wifi_retry_fast_then_slow);
     return UNITY_END();
 }
