@@ -191,7 +191,7 @@ namespace ui {
         preview_page = lv_obj_create(lv_layer_top());
         lv_obj_t* status = build_splash(preview_page);
         lv_label_set_text_fmt(status, "Preview: closes in %u s, or tap to close", (unsigned)(ms / 1000));
-        lv_obj_add_flag(preview_page, LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_set_clickable(preview_page, true);
         lv_obj_add_event_cb(preview_page, [](lv_event_t*) { lv_obj_delete_async(preview_page); }, LV_EVENT_CLICKED, nullptr);
         preview_timer = lv_timer_create([](lv_timer_t*) {
             preview_timer = nullptr;  // deleted by LVGL after this call (repeat count 1)
