@@ -1,0 +1,28 @@
+name: Feature request
+description: An idea for a new screen, data source or setting
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What would it help you do?
+      description: The operating situation (portable, POTA/SOTA activation, home shack, ...) and what's missing today.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Your idea
+      description: What it could look like. Sketches or screenshots are welcome.
+    validations:
+      required: true
+  - type: input
+    id: source
+    attributes:
+      label: Data source (if any)
+      description: Website or API it would use, and whether it needs an account or key.
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else
+      description: The board has no PSRAM, so features that need large downloads may be hard; alternatives you've considered help.

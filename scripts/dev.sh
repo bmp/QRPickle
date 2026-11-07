@@ -37,7 +37,10 @@ run() {
 
 steps_test='pio test -e native'
 steps_check='pio check -e cyd --severity=high --severity=medium --fail-on-defect=medium'
-steps_build='pio run -e cyd && pio run -e cyd -t buildfs'
+# Clean build, then fail on compiler warnings in our own code, as CI does (an incremental build
+# only shows warnings for the files it recompiles).
+steps_build='pio run -e cyd -t clean >/dev/null && (set -o pipefail; pio run -e cyd 2>&1 | tee /tmp/build.log) && \
+  ! grep -E "^(src|include|test)/[^:]+:[0-9]+:[0-9]+: warning:" /tmp/build.log && pio run -e cyd -t buildfs'
 steps_lint="ruff check && scripts/check_format.sh && python3 scripts/release_notes.py $VERSION >/dev/null"
 steps_manual="mkdir -p release && python3 scripts/build_manual.py --version $VERSION --out release/QRPickle_Documentation_${VERSION}-container.pdf"
 steps_pages="pio run -e cyd -t buildfs >/dev/null && python3 scripts/release_notes.py $VERSION > /tmp/n.txt && \

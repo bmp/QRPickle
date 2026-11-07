@@ -56,7 +56,7 @@ Every boot after an **abnormal reset** (watchdog, panic, brownout) prints the la
 ...
 ```
 - **Reset reasons** (`esp_reset_reason_t`): 4 = panic, 5 = interrupt watchdog, 6 = task watchdog, 7 = other watchdog, 9 = brownout.
-- **Steps:** the numbers are `crashlog::mark(slot, step)` calls in the code; search for the slot name (e.g. `SLOT_APRS`) to see what each step means. Steps 101–105 come from `connect_host()` (101 DNS start, 102 DNS failed, 103 connecting, 104 connected, 105 connect failed).
+- **Steps:** the numbers are `crashlog::mark(slot, step)` calls in the code; search for the slot name (e.g. `SLOT_APRS`) to see what each step means. Steps 101–105 come from `connect_host()` (101 DNS start, 102 DNS failed, 103 connecting, 104 connected, 105 connect failed). The `space` slot (satellite feed download): 1 start, 2 connecting, 3 request sent, 4 writing the file, 5 done.
 - **Adding a breadcrumb** is cheap: `crashlog::mark(crashlog::SLOT_LOOP, 42);` (`src/core/crashlog.h`).
 
 This is how the boot freeze (review 3.14) was traced to a non-thread-safe DNS call even though the crash printed nothing.
@@ -103,3 +103,7 @@ The `build-verify` skill (`.claude/skills/build-verify/`) runs the full checklis
 ## Test-only builds
 
 `-DQRP_TEST_CRASH_AT_BOOT` makes the firmware abort 3s after boot. It exists only to prove the OTA rollback guard (see `docs/RELEASING.md`). **Never release it.**
+
+`-DQRP_TEST_NETLOCK_HOLD` holds the network lock for 45 s at 2 minutes (docs/TESTING.md). **Never release it.**
+
+`-DQRP_STRESS` forces downloads far more often than normal (docs/TESTING.md, "Stress build"). **Never release it.**

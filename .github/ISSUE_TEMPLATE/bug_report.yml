@@ -1,0 +1,60 @@
+name: Bug report
+description: Something doesn't work as described
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Security problems: please use [private reporting](https://github.com/bmp/QRPickle/security/advisories/new) instead.
+        **Don't paste passwords, API keys or passcodes.** `/api/status` never contains them.
+  - type: input
+    id: version
+    attributes:
+      label: Firmware version
+      description: The device's Cloud OTA screen ("Local"), or the footer of the web console.
+      placeholder: v0.2.8
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How was it installed or updated?
+      options:
+        - Web installer (browser)
+        - Cloud OTA (on the device)
+        - Web console upload
+        - PlatformIO (built from source)
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+      description: Which screen or page, and what you did just before.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open the xOTA screen
+        2. Tap FRQ
+        3. ...
+  - type: textarea
+    id: mem
+    attributes:
+      label: Memory status
+      description: Open `http://<device IP>/api/status` in a browser (admin login) and copy the `mem` part, ideally soon after the problem. Most crashes on this board are about memory.
+      render: json
+  - type: textarea
+    id: log
+    attributes:
+      label: Serial log (optional)
+      description: 115200 baud over USB. Lines starting with `[CRASHLOG]` after a reset are especially useful.
+      render: text
+  - type: input
+    id: hardware
+    attributes:
+      label: Board
+      description: CYD model (e.g. ESP32-2432S028R, one or two USB ports), and any add-ons (BME280, LED, GPS).

@@ -68,13 +68,19 @@ namespace services {
         rebuild_view(0);
     }
 
-    static void log_result(bool ok, const solar::SolarData& d, int http_code, bool own_source) {
+    // body_n: bytes read after HTTP 200, or -1 when the 4 KB body buffer couldn't be allocated.
+    static void log_result(bool ok, const solar::SolarData& d, int http_code, int body_n, bool own_source) {
         // The own source URL is never logged (it may carry a token).
         const char* src = own_source ? "own source" : "hamqsl.com";
         if (!ok) {
             // The 8-bit heap is what TLS needs; ESP.getMaxAllocHeap() also counts 32-bit-only IRAM.
-            Serial.printf("[SOLAR] Fetch from %s failed (HTTP %d), largest 8-bit block %u B\n", src, http_code,
-                          (unsigned)heap_caps_get_largest_free_block(MALLOC_CAP_8BIT));
+            if (http_code == 200 && body_n < 0)
+                Serial.printf("[SOLAR] Fetch from %s failed: no memory for the body\n", src);
+            else if (http_code == 200)
+                Serial.printf("[SOLAR] Fetch from %s failed: %d B read, not valid solar data\n", src, body_n);
+            else
+                Serial.printf("[SOLAR] Fetch from %s failed (HTTP %d)\n", src, http_code);
+            Serial.printf("[SOLAR] largest 8-bit block %u B\n", (unsigned)heap_caps_get_largest_free_block(MALLOC_CAP_8BIT));
             return;
         }
         Serial.printf("[SOLAR] %s: SFI %d SSN %d A %d K %d X-ray %s wind %.0f Bz %.1f geomag %s%s\n", src, d.sfi,
@@ -83,6 +89,7 @@ namespace services {
     }
 
     void PropagationManager::fetch_task(void*) {
+        mem_stats::job_begin("solar");
         crashlog::mark(crashlog::SLOT_SOLAR, 1);
         const char* own = config::get().solar_url;
         char url[sizeof(config::Config::solar_url)];
@@ -100,6 +107,7 @@ namespace services {
 
         bool ok = false;
         int code = 0;
+        int body_n = -1;
         solar::SolarData parsed;
         {
             NetLock lock;
@@ -137,6 +145,7 @@ namespace services {
                                 }
                             }
                             body[n] = '\0';
+                            body_n = (int)n;
                             ok = solar::parse_xml(body, parsed);
                             free(body);
                         }
@@ -147,7 +156,7 @@ namespace services {
         }
         crashlog::mark(crashlog::SLOT_SOLAR, 5);
         if (https) quiet::release();
-        log_result(ok, parsed, code, own_source);
+        log_result(ok, parsed, code, body_n, own_source);
         if (ok) hw::led_rgb::trigger_traffic_pulse();  // data ingress (docs/LEDColours.md)
 
         portENTER_CRITICAL(&result_mux);
@@ -159,6 +168,7 @@ namespace services {
         fetching = false;
         crashlog::mark(crashlog::SLOT_SOLAR, 6);
         mem_stats::note_stack(mem_stats::STK_SOLAR);
+        mem_stats::job_end();
         vTaskDelete(NULL);
     }
 

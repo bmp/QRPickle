@@ -1,4 +1,6 @@
 #include "web_server.h"
+#include "net_lock.h"
+#include "../ui/screens/splash.h"
 #include "../core/mem_stats.h"
 #include "profile_manager.h"  
 #include "ota_manager.h"  
@@ -28,6 +30,8 @@
 #include <Update.h>  
 #include <esp_arduino_version.h>
 #include "../core/logo_file.h"
+#include "../core/mem_math.h"
+#include <esp_heap_caps.h>
 
 static AsyncWebServer server(80);
 using services::copy_secret;
@@ -36,6 +40,7 @@ static std::atomic<bool> flag_trigger_reboot{false};
 #ifdef QRP_SCREEN_TOOLS
 static std::atomic<bool> flag_debug_splash{false};  // /api/debug/splash: restart into a held splash
 #endif
+static std::atomic<bool> flag_splash_preview{false};  // /api/splash/preview: show it from the main loop
 static std::atomic<bool> flag_trigger_ui_refresh{false};
 static std::atomic<bool> flag_trigger_ota_flash{false};
 static unsigned long reboot_timer_mark = 0;
@@ -153,6 +158,8 @@ static void logo_info(JsonObject o, const char* side) {
     }
 }
 
+static std::atomic<uint32_t> web_refused{0};  // requests closed for lack of memory (mem.web_refused)
+
 void web_server_init() {
     // Called from setup() and again whenever the setup AP comes up; register routes only once.
     static bool initialized = false;
@@ -163,6 +170,18 @@ void web_server_init() {
     if (LittleFS.begin()) {
         if (!LittleFS.exists("/profiles")) LittleFS.mkdir("/profiles");
     }
+
+    // Before every route: with too little memory, close the request without building a response
+    // (a failed allocation there aborts the device; mem::web_can_serve, crash 2026-11-06).
+    server.addMiddleware([](AsyncWebServerRequest* request, ArMiddlewareNext next) {
+        if (!mem::web_can_serve(heap_caps_get_free_size(MALLOC_CAP_8BIT),
+                                heap_caps_get_largest_free_block(MALLOC_CAP_8BIT))) {
+            web_refused++;
+            request->abort();
+            return;
+        }
+        next();
+    });
 
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
         REQUIRE_AUTH(request);
@@ -200,6 +219,11 @@ void web_server_init() {
         AsyncResponseStream *response = request->beginResponseStream("application/json");
         JsonDocument doc;
         doc["uptime"] = millis() / 1000;
+        doc["reset_reason"] = (int)esp_reset_reason();
+        JsonObject links = doc["links"].to<JsonObject>();  // background connections (diagnostics)
+        links["aprs"] = services::AprsManager::is_connected();
+        links["hamalert"] = services::HamAlertManager::is_connected();
+        links["dx"] = (int)services::DxManager::get_status();  // 0 off .. 4 connected  // esp_reset_reason_t: 1 power-on, 3 software, 4 panic
         doc["ui_page"] = static_cast<int>(ui::ui_active_page());  // ui::LocalPage (tests, screen cycling)
         doc["heap"] = ESP.getFreeHeap();
         const auto& m = mem_stats::get();  // sampled on the main loop every 5 s
@@ -211,6 +235,25 @@ void web_server_init() {
         mem["lvgl_total"] = m.lvgl_total;
         mem["lvgl_used"] = m.lvgl_used;
         mem["lvgl_max_used"] = m.lvgl_max_used;
+        mem["frag_pct"] = mem::frag_pct(m.heap_free, m.largest_block);
+        mem["web_refused"] = web_refused.load();
+        mem["netlock_restart"] = services::net_lock_last_stuck();  // task that held the network > 180 s
+        JsonObject pages = mem["lvgl_page_peak"].to<JsonObject>();  // ui::LocalPage number -> bytes
+        for (int i = 0; i < mem_stats::PAGES; i++)
+            if (mem_stats::lvgl_page_peak(i)) pages[String(i)] = mem_stats::lvgl_page_peak(i);
+        JsonArray jobs = mem["jobs"].to<JsonArray>();  // last downloads/calculations, oldest first
+        for (int i = 0; i < mem_stats::job_count(); i++) {
+            const auto& j = mem_stats::job(i);
+            JsonArray r = jobs.add<JsonArray>();  // name, ms, free before/min/after, largest before/min/after
+            r.add(j.name);
+            r.add(j.ms);
+            r.add(j.free_before);
+            r.add(j.free_min);
+            r.add(j.free_after);
+            r.add(j.largest_before);
+            r.add(j.largest_min);
+            r.add(j.largest_after);
+        }
         JsonObject stk = mem["stack_free"].to<JsonObject>();  // bytes never used, lowest seen
         for (int i = 0; i < mem_stats::STK_COUNT; i++) {
             const auto slot = (mem_stats::StackSlot)i;
@@ -491,7 +534,17 @@ void web_server_init() {
         },
         [](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
             if (!authorized(request)) return;  // never write flash for an unauthenticated upload
+            // One update session belongs to one request. An upload cut off mid-way left its session
+            // open; the next upload's begin() then failed and its later chunks were appended to the old
+            // half image ("Could Not Activate The Firmware", 2026-11-06). Now a new upload aborts a
+            // stale session, only the owner writes, and a dropped connection aborts its session.
+            static AsyncWebServerRequest* owner = nullptr;
             if (index == 0) {
+                if (Update.isRunning()) {
+                    Serial.println("[OTA Engine] Aborting an unfinished upload session.");
+                    services::ota_manager::abort();
+                }
+                owner = nullptr;
                 services::ota_manager::UpdateType type = services::ota_manager::UPDATE_TYPE_UNKNOWN;
                 if (request->hasParam("target")) {
                     String target = request->getParam("target")->value();
@@ -499,7 +552,15 @@ void web_server_init() {
                     else if (target == "filesystem") type = services::ota_manager::UPDATE_TYPE_FILESYSTEM;
                 }
                 if (!services::ota_manager::begin(type)) return;  // completion handler reports the error (2.8)
+                owner = request;
+                request->onDisconnect([request]() {
+                    if (owner == request) {
+                        owner = nullptr;
+                        if (Update.isRunning()) services::ota_manager::abort();
+                    }
+                });
             }
+            if (owner != request || !Update.isRunning()) return;  // not this request's session
             if (len > 0) {
                 if (!services::ota_manager::write_chunk(data, len)) {
                     services::ota_manager::abort();
@@ -508,6 +569,7 @@ void web_server_init() {
             }
             if (final) {
                 if (!services::ota_manager::end()) Serial.println("[OTA CRITICAL] Error validating terminal binary block.");
+                owner = nullptr;
             }
         }
     );
@@ -554,6 +616,16 @@ void web_server_init() {
         request->send(LittleFS, path, "application/octet-stream");
     });
 
+    // The splash with the current logos over the screen for 10 s, without a restart.
+    server.on("/api/splash/preview", HTTP_POST, [](AsyncWebServerRequest* request) {
+        REQUIRE_AUTH(request);
+        if (ui::splash_preview_active() || flag_splash_preview) {
+            request->send(409, "application/json", "{\"error\":\"a preview is already showing\"}");
+            return;
+        }
+        flag_splash_preview = true;
+        request->send(200, "application/json", "{\"status\":\"showing for 10 s\"}");
+    });
     server.on("/api/logos/delete", HTTP_POST, [](AsyncWebServerRequest* request) {
         REQUIRE_AUTH(request);
         const char* side = logo_side(request);
@@ -635,6 +707,9 @@ void web_server_init() {
 void web_server_stop() { server.end(); }
 
 void web_server_update() {
+    // APRS-IS on/off from the web console or a profile applies at once, as on the device's Settings
+    // screen (it used to wait for a restart).
+    const bool aprs_was = config::get().aprs_enabled;
     if (config::Config* staged = pending_config.exchange(nullptr)) {
         config::mutable_get() = *staged;
         delete staged;
@@ -644,6 +719,10 @@ void web_server_update() {
     if (pending_profile_flag.exchange(false)) {
         if (services::profile_manager::apply_profile_to_live(pending_profile)) flag_trigger_ui_refresh = true;
     }
+    if (config::get().aprs_enabled != aprs_was) {
+        if (config::get().aprs_enabled) services::AprsManager::start();
+        else services::AprsManager::stop();
+    }
     if (flag_trigger_ui_refresh) {
         flag_trigger_ui_refresh = false;
         ui::ui_refresh_theme();
@@ -652,6 +731,19 @@ void web_server_update() {
     
     if (flag_trigger_reboot && (millis() - reboot_timer_mark > 1500)) {
         ESP.restart();
+    }
+    if (flag_splash_preview.exchange(false)) {
+        // The splash takes ~SPLASH_LVGL_NEED of the LVGL pool on top of the page in view; a heavy page
+        // (Weather, Settings) leaves less, so the dashboard is opened under it first.
+        constexpr uint32_t SPLASH_LVGL_NEED = 16 * 1024;
+        lv_mem_monitor_t mon;
+        lv_mem_monitor(&mon);
+        if (mon.free_biggest_size < SPLASH_LVGL_NEED) ui::ui_navigate_local(ui::PAGE_DASHBOARD);
+        services::display_manager::wake();
+        ui::splash_preview_show(10000);
+        lv_mem_monitor(&mon);
+        Serial.printf("[Splash] preview: LVGL pool %u%% used, largest free %u B\n", mon.used_pct,
+                      (unsigned)mon.free_biggest_size);
     }
 #ifdef QRP_SCREEN_TOOLS
     if (flag_debug_splash) {

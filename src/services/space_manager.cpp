@@ -1,3 +1,4 @@
+#include "../core/crashlog.h"
 #include "space_schedule.h"
 #include "space_manager.h"
 #include "net_lock.h"
@@ -115,6 +116,7 @@ namespace services {
 
     // Downloads into TMP_PATH, then replaces the feed if the file holds at least one satellite.
     static void fetch_task(void*) {
+        mem_stats::job_begin("feed");
         char url[sizeof(config::Config::space_url) + 40];
         feed_url(url, sizeof(url));
         const bool https = strncmp(url, "https://", 8) == 0;
@@ -125,6 +127,7 @@ namespace services {
         }
 
         int code = 0, written = 0;
+        crashlog::mark(crashlog::SLOT_SPACE, 1);
         {
             NetLock lock;
             if (lock.held() && (!https || tls_heap_ready("Space feed"))) {
@@ -133,16 +136,19 @@ namespace services {
                 tls.setInsecure();  // public data; the parser rejects anything else
                 HTTPClient http;
                 http.useHTTP10(true);
+                crashlog::mark(crashlog::SLOT_SPACE, 2);
                 if (https ? http.begin(tls, url) : http.begin(plain, url)) {
                     char ua[40];
                     snprintf(ua, sizeof(ua), "%s/%s", meta::FW_NAME, meta::FW_VERSION);
                     http.setUserAgent(ua);
                     http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
                     http.setTimeout(15000);
+                    crashlog::mark(crashlog::SLOT_SPACE, 3);
                     code = http.GET();
                     if (code == HTTP_CODE_OK) {
                         File f = LittleFS.open(TMP_PATH, "w");
                         if (f) {
+                            crashlog::mark(crashlog::SLOT_SPACE, 4);
                             written = http.writeToStream(&f);
                             f.close();
                         }
@@ -151,6 +157,7 @@ namespace services {
                 }
             }
         }
+        crashlog::mark(crashlog::SLOT_SPACE, 5);
         if (https) quiet::release();
 
         int n_sats = 0;
@@ -173,6 +180,7 @@ namespace services {
         fetch_done = true;
         mem_stats::note_stack(mem_stats::STK_SPACE);
         fetching = false;
+        mem_stats::job_end();
         vTaskDelete(NULL);
     }
 
@@ -181,6 +189,7 @@ namespace services {
     // Reads the feed file and computes the passes (~12 s for 40 satellites, ~15 KB while it runs).
     // It doesn't take NetLock (the network would wait that long); it is scheduled away from the boot rush.
     static void pass_task(void*) {
+        mem_stats::job_begin("passes");
         const uint32_t t0 = millis();
         const auto& cfg = config::get();
         float lat, lon;
@@ -201,6 +210,7 @@ namespace services {
             Serial.println("[Space] No memory for the pass run");
             passes_done = true;
             computing = false;
+            mem_stats::job_end();
             vTaskDelete(NULL);
             return;
         }
@@ -309,6 +319,7 @@ namespace services {
         mem_stats::note_stack(mem_stats::STK_SPACE_PASS);
         passes_done = true;
         computing = false;
+        mem_stats::job_end();
         vTaskDelete(NULL);
     }
 

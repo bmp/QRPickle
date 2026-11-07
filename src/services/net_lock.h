@@ -8,6 +8,12 @@ namespace services {
     // - Serialises HTTPClient's internal WiFi.hostByName(), which is not thread-safe on
     //   Arduino-ESP32 2.0.17 (review 3.14 residual).
     // Recursive, so a holder may call connect_host(). Check held() before using the network.
+    // Main loop: logs a holder past LOCK_WARN_S and restarts the board past LOCK_RESTART_S
+    // (lock_watch.h); the holder's task name survives the restart.
+    void net_lock_watch();
+    void net_lock_boot_report();  // setup(): prints the previous restart's holder, if any
+    const char* net_lock_last_stuck();  // "" if none; /api/status mem.netlock_restart
+
     class NetLock {
     public:
         explicit NetLock(uint32_t timeout_ms = 20000);

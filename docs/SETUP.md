@@ -87,7 +87,8 @@ stored. Leave a field empty to keep the saved value; "Clear saved value" removes
   and keys. Do this before a full install, which erases everything. A filesystem update in the web console keeps profiles and
   logos (from v0.2.6).
 - Optional: **System Info → Splash Logos** puts your own logo (a club logo, your callsign badge) left and/or right of the title
-  on the start screen. Any image works; a PNG with a transparent background looks best. It shows from the next restart.
+  on the start screen. Any image works; a PNG with a transparent background looks best. It shows from the next restart;
+  **Preview on the device** shows the start screen with your logos for 10 seconds now (tap it to close).
 
 ## 8. Updates
 

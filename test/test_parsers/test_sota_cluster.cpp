@@ -9,6 +9,10 @@
 #include "space_tests.h"
 #include "logo_tests.h"
 #include "dx_tests.h"
+#include "mem_tests.h"
+#include "xota_tests.h"
+#include "aprs_row_tests.h"
+#include "lock_watch_tests.h"
 
 using services::sota_cluster::ParsedSpot;
 using services::sota_cluster::parse_line;
@@ -141,5 +145,11 @@ int main(int, char**) {
     RUN_TEST(test_space_retry_backs_off);
     RUN_TEST(test_dx_status_line_follows_the_connection);
     RUN_TEST(test_dx_row_text_has_fixed_columns);
+    RUN_TEST(test_mem_frag_pct);
+    RUN_TEST(test_mem_web_can_serve);
+    RUN_TEST(test_xota_row_text_columns);
+    RUN_TEST(test_aprs_row_text_columns);
+    RUN_TEST(test_lock_watch_warns_then_restarts);
+    RUN_TEST(test_lock_held_s_never_wraps);
     return UNITY_END();
 }

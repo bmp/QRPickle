@@ -1,4 +1,5 @@
 #include "screen_cycle.h"
+#include "screens/splash.h"
 #include "sidebar.h"
 #include "status_bar.h"
 #include "ui.h"
@@ -36,7 +37,8 @@ namespace ui {
             if (!cfg.cycle_enabled) return State::OFF;
             if (user_paused) return State::PAUSED_USER;
             const bool busy = services::display_manager::is_sleeping() || ui_active_page() == PAGE_SETTINGS ||
-                              sidebar_is_visible() || ui_active_page() == PAGE_APRS_MSG;
+                              sidebar_is_visible() || ui_active_page() == PAGE_APRS_MSG ||
+                              splash_preview_active();
             if (busy || lv_display_get_inactive_time(nullptr) < RESUME_AFTER_MS) return State::PAUSED_TOUCH;
             return State::RUNNING;
         }
@@ -44,7 +46,14 @@ namespace ui {
         static void tick(lv_timer_t*) {
             // The DX cluster stays connected while it is cycled: read its socket here as well, so
             // spots don't pile up in the network buffers while another screen is shown.
-            if (keeps_dx_connected() && ui_active_page() != PAGE_SPOTS) services::DxManager::update();
+            // When the cycle stops keeping it (cycling off, DX unticked, another profile) while the DX
+            // screen isn't open, close it: nobody reads the socket any more and the incoming spots
+            // held ~20 KB of WiFi buffers within 4 minutes (2026-11-06).
+            static bool kept = false;
+            const bool keep = keeps_dx_connected();
+            if (keep && ui_active_page() != PAGE_SPOTS) services::DxManager::update();
+            if (kept && !keep && ui_active_page() != PAGE_SPOTS) services::DxManager::stop();
+            kept = keep;
             const State s = compute();
             if (s != current) {
                 current = s;

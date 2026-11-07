@@ -5,6 +5,7 @@
 #include "sidebar.h"
 #include "home_button.h"
 #include "keyboard.h"
+#include "../core/mem_stats.h"
 #include "theme.h"
 #include "screens/dashboard.h" 
 #include "screens/settings.h"
@@ -200,6 +201,7 @@ namespace ui {
         // The on-screen keyboard is a modal on the top layer: a page change (home, menu, cycling)
         // closes it, or it stays over the next page.
         keyboard_hide();
+        mem_stats::note_page((uint8_t)page);
         if (page == PAGE_SETTINGS) {
             open_settings_screen();
             return;

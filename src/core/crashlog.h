@@ -15,6 +15,7 @@ namespace crashlog {
         SLOT_SOTA,
         SLOT_NET,
         SLOT_SOLAR,
+        SLOT_SPACE,
         SLOT_COUNT
     };
 

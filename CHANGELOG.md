@@ -2,6 +2,55 @@
 
 User-facing changes per release, newest first. Each section is also the release commit message (see `docs/RELEASING.md`).
 
+## v0.2.8 (2026-11-07)
+
+Downloads work while screens cycle, no crash on the xOTA screen, and a splash logo preview
+
+Update with Cloud OTA (from v0.2.7) or the web console. The web console
+files changed (the preview button): also upload littlefs.bin in the web
+console, which keeps your profiles and logos.
+
+New
+- Web console, Splash Logos: "Preview on the device" shows the start screen
+  with your logos for 10 seconds (or until you tap it), without a restart.
+- GitHub: security policy (report vulnerabilities privately), contributing
+  guide, code of conduct, accessibility notes, and issue and pull request
+  templates.
+
+Fixes
+- The device could restart on the xOTA screen while the web console was
+  open: the web server ran out of memory during the login. It now turns a
+  request away when memory is low instead.
+- While screens cycle, POTA spots, the satellite feed and the update check
+  download again (they all failed for memory, also in v0.2.7). Measured on
+  the device over 2 x 30 minutes of cycling: every download OK (was none).
+- Turning cycling off while the DX cluster was connected in the background
+  left it running unread, and its spots filled the memory (20 KB within
+  minutes). It now disconnects.
+- HamAlert and APRS-IS stay connected during downloads instead of
+  reconnecting after each one (the reconnects split the free memory).
+- xOTA and APRS lists use less screen memory (xOTA 49.5 -> 33.5 KB,
+  APRS 44.1 -> 33.9 KB), so the screen memory pool is 16 KB smaller and that
+  memory goes to downloads.
+- The device could restart (watchdog) when a weather update was due while
+  another download was running: the screen waited for the network for up to
+  40 seconds. Weather now tries again 30 seconds later instead.
+- A firmware or filesystem upload in the web console failed ("Could Not
+  Activate The Firmware" or "SESSION_ABORTED") when the upload before it had
+  been cut off. Each upload now starts clean.
+- Switching APRS-IS on or off in the web console (or with a profile) takes
+  effect at once; it used to wait for a restart.
+- A download that never finishes can no longer keep the device off the
+  network: after 3 minutes the device restarts and /api/status names the
+  task that was stuck.
+- The log no longer reports a skipped weather update as "OK".
+
+For developers
+- /api/status: memory per download job, fragmentation, screen memory per
+  page, refused web requests, the reset reason, the background connections
+  (links), and the task behind a network-lock restart; [HEAP] lines trace
+  the boot.
+
 ## v0.2.7 (2026-11-04)
 
 Cloud OTA can install updates again

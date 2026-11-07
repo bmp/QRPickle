@@ -223,6 +223,9 @@ refresh).
 - The browser converts (`data/www/logo.js`, same bytes as `png_to_bin_lvgl9.py --fit 60x60`); the
   device only checks and stores. LittleFS is mounted in `core::lvgl_fs_init()`, before the UI.
 - Logos without transparency show their background as a box (checked 2026-11-04 with four club logos).
+- **Preview** (v0.2.8): "Preview on the device" (`POST /api/splash/preview`) draws the same splash on
+  `lv_layer_top()` for 10 s or until tapped, without a restart; cycling waits while it shows. When the
+  LVGL pool has no 16 KB block (Weather, Settings), the dashboard opens underneath first.
 
 ## Themes
 

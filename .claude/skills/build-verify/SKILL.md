@@ -14,6 +14,7 @@ Run every step that applies and report each result.
 1. **Firmware build** (any change outside `docs/`):
    `pio run 2>&1 | tail -30`
    It must end in `SUCCESS`. Record the `Flash: ... %` and `RAM: ... %` lines.
+   **No compiler warnings in `src/`, `include/` or `test/`** (CI fails on them): before a commit or release, build clean (`pio run -t clean`, since an incremental build only shows warnings for recompiled files), save the full log, and run `grep -E "^(src|include|test)/[^:]+:[0-9]+:[0-9]+: warning:" build.log`; it must print nothing. Don't filter the build output before this check. Deprecations from library updates count (v0.2.8's PR failed on `lv_obj_add_flag`; use the `lv_obj_set_<flag>()` setters).
 
 2. **Static analysis** (any change in `src/`):
    `pio check -e cyd --severity=high --severity=medium`

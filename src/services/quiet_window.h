@@ -1,10 +1,10 @@
 #pragma once
 #include <stdint.h>
 
-// Quiet window: HamAlert and APRS paused while a TLS session (~40 KB contiguous heap) or xOTA needs
-// the memory. Holders are counted: the first one pauses the services, the last one to release
-// restarts the ones that were running before. Without the count, one holder finishing restarted
-// the services in the middle of another's TLS handshake ("SSL - Memory allocation failed").
+// Quiet window: marks the time a TLS session or xOTA needs the memory. Until v0.2.7 it paused
+// HamAlert and APRS; since v0.2.8 they stay connected (their reconnects split the heap, see
+// quiet_window.cpp and docs/MEMORY.md) and holders are only counted. Kept as the one place to
+// pause them again if a later feature needs it.
 namespace services {
     namespace quiet {
 
