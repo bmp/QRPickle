@@ -77,12 +77,12 @@ console and stay on the device.
 | :--- | :--- | :--- |
 | **Dashboard** | Local and UTC time, indoor sensor and weather, band conditions for your chosen band groups | the screens below |
 | **DX Cluster** | Live DX spots, filtered by band and mode | DX cluster over telnet (default `dxspider.co.uk:7300`, fallback `dxc.w6bgr.com:7373`; both configurable) |
-| **xOTA** | POTA and SOTA activators on air, filtered by band, mode and QRP | [POTA](https://pota.app) (`api.pota.app`); [SOTA cluster](https://www.sota.org.uk) (`cluster.sota.org.uk`, telnet) |
+| **xOTA** | POTA and SOTA activators on air, filtered by band, mode and QRP; says how old the POTA list is | [POTA](https://pota.app) (`api.pota.app`); [SOTA cluster](https://www.sota.org.uk) (`cluster.sota.org.uk`, telnet) |
 | **HamAlert** | Spots matching your own triggers | [HamAlert](https://hamalert.org) (your account, telnet) |
 | **APRS** | Stations heard (list and radar), messages, your position beacon | [APRS-IS](https://www.aprs-is.net) (`rotate.aprs.net`; your callsign and passcode) |
 | **Band Conditions** | 11 bands (160 m to 6 m) rated for day and night at your location, greyline, next sunrise/sunset, solar indicators explained ([how bands are rated](docs/BAND_RATING.md)) | [HAMQSL.com](https://www.hamqsl.com/solar.html) solar data, courtesy of N0NBH (every 3 hours, hourly in storms), or your own source |
 | **Satellites** | The next passes over your station of popular amateur satellites (FM, linear, SSTV, voice beacons, optionally APRS) with times, directions and frequencies; ISS SSTV events and ARISS school contacts | A feed built every 6 hours from [SatNOGS DB](https://db.satnogs.org) (CC BY-SA 4.0), [CelesTrak](https://celestrak.org) orbits and [ARISS](https://www.ariss.org) ([about the feed](https://quixotic.bharathpalavalli.com/QRPickle/space/)); passes computed on the device, your location is never sent |
-| **Weather** | Indoor temperature, humidity and pressure; current conditions and a 24-hour forecast | BME280 sensor (optional, [wiring](docs/HARDWARE.md)); [OpenWeather](https://openweathermap.org) (your free API key) |
+| **Weather** | Indoor temperature, humidity and pressure; current conditions (with their age) and a 24-hour forecast | BME280 sensor (optional, [wiring](docs/HARDWARE.md)); [OpenWeather](https://openweathermap.org) (your free API key) |
 | **Network, Settings, Cloud OTA** | WiFi, station and display settings on the device; updates | [GitHub Pages](https://bmp.github.io/QRPickle/ota/ota.json) for updates; time from `pool.ntp.org` |
 
 **On the device**
@@ -126,7 +126,7 @@ QRPickle's own code is MIT-licensed (see [`License`](License)). The fonts are un
 * **[ESPAsyncWebServer](https://github.com/ESP32Async/ESPAsyncWebServer):** The web console and its REST API, with Digest authentication.
 * **[Sgp4](https://github.com/Hopperpop/Sgp4-Library):** Satellite orbit propagation (Vallado's SGP4) for the pass predictions.
 * **[ArduinoJson v7](https://arduinojson.org/):** Zero-allocation stream parsing for OpenWeatherMap, POTA, and SOTA HTTPS payloads.
-* **ESP-IDF Native APIs:** Utilized directly alongside the Arduino Core wrapper for strict Wi-Fi TX power limits, FreeRTOS task handling, and lwIP socket management.
+* **ESP-IDF Native APIs** (Arduino core 3.3.12 / ESP-IDF 5.5 since v0.3.0): utilized directly alongside the Arduino Core wrapper for strict Wi-Fi TX power limits, FreeRTOS task handling, and lwIP socket management.
 
 The complete list, with licences, is in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 

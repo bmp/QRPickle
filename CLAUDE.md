@@ -4,12 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-QRPickle is ESP32 firmware for a ham-radio dashboard running on the "Cheap Yellow Display" (CYD: ESP32, 4MB flash, **no PSRAM**, ILI9341 320x240 + XPT2046 touch). Arduino framework on PlatformIO, UI in LVGL 9, plus an on-device web console served from LittleFS.
+QRPickle is ESP32 firmware for a ham-radio dashboard running on the "Cheap Yellow Display" (CYD: ESP32, 4MB flash, **no PSRAM**, ILI9341 320x240 + XPT2046 touch). Arduino framework (core 3.3.12 / ESP-IDF 5.5, pioarduino platform; since v0.3.0) on PlatformIO, UI in LVGL 9, plus an on-device web console served from LittleFS.
 
 ## Commands
 
 ```bash
-pio run                        # build firmware (default env: cyd, CORE_DEBUG_LEVEL=1)
+pio run                        # build firmware (default env: cyd, CORE_DEBUG_LEVEL=1); core 3 setup: docs/DEVELOPMENT.md (Python <= 3.14, PlatformIO 6.2.0 also in pioarduino's penv, first build ~7 min)
 pio run -e cyd-debug -t upload # verbose framework logs (level 4); never release (docs/DEBUGGING.md)
 pio run -t buildfs             # build littlefs.bin from data/
 pio run -t upload              # flash firmware over USB (needs device attached)
@@ -80,7 +80,7 @@ Out-of-memory panics during HTTPS fetches and OTA are a recurring bug class (see
 
 **Network sessions:** wrap every DNS+connect or HTTP(S) request in `services::NetLock` (`net_lock.h`); one session at a time, which keeps TLS heap use and lookups serialised. `connect_host()` takes it already.
 
-**DNS:** never call `WiFi.hostByName()` or `WiFiClient::connect(hostname, …)` from tasks. The Arduino 2.0.17 implementation isn't thread-safe and caused boot-time watchdog resets (review 3.14). Use `services::connect_host()` (`src/services/net_connect.h`), which uses `getaddrinfo()`. After an abnormal reset, `[CRASHLOG]` lines at boot show each task's last breadcrumb (`src/core/crashlog.h`). When adding a network feature, check the heap: TLS needs byte-addressable memory, so use `heap_caps_get_largest_free_block(MALLOC_CAP_8BIT)` (or `mem` in `/api/status`); `ESP.getMaxAllocHeap()` also counts 32-bit-only IRAM and overstates it. Don't start a TLS request while another is in flight.
+**DNS:** never call `WiFi.hostByName()` or `WiFiClient::connect(hostname, …)` from tasks. Arduino 2.0.17's implementation wasn't thread-safe and caused boot-time watchdog resets (review 3.14); keep using one way to connect on core 3 too. Use `services::connect_host()` (`src/services/net_connect.h`), which uses `getaddrinfo()`. After an abnormal reset, `[CRASHLOG]` lines at boot show each task's last breadcrumb (`src/core/crashlog.h`). When adding a network feature, check the heap: TLS needs byte-addressable memory, so use `heap_caps_get_largest_free_block(MALLOC_CAP_8BIT)` (or `mem` in `/api/status`); `ESP.getMaxAllocHeap()` also counts 32-bit-only IRAM and overstates it. Don't start a TLS request while another is in flight.
 
 **Layers:**
 - `src/hw/`: board drivers (display, touch, BME280 sensor, RGB status LED). `User_Setup.h` holds the TFT_eSPI pin config, force-included via `build_flags`. LED state meanings are documented in `docs/LEDColours.md`.
