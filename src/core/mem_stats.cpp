@@ -12,7 +12,7 @@ namespace mem_stats {
     static uint32_t last_ms = 0;
     static uint32_t stack_min[STK_COUNT] = {};
     static void* watched[STK_COUNT] = {};
-    static const char* const STACK_NAMES[] = {"aprs", "hamalert", "ota_check", "solar", "pota", "async_tcp", "loop", "space_fetch", "space_passes"};
+    static const char* const STACK_NAMES[] = {"aprs", "hamalert", "ota_check", "solar", "pota", "async_tcp", "loop", "space_fetch", "space_passes", "tcpip", "timer"};
     static_assert(sizeof(STACK_NAMES) / sizeof(STACK_NAMES[0]) == STK_COUNT, "one name per StackSlot");
 
     static void record(StackSlot slot, uint32_t free_bytes) {
@@ -84,6 +84,8 @@ namespace mem_stats {
 
         if (!watched[STK_ASYNC_TCP]) watched[STK_ASYNC_TCP] = xTaskGetHandle("async_tcp");  // created by the web server
         if (!watched[STK_LOOP]) watched[STK_LOOP] = xTaskGetHandle("loopTask");
+        if (!watched[STK_TCPIP]) watched[STK_TCPIP] = xTaskGetHandle("tiT");  // framework tasks: their
+        if (!watched[STK_TIMER]) watched[STK_TIMER] = xTaskGetHandle("Tmr Svc");  // stacks grew on core 3
         for (int i = 0; i < STK_COUNT; i++)
             if (watched[i]) record((StackSlot)i, uxTaskGetStackHighWaterMark((TaskHandle_t)watched[i]));
 

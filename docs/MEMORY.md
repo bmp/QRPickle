@@ -117,6 +117,17 @@ Stack use, from `/api/status` → `mem.stack_free` (bytes never used, lowest see
    downloads started with 3-9 KB less free heap, weather failed twice and the lowest free heap fell
    to 72 B (7.8 KB before). The code is on the `wip/net-worker` branch for v0.3.
 
+## Core 3 settings (v0.3.0)
+
+Measured on the CYD with `release/logs/p3_measure.sh` (steady free 8-bit heap, one boot each).
+Kept (in `platformio.ini` `custom_sdkconfig`): Bluetooth off; WiFi RX buffers 6 static / 16
+dynamic; TLS out buffer 4 KB; lwIP task stack 3 KB and timer task 2.5 KB (core 3 defaults are
+4 KB each; measured use ~1.2 / ~0.8 KB, `mem.stack_free` `tcpip`/`timer`; +2.2 KB); unused bundled
+components removed and the error-name table off (flash). Not pursued: fewer sockets and a smaller
+AsyncTCP queue (a few hundred bytes), 5 static WiFi RX buffers (1.6 KB, slower downloads incl.
+Cloud OTA), a smaller TLS receive buffer (servers send 16 KB records), dynamic TLS buffers
+(fragmented the heap in the platform spike).
+
 ## Measuring
 
 - `/api/status` → `mem`: `heap_min_free`, `largest_block` (8-bit, now and lowest since boot),
