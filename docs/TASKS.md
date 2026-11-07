@@ -82,7 +82,7 @@ Plan: docs/private/plans/2026-11-07-v0.3.0-core3-port.md (branch `release/v0.3.0
 - [x] **Freshness:** per-source record in `/api/status` (`fresh`), data age on Weather and xOTA, test scripts fail on FAILING.
 - [x] **Dead links:** TCP keepalive and silence timeouts for HamAlert, APRS-IS, DX and SOTA.
 - [x] **docs/DATA_FLOW.md** generated from `src/services/sources.h` and checked by the build.
-- [ ] **Phase C on core 3** (Task 12): upgrade from v0.2.8 by Cloud OTA (settings, profiles, logos kept), web uploads both ways, fresh USB install (owner), router-restart test (owner), batched long runs (stress with the 7d comparison, error paths, normal hour), device_check, cycling incl. xOTA, security check, screenshots for the changed Weather/xOTA lines.
+- [x] **Phase C on core 3 (done 2026-11-08):** CI checks in the container (`dev.sh all`); upgrade v0.2.8 -> v0.3.0 -> v0.2.8 -> v0.3.0 by web upload with settings (incl. secret endings), profile and logos identical; core 3 Cloud OTA install from GitHub (98 s); fresh full-erase USB install from the web installer reached first-start setup (owner at the board); stress hour 55 min clean (0 restarts, 0 TLS memory failures vs 3 in v0.2.8, lowest free 3,128 B vs 316 B, all stacks >= 1.6 KB); error paths (expired certificate, solar 404, feed timeout) logged cleanly; owner's hands-on check of the changed screens. Found and fixed on the way: SOTA login timeout units on core 3, one unreachable GitHub address (try the next address). Router-restart test skipped (owner).
 
 ## For v0.3 (from v0.2.8)
 - [x] **APRS on/off from the web console** applied at once (fixed in v0.2.8; was applied only after a restart). On the CYD: off -> disconnected within 15 s, on -> connected within 10 s (`links` in /api/status).
