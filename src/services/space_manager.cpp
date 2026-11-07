@@ -392,7 +392,8 @@ namespace services {
         if (!computing.compare_exchange_strong(expected, true)) return;
         pass_inputs = inputs_hash();
         view_.computing = true;
-        if (xTaskCreatePinnedToCore(pass_task, "space_passes", 8192, NULL, 1, NULL, 0) != pdPASS) {
+        // 6 KB: 8 KB left 4.7 KB unused (v0.2.8 stress run).
+        if (xTaskCreatePinnedToCore(pass_task, "space_passes", 6144, NULL, 1, NULL, 0) != pdPASS) {
             computing = false;
             view_.computing = false;
         }

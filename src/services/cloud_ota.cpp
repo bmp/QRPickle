@@ -156,8 +156,9 @@ namespace services {
         static void spawn_check() {
             bool expected = false;
             if (is_flashing_active || !check_running.compare_exchange_strong(expected, true)) return;
-            // 12 KB: certificate verification overflowed 8 KB (feat/ota-tls findings).
-            if (xTaskCreatePinnedToCore(background_check_task, "gh_ota_check", 12288, NULL, 1, NULL, 0) != pdPASS) {
+            // 9 KB: 12 KB left 5.8 KB unused (v0.2.8 stress run); 8 KB overflowed before v0.2.6 moved
+            // certificate verification out of the TLS handshake, so keep a wider margin here.
+            if (xTaskCreatePinnedToCore(background_check_task, "gh_ota_check", 9216, NULL, 1, NULL, 0) != pdPASS) {
                 check_running = false;
             }
         }

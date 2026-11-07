@@ -176,8 +176,8 @@ namespace services {
         bool expected = false;
         if (!fetching.compare_exchange_strong(expected, true)) return false;
         schedule.last_attempt_utc = now_utc;
-        // 8 KB like the POTA fetch (insecure TLS, no certificate verification).
-        if (xTaskCreatePinnedToCore(fetch_task, "solar_fetch", 8192, NULL, 1, NULL, 0) != pdPASS) {
+        // 6 KB like the POTA fetch (insecure TLS); 8 KB left 4.2 KB unused (v0.2.8 stress run).
+        if (xTaskCreatePinnedToCore(fetch_task, "solar_fetch", 6144, NULL, 1, NULL, 0) != pdPASS) {
             Serial.println("[SOLAR] Task creation failed (heap).");
             fetching = false;
             return false;

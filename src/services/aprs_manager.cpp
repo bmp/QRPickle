@@ -55,8 +55,9 @@ namespace services {
         running = true;
         task_alive = true;
         TaskHandle_t handle = nullptr;
-        // 4 KB: measured high-water ~2.3 KB used of the former 10 KB (mem_stats, 2026-10-11).
-        if (xTaskCreate(task_loop, "aprs_task", 4096, NULL, 1, &handle) != pdPASS) {
+        // 4.5 KB: ~2.3 KB used on core 2 (mem_stats, 2026-10-11); 4 KB left only 1.4 KB unused on
+        // core 3 (v0.3.0 stress run).
+        if (xTaskCreate(task_loop, "aprs_task", 4608, NULL, 1, &handle) != pdPASS) {
             running = false;
             task_alive = false;
             Serial.println("[APRS] Task creation failed (heap).");
