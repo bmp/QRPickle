@@ -83,6 +83,13 @@ Plan: docs/private/plans/2026-11-07-v0.3.0-core3-port.md (branch `release/v0.3.0
 - [x] **Dead links:** TCP keepalive and silence timeouts for HamAlert, APRS-IS, DX and SOTA.
 - [x] **docs/DATA_FLOW.md** generated from `src/services/sources.h` and checked by the build.
 - [x] **Phase C on core 3 (done 2026-11-08):** CI checks in the container (`dev.sh all`); upgrade v0.2.8 -> v0.3.0 -> v0.2.8 -> v0.3.0 by web upload with settings (incl. secret endings), profile and logos identical; core 3 Cloud OTA install from GitHub (98 s); fresh full-erase USB install from the web installer reached first-start setup (owner at the board); stress hour 55 min clean (0 restarts, 0 TLS memory failures vs 3 in v0.2.8, lowest free 3,128 B vs 316 B, all stacks >= 1.6 KB); error paths (expired certificate, solar 404, feed timeout) logged cleanly; owner's hands-on check of the changed screens. Found and fixed on the way: SOTA login timeout units on core 3, one unreachable GitHub address (try the next address). Router-restart test skipped (owner).
+- [x] **6 h soak on the released v0.3.0 (2026-11-08):** 359 samples, 0 restarts, 0 no-answer, lowest free heap 65 KB (84 KB at the end), largest block 38.9 KB throughout, LVGL peak 27.3 KB with 0 refused, smallest stack headroom 1.7 KB (HamAlert), no source FAILING, 0 failed downloads, no abort in the serial log.
+
+## v0.3.1 (owner 2026-11-08)
+- [ ] **Code scanning (CodeQL, 3 alerts in developer tools):** #1 `py/bad-tag-filter` in `tools/space_feed/build_feed.py` `page_text()`: strip HTML with `html.parser` instead of regexes, test first, events unchanged on saved ARISS pages. #2 `tools/device_screens.py` and #3 `tools/webui_e2e/device_test.mjs`: MD5 is required by HTTP Digest; add a comment at each use and dismiss as "used in tests". Then check the next scan shows 0 open alerts. Plan: docs/private/plans/2026-11-08-code-scanning.md.
+- [ ] **Accented capitals missing from the device font:** an ARISS event "École ..." shows as "□cole" on the Satellites events tab. Add the Latin-1 capitals (or map them to plain letters) and check flash and the font size.
+- [ ] **Delete the local `wip/net-worker` branch** (the network worker was dropped; v0.3.0 has shipped).
+- [ ] **Video:** the HamAlert scene recaptured with demo alerts (VU POTA activations and DX QRP stations), since the owner has no triggers set up; video files stay out of the repo (`~/Videos/QRPickle/v0.3.0/`).
 
 ## For v0.3 (from v0.2.8)
 - [x] **APRS on/off from the web console** applied at once (fixed in v0.2.8; was applied only after a restart). On the CYD: off -> disconnected within 15 s, on -> connected within 10 s (`links` in /api/status).
