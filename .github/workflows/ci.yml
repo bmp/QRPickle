@@ -49,6 +49,7 @@ jobs:
           python3 -m unittest scripts/test_png_to_bin_lvgl9.py
           node test/js/logo_test.mjs
           node test/js/install_plan_test.mjs
+          node test/js/setup_usb_test.mjs
           python3 -m unittest scripts/test_make_pages_site.py
           python3 -m unittest scripts/test_source_tables.py
           python3 -m unittest scripts/test_data_flow.py
