@@ -3,6 +3,7 @@
 `device_test.mjs` drives the real web console of a connected CYD in a headless Chromium page and cross-checks every step through the REST API:
 - **Admin password:** mismatched or short inputs are rejected; a valid change applies, the old password is refused, and it's changed back through the UI.
 - **Profiles:** save a new profile; edit it in the settings form (banner, "Save to Profile", admin fields hidden); the device settings stay unchanged; apply it, and WiFi stays up.
+- **Display units:** untick Metric, choose °F/inHg/mph/miles/12-hour, save, reload (kept, box unticked); tick Metric, save, reload (four units metric, clock unchanged, box ticked).
 - **Backup and restore:** the backup contains no secrets; delete, then restore.
 
 At the end it restores the device's settings and admin password exactly, and deletes its test profile (`E2E_Test`). It changes the theme on the device for a few seconds while it runs.
@@ -15,4 +16,4 @@ QRP_ADMIN_PW=<admin password> node tools/webui_e2e/device_test.mjs <device-ip> 9
 kill %1
 ```
 
-(Flatpak Ungoogled Chromium: see `tools/webui_screenshots/README.md`.) The password comes only from the environment. Expect `RESULT pass=33 fail=0`.
+(Flatpak Ungoogled Chromium: see `tools/webui_screenshots/README.md`.) The password comes only from the environment. Expect `RESULT pass=40 fail=0`.

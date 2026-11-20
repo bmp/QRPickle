@@ -111,6 +111,32 @@ try {
     await sleep(2000);
     check((await api("/api/status", { pw: ORIGINAL_PW })).status === 200, "admin password changed back through the UI");
 
+    // ---- 1b. Display units (#25) -----------------------------------------------------------
+    await open();
+    await js(`setElementValue("cfg-metric", false, true); onMetricToggle();
+              setElementValue("cfg-unit-temp", "1"); setElementValue("cfg-unit-pres", "1");
+              setElementValue("cfg-unit-wind", "2"); setElementValue("cfg-unit-dist", "1");
+              setElementValue("cfg-clock", "1"); saveActiveConfig()`);
+    check(!!await dialog(/saved successfully/), "units: US set saved");
+    await sleep(1500);
+    const us = await apiJson("/api/config");
+    check(us.unit_temp === 1 && us.unit_pres === 1 && us.unit_wind === 2 && us.unit_dist === 1 && us.clock_12h === true,
+          "units: device holds °F, inHg, mph, miles, 12-hour");
+    await open();
+    check(await js(`!getElementValue("cfg-metric", true) && !document.getElementById("units-custom").classList.contains("hidden")
+                    && getElementValue("cfg-unit-wind") === "2" && getElementValue("cfg-clock") === "1"`),
+          "units: after reload the Metric box is unticked and the choices are kept");
+    check(/°F$/.test(await js(`tempText(20)`)) && /inHg$/.test(await js(`presText(1013)`)), "units: System tab converts sensor values");
+    await js(`setElementValue("cfg-metric", true, true); onMetricToggle(); saveActiveConfig()`);
+    check(!!await dialog(/saved successfully/), "units: metric saved");
+    await sleep(1500);
+    const metric = await apiJson("/api/config");
+    check(!metric.unit_temp && !metric.unit_pres && !metric.unit_wind && !metric.unit_dist && metric.clock_12h === true,
+          "units: Metric resets the four units and leaves the clock");
+    await open();
+    check(await js(`getElementValue("cfg-metric", true) && document.getElementById("units-custom").classList.contains("hidden")`),
+          "units: after reload the Metric box is ticked");
+
     // ---- 2. Profiles ----------------------------------------------------------------------
     await open();
     await js(`document.getElementById("new-profile-name").value = ${JSON.stringify(TEST_PROFILE)}; saveProfile()`);
