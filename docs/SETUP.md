@@ -27,7 +27,18 @@ Open the [web installer](https://quixotic.bharathpalavalli.com/QRPickle/install/
   starts. On Linux see [Web installer on Linux](../README.md#downloading-pre-compiled-releases).
 - No browser that works? The same section shows how to flash from a terminal with `esptool`.
 
-## 3. First start: the setup hotspot
+## 3. First start: over USB or the setup hotspot
+
+**Over USB (quickest, v0.3.1 or newer):** with the CYD still on the USB cable, close the installer's
+dialog and open the website's **[Set up over USB](https://quixotic.bharathpalavalli.com/QRPickle/setup/)**
+page in the same Chrome or Edge. Fill in your callsign, grid, UTC offset, units and WiFi (and the
+optional keys from section 5), click **Connect and send** and pick the port. The page shows what was
+saved and the admin password; the CYD restarts and joins your WiFi. Its address is then on the
+**Network** screen: open it in your browser, log in as `admin`, and carry on at section 4 for the rest.
+Nothing you type there leaves your computer except over the USB cable. If the page says the board
+doesn't answer, close other programs using the port and try again, or use the hotspot below.
+
+**Or with the setup hotspot:**
 
 1. The CYD restarts and shows the splash screen. With no WiFi saved, it gives up after about 20 seconds
    and opens its own WiFi network, **`QRPickle-Setup`**. The status LED stays **amber** while it does

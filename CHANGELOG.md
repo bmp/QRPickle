@@ -4,7 +4,7 @@ User-facing changes per release, newest first. Each section is also the release 
 
 ## v0.3.1 (unreleased)
 
-Your own units and clock: °F, inHg, mph or knots, miles, 12-hour time; accented names show correctly
+Set up over USB, your own units and clock (°F, inHg, mph or knots, miles, 12-hour time), accented names
 
 Update with Cloud OTA or the web console; your settings, profiles and logos
 stay, and the display stays metric until you change it. The web console's
@@ -17,6 +17,9 @@ New
   screen and the web console's System tab follow them; profiles keep them.
 - Local clock in 12- or 24-hour form (web console). UTC stays 24-hour. In
   12-hour form the status bar shows "2:05" and the clock tile "2:05 PM".
+- Set up over USB: right after installing, the website's "Set up over USB"
+  page (Chrome or Edge) sends your callsign, location, units, WiFi and keys
+  to the board over the USB cable, without joining its setup hotspot.
 
 Fixes
 - Accented letters (É, ñ, ü) in park, city and ARISS event names showed as

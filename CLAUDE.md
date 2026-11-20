@@ -97,6 +97,8 @@ Out-of-memory panics during HTTPS fetches and OTA are a recurring bug class (see
 - Apply config changes on the main loop via `pending_config`.
 - Test with `QRP_ADMIN_PW=… tools/web_security_check.sh <ip>`.
 
+**Setup over USB.** The website's Set up over USB page (`web-installer/pages/setup.html`, `setup-usb.js`) sends settings as `QRPSETUP` lines over Web Serial; `services/setup_serial` reads them on the main loop and applies them through the web console's queue (`web_server_stage_config`). Protocol: `services/setup_serial_proto.h`. Never log the values.
+
 **Web console.** `data/www/{index.html,app.js,style.css}` is served from LittleFS; there is an inline fallback page in `web_server.cpp` if the filesystem is missing. The REST endpoints (`/api/config`, `/api/profiles/*`, `/api/aprs/*`, `/api/system/update`, `/api/cloud_ota/*`) are registered in `web_server_init()`. Changes to `data/` require `pio run -t buildfs` / `uploadfs`; they don't go out with a firmware flash.
 
 **Flash layout** (`partitions.csv`): two 1.75MB OTA app slots (`app0`/`app1`) and a 448KB LittleFS partition at `0x390000`. The README and the web-flasher instructions depend on these offsets, so changing them breaks OTA for deployed devices.
