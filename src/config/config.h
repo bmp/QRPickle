@@ -1,5 +1,6 @@
 #pragma once
 #include <stdint.h>
+#include <string.h>
 
 namespace config {
 
@@ -93,6 +94,13 @@ namespace config {
     inline uint8_t display_units_key(const Config& c) {
         return (uint8_t)((c.unit_temp & 1) | (c.unit_pres & 1) << 1 | (c.unit_wind & 3) << 2 | (c.unit_dist & 1) << 4 |
                          (c.clock_12h ? 1 : 0) << 5);
+    }
+
+    // New WiFi details take effect only after a restart (in the first-setup hotspot the board
+    // never reconnects by itself), so every save that changes them restarts the board.
+    inline bool wifi_changed(const Config& a, const Config& b) {
+        return strncmp(a.wifi_ssid, b.wifi_ssid, sizeof(a.wifi_ssid)) != 0 ||
+               strncmp(a.wifi_password, b.wifi_password, sizeof(a.wifi_password)) != 0;
     }
 
     void load();

@@ -23,6 +23,11 @@ Fixes
   boxes ("□cole"); the text fonts now include them.
 - The OpenWeather tab's temperature unit no longer overlaps three-digit or
   negative temperatures.
+- New WiFi details now take effect at once: saving them (web console,
+  device Settings or a profile) restarts the board so it joins the network.
+  At first setup the board used to stay in its hotspot until restarted.
+- An accented letter cut off at the end of a long name or comment no longer
+  shows as a box.
 
 ## v0.3.0 (2026-11-08)
 

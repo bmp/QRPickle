@@ -401,6 +401,27 @@ void test_display_units_key_changes_with_each_setting() {
     TEST_ASSERT_NOT_EQUAL(a, display_units_key(c));
 }
 
+// New WiFi details only take effect when the board restarts (the first-setup hotspot never
+// reconnects by itself), so a save that changes them restarts the board.
+void test_wifi_changed() {
+    Config a = base(), b = base();
+    strcpy(a.wifi_ssid, "home");
+    strcpy(a.wifi_password, "secret12");
+    b = a;
+    TEST_ASSERT_FALSE(wifi_changed(a, b));
+    b.brightness = 10;
+    strcpy(b.callsign, "VU2XYZ");  // other settings: no restart
+    TEST_ASSERT_FALSE(wifi_changed(a, b));
+    strcpy(b.wifi_ssid, "field");
+    TEST_ASSERT_TRUE(wifi_changed(a, b));
+    b = a;
+    strcpy(b.wifi_password, "secret13");
+    TEST_ASSERT_TRUE(wifi_changed(a, b));
+    Config empty = base();
+    empty.wifi_ssid[0] = '\0';  // first setup: hotspot, no network yet
+    TEST_ASSERT_TRUE(wifi_changed(empty, a));
+}
+
 int main(int, char**) {
     UNITY_BEGIN();
     RUN_TEST(test_valid_config_is_normalised_not_reverted);
@@ -423,5 +444,6 @@ int main(int, char**) {
     RUN_TEST(test_units_bad_values_reset_to_metric);
     RUN_TEST(test_units_missing_keys_keep_live);
     RUN_TEST(test_display_units_key_changes_with_each_setting);
+    RUN_TEST(test_wifi_changed);
     return UNITY_END();
 }

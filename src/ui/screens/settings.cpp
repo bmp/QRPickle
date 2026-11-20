@@ -312,6 +312,9 @@ namespace ui {
         }
 
         lv_obj_t* lbl = lv_obj_get_child(btn_save, 0);
+        // New WiFi details take effect only after a restart (as config::wifi_changed() for the web
+        // console); compared here without a 1 KB Config copy on the stack.
+        const bool wifi_new = strcmp(c.wifi_ssid, new_ssid) != 0 || strcmp(c.wifi_password, new_pass) != 0;
 
         if (modified) {
             auto& mc = config::mutable_get();
@@ -345,9 +348,14 @@ namespace ui {
             ui_refresh_theme();
             settings_refresh_theme();
 
-            lv_label_set_text(lbl, "SAVED!");
+            lv_label_set_text(lbl, wifi_new ? "SAVED - RESTARTING" : "SAVED!");
             lv_obj_set_style_bg_color(btn_save, theme_color(COLOR_SUCCESS), 0);
             lv_obj_set_style_text_color(lbl, theme_color(COLOR_TEXT_ON_SUCCESS), 0);
+            if (wifi_new) {
+                Serial.println("[Wi-Fi] New network settings saved: restarting to join");
+                lv_timer_t* t = lv_timer_create([](lv_timer_t*) { ESP.restart(); }, 1500, nullptr);
+                lv_timer_set_repeat_count(t, 1);
+            }
         } else {
             lv_label_set_text(lbl, "NO CHANGES");
         }

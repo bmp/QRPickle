@@ -51,7 +51,7 @@ In the web console's **Basic Settings** tab:
 | Metric units | *optional*, ticked by default (°C, hPa, m/s, km); untick to choose °F, inHg, mph, km/h or knots, and miles |
 | Local Network SSID / WPA Passphrase | your 2.4 GHz WiFi |
 
-Click **Save Configuration**. The CYD joins your WiFi and closes the hotspot. Its new address is on the
+Click **Save Configuration**. The CYD restarts, joins your WiFi and closes the hotspot. Its new address is on the
 **Network** screen; open it in your browser (from your normal network) and log in again as `admin`.
 
 **Change the admin password** now (Basic Settings → Admin Password, 8-16 characters, no spaces). The

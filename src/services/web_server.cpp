@@ -330,8 +330,11 @@ void web_server_init() {
                      auto* c = new config::Config(config::get());
                      config::from_json(*c, doc.as<JsonObjectConst>());
                      copy_secret(c->admin_password, doc["admin_pw"]);  // sanitize() keeps the old one unless 8..16 printable chars
+                     config::sanitize(*c, config::get());
+                     const bool restart = config::wifi_changed(config::get(), *c);  // web_server_update() restarts
                      queue_config(c);
-                     request->send(200, "application/json", "{\"status\":\"success\"}");
+                     request->send(200, "application/json",
+                                   restart ? "{\"status\":\"success\",\"restart\":true}" : "{\"status\":\"success\"}");
                  } else {
                      request->send(400, "application/json", "{\"status\":\"malformed\"}");
                  }
@@ -712,14 +715,31 @@ void web_server_update() {
     // APRS-IS on/off from the web console or a profile applies at once, as on the device's Settings
     // screen (it used to wait for a restart).
     const bool aprs_was = config::get().aprs_enabled;
+    // New WiFi details take effect only after a restart (in the first-setup hotspot the board never
+    // reconnects by itself): a save or profile that changes them restarts the board.
+    bool wifi_new = false;
     if (config::Config* staged = pending_config.exchange(nullptr)) {
+        wifi_new = config::wifi_changed(config::get(), *staged);
         config::mutable_get() = *staged;
         delete staged;
         config::save();
         flag_trigger_ui_refresh = true;
     }
     if (pending_profile_flag.exchange(false)) {
-        if (services::profile_manager::apply_profile_to_live(pending_profile)) flag_trigger_ui_refresh = true;
+        char ssid[sizeof(config::Config::wifi_ssid)], pass[sizeof(config::Config::wifi_password)];
+        memcpy(ssid, config::get().wifi_ssid, sizeof(ssid));
+        memcpy(pass, config::get().wifi_password, sizeof(pass));
+        if (services::profile_manager::apply_profile_to_live(pending_profile)) {
+            flag_trigger_ui_refresh = true;
+            wifi_new = wifi_new || strncmp(ssid, config::get().wifi_ssid, sizeof(ssid)) != 0 ||
+                       strncmp(pass, config::get().wifi_password, sizeof(pass)) != 0;
+        }
+        memset(pass, 0, sizeof(pass));
+    }
+    if (wifi_new && !flag_trigger_reboot) {
+        Serial.println("[Wi-Fi] New network settings saved: restarting to join");
+        flag_trigger_reboot = true;
+        reboot_timer_mark = millis();
     }
     if (config::get().aprs_enabled != aprs_was) {
         if (config::get().aprs_enabled) services::AprsManager::start();
