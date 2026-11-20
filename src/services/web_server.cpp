@@ -728,15 +728,11 @@ void web_server_update() {
         flag_trigger_ui_refresh = true;
     }
     if (pending_profile_flag.exchange(false)) {
-        char ssid[sizeof(config::Config::wifi_ssid)], pass[sizeof(config::Config::wifi_password)];
-        memcpy(ssid, config::get().wifi_ssid, sizeof(ssid));
-        memcpy(pass, config::get().wifi_password, sizeof(pass));
-        if (services::profile_manager::apply_profile_to_live(pending_profile)) {
+        bool profile_wifi = false;
+        if (services::profile_manager::apply_profile_to_live(pending_profile, &profile_wifi)) {
             flag_trigger_ui_refresh = true;
-            wifi_new = wifi_new || strncmp(ssid, config::get().wifi_ssid, sizeof(ssid)) != 0 ||
-                       strncmp(pass, config::get().wifi_password, sizeof(pass)) != 0;
+            wifi_new = wifi_new || profile_wifi;
         }
-        memset(pass, 0, sizeof(pass));
     }
     if (wifi_new && !flag_trigger_reboot) {
         Serial.println("[Wi-Fi] New network settings saved: restarting to join");
