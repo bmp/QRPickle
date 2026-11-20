@@ -21,6 +21,7 @@ licence_header() {
 prepend_licence() {
     local font_path="$1"
     local out_path="$2"
+    local range="$3"
     local info copyright licence_file tmp
     info="$(licence_header "$font_path")"
     copyright="${info%%|*}"
@@ -28,7 +29,7 @@ prepend_licence() {
     tmp="$(mktemp)"
     {
         echo "/*"
-        echo " * Converted from $(basename "$font_path") with lv_font_conv (glyphs 0x20-0x7F)."
+        echo " * Converted from $(basename "$font_path") with lv_font_conv (glyphs $range)."
         echo " * $copyright"
         echo " * Licensed under the SIL Open Font License, Version 1.1: see $licence_file"
         echo " */"
@@ -42,6 +43,7 @@ generate_font() {
     local size="$2"
     local font_path="$3"
     local out_path="$4"
+    local range="${5:-0x20-0x7F}"
 
     if [ -f "$out_path" ]; then
         read -p "⚠️  $out_path already exists. Overwrite? (y/n): " choice
@@ -58,18 +60,23 @@ generate_font() {
 
     echo "⚙️  Compiling $name..."
     lv_font_conv --no-compress --no-prefilter --bpp 4 --size "$size" \
-        --font "$font_path" -r 0x20-0x7F \
-        --format lvgl -o "$out_path" && prepend_licence "$font_path" "$out_path"
+        --font "$font_path" -r "$range" \
+        --format lvgl --lv-include lvgl.h -o "$out_path" && prepend_licence "$font_path" "$out_path" "$range"
 }
 
+# Text fonts also carry the Latin-1 letters (U+00C0-00FF: É, ñ, ü, ...) so names from POTA, OpenWeather
+# and the ARISS feed don't show as boxes (~16 KB of flash for the five fonts, measured 2026-11-20).
+# JetBrains Mono 24 shows only numbers (clock, weather values, splash) and stays ASCII.
+LATIN1="0x20-0x7F,0xC0-0xFF"
+
 # --- Atkinson Hyperlegible Generations ---
-generate_font "Atkinson Hyperlegible (10px)" 10 "assets/fonts/AtkinsonHyperlegible-Regular.ttf" "src/ui/fonts/font_atkinson_10_raw.c"
-generate_font "Atkinson Hyperlegible (14px)" 14 "assets/fonts/AtkinsonHyperlegible-Regular.ttf" "src/ui/fonts/font_atkinson_14_raw.c"
-generate_font "Atkinson Hyperlegible (18px)" 18 "assets/fonts/AtkinsonHyperlegible-Regular.ttf" "src/ui/fonts/font_atkinson_18_raw.c"
+generate_font "Atkinson Hyperlegible (10px)" 10 "assets/fonts/AtkinsonHyperlegible-Regular.ttf" "src/ui/fonts/font_atkinson_10_raw.c" "$LATIN1"
+generate_font "Atkinson Hyperlegible (14px)" 14 "assets/fonts/AtkinsonHyperlegible-Regular.ttf" "src/ui/fonts/font_atkinson_14_raw.c" "$LATIN1"
+generate_font "Atkinson Hyperlegible (18px)" 18 "assets/fonts/AtkinsonHyperlegible-Regular.ttf" "src/ui/fonts/font_atkinson_18_raw.c" "$LATIN1"
 
 # --- JetBrains Mono Generations ---
-generate_font "JetBrains Mono (10px)" 10 "assets/fonts/JetBrainsMono-Bold.ttf" "src/ui/fonts/font_jetbrains_10_raw.c"
-generate_font "JetBrains Mono (14px)" 14 "assets/fonts/JetBrainsMono-Bold.ttf" "src/ui/fonts/font_jetbrains_14_raw.c"
+generate_font "JetBrains Mono (10px)" 10 "assets/fonts/JetBrainsMono-Bold.ttf" "src/ui/fonts/font_jetbrains_10_raw.c" "$LATIN1"
+generate_font "JetBrains Mono (14px)" 14 "assets/fonts/JetBrainsMono-Bold.ttf" "src/ui/fonts/font_jetbrains_14_raw.c" "$LATIN1"
 generate_font "JetBrains Mono (24px)" 24 "assets/fonts/JetBrainsMono-Bold.ttf" "src/ui/fonts/font_jetbrains_24_raw.c"
 
 # --- Icons-only fallback (replaces LVGL's Montserrat 10/14; fonts.cpp) ---
