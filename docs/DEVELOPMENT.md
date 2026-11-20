@@ -39,8 +39,20 @@ Notes:
 Since v0.3.0 the firmware builds on Arduino core 3.3.12 / ESP-IDF 5.5 through the pioarduino
 platform (pinned in `platformio.ini`). Three things differ from the old espressif32 platform:
 
-- **Python 3.14 or older.** pioarduino doesn't run on 3.15 yet. A venv with
-  `pip install "platformio==6.2.0"` is enough.
+- **Python 3.14 or older, one that system updates don't replace.** pioarduino doesn't run on 3.15
+  yet. A `pio` installed on the system or Homebrew Python breaks when that Python is upgraded
+  (2026-11-20: Fedora and Homebrew moved to 3.15 and both `pio` and `~/.platformio/penv` stopped
+  with "bad interpreter" / "Python version must be 3.10 ... 3.14"). Use a Python that `uv` manages:
+
+  ```bash
+  uv python install 3.14
+  uv tool install --python 3.14 "platformio==6.2.0"   # puts pio in ~/.local/bin
+  rm -rf ~/.platformio/penv                            # only if it points at a Python that is gone
+  pio pkg install -e cyd                               # pioarduino recreates penv with the same Python
+  ```
+
+  Both environments then point at `~/.local/share/uv/python/cpython-3.14-*` (a link to the newest
+  3.14 patch release that `uv` installed), which system and Homebrew upgrades don't touch.
 - **PlatformIO 6.2.0 in pioarduino's own environment.** pioarduino creates `~/.platformio/penv`
   with a PlatformIO version it then rejects (`IncompatiblePlatform ... 6.2.0-post.1`). Once, after
   `pio pkg install -e cyd`: `~/.platformio/penv/bin/uv pip install -p ~/.platformio/penv/bin/python "platformio==6.2.0"`.
