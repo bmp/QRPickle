@@ -1,4 +1,5 @@
 #include "fresh_registry.h"
+#include "../core/utf8_trim.h"
 #include "../core/mem_stats.h"
 #include <WiFiClientSecure.h>
 #include "safe_client.h"
@@ -60,11 +61,11 @@ namespace services {
                     current_wx.wind_deg = doc["wind"]["deg"] | 0;
                     current_wx.clouds = doc["clouds"]["all"] | 0;
                     current_wx.visibility = doc["visibility"] | 0;
-                    current_wx.sunrise = doc["sys"]["sunrise"] | 0;  
-                    current_wx.sunset = doc["sys"]["sunset"] | 0;   
-                    strlcpy(current_wx.description, doc["weather"][0]["description"] | "Unknown", sizeof(current_wx.description));
+                    current_wx.sunrise = doc["sys"]["sunrise"] | 0;
+                    current_wx.sunset = doc["sys"]["sunset"] | 0;
+                    utf8_copy(current_wx.description, sizeof(current_wx.description), doc["weather"][0]["description"] | "Unknown");
                     strlcpy(current_wx.icon, doc["weather"][0]["icon"] | "01d", sizeof(current_wx.icon));
-                    strlcpy(current_wx.location, doc["name"] | "Local Area", sizeof(current_wx.location));
+                    utf8_copy(current_wx.location, sizeof(current_wx.location), doc["name"] | "Local Area");
                     current_wx.valid = true;
                     got = true;
                     hw::led_rgb::trigger_traffic_pulse();  // data ingress (docs/LEDColours.md)

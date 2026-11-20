@@ -1,4 +1,5 @@
 #include "sources.h"
+#include "../core/utf8_trim.h"
 #include "link_watch.h"
 #include "fresh_registry.h"
 #include "aprs_parse.h"
@@ -246,6 +247,7 @@ namespace services {
                 stations[target_idx].comment[sizeof(stations[0].comment)-1] = '\0';
                 char* end = strchr(stations[target_idx].comment, '\r'); if(end) *end = '\0';
                 end = strchr(stations[target_idx].comment, '\n'); if(end) *end = '\0';
+                utf8_trim_partial(stations[target_idx].comment);
             }
             dirty = true;
             hw::led_rgb::trigger_traffic_pulse();  // data ingress (docs/LEDColours.md)
@@ -297,11 +299,13 @@ namespace services {
             if (message_count < 10) {
                 strncpy(messages[message_count].from, call, 15);
                 strncpy(messages[message_count].text, msg_body, 63);
+                utf8_trim_partial(messages[message_count].text);
                 message_count++;
             } else {
                 for(int i=0; i<9; i++) messages[i] = messages[i+1];
                 strncpy(messages[9].from, call, 15);
                 strncpy(messages[9].text, msg_body, 63);
+                utf8_trim_partial(messages[9].text);
             }
             msg_dirty = true;
 

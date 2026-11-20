@@ -90,7 +90,11 @@ namespace ui {
     static lv_obj_t* lbl_loc_hum  = nullptr; static lv_obj_t* lbl_unit_hum  = nullptr;
     static lv_obj_t* lbl_loc_pres = nullptr; static lv_obj_t* lbl_unit_pres = nullptr;
     static lv_obj_t* lbl_loc_dew  = nullptr; static lv_obj_t* lbl_unit_dew  = nullptr;
-    static lv_obj_t* lbl_loc_alt  = nullptr; 
+    static lv_obj_t* lbl_loc_alt = nullptr;
+    // The layout each unit setting was last applied with (-1: not yet), so labels move only
+    // when the setting changes, not on every 250 ms refresh.
+    static int8_t pres_inhg_applied = -1;
+    static int8_t fc_12h_applied = -1;
 
     static void build_tab_sensors(lv_obj_t* parent) {
         lv_obj_set_style_pad_all(parent, 4, 0);
@@ -314,6 +318,7 @@ namespace ui {
             img_cur_icon = lbl_cur_temp = lbl_cur_tunit = lbl_cur_desc = lbl_cur_loc = nullptr;
             lbl_cur_sr = lbl_cur_ss = lbl_cur_wind = lbl_cur_cloud = lbl_cur_vis = lbl_cur_pres = nullptr;
             for(int i=0; i<8; i++) dyn_rows[i].base_row = nullptr;
+            pres_inhg_applied = fc_12h_applied = -1;  // the next page starts from the create-time layout
         }, LV_EVENT_DELETE, NULL);
 
         wx_timer = lv_timer_create([](lv_timer_t* t){ weather_update_data(); }, 250, NULL);
@@ -339,7 +344,11 @@ namespace ui {
             lv_label_set_text(lbl_loc_pres, buf);
             lv_label_set_text(lbl_unit_pres, units::pres_unit(cfg.unit_pres));
             // "29.92 inHg" is 144 px of the card's 146: centred, without the unit offset.
-            lv_obj_align(lbl_loc_pres, LV_ALIGN_BOTTOM_MID, cfg.unit_pres == config::PRES_INHG ? 0 : -10, -2);
+            const int8_t inhg = cfg.unit_pres == config::PRES_INHG ? 1 : 0;
+            if (inhg != pres_inhg_applied) {
+                lv_obj_align(lbl_loc_pres, LV_ALIGN_BOTTOM_MID, inhg ? 0 : -10, -2);
+                pres_inhg_applied = inhg;
+            }
         }
         if (lbl_loc_dew) {
             units::fmt_temp(buf, sizeof(buf), cfg.unit_temp, online ? t - ((100.0f - h) / 5.0f) : NAN, 1);
@@ -409,10 +418,14 @@ namespace ui {
         const auto& fore = services::weather_manager::get_forecast();
         uint8_t enabled_mask = config::get().forecast_slots;
 
+        // "11:30 PM" is 67 px from x 10: the temperatures move right in 12-hour mode.
+        const int8_t h12 = cfg.clock_12h ? 1 : 0;
+        const bool move_temps = h12 != fc_12h_applied;
         if (fore.valid && forecast_scroll_container) {
             for (int i = 0; i < 8; i++) {
                 bool is_enabled = (enabled_mask & (1 << i));
                 if (dyn_rows[i].base_row) {
+                    if (move_temps) lv_obj_align(dyn_rows[i].lbl_temp, LV_ALIGN_LEFT_MID, h12 ? 85 : 75, 0);
                     if (!is_enabled) {
                         lv_obj_set_hidden(dyn_rows[i].base_row, true);
                         continue;
@@ -421,8 +434,6 @@ namespace ui {
 
                     units::fmt_temp(buf, sizeof(buf), cfg.unit_temp, fore.blocks[i].temp, 0);
                     lv_label_set_text(dyn_rows[i].lbl_temp, buf);
-                    // "11:30 PM" is 67 px from x 10: the temperature moves right in 12-hour mode.
-                    lv_obj_align(dyn_rows[i].lbl_temp, LV_ALIGN_LEFT_MID, cfg.clock_12h ? 85 : 75, 0);
 
                     snprintf(buf, sizeof(buf), "%s %d%%", LV_SYMBOL_TINT, fore.blocks[i].pop);
                     lv_label_set_text(dyn_rows[i].lbl_rain, buf);
@@ -436,6 +447,7 @@ namespace ui {
                     lv_label_set_text(dyn_rows[i].lbl_time, buf);
                 }
             }
+            fc_12h_applied = h12;  // every row (hidden ones too) was moved above
         }
     }
 

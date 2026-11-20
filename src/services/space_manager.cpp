@@ -1,4 +1,5 @@
 #include "sources.h"
+#include "../core/utf8_trim.h"
 #include "fresh_registry.h"
 #include "../core/crashlog.h"
 #include "space_schedule.h"
@@ -273,7 +274,7 @@ namespace services {
             sgp->site(lat, lon, 0);
             count = each_sat(f, buf, &generated, [&](int i, const Sat& s) {
                 info[i] = {s.norad, {}, s.categories};
-                strlcpy(info[i].name, s.name, sizeof(info[i].name));
+                utf8_copy(info[i].name, sizeof(info[i].name), s.name);
                 if (s.norad == ISS) {
                     memcpy(iss1, s.tle1, sizeof(iss1));
                     memcpy(iss2, s.tle2, sizeof(iss2));

@@ -1,4 +1,5 @@
 #include "sources.h"
+#include "../core/utf8_trim.h"
 #include "link_watch.h"
 #include "fresh_registry.h"
 #include "list_release.h"
@@ -223,6 +224,7 @@ namespace services {
         for (int i = strlen(spot.dx_call) - 1; i >= 0 && spot.dx_call[i] == ' '; i--) spot.dx_call[i] = '\0';
 
         snprintf(spot.comment, sizeof(spot.comment), "%.29s", line + 39);
+        utf8_trim_partial(spot.comment);
         for (int i = strlen(spot.comment) - 1; i >= 0 && spot.comment[i] == ' '; i--) spot.comment[i] = '\0';
 
         deduce_mode(spot.freq, spot.comment, spot.mode, sizeof(spot.mode));
