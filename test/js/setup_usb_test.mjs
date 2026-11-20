@@ -5,6 +5,7 @@ import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 const { buildSettings, chunks, parseReply, runSetup, MAX_DATA, openLinePort, closeLinePort, resultText } =
     require("../../web-installer/setup-usb.js");
+const { serialSupport } = require("../../web-installer/setup-usb.js");
 
 const bytes = s => new TextEncoder().encode(s).length;
 
@@ -138,5 +139,12 @@ assert.match(resultText({ version: "v0.3.1", saved: [], kept: [], admin: "x", re
              /Nothing to change: the board already has these values/);
 assert.match(resultText({ version: "v0.3.1", saved: ["grid"], kept: ["offset"], admin: "x", restart: false }),
              /Saved on the board.*grid.*Not changed.*offset/s);
+
+// ---- can this page use Web Serial? -------------------------------------------------------------
+// Chrome hides navigator.serial on pages that aren't secure (http://0.0.0.0, a LAN address):
+// say that, not "use Chrome".
+assert.equal(serialSupport({ isSecureContext: true, navigator: { serial: {} } }), "ok");
+assert.equal(serialSupport({ isSecureContext: false, navigator: {} }), "insecure");
+assert.equal(serialSupport({ isSecureContext: true, navigator: {} }), "unsupported");
 
 console.log("setup_usb_test: all passed");

@@ -154,6 +154,12 @@ async function closeLinePort(lp, port) {
     try { await port.close(); } catch (e) { /* not open */ }
 }
 
+// "ok", "insecure" (Chrome hides Web Serial on http pages other than localhost) or "unsupported".
+function serialSupport(win) {
+    if (win.navigator && "serial" in win.navigator) return "ok";
+    return win.isSecureContext === false ? "insecure" : "unsupported";
+}
+
 const escapeHtml = t => String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
 // What the page shows after runSetup() (HTML).
@@ -172,5 +178,5 @@ function resultText(r) {
 
 if (typeof module !== "undefined") {
     module.exports = { MAX_DATA, buildSettings, chunks, parseReply, runSetup, openLinePort, closeLinePort, resultText,
-                       escapeHtml };
+                       escapeHtml, serialSupport };
 }

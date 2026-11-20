@@ -42,6 +42,9 @@
   <p><button id="send" class="install-btn" type="button">Connect and send</button></p>
 </form>
 <p id="unsupported" class="note hidden">This browser can't access USB serial ports. Use Chrome or Edge on a computer.</p>
+<p id="insecure" class="note hidden">This page needs a secure address to reach the USB port: open it over
+   <code>https://</code>, or as <code>http://localhost:…</code> when you serve it yourself (not
+   <code>0.0.0.0</code> or a network address).</p>
 <div id="status" class="msg msg-info hidden" role="status"></div>
 <p class="small">"No answer from the board"? Close other programs using the port (and the installer's dialog),
    replug the cable and try again. On Linux run <code>stty -F /dev/ttyUSB0 115200</code> first (see the
@@ -52,7 +55,8 @@
   <script>
     const $ = id => document.getElementById(id);
     $("metric").addEventListener("change", () => $("units").classList.toggle("hidden", $("metric").checked));
-    if (!("serial" in navigator)) { $("unsupported").classList.remove("hidden"); $("send").disabled = true; }
+    const support = serialSupport(window);
+    if (support !== "ok") { $(support).classList.remove("hidden"); $("send").disabled = true; }
 
     function show(html, kind = "info") {
       const s = $("status");
