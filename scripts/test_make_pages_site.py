@@ -13,6 +13,16 @@ NAMES = ["bootloader.bin", "partitions.bin", "boot_app0.bin", "firmware.bin", "l
 
 
 class Site(unittest.TestCase):
+    def test_pages_exist_and_their_scripts_are_copied(self):
+        import re
+        for frag, _folder, _label in site.PAGES:
+            path = os.path.join(site.SITE, "pages", frag)
+            self.assertTrue(os.path.exists(path), frag)
+            text = open(path, encoding="utf-8").read()
+            for src in re.findall(r'<script src="\.\./([^"]+)"', text):
+                self.assertIn(src, site.SITE_FILES, f"{frag} loads {src}, which the site doesn't copy")
+        self.assertIn(("setup.html", "setup", "Set up over USB"), site.PAGES)
+
     def test_partition_offsets_match_the_fixed_layout(self):
         p = site.partition_offsets()
         # The README, the installer and deployed devices depend on these (CLAUDE.md, "Flash layout").

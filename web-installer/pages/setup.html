@@ -1,0 +1,123 @@
+<!-- title: Set up QRPickle over USB -->
+  <h2>Set up QRPickle over USB</h2>
+<p>Send your callsign, location, WiFi and keys to a CYD on the USB cable, straight from this page, without
+   joining its <code>QRPickle-Setup</code> hotspot. Works with QRPickle v0.3.1 or newer, in
+   <strong>Chrome or Edge</strong> on a computer. Nothing you type here leaves your computer except over the
+   USB cable to the board.</p>
+<p class="small">Fields you leave empty keep what the board has. Everything else (profiles, APRS, DX servers,
+   screen cycling) is in the web console afterwards.</p>
+
+<form id="setup-form" class="setup" onsubmit="return false;">
+  <fieldset>
+    <legend>Station</legend>
+    <label>Callsign <input id="callsign" maxlength="11" autocomplete="off"></label>
+    <label>Grid square <input id="grid" maxlength="6" autocomplete="off"></label>
+    <label>Latitude <input id="lat" inputmode="decimal" placeholder="optional, e.g. 12.97"></label>
+    <label>Longitude <input id="lon" inputmode="decimal" placeholder="optional, e.g. 77.59"></label>
+    <label>UTC offset (hours) <input id="offset" inputmode="decimal" placeholder="e.g. 5.5"></label>
+  </fieldset>
+  <fieldset>
+    <legend>Units and clock</legend>
+    <label>Local clock <select id="clock"><option value="0">24-hour (14:05)</option><option value="1">12-hour (2:05 PM)</option></select></label>
+    <label class="check"><input type="checkbox" id="metric" checked> Metric units (°C, hPa, m/s, km)</label>
+    <div id="units" class="hidden">
+      <label>Temperature <select id="unit_temp"><option value="0">°C</option><option value="1">°F</option></select></label>
+      <label>Pressure <select id="unit_pres"><option value="0">hPa</option><option value="1">inHg</option></select></label>
+      <label>Wind <select id="unit_wind"><option value="0">m/s</option><option value="1">km/h</option><option value="2">mph</option><option value="3">knots</option></select></label>
+      <label>Distance <select id="unit_dist"><option value="0">km</option><option value="1">miles</option></select></label>
+    </div>
+  </fieldset>
+  <fieldset>
+    <legend>WiFi (2.4 GHz)</legend>
+    <label>Network name <input id="ssid" maxlength="32" autocomplete="off"></label>
+    <label>Password <input id="password" type="password" maxlength="63" autocomplete="off"></label>
+    <p class="small">Changing the WiFi restarts the board so it joins the network.</p>
+  </fieldset>
+  <fieldset>
+    <legend>Accounts (optional)</legend>
+    <label>OpenWeather API key <input id="apikey" maxlength="39" autocomplete="off"></label>
+    <label>HamAlert password <input id="hamalert_pass" type="password" maxlength="32" autocomplete="off"></label>
+    <label>APRS-IS passcode <input id="aprs_pass" type="password" maxlength="7" autocomplete="off"></label>
+  </fieldset>
+  <p><button id="send" class="install-btn" type="button">Connect and send</button></p>
+</form>
+<p id="unsupported" class="note hidden">This browser can't access USB serial ports. Use Chrome or Edge on a computer.</p>
+<div id="status" class="msg msg-info hidden" role="status"></div>
+<p class="small">"No answer from the board"? Close other programs using the port (and the installer's dialog),
+   replug the cable and try again. On Linux run <code>stty -F /dev/ttyUSB0 115200</code> first (see the
+   <a href="../install/">Install</a> page).</p>
+
+<!-- scripts -->
+  <script src="../setup-usb.js"></script>
+  <script>
+    const $ = id => document.getElementById(id);
+    $("metric").addEventListener("change", () => $("units").classList.toggle("hidden", $("metric").checked));
+    if (!("serial" in navigator)) { $("unsupported").classList.remove("hidden"); $("send").disabled = true; }
+
+    function show(html, kind = "info") {
+      const s = $("status");
+      s.className = `msg msg-${kind}`;
+      s.innerHTML = html;
+    }
+    const esc = t => String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+    // Web Serial as the { write, readLine } port runSetup() expects.
+    function linePort(port) {
+      const enc = new TextEncoder();
+      const writer = port.writable.getWriter();
+      const reader = port.readable.pipeThrough(new TextDecoderStream()).getReader();
+      let buf = "", pending = null;
+      return {
+        write: line => writer.write(enc.encode(line + "\n")),
+        async readLine(ms) {
+          const end = Date.now() + ms;
+          for (;;) {
+            const i = buf.indexOf("\n");
+            if (i >= 0) { const l = buf.slice(0, i).replace(/\r$/, ""); buf = buf.slice(i + 1); return l; }
+            const left = end - Date.now();
+            if (left <= 0) return null;
+            pending ??= reader.read();
+            const r = await Promise.race([pending, new Promise(res => setTimeout(() => res(null), left))]);
+            if (!r) return null;  // timed out; the read stays pending for the next call
+            pending = null;
+            if (r.done) return null;
+            buf += r.value;
+          }
+        },
+        async close() { await pending?.catch(() => {}); reader.releaseLock(); writer.releaseLock(); },
+        reader,
+      };
+    }
+
+    $("send").addEventListener("click", async () => {
+      const f = {};
+      for (const k of ["callsign", "grid", "lat", "lon", "offset", "ssid", "password", "apikey", "hamalert_pass",
+                       "aprs_pass", "unit_temp", "unit_pres", "unit_wind", "unit_dist"]) f[k] = $(k).value;
+      f.clock_12h = $("clock").value === "1";
+      f.metric = $("metric").checked;
+      const settings = buildSettings(f);
+      let port;
+      try {
+        port = await navigator.serial.requestPort();
+      } catch (e) { return; }  // no port picked
+      $("send").disabled = true;
+      let lp;
+      try {
+        await port.open({ baudRate: 115200 });
+        lp = linePort(port);
+        show("Connected. Waiting for the board (it may restart, up to 40 seconds)...");
+        const r = await runSetup(lp, settings, { log: t => show(esc(t)) });
+        const kept = r.kept.length ? `<br><strong>Not changed</strong> (check the value): ${esc(r.kept.join(", "))}` : "";
+        show(`<strong>Saved on the board</strong> (QRPickle ${esc(r.version)}): ${esc(r.saved.join(", ") || "nothing changed")}.${kept}` +
+             `<br>Web console login: user <code>admin</code>, password <code>${esc(r.admin)}</code> (also on the board's Network screen).` +
+             (r.restart ? "<br>The board restarts now to join your WiFi. Its address then shows on the Network screen; open it in your browser."
+                        : "<br>Open the address on the board's Network screen in your browser for every other setting."), "info");
+      } catch (e) {
+        show(esc(e.message || e), "error");
+      } finally {
+        try { await lp?.reader.cancel(); await lp?.close(); } catch (e) { /* closing anyway */ }
+        try { await port.close(); } catch (e) { /* already closed */ }
+        $("send").disabled = false;
+      }
+    });
+  </script>

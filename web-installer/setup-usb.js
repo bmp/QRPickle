@@ -2,7 +2,7 @@
 // protocol with the board (firmware: src/services/setup_serial_proto.h). Used by pages/setup.html;
 // tested by test/js/setup_usb_test.mjs.
 const MAX_DATA = 160;          // bytes of JSON per DATA line (the board's USB buffer holds 256)
-const READY_WAIT_MS = 15000;   // the board may restart when the port opens
+const READY_WAIT_MS = 40000;   // opening the port may restart the board: boot + up to 20 s WiFi wait
 const BUSY_RETRY_MS = 2000, BUSY_GIVE_UP_MS = 30000;
 
 const utf8Length = s => new TextEncoder().encode(s).length;

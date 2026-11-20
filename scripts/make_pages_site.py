@@ -92,8 +92,11 @@ def find_boot_app0(explicit):
 SITE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "web-installer")
 REPO_ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 # The microsite's pages: (fragment in web-installer/pages, output folder, menu label).
-PAGES = [("home.html", "", "Home"), ("install.html", "install", "Install"), ("manual.html", "manual", "Manual"),
+PAGES = [("home.html", "", "Home"), ("install.html", "install", "Install"), ("setup.html", "setup", "Set up over USB"),
+         ("manual.html", "manual", "Manual"),
          ("space.html", "space", "Space feed")]
+# Files next to the pages (web-installer/), copied as they are; pages load them as "../<name>".
+SITE_FILES = ("site.css", "site.js", "install-plan.js", "setup-usb.js")
 # mailto with the address as HTML entities, as on bharathpalavalli.com (fewer harvesters).
 CONTACT = "".join(f"&#{ord(c)};" for c in "mailto:vu3glj@disroot.org")
 EXTERNAL_NAV = [("Releases", "https://github.com/bmp/QRPickle/releases"),
@@ -154,7 +157,7 @@ def render_pages(out, ref):
         os.makedirs(dest, exist_ok=True)
         with open(os.path.join(dest, "index.html"), "w", encoding="utf-8") as f:
             f.write(page)
-    for name in ("site.css", "site.js", "install-plan.js"):
+    for name in SITE_FILES:
         shutil.copy(os.path.join(SITE, name), os.path.join(out, name))
     shutil.copy(os.path.join(REPO_ROOT, "docs", "pics", "qrpickle-tour.gif"), os.path.join(out, "tour.gif"))
 
