@@ -170,6 +170,7 @@ int main(int, char**) {
     RUN_TEST(test_freshness_age_text);
     RUN_TEST(test_link_silent_after_limit);
     RUN_TEST(test_wifi_retry_fast_then_slow);
+    RUN_TEST(test_wifi_sta_retry_when_station_gave_up);
     RUN_TEST(test_connect_any_tries_addresses_in_order);
     return UNITY_END();
 }

@@ -7,6 +7,7 @@
 #include <esp_wifi.h>
 #include <Arduino.h>
 #include <string.h>
+#include <atomic>
 
 #define AP_SSID "QRPickle-Setup"
 
@@ -18,6 +19,18 @@ static char status_msg[64] = "DISCONNECTED";
 // While the fallback setup AP is up, retry the saved network (wifi_retry.h: 15 s, after 5 min 60 s).
 static unsigned long last_sta_retry_mark = 0;
 static unsigned long fallback_since_mark = 0;
+
+// Set by the WiFi event task, read by wifi_manager_update(): when the station last reported a
+// disconnect, and whether it did since our last sta_begin() (wifi_retry.h: sta_retry_due).
+static std::atomic<uint32_t> last_disconnect_ms{0};
+static std::atomic<uint8_t> last_disconnect_reason{0};
+static std::atomic<bool> disconnected_since_begin{false};
+
+// Every connection attempt to the saved network starts here.
+static void sta_begin() {
+    disconnected_since_begin = false;
+    WiFi.begin(config::get().wifi_ssid, config::get().wifi_password);
+}
 
 void wifi_manager_init() {
     Serial.println("[Wi-Fi] Querying NVS parameters for link parameters...");
@@ -41,16 +54,21 @@ void wifi_manager_init() {
     // Why a connect fails or drops (WIFI_REASON_*: e.g. 2 auth expired, 15 handshake timeout,
     // 201 no AP found), logged when it changes; many boots miss the first connect (TASKS.md).
     // Runs in the event task: Serial and a static only.
+    // Runs in the event task: Serial and atomics only. Reason 8 (ASSOC_LEAVE) is our own disconnect.
     WiFi.onEvent(
         [](arduino_event_id_t, arduino_event_info_t info) {
             static uint8_t last = 0;
             const uint8_t r = info.wifi_sta_disconnected.reason;
             if (r != last) Serial.printf("[Wi-Fi] Disconnected, reason %u\n", (unsigned)r);
             last = r;
+            if (r == WIFI_REASON_ASSOC_LEAVE) return;
+            last_disconnect_reason = r;
+            last_disconnect_ms = millis();
+            disconnected_since_begin = true;
         },
         ARDUINO_EVENT_WIFI_STA_DISCONNECTED);
 
-    WiFi.begin(cfg.wifi_ssid, cfg.wifi_password);
+    sta_begin();
 
     current_state = WIFI_STATE_CONNECTING;
     connection_timeout_mark = millis();
@@ -104,7 +122,7 @@ void wifi_manager_update() {
         if (WiFi.status() != WL_CONNECTED) {
             if (millis() - last_sta_retry_mark > services::sta_retry_interval_ms(millis() - fallback_since_mark)) {
                 Serial.println("[Wi-Fi] Fallback AP up. Retrying saved network...");
-                WiFi.begin(config::get().wifi_ssid, config::get().wifi_password);
+                sta_begin();
                 last_sta_retry_mark = millis();
             }
             return;
@@ -137,12 +155,21 @@ void wifi_manager_update() {
             hw::led_rgb::set_state(hw::led_rgb::STATE_WIFI_LOST);
         }
 
+        // The station gave up (e.g. AUTH_FAIL right after a reset; wifi_retry.h): try again now
+        // instead of waiting for the boot timeout or the watchdog below.
+        if ((current_state == WIFI_STATE_CONNECTING || current_state == WIFI_STATE_BACKGROUND_RETRY) &&
+            services::sta_retry_due(false, disconnected_since_begin, millis(), last_disconnect_ms)) {
+            Serial.printf("[Wi-Fi] Station stopped trying (reason %u); connecting again\n",
+                          (unsigned)last_disconnect_reason.load());
+            sta_begin();
+        }
+
         // WATCHDOG: If the OS fails to reconnect for 30 straight seconds, force a hard reset
         if (current_state == WIFI_STATE_BACKGROUND_RETRY && (millis() - last_drop_mark > 30000)) {
             Serial.println("[Wi-Fi] Watchdog timeout. Native reconnect failed. Forcing hardware radio reset...");
             WiFi.disconnect(true, true);
             delay(500);
-            WiFi.begin(config::get().wifi_ssid, config::get().wifi_password);
+            sta_begin();
             last_drop_mark = millis();
         }
 

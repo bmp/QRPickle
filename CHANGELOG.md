@@ -31,6 +31,9 @@ Fixes
   At first setup the board used to stay in its hotspot until restarted.
 - An accented letter cut off at the end of a long name or comment no longer
   shows as a box.
+- After a restart, a router that refused the first connection attempts no
+  longer leaves the board waiting 20 seconds and then opening its setup
+  hotspot: it tries again every few seconds until the router accepts it.
 - An own satellite feed (web console, Satellites) written with spaces after
   ':' (valid JSON, e.g. "sats": [) was rejected; the device now reads it.
 
