@@ -106,4 +106,71 @@ async function runSetup(port, settings, { now = () => Date.now(), sleep = ms => 
     }
 }
 
-if (typeof module !== "undefined") module.exports = { MAX_DATA, buildSettings, chunks, parseReply, runSetup };
+// A Web Serial port (already open) as the { write, readLine } runSetup() uses. The text decoder is
+// piped from port.readable; closeLinePort() must undo that before the port can close.
+function openLinePort(port) {
+    const enc = new TextEncoder();
+    const decoder = new TextDecoderStream();
+    const piped = port.readable.pipeTo(decoder.writable).catch(() => {});  // ends when the reader is cancelled
+    const reader = decoder.readable.getReader();
+    const writer = port.writable.getWriter();
+    let buf = "", pending = null;
+    return {
+        reader, writer, piped,
+        write: line => writer.write(enc.encode(line + "\n")),
+        async readLine(ms) {
+            const end = Date.now() + ms;
+            for (;;) {
+                const i = buf.indexOf("\n");
+                if (i >= 0) {
+                    const line = buf.slice(0, i).replace(/\r$/, "");
+                    buf = buf.slice(i + 1);
+                    return line;
+                }
+                const left = end - Date.now();
+                if (left <= 0) return null;
+                pending ??= reader.read();
+                let timer;
+                const r = await Promise.race([pending, new Promise(res => { timer = setTimeout(() => res(null), left); })]);
+                clearTimeout(timer);
+                if (!r) return null;  // timed out; the read stays pending for the next call
+                pending = null;
+                if (r.done) return null;
+                buf += r.value;
+            }
+        },
+    };
+}
+
+// Closes the port, also after an error or when a line port was never made (an earlier failure
+// left it open). Chrome refuses to close a port while its streams are locked.
+async function closeLinePort(lp, port) {
+    if (lp) {
+        try { await lp.reader.cancel(); } catch (e) { /* already closed */ }
+        await lp.piped;
+        try { lp.reader.releaseLock(); } catch (e) { /* released */ }
+        try { lp.writer.releaseLock(); } catch (e) { /* released */ }
+    }
+    try { await port.close(); } catch (e) { /* not open */ }
+}
+
+const escapeHtml = t => String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+// What the page shows after runSetup() (HTML).
+function resultText(r) {
+    const head = r.saved.length
+        ? `<strong>Saved on the board</strong> (QRPickle ${escapeHtml(r.version)}): ${escapeHtml(r.saved.join(", "))}.`
+        : `<strong>Nothing to change: the board already has these values</strong> (QRPickle ${escapeHtml(r.version)}).`;
+    const kept = r.kept.length ? `<br><strong>Not changed</strong> (check the value): ${escapeHtml(r.kept.join(", "))}.` : "";
+    const login = `<br>Web console login: user <code>admin</code>, password <code>${escapeHtml(r.admin)}</code> ` +
+                  "(also on the board's Network screen).";
+    const next = r.restart
+        ? "<br>The board restarts now to join your WiFi. Its address then shows on the Network screen; open it in your browser."
+        : "<br>Open the address on the board's Network screen in your browser for every other setting.";
+    return head + kept + login + next;
+}
+
+if (typeof module !== "undefined") {
+    module.exports = { MAX_DATA, buildSettings, chunks, parseReply, runSetup, openLinePort, closeLinePort, resultText,
+                       escapeHtml };
+}

@@ -3,7 +3,8 @@
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
-const { buildSettings, chunks, parseReply, runSetup, MAX_DATA } = require("../../web-installer/setup-usb.js");
+const { buildSettings, chunks, parseReply, runSetup, MAX_DATA, openLinePort, closeLinePort, resultText } =
+    require("../../web-installer/setup-usb.js");
 
 const bytes = s => new TextEncoder().encode(s).length;
 
@@ -91,5 +92,51 @@ await assert.rejects(runSetup(b, { unit_temp: 1 }, opts(b)), /too old|no answer/
 
 b = fakeBoard({ busyTimes: 100 });  // busy for more than 30 s
 await assert.rejects(runSetup(b, { unit_temp: 1 }, opts(b)), /busy/i);
+
+// ---- the Web Serial port: lines in, lines out, and a clean close ------------------------------
+// Like Chrome's SerialPort: open() twice throws, close() throws while a stream is locked.
+class FakeSerialPort {
+    constructor() { this.isOpen = false; this.written = ""; }
+    async open() {
+        if (this.isOpen) throw new Error("Failed to execute 'open' on 'SerialPort': The port is already open.");
+        this.isOpen = true;
+        this.readable = new ReadableStream({ start: c => { this.ctrl = c; } });
+        this.writable = new WritableStream({ write: ch => { this.written += new TextDecoder().decode(ch); } });
+    }
+    async close() {
+        if (this.readable.locked || this.writable.locked) throw new TypeError("Cannot cancel a locked stream");
+        this.isOpen = false;
+        this.readable = this.writable = null;
+    }
+    send(text) { this.ctrl.enqueue(new TextEncoder().encode(text)); }
+}
+
+const port = new FakeSerialPort();
+await port.open();
+let lp = openLinePort(port);
+port.send("boot log\r\nQRPSETUP READY v0.3.1\nQRPSETUP AC");
+assert.equal(await lp.readLine(500), "boot log");
+assert.equal(await lp.readLine(500), "QRPSETUP READY v0.3.1");
+assert.equal(await lp.readLine(50), null);  // half a line: wait for the rest
+port.send("K 0\n");
+assert.equal(await lp.readLine(500), "QRPSETUP ACK 0");
+await lp.write("QRPSETUP HELLO");
+assert.equal(port.written, "QRPSETUP HELLO\n");
+assert.equal(await lp.readLine(30), null);  // a read stays pending when the close comes
+await closeLinePort(lp, port);
+assert.equal(port.isOpen, false, "the port is closed after a run");
+await port.open();  // a second run on the same port works
+lp = openLinePort(port);
+await closeLinePort(lp, port);
+assert.equal(port.isOpen, false);
+await port.open();  // left open by an earlier failure: closeLinePort without a line port closes it
+await closeLinePort(null, port);
+assert.equal(port.isOpen, false);
+
+// ---- what the page says ---------------------------------------------------------------------------
+assert.match(resultText({ version: "v0.3.1", saved: [], kept: [], admin: "x", restart: false }),
+             /Nothing to change: the board already has these values/);
+assert.match(resultText({ version: "v0.3.1", saved: ["grid"], kept: ["offset"], admin: "x", restart: false }),
+             /Saved on the board.*grid.*Not changed.*offset/s);
 
 console.log("setup_usb_test: all passed");
