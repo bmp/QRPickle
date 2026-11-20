@@ -28,6 +28,8 @@ Fixes
   At first setup the board used to stay in its hotspot until restarted.
 - An accented letter cut off at the end of a long name or comment no longer
   shows as a box.
+- An own satellite feed (web console, Satellites) written with spaces after
+  ':' (valid JSON, e.g. "sats": [) was rejected; the device now reads it.
 
 ## v0.3.0 (2026-11-08)
 
