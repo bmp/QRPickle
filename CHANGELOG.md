@@ -2,7 +2,7 @@
 
 User-facing changes per release, newest first. Each section is also the release commit message (see `docs/RELEASING.md`).
 
-## v0.3.1 (unreleased)
+## v0.3.1 (2026-11-20)
 
 Set up over USB, your own units and clock (°F, inHg, mph or knots, miles, 12-hour time), accented names
 
