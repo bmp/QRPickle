@@ -26,6 +26,8 @@ async function api(path, { method = "GET", body, pw = password } = {}) {
     if (res.status !== 401) return res;
     const h = res.headers.get("www-authenticate") || "";
     const p = Object.fromEntries([...h.matchAll(/(\w+)="?([^",]+)"?/g)].map(m => [m[1], m[2]]));
+    // HTTP Digest auth (RFC 7616) requires MD5: the device's web server speaks Digest MD5 only.
+    // Nothing is stored; this only answers the login challenge.
     const md5 = s => createHash("md5").update(s).digest("hex");
     const cnonce = randomBytes(8).toString("hex"), nc = "00000001";
     const ha1 = md5(`admin:${p.realm}:${pw}`), ha2 = md5(`${method}:${path}`);
