@@ -326,6 +326,102 @@ void test_secret_tails_and_clear() {
     TEST_ASSERT_EQUAL_STRING("newpass99", c.wifi_password);
 }
 
+// Display units (issue #25): stored metric-first; 0 = metric everywhere.
+void test_units_round_trip_json() {
+    Config src = base(), dst = base();
+    src.unit_temp = TEMP_F;
+    src.unit_pres = PRES_INHG;
+    src.unit_wind = WIND_MPH;
+    src.unit_dist = DIST_MI;
+    src.clock_12h = true;
+    JsonDocument doc;
+    to_json(src, doc.to<JsonObject>(), Secrets::Mask);
+    TEST_ASSERT_EQUAL_INT(1, doc["unit_temp"].as<int>());
+    TEST_ASSERT_EQUAL_INT(2, doc["unit_wind"].as<int>());
+    TEST_ASSERT_TRUE(doc["clock_12h"].as<bool>());
+    from_json(dst, doc.as<JsonObjectConst>());
+    TEST_ASSERT_EQUAL_UINT8(TEMP_F, dst.unit_temp);
+    TEST_ASSERT_EQUAL_UINT8(PRES_INHG, dst.unit_pres);
+    TEST_ASSERT_EQUAL_UINT8(WIND_MPH, dst.unit_wind);
+    TEST_ASSERT_EQUAL_UINT8(DIST_MI, dst.unit_dist);
+    TEST_ASSERT_TRUE(dst.clock_12h);
+}
+
+void test_units_bad_values_reset_to_metric() {
+    Config prev = base(), c = base();
+    prev.unit_wind = WIND_KN;
+    c.unit_temp = 7;
+    c.unit_pres = 3;
+    c.unit_wind = 9;
+    c.unit_dist = 5;
+    sanitize(c, prev);
+    TEST_ASSERT_EQUAL_UINT8(TEMP_C, c.unit_temp);
+    TEST_ASSERT_EQUAL_UINT8(PRES_HPA, c.unit_pres);
+    TEST_ASSERT_EQUAL_UINT8(WIND_MPS, c.unit_wind);
+    TEST_ASSERT_EQUAL_UINT8(DIST_KM, c.unit_dist);
+}
+
+void test_units_missing_keys_keep_live() {
+    Config c = base();
+    c.unit_temp = TEMP_F;
+    c.unit_wind = WIND_KN;
+    c.clock_12h = true;
+    JsonDocument doc;
+    doc["callsign"] = "VU2XYZ";  // an old profile: no unit keys
+    from_json(c, doc.as<JsonObjectConst>());
+    TEST_ASSERT_EQUAL_UINT8(TEMP_F, c.unit_temp);
+    TEST_ASSERT_EQUAL_UINT8(WIND_KN, c.unit_wind);
+    TEST_ASSERT_TRUE(c.clock_12h);
+}
+
+void test_display_units_key_changes_with_each_setting() {
+    Config c = base();
+    const uint8_t metric = display_units_key(c);
+    c.unit_temp = TEMP_F;
+    const uint8_t k1 = display_units_key(c);
+    c = base();
+    c.unit_pres = PRES_INHG;
+    const uint8_t k2 = display_units_key(c);
+    c = base();
+    c.unit_wind = WIND_KN;
+    const uint8_t k3 = display_units_key(c);
+    c = base();
+    c.unit_dist = DIST_MI;
+    const uint8_t k4 = display_units_key(c);
+    c = base();
+    c.clock_12h = true;
+    const uint8_t k5 = display_units_key(c);
+    const uint8_t keys[] = {metric, k1, k2, k3, k4, k5};
+    for (int i = 0; i < 6; i++)
+        for (int j = i + 1; j < 6; j++) TEST_ASSERT_NOT_EQUAL(keys[i], keys[j]);
+    c = base();
+    c.unit_wind = WIND_KMH;
+    const uint8_t a = display_units_key(c);
+    c.unit_wind = WIND_MPH;
+    TEST_ASSERT_NOT_EQUAL(a, display_units_key(c));
+}
+
+// New WiFi details only take effect when the board restarts (the first-setup hotspot never
+// reconnects by itself), so a save that changes them restarts the board.
+void test_wifi_changed() {
+    Config a = base(), b = base();
+    strcpy(a.wifi_ssid, "home");
+    strcpy(a.wifi_password, "secret12");
+    b = a;
+    TEST_ASSERT_FALSE(wifi_changed(a, b));
+    b.brightness = 10;
+    strcpy(b.callsign, "VU2XYZ");  // other settings: no restart
+    TEST_ASSERT_FALSE(wifi_changed(a, b));
+    strcpy(b.wifi_ssid, "field");
+    TEST_ASSERT_TRUE(wifi_changed(a, b));
+    b = a;
+    strcpy(b.wifi_password, "secret13");
+    TEST_ASSERT_TRUE(wifi_changed(a, b));
+    Config empty = base();
+    empty.wifi_ssid[0] = '\0';  // first setup: hotspot, no network yet
+    TEST_ASSERT_TRUE(wifi_changed(empty, a));
+}
+
 int main(int, char**) {
     UNITY_BEGIN();
     RUN_TEST(test_valid_config_is_normalised_not_reverted);
@@ -344,5 +440,10 @@ int main(int, char**) {
     RUN_TEST(test_cycle_order);
     RUN_TEST(test_cycle_next_follows_the_order);
     RUN_TEST(test_secret_tails_and_clear);
+    RUN_TEST(test_units_round_trip_json);
+    RUN_TEST(test_units_bad_values_reset_to_metric);
+    RUN_TEST(test_units_missing_keys_keep_live);
+    RUN_TEST(test_display_units_key_changes_with_each_setting);
+    RUN_TEST(test_wifi_changed);
     return UNITY_END();
 }

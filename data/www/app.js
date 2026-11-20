@@ -181,7 +181,38 @@ function fillForm(data) {
     setElementValue("pass-alert-en", data.pass_alert_en ?? true, true);
     setElementValue("pass-alert-min", data.pass_alert_min ?? 30);
     setElementValue("space_url", data.space_url || "");
+    fillUnits(data);
     checkLatLonGrid();
+}
+
+// Display units (#25): four selects behind one "Metric" tick box, plus the local clock. The tick
+// box isn't a setting: it is ticked when all four units are metric (0).
+const UNIT_FIELDS = [["cfg-unit-temp", "unit_temp"], ["cfg-unit-pres", "unit_pres"],
+                     ["cfg-unit-wind", "unit_wind"], ["cfg-unit-dist", "unit_dist"]];
+let deviceUnits = { unit_temp: 0, unit_pres: 0 };  // the live device's, for the System tab
+
+function fillUnits(data) {
+    for (const [id, key] of UNIT_FIELDS) setElementValue(id, data[key] ?? 0);
+    setElementValue("cfg-clock", data.clock_12h ? "1" : "0");
+    const metric = UNIT_FIELDS.every(([, key]) => !data[key]);
+    setElementValue("cfg-metric", metric, true);
+    document.getElementById("units-custom")?.classList.toggle("hidden", metric);
+}
+
+function onMetricToggle() {
+    const metric = getElementValue("cfg-metric", true);
+    if (metric) for (const [id] of UNIT_FIELDS) setElementValue(id, "0");
+    document.getElementById("units-custom")?.classList.toggle("hidden", metric);
+}
+
+// Same conversions as src/core/units.cpp; the device reports metric.
+function tempText(c) {
+    if (c === undefined || c === null || c === "") return deviceUnits.unit_temp ? "--.- °F" : "--.- °C";
+    return deviceUnits.unit_temp ? (c * 9 / 5 + 32).toFixed(1) + " °F" : Number(c).toFixed(1) + " °C";
+}
+function presText(hpa) {
+    if (hpa === undefined || hpa === null || hpa === "") return deviceUnits.unit_pres ? "-- inHg" : "---- hPa";
+    return deviceUnits.unit_pres ? (hpa * 0.029530).toFixed(2) + " inHg" : Number(hpa).toFixed(0) + " hPa";
 }
 
 // Everything except the admin password, which profiles never hold.
@@ -233,8 +264,10 @@ function collectForm() {
         aprs_icn: getElementValue("cfg-aprs-icon"),
         aprs_cmt: getElementValue("cfg-aprs-cmt"),
         aprs_macros: macros,
-        hamalert_pass: getElementValue("cfg-hamalert-pass")
+        hamalert_pass: getElementValue("cfg-hamalert-pass"),
+        clock_12h: getElementValue("cfg-clock") === "1"
     };
+    for (const [id, key] of UNIT_FIELDS) form[key] = parseInt(getElementValue(id)) || 0;
     for (const [id, key] of SECRET_FIELDS) if (pendingClear[id]) form[key + "_clear"] = true;
     return form;
 }
@@ -244,6 +277,7 @@ function loadCurrentConfig() {
         .then(res => res.json())
         .then(data => {
             updateDynamicFooter(data);
+            deviceUnits = { unit_temp: data.unit_temp ?? 0, unit_pres: data.unit_pres ?? 0 };
             if (!editingProfile) fillForm(data);
             fetchProfilesList();
         })
@@ -267,11 +301,16 @@ function saveActiveConfig() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
     })
-    .then(res => {
+    .then(async res => {
         if (!res.ok) { alert("Server rejected update payload."); return; }
-        alert(payload.admin_pw
+        const reply = await res.json().catch(() => ({}));
+        let msg = payload.admin_pw
             ? "Configuration saved. The admin password has changed: your browser will ask you to log in again (user \"admin\")."
-            : "Configuration saved successfully to NVS memory!");
+            : "Configuration saved successfully to NVS memory!";
+        // New WiFi details: the device restarts to join the network (its address may change).
+        if (reply.restart) msg += "\n\nThe WiFi settings changed: the device restarts now to join the network. " +
+            "Its new address is on the Network screen.";
+        alert(msg);
     })
     .then(() => loadCurrentConfig())
     .catch(err => alert("Transmission line error saving configuration parameters: " + err));
@@ -288,9 +327,9 @@ function fetchSystemTelemetry() {
             document.getElementById("sys-uptime").innerText = (data.uptime || 0) + "s";
             document.getElementById("sys-heap").innerText = (data.heap || 0).toLocaleString() + " B"; 
             document.getElementById("sys-rssi").innerText = (data.rssi || 0) + " dBm";
-            document.getElementById("sys-temp").innerText = (data.temp ?? "--.-") + " °C";
+            document.getElementById("sys-temp").innerText = tempText(data.temp);
             document.getElementById("sys-humidity").innerText = (data.humidity ?? "--.-") + " %";
-            document.getElementById("sys-pressure").innerText = (data.pressure ?? "----") + " hPa";
+            document.getElementById("sys-pressure").innerText = presText(data.pressure);
 
             document.getElementById("sys-lib-lvgl").innerText = data.ver_lvgl || "v9.x";
             document.getElementById("sys-lib-json").innerText = data.ver_json || "v7.x";
@@ -457,7 +496,7 @@ function applySelectedProfile() {
     const pName = document.getElementById("profile-select").value;
     if (!pName || !confirm(`Apply profile "${pName}" to the device now?`)) return;
     fetch(`/api/profiles/load?name=${encodeURIComponent(pName)}`, { method: "POST" })
-        .then(res => res.ok ? alert("Profile applied. Reloading the settings...") : alert("Profile could not be applied."))
+        .then(res => res.ok ? alert("Profile applied. Reloading the settings... If the profile has a different WiFi network, the device restarts to join it.") : alert("Profile could not be applied."))
         .then(() => window.location.reload());
 }
 

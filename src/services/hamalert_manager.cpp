@@ -1,4 +1,5 @@
 #include "sources.h"
+#include "../core/utf8_trim.h"
 #include "link_watch.h"
 #include "fresh_registry.h"
 #include "net_connect.h"
@@ -105,7 +106,7 @@ namespace services {
         while (*comment == ' ') comment++; 
         
         if (strlen(comment) > 0) {
-            strncpy(m.info, comment, sizeof(m.info)-1);
+            utf8_copy(m.info, sizeof(m.info), comment);
         } else {
             strncpy(m.info, "Alert Triggered", sizeof(m.info)-1);
         }

@@ -2,7 +2,11 @@
 #include "../fonts.h"
 #include "../theme.h" // <-- ADD THIS
 #include "../../hw/sensor.h"
+#include "../../config/config.h"
+#include "../../core/units.h"
+#include <math.h>
 #include <stdio.h>
+#include <string.h>
 
 namespace ui {
 
@@ -16,16 +20,20 @@ namespace ui {
         lv_obj_t* lbl_pres = lv_obj_get_child(widget, 1);
 
         if (lbl_th) {
-            char buf[32];
-            if (sensor_is_online()) snprintf(buf, sizeof(buf), "%.1f C  |  %.1f%%", sensor_get_temp(), sensor_get_humidity());
-            else snprintf(buf, sizeof(buf), "-- C  |  --%%");  // no sensor fitted (review 5.1)
+            // "21.5 C  |  60.0%": this tile writes the unit letter without the degree sign.
+            const uint8_t u = config::get().unit_temp;
+            char t[16], buf[40];
+            units::fmt_temp(t, sizeof(t), u, sensor_is_online() ? sensor_get_temp() : NAN, 1);  // "--" without a sensor (review 5.1)
+            t[strlen(t) - strlen(units::temp_unit(u))] = '\0';
+            const char letter = u == config::TEMP_F ? 'F' : 'C';
+            if (sensor_is_online()) snprintf(buf, sizeof(buf), "%s %c  |  %.1f%%", t, letter, sensor_get_humidity());
+            else snprintf(buf, sizeof(buf), "%s %c  |  --%%", t, letter);
             lv_label_set_text(lbl_th, buf);
         }
 
         if (lbl_pres) {
             char buf[32];
-            if (sensor_is_online()) snprintf(buf, sizeof(buf), "%.1f hPa", sensor_get_pressure());
-            else snprintf(buf, sizeof(buf), "-- hPa");
+            units::fmt_pres(buf, sizeof(buf), config::get().unit_pres, sensor_is_online() ? sensor_get_pressure() : NAN);
             lv_label_set_text(lbl_pres, buf);
         }
     }

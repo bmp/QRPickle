@@ -90,11 +90,13 @@ console and stay on the device.
 * **Status LED:** setup and network states, a faint pulse when data arrives, a strobe for HamAlert or APRS messages, and a purple signal before ISS SSTV and school-contact passes ([LED Colours](docs/LEDColours.md)).
 * **Themes:** 7 themes in LVGL 9, including Tactical Field Red, Terminal Green and two E-Ink styles.
 * **Display:** sleep timeout, manual or automatic brightness (light sensor).
+* **Units and clock:** metric by default, or your own choice of °F, inHg, mph, km/h or knots and miles, and a 12- or 24-hour local clock (web console); UTC always stays 24-hour. Accented names (É, ñ, ü) in park, city and event names show as they should.
 * **Privacy:** passwords and network details are masked on screen and in the serial log.
 * **Splash logos:** your own logos left and right of the title on the start screen (uploaded in the web console, scaled into 60 x 60; kept across updates and in backups; "Preview on the device" shows the start screen for 10 seconds without a restart).
 
 **Web console and updates**
 * **Web console:** every setting, profiles (save and switch complete setups for home, mobile and field; download/restore a backup without passwords and keys; a filesystem update keeps profiles and logos; saved secrets show their last 2 characters and can be cleared), APRS messaging and system information. Digest login; the setup hotspot (`192.168.4.1`) takes over when no network is reachable.
+* **Set up over USB:** right after installing, the website's [Set up over USB](https://quixotic.bharathpalavalli.com/QRPickle/setup/) page sends your callsign, location, units, WiFi and keys to the board over the USB cable (Chrome or Edge), without joining its hotspot.
 * **Updates:** firmware upload in the web console, or **Cloud OTA** from GitHub Pages with a mandatory SHA-256 and verified HTTPS. A new image that doesn't come up healthy within 3 boots is rolled back. First installs: the [web installer](https://quixotic.bharathpalavalli.com/QRPickle/install/).
 
 **How it fits on an ESP32 without PSRAM**

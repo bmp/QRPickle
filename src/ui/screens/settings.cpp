@@ -280,8 +280,10 @@ namespace ui {
 
     static void save_clicked(lv_event_t*) {
         // A chosen profile is applied in full (macros, DX servers, ...), then the form on top.
-        const bool applied = current_profile_idx >= 0 &&
-            services::profile_manager::apply_profile_to_live(profile_list[current_profile_idx].c_str());
+        bool profile_wifi = false;  // the profile's WiFi differs: restart below, like the form's
+        const bool applied =
+            current_profile_idx >= 0 &&
+            services::profile_manager::apply_profile_to_live(profile_list[current_profile_idx].c_str(), &profile_wifi);
         const auto& c = config::get();
         bool modified = applied;
         bool new_auto_bright = lv_obj_has_state(cb_auto_bright, LV_STATE_CHECKED);
@@ -312,6 +314,10 @@ namespace ui {
         }
 
         lv_obj_t* lbl = lv_obj_get_child(btn_save, 0);
+        // New WiFi details take effect only after a restart (as config::wifi_changed() for the web
+        // console); compared here without a 1 KB Config copy on the stack.
+        const bool wifi_new =
+            profile_wifi || strcmp(c.wifi_ssid, new_ssid) != 0 || strcmp(c.wifi_password, new_pass) != 0;
 
         if (modified) {
             auto& mc = config::mutable_get();
@@ -345,9 +351,14 @@ namespace ui {
             ui_refresh_theme();
             settings_refresh_theme();
 
-            lv_label_set_text(lbl, "SAVED!");
+            lv_label_set_text(lbl, wifi_new ? "SAVED - RESTARTING" : "SAVED!");
             lv_obj_set_style_bg_color(btn_save, theme_color(COLOR_SUCCESS), 0);
             lv_obj_set_style_text_color(lbl, theme_color(COLOR_TEXT_ON_SUCCESS), 0);
+            if (wifi_new) {
+                Serial.println("[Wi-Fi] New network settings saved: restarting to join");
+                lv_timer_t* t = lv_timer_create([](lv_timer_t*) { ESP.restart(); }, 1500, nullptr);
+                lv_timer_set_repeat_count(t, 1);
+            }
         } else {
             lv_label_set_text(lbl, "NO CHANGES");
         }

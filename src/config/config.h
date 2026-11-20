@@ -1,5 +1,6 @@
 #pragma once
 #include <stdint.h>
+#include <string.h>
 
 namespace config {
 
@@ -16,6 +17,23 @@ namespace config {
     constexpr uint8_t SAT_MIN_EL_MAX = 60, SAT_MIN_EL_DEFAULT = 10;
     constexpr uint8_t PASS_ALERT_MIN_MAX = 120, PASS_ALERT_MIN_DEFAULT = 30;
 
+    // Display units (issue #25). Readings stay metric inside; only the display converts
+    // (core/units.h). 0 = metric everywhere, so boards upgraded from v0.3.0 look the same.
+    enum : uint8_t { TEMP_C = 0,
+                     TEMP_F = 1,
+                     TEMP_UNITS };
+    enum : uint8_t { PRES_HPA = 0,
+                     PRES_INHG = 1,
+                     PRES_UNITS };
+    enum : uint8_t { WIND_MPS = 0,
+                     WIND_KMH = 1,
+                     WIND_MPH = 2,
+                     WIND_KN = 3,
+                     WIND_UNITS };
+    enum : uint8_t { DIST_KM = 0,
+                     DIST_MI = 1,
+                     DIST_UNITS };
+
     struct Config {
         char callsign[12];
         char grid[8];
@@ -25,6 +43,11 @@ namespace config {
         int8_t tz_offset_hh;  // UTC offset in HALF-hours (e.g. 11 = +5:30); no DST
         uint8_t screen_timeout_min;  // backlight sleep after N minutes idle; 0 = manual sleep only
         uint8_t forecast_slots;  // bitmask of forecast slots shown (set in the web UI; default 0x0F)
+        uint8_t unit_temp;  // TEMP_*; set in the web console only
+        uint8_t unit_pres;  // PRES_*
+        uint8_t unit_wind;  // WIND_*
+        uint8_t unit_dist;  // DIST_*
+        bool clock_12h;  // local times as 12-hour with AM/PM; UTC is always 24-hour
 
         char wifi_ssid[33];
         char wifi_password[64];
@@ -65,6 +88,20 @@ namespace config {
         // Web console login (user "admin") and setup-AP WPA2 key. Generated on first boot.
         char admin_password[17];
     };
+
+    // The display settings in one byte. Screens that redraw only when their data changes keep
+    // the key they drew with and redraw when it differs, so a units change shows at once.
+    inline uint8_t display_units_key(const Config& c) {
+        return (uint8_t)((c.unit_temp & 1) | (c.unit_pres & 1) << 1 | (c.unit_wind & 3) << 2 | (c.unit_dist & 1) << 4 |
+                         (c.clock_12h ? 1 : 0) << 5);
+    }
+
+    // New WiFi details take effect only after a restart (in the first-setup hotspot the board
+    // never reconnects by itself), so every save that changes them restarts the board.
+    inline bool wifi_changed(const Config& a, const Config& b) {
+        return strncmp(a.wifi_ssid, b.wifi_ssid, sizeof(a.wifi_ssid)) != 0 ||
+               strncmp(a.wifi_password, b.wifi_password, sizeof(a.wifi_password)) != 0;
+    }
 
     void load();
     void save();

@@ -6,6 +6,7 @@
 #include "../../config/config.h"
 #include "../../services/prop_manager.h"
 #include <cstdio>
+#include <cstring>
 #include <time.h>
 
 namespace ui {
@@ -32,6 +33,7 @@ namespace ui {
             BandBadge day[bands::GROUP_COUNT];
             BandBadge night[bands::GROUP_COUNT];
             uint32_t drawn_version;
+            uint8_t drawn_units;  // config::display_units_key() (the retry time follows the clock)
         };
         Tile t;
 
@@ -47,8 +49,10 @@ namespace ui {
         void refresh() {
             const auto& tel = PropagationManager::get_telemetry();
             const auto& v = PropagationManager::get_view();
-            if (v.version == t.drawn_version) return;
+            const uint8_t units_key = config::display_units_key(config::get());
+            if (v.version == t.drawn_version && units_key == t.drawn_units) return;
             t.drawn_version = v.version;
+            t.drawn_units = units_key;
 
             char buf[40];
             const auto& d = tel.solar;
@@ -74,9 +78,10 @@ namespace ui {
                 // At most 13 characters: the footer ends before the corner (corner.h, x 250).
                 snprintf(buf, sizeof(buf), "%s %s", tel.own_source ? "own src" : "hamqsl", age_buf);
             } else if (const uint32_t retry = PropagationManager::next_retry_utc()) {
-                char hhmm[8];
+                char hhmm[12];
                 band_local_hhmm(hhmm, sizeof(hhmm), retry);
-                snprintf(buf, sizeof(buf), "Retry at %s", hhmm);
+                if (char* sp = strchr(hhmm, ' ')) memmove(sp, sp + 1, strlen(sp));  // "11:59PM": 13 characters
+                snprintf(buf, sizeof(buf), strlen(hhmm) > 5 ? "Retry %s" : "Retry at %s", hhmm);
             } else {
                 snprintf(buf, sizeof(buf), "Waiting...");
             }

@@ -76,9 +76,10 @@ namespace services {
             return LittleFS.remove(path_for(name));
         }
 
-        bool apply_profile_to_live(const char* name) {
+        bool apply_profile_to_live(const char* name, bool* wifi_changed) {
             config::Config c;
             if (!read_profile(name, c, Secrets::LiveFallback)) return false;
+            if (wifi_changed) *wifi_changed = config::wifi_changed(config::get(), c);
             config::mutable_get() = c;  // admin password: read_profile starts from the live one
             config::save();
             return true;

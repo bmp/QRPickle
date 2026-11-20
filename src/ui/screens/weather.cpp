@@ -8,9 +8,12 @@
 #include "../../hw/sensor.h"
 #include "../../services/weather_manager.h"
 #include "../../config/config.h"
+#include "../../core/units.h"
 #include <lvgl.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <math.h>
 #include <time.h>
 
 namespace ui {
@@ -26,12 +29,12 @@ namespace ui {
         return directions[((deg + 11) % 360) / 22];
     }
 
+    // Local time of a UTC time in the chosen clock ("06:14" / "6:14 AM").
     static void format_local_time(uint32_t utc_ts, char* buf, size_t sz) {
-        if (utc_ts == 0) { snprintf(buf, sz, "--:--"); return; }
-        time_t local_ts = utc_ts + (config::get().tz_offset_hh * 1800);
-        struct tm* tm_info = gmtime(&local_ts); 
-        if (tm_info) snprintf(buf, sz, "%02d:%02d", tm_info->tm_hour, tm_info->tm_min);
-        else snprintf(buf, sz, "--:--");
+        const config::Config& c = config::get();
+        struct tm t{};
+        const bool ok = units::utc_to_local(utc_ts, c.tz_offset_hh, &t);
+        units::fmt_clock(buf, sz, c.clock_12h, ok ? t.tm_hour : -1, t.tm_min, 0, false);
     }
 
     // --- Core Grid Card Generator ---
@@ -87,7 +90,11 @@ namespace ui {
     static lv_obj_t* lbl_loc_hum  = nullptr; static lv_obj_t* lbl_unit_hum  = nullptr;
     static lv_obj_t* lbl_loc_pres = nullptr; static lv_obj_t* lbl_unit_pres = nullptr;
     static lv_obj_t* lbl_loc_dew  = nullptr; static lv_obj_t* lbl_unit_dew  = nullptr;
-    static lv_obj_t* lbl_loc_alt  = nullptr; 
+    static lv_obj_t* lbl_loc_alt = nullptr;
+    // The layout each unit setting was last applied with (-1: not yet), so labels move only
+    // when the setting changes, not on every 250 ms refresh.
+    static int8_t pres_inhg_applied = -1;
+    static int8_t fc_12h_applied = -1;
 
     static void build_tab_sensors(lv_obj_t* parent) {
         lv_obj_set_style_pad_all(parent, 4, 0);
@@ -155,7 +162,7 @@ namespace ui {
 
         // Superscript degree utilizing the robust 14pt font
         lbl_cur_tunit = lv_label_create(top_deck);
-        lv_label_set_text(lbl_cur_tunit, "°C");
+        lv_label_set_text(lbl_cur_tunit, units::temp_unit(config::get().unit_temp));
         lv_obj_set_style_text_font(lbl_cur_tunit, &font_jetbrains_14, 0);
         lv_obj_set_style_text_color(lbl_cur_tunit, theme_color(COLOR_TEXT_MAIN), 0);
         lv_obj_align_to(lbl_cur_tunit, lbl_cur_temp, LV_ALIGN_OUT_RIGHT_TOP, 2, 2);
@@ -311,6 +318,7 @@ namespace ui {
             img_cur_icon = lbl_cur_temp = lbl_cur_tunit = lbl_cur_desc = lbl_cur_loc = nullptr;
             lbl_cur_sr = lbl_cur_ss = lbl_cur_wind = lbl_cur_cloud = lbl_cur_vis = lbl_cur_pres = nullptr;
             for(int i=0; i<8; i++) dyn_rows[i].base_row = nullptr;
+            pres_inhg_applied = fc_12h_applied = -1;  // the next page starts from the create-time layout
         }, LV_EVENT_DELETE, NULL);
 
         wx_timer = lv_timer_create([](lv_timer_t* t){ weather_update_data(); }, 250, NULL);
@@ -321,15 +329,32 @@ namespace ui {
         if (!scr) return;
         char buf[64];
 
-        // 1. Tab 1: Local Calculations
+        // 1. Tab 1: Local Calculations. Readings are metric; units:: converts for display (#25).
+        const config::Config& cfg = config::get();
         float t = sensor_get_temp(); float h = sensor_get_humidity(); float p = sensor_get_pressure();
 
         const bool online = sensor_is_online();  // review 5.1: show "--" instead of a fake 0
-        if (lbl_loc_temp) { if (online) snprintf(buf, sizeof(buf), "%.1f°C", t); else snprintf(buf, sizeof(buf), "--°C"); lv_label_set_text(lbl_loc_temp, buf); }
+        if (lbl_loc_temp) {
+            units::fmt_temp(buf, sizeof(buf), cfg.unit_temp, online ? t : NAN, 1);
+            lv_label_set_text(lbl_loc_temp, buf);
+        }
         if (lbl_loc_hum)  { if (online) snprintf(buf, sizeof(buf), "%.0f %%", h); else snprintf(buf, sizeof(buf), "-- %%");  lv_label_set_text(lbl_loc_hum, buf);  lv_label_set_text(lbl_unit_hum, "%"); }
-        if (lbl_loc_pres) { if (online) snprintf(buf, sizeof(buf), "%.0f hPa", p); else snprintf(buf, sizeof(buf), "-- hPa");  lv_label_set_text(lbl_loc_pres, buf); lv_label_set_text(lbl_unit_pres, "hPa"); }
-        if (lbl_loc_dew)  { snprintf(buf, sizeof(buf), "%.1f°C", t - ((100.0f - h) / 5.0f)); lv_label_set_text(lbl_loc_dew, buf); }
-        
+        if (lbl_loc_pres) {
+            units::fmt_pres(buf, sizeof(buf), cfg.unit_pres, online ? p : NAN);
+            lv_label_set_text(lbl_loc_pres, buf);
+            lv_label_set_text(lbl_unit_pres, units::pres_unit(cfg.unit_pres));
+            // "29.92 inHg" is 144 px of the card's 146: centred, without the unit offset.
+            const int8_t inhg = cfg.unit_pres == config::PRES_INHG ? 1 : 0;
+            if (inhg != pres_inhg_applied) {
+                lv_obj_align(lbl_loc_pres, LV_ALIGN_BOTTOM_MID, inhg ? 0 : -10, -2);
+                pres_inhg_applied = inhg;
+            }
+        }
+        if (lbl_loc_dew) {
+            units::fmt_temp(buf, sizeof(buf), cfg.unit_temp, online ? t - ((100.0f - h) / 5.0f) : NAN, 1);
+            lv_label_set_text(lbl_loc_dew, buf);
+        }
+
         if (lbl_loc_alt && p > 100.0f) {
             float alt_m = 44330.0f * (1.0f - powf((p / 1013.25f), 0.1903f));
             float alt_ft = alt_m * 3.28084f;
@@ -340,7 +365,19 @@ namespace ui {
         // 2. Tab 2: Live Regional 
         const auto& cur = services::weather_manager::get_current();
         if (cur.valid) {
-            if (lbl_cur_temp) { snprintf(buf, sizeof(buf), "%.0f", cur.temp); lv_label_set_text(lbl_cur_temp, buf); }
+            if (lbl_cur_temp) {
+                // The number and its superscript unit are two labels: re-place the unit when the
+                // number's width changes ("9" / "104").
+                units::fmt_temp(buf, sizeof(buf), cfg.unit_temp, cur.temp, 0);
+                const char* unit = units::temp_unit(cfg.unit_temp);
+                buf[strlen(buf) - strlen(unit)] = '\0';
+                if (strcmp(lv_label_get_text(lbl_cur_temp), buf) != 0 || strcmp(lv_label_get_text(lbl_cur_tunit), unit) != 0) {
+                    lv_label_set_text(lbl_cur_temp, buf);
+                    lv_label_set_text(lbl_cur_tunit, unit);
+                    lv_obj_update_layout(lbl_cur_temp);
+                    lv_obj_align_to(lbl_cur_tunit, lbl_cur_temp, LV_ALIGN_OUT_RIGHT_TOP, 2, 2);
+                }
+            }
             if (lbl_cur_desc) lv_label_set_text(lbl_cur_desc, cur.description);
             if (lbl_cur_loc) {
                 char age[32], line[sizeof(cur.location) + sizeof(age) + 4];
@@ -353,10 +390,23 @@ namespace ui {
             if (lbl_cur_sr) { format_local_time(cur.sunrise, buf, sizeof(buf)); lv_label_set_text(lbl_cur_sr, buf); }
             if (lbl_cur_ss) { format_local_time(cur.sunset, buf, sizeof(buf)); lv_label_set_text(lbl_cur_ss, buf); }
 
-            if (lbl_cur_wind) { snprintf(buf, sizeof(buf), "%.1f m/s %s", cur.wind_speed, deg_to_cardinal(cur.wind_deg)); lv_label_set_text(lbl_cur_wind, buf); }
+            if (lbl_cur_wind) {
+                const size_t n = units::fmt_wind(buf, sizeof(buf), cfg.unit_wind, cur.wind_speed, 1);
+                snprintf(buf + n, sizeof(buf) - n, " %s", deg_to_cardinal(cur.wind_deg));
+                lv_label_set_text(lbl_cur_wind, buf);
+            }
             if (lbl_cur_cloud) { snprintf(buf, sizeof(buf), "%d%%", cur.clouds); lv_label_set_text(lbl_cur_cloud, buf); }
-            if (lbl_cur_vis) { snprintf(buf, sizeof(buf), "%.1f km", (float)cur.visibility / 1000.0f); lv_label_set_text(lbl_cur_vis, buf); }
-            if (lbl_cur_pres) { snprintf(buf, sizeof(buf), "%.0f hPa", cur.pressure); lv_label_set_text(lbl_cur_pres, buf); }
+            if (lbl_cur_vis) {
+                units::fmt_dist(buf, sizeof(buf), cfg.unit_dist, (float)cur.visibility / 1000.0f);
+                lv_label_set_text(lbl_cur_vis, buf);
+            }
+            if (lbl_cur_pres) {
+                // This card ends before the corner (76 px inside): "29.92 in", the US Weather
+                // Service's short form, instead of "29.92 inHg" (84 px).
+                const size_t n = units::fmt_pres(buf, sizeof(buf), cfg.unit_pres, cur.pressure);
+                if (cfg.unit_pres == config::PRES_INHG && n > 2) buf[n - 2] = '\0';
+                lv_label_set_text(lbl_cur_pres, buf);
+            }
 
             if (img_cur_icon && lv_image_get_src(img_cur_icon) == nullptr) {
                 snprintf(buf, sizeof(buf), "L:/img/%s_36x36.bin", cur.icon);
@@ -368,29 +418,36 @@ namespace ui {
         const auto& fore = services::weather_manager::get_forecast();
         uint8_t enabled_mask = config::get().forecast_slots;
 
+        // "11:30 PM" is 67 px from x 10: the temperatures move right in 12-hour mode.
+        const int8_t h12 = cfg.clock_12h ? 1 : 0;
+        const bool move_temps = h12 != fc_12h_applied;
         if (fore.valid && forecast_scroll_container) {
             for (int i = 0; i < 8; i++) {
                 bool is_enabled = (enabled_mask & (1 << i));
                 if (dyn_rows[i].base_row) {
+                    if (move_temps) lv_obj_align(dyn_rows[i].lbl_temp, LV_ALIGN_LEFT_MID, h12 ? 85 : 75, 0);
                     if (!is_enabled) {
                         lv_obj_set_hidden(dyn_rows[i].base_row, true);
                         continue;
                     }
                     lv_obj_set_hidden(dyn_rows[i].base_row, false);
 
-                    snprintf(buf, sizeof(buf), "%.0f°C", fore.blocks[i].temp);
+                    units::fmt_temp(buf, sizeof(buf), cfg.unit_temp, fore.blocks[i].temp, 0);
                     lv_label_set_text(dyn_rows[i].lbl_temp, buf);
-                    
+
                     snprintf(buf, sizeof(buf), "%s %d%%", LV_SYMBOL_TINT, fore.blocks[i].pop);
                     lv_label_set_text(dyn_rows[i].lbl_rain, buf);
 
-                    snprintf(buf, sizeof(buf), "~ %.0f m/s", fore.blocks[i].wind_speed); 
+                    buf[0] = '~';
+                    buf[1] = ' ';
+                    units::fmt_wind(buf + 2, sizeof(buf) - 2, cfg.unit_wind, fore.blocks[i].wind_speed, 0);
                     lv_label_set_text(dyn_rows[i].lbl_wind, buf);
 
                     format_local_time(fore.blocks[i].dt, buf, sizeof(buf));
                     lv_label_set_text(dyn_rows[i].lbl_time, buf);
                 }
             }
+            fc_12h_applied = h12;  // every row (hidden ones too) was moved above
         }
     }
 

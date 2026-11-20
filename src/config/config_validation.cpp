@@ -142,6 +142,10 @@ namespace config {
         c.theme_id = clamp_theme_id((int)c.theme_id);
         c.tz_offset_hh = clamp_tz_hh((int)c.tz_offset_hh);
         if (c.screen_timeout_min > 60) c.screen_timeout_min = 60;
+        if (c.unit_temp >= TEMP_UNITS) c.unit_temp = TEMP_C;  // unknown unit -> metric
+        if (c.unit_pres >= PRES_UNITS) c.unit_pres = PRES_HPA;
+        if (c.unit_wind >= WIND_UNITS) c.unit_wind = WIND_MPS;
+        if (c.unit_dist >= DIST_UNITS) c.unit_dist = DIST_KM;
         if (c.aprs_ssid < 0 || c.aprs_ssid > 15) c.aprs_ssid = prev.aprs_ssid;
         if (!(c.lat >= -90.0f && c.lat <= 90.0f)) c.lat = prev.lat;  // also rejects NaN
         if (!(c.lon >= -180.0f && c.lon <= 180.0f)) c.lon = prev.lon;

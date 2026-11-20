@@ -1,4 +1,5 @@
 #include "sources.h"
+#include "../core/utf8_trim.h"
 #include "fresh_registry.h"
 #include "list_release.h"
 #include "net_lock.h"
@@ -49,7 +50,9 @@ namespace services {
             out[idx++] = *ptr++;
         }
         out[idx] = '\0';
-        
+        utf8_trim_partial(out);  // park comments are cut to the field
+        out[idx] = '\0';
+
         while (idx > 0 && (out[idx - 1] == ' ' || out[idx - 1] == '\r' || out[idx - 1] == '\n')) {
             out[--idx] = '\0';
         }

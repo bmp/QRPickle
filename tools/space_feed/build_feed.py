@@ -18,7 +18,7 @@ DIR instead of downloading (tests and development).
 """
 import argparse
 import calendar
-import html
+from html.parser import HTMLParser
 import json
 import os
 import re
@@ -141,10 +141,37 @@ def select_satellites(transmitters, satellites, categories="flsv", deny=DENY):
 
 # ---- ARISS events -----------------------------------------------------------------------------
 
+class _TextCollector(HTMLParser):
+    """Visible text of a page: script and style skipped, a line break at br and block ends."""
+    BREAKS = {"br", "p", "div", "li", "h1", "h2", "h3", "h4", "h5", "h6"}
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.parts, self.skip = [], 0
+
+    def handle_starttag(self, tag, attrs):
+        if tag in ("script", "style"):
+            self.skip += 1
+        elif tag == "br":
+            self.parts.append("\n")
+        else:
+            self.parts.append(" ")
+
+    def handle_endtag(self, tag):
+        if tag in ("script", "style"):
+            self.skip = max(0, self.skip - 1)
+        self.parts.append("\n" if tag in self.BREAKS else " ")
+
+    def handle_data(self, data):
+        if not self.skip:
+            self.parts.append(data)
+
+
 def page_text(raw):
-    t = re.sub(r"<script.*?</script>|<style.*?</style>", "", raw, flags=re.S | re.I)
-    t = re.sub(r"<br\s*/?>|</p>|</div>|</li>|</h\d>", "\n", t, flags=re.I)
-    t = html.unescape(re.sub(r"<[^>]+>", " ", t))
+    p = _TextCollector()
+    p.feed(raw)
+    p.close()
+    t = "".join(p.parts)
     return [re.sub(r"\s+", " ", ln).strip() for ln in t.splitlines() if ln.strip()]
 
 

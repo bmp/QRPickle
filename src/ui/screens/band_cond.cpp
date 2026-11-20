@@ -5,6 +5,7 @@
 #include "../corner.h"
 #include "../fonts.h"
 #include "../../services/prop_manager.h"
+#include "../../config/config.h"
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -71,6 +72,7 @@ namespace ui {
             lv_obj_t* age;
             lv_obj_t* refresh_btn;
             uint32_t drawn_version;
+            uint8_t drawn_units;  // config::display_units_key() (local times follow the clock setting)
             bool show_unlock;  // after a tap while rate-limited
         };
         Screen s;
@@ -316,7 +318,7 @@ namespace ui {
         // ---- Footer ----------------------------------------------------------------------------
 
         void draw_footer(const services::PropagationTelemetry& tel, const services::BandView& v) {
-            char buf[48], hhmm[8];
+            char buf[48], hhmm[12];
             const uint32_t now = (uint32_t)time(nullptr);
             if (!v.time_valid) {
                 snprintf(buf, sizeof(buf), "waiting for the clock");
@@ -361,8 +363,10 @@ namespace ui {
         void refresh(bool force) {
             const auto& tel = PropagationManager::get_telemetry();
             const auto& v = PropagationManager::get_view();
-            if (!force && v.version == s.drawn_version) return;
+            const uint8_t units_key = config::display_units_key(config::get());
+            if (!force && v.version == s.drawn_version && units_key == s.drawn_units) return;
             s.drawn_version = v.version;
+            s.drawn_units = units_key;
 
             // The SOLAR tab label turns red in a storm, whichever tab is open.
             const ThemeToken solar_tab =

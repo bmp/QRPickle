@@ -1,0 +1,93 @@
+<!-- title: Set up QRPickle over USB -->
+  <h2>Set up QRPickle over USB</h2>
+<p>Send your callsign, location, WiFi and keys to a CYD on the USB cable, straight from this page, without
+   joining its <code>QRPickle-Setup</code> hotspot. Works with QRPickle v0.3.1 or newer, in
+   <strong>Chrome or Edge</strong> on a computer. Nothing you type here leaves your computer except over the
+   USB cable to the board.</p>
+<p class="small">Fields you leave empty keep what the board has. Everything else (profiles, APRS, DX servers,
+   screen cycling) is in the web console afterwards.</p>
+
+<form id="setup-form" class="setup" onsubmit="return false;">
+  <fieldset>
+    <legend>Station</legend>
+    <label>Callsign <input id="callsign" maxlength="11" autocomplete="off"></label>
+    <label>Grid square <input id="grid" maxlength="6" autocomplete="off"></label>
+    <label>Latitude <input id="lat" inputmode="decimal" placeholder="optional, e.g. 12.97"></label>
+    <label>Longitude <input id="lon" inputmode="decimal" placeholder="optional, e.g. 77.59"></label>
+    <label>UTC offset (hours) <input id="offset" inputmode="decimal" placeholder="e.g. 5.5"></label>
+  </fieldset>
+  <fieldset>
+    <legend>Units and clock</legend>
+    <label>Local clock <select id="clock"><option value="0">24-hour (14:05)</option><option value="1">12-hour (2:05 PM)</option></select></label>
+    <label class="check"><input type="checkbox" id="metric" checked> Metric units (°C, hPa, m/s, km)</label>
+    <div id="units" class="hidden">
+      <label>Temperature <select id="unit_temp"><option value="0">°C</option><option value="1">°F</option></select></label>
+      <label>Pressure <select id="unit_pres"><option value="0">hPa</option><option value="1">inHg</option></select></label>
+      <label>Wind <select id="unit_wind"><option value="0">m/s</option><option value="1">km/h</option><option value="2">mph</option><option value="3">knots</option></select></label>
+      <label>Distance <select id="unit_dist"><option value="0">km</option><option value="1">miles</option></select></label>
+    </div>
+  </fieldset>
+  <fieldset>
+    <legend>WiFi (2.4 GHz)</legend>
+    <label>Network name <input id="ssid" maxlength="32" autocomplete="off"></label>
+    <label>Password <input id="password" type="password" maxlength="63" autocomplete="off"></label>
+    <p class="small">Changing the WiFi restarts the board so it joins the network.</p>
+  </fieldset>
+  <fieldset>
+    <legend>Accounts (optional)</legend>
+    <label>OpenWeather API key <input id="apikey" maxlength="39" autocomplete="off"></label>
+    <label>HamAlert password <input id="hamalert_pass" type="password" maxlength="32" autocomplete="off"></label>
+    <label>APRS-IS passcode <input id="aprs_pass" type="password" maxlength="7" autocomplete="off"></label>
+  </fieldset>
+  <p><button id="send" class="install-btn" type="button">Connect and send</button></p>
+</form>
+<p id="unsupported" class="note hidden">This browser can't access USB serial ports. Use Chrome or Edge on a computer.</p>
+<p id="insecure" class="note hidden">This page needs a secure address to reach the USB port: open it over
+   <code>https://</code>, or as <code>http://localhost:…</code> when you serve it yourself (not
+   <code>0.0.0.0</code> or a network address).</p>
+<div id="status" class="msg msg-info hidden" role="status"></div>
+<p class="small">"No answer from the board"? Close other programs using the port (and the installer's dialog),
+   replug the cable and try again. On Linux run <code>stty -F /dev/ttyUSB0 115200</code> first (see the
+   <a href="../install/">Install</a> page).</p>
+
+<!-- scripts -->
+  <script src="../setup-usb.js"></script>
+  <script>
+    const $ = id => document.getElementById(id);
+    $("metric").addEventListener("change", () => $("units").classList.toggle("hidden", $("metric").checked));
+    const support = serialSupport(window);
+    if (support !== "ok") { $(support).classList.remove("hidden"); $("send").disabled = true; }
+
+    function show(html, kind = "info") {
+      const s = $("status");
+      s.className = `msg msg-${kind}`;
+      s.innerHTML = html;
+    }
+    $("send").addEventListener("click", async () => {
+      const f = {};
+      for (const k of ["callsign", "grid", "lat", "lon", "offset", "ssid", "password", "apikey", "hamalert_pass",
+                       "aprs_pass", "unit_temp", "unit_pres", "unit_wind", "unit_dist"]) f[k] = $(k).value;
+      f.clock_12h = $("clock").value === "1";
+      f.metric = $("metric").checked;
+      const settings = buildSettings(f);
+      let port;
+      try {
+        port = await navigator.serial.requestPort();
+      } catch (e) { return; }  // no port picked
+      $("send").disabled = true;
+      let lp = null;
+      try {
+        if (port.readable || port.writable) await closeLinePort(null, port);  // left open by an earlier run
+        await port.open({ baudRate: 115200 });
+        lp = openLinePort(port);
+        show("Connected. Waiting for the board (it may restart, up to 40 seconds)...");
+        const r = await runSetup(lp, settings, { log: t => show(escapeHtml(t)) });
+        show(resultText(r), "info");
+      } catch (e) {
+        show(escapeHtml(e.message || e), "error");
+      } finally {
+        await closeLinePort(lp, port);
+        $("send").disabled = false;
+      }
+    });
+  </script>

@@ -27,7 +27,8 @@ namespace services {
         bool delete_profile(const char* name);
 
         // Call from the main loop only.
-        bool apply_profile_to_live(const char* name);
-
+        // wifi_changed (optional): set when the profile's WiFi details differ from the live ones,
+        // so the caller restarts the board to join (config::wifi_changed).
+        bool apply_profile_to_live(const char* name, bool* wifi_changed = nullptr);
     }
 }

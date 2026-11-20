@@ -12,6 +12,8 @@
 #include "mem_tests.h"
 #include "xota_tests.h"
 #include "aprs_row_tests.h"
+#include "utf8_tests.h"
+#include "feed_key_tests.h"
 #include "lock_watch_tests.h"
 #include "list_release_tests.h"
 #include "xota_fetch_tests.h"
@@ -155,6 +157,11 @@ int main(int, char**) {
     RUN_TEST(test_mem_web_can_serve);
     RUN_TEST(test_xota_row_text_columns);
     RUN_TEST(test_aprs_row_text_columns);
+    RUN_TEST(test_aprs_row_text_miles);
+    RUN_TEST(test_utf8_trim_partial_end);
+    RUN_TEST(test_utf8_copy_cuts_whole_letters);
+    RUN_TEST(test_hamalert_comment_cut_keeps_whole_letters);
+    RUN_TEST(test_feed_key_scan_allows_whitespace);
     RUN_TEST(test_lock_watch_warns_then_restarts);
     RUN_TEST(test_lock_held_s_never_wraps);
     RUN_TEST(test_list_release_only_when_unused);
@@ -163,6 +170,7 @@ int main(int, char**) {
     RUN_TEST(test_freshness_age_text);
     RUN_TEST(test_link_silent_after_limit);
     RUN_TEST(test_wifi_retry_fast_then_slow);
+    RUN_TEST(test_wifi_sta_retry_when_station_gave_up);
     RUN_TEST(test_connect_any_tries_addresses_in_order);
     return UNITY_END();
 }

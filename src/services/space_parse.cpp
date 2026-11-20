@@ -1,4 +1,5 @@
 #include "space_parse.h"
+#include "../core/utf8_trim.h"
 #include <string.h>
 
 namespace services {
@@ -21,10 +22,7 @@ namespace services {
             return bits;
         }
 
-        static void copy(char* dst, size_t size, const char* src) {
-            strncpy(dst, src ? src : "", size - 1);
-            dst[size - 1] = '\0';
-        }
+        static void copy(char* dst, size_t size, const char* src) { utf8_copy(dst, size, src); }
 
         bool parse_sat(JsonObjectConst o, Sat& out) {
             memset(&out, 0, sizeof(out));

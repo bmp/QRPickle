@@ -1,4 +1,5 @@
 #include "hamalert_parse.h"
+#include "../core/utf8_trim.h"
 #include <ctype.h>
 #include <string.h>
 
@@ -40,6 +41,7 @@ namespace services {
             if (!p) return 2;
             p = skip_space(p);
             p = take(p, out.rest, sizeof(out.rest), [](char c) { return c != '\r' && c != '\n'; });
+            utf8_trim_partial(out.rest);  // a long comment may be cut inside a letter
             return p ? 4 : 3;
         }
 

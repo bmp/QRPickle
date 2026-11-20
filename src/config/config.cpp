@@ -28,6 +28,11 @@ namespace config {
         FIELD("tz_hh",      I8,   tz_offset_hh),
         FIELD("scr_to",     U8,   screen_timeout_min),
         FIELD("fc_slots",   U8,   forecast_slots),
+        FIELD("u_temp",     U8,   unit_temp),
+        FIELD("u_pres",     U8,   unit_pres),
+        FIELD("u_wind",     U8,   unit_wind),
+        FIELD("u_dist",     U8,   unit_dist),
+        FIELD("clk12",      BOOL, clock_12h),
         FIELD("wifi_ssid",  STR,  wifi_ssid),
         FIELD("wifi_pw",    STR,  wifi_password),
         FIELD("ow_key",     STR,  openweather_api_key),
@@ -111,6 +116,11 @@ namespace config {
         cfg.tz_offset_hh = 11; 
         cfg.screen_timeout_min = 5;
         cfg.forecast_slots = 0x0F;
+        cfg.unit_temp = TEMP_C;
+        cfg.unit_pres = PRES_HPA;
+        cfg.unit_wind = WIND_MPS;
+        cfg.unit_dist = DIST_KM;
+        cfg.clock_12h = false;
         cfg.wifi_ssid[0] = '\0';
         cfg.wifi_password[0] = '\0';
         cfg.openweather_api_key[0] = '\0';

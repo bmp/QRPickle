@@ -5,6 +5,8 @@
 #include "../fonts.h"
 #include "../ui.h"
 #include "../../services/aprs_manager.h"
+#include "../../config/config.h"
+#include "../../core/units.h"
 #include <cstdio>
 #include <cstring>
 #include <math.h>
@@ -31,7 +33,9 @@ namespace ui {
             lv_label_set_text(lbl_r_type, st[idx].type);
 
             char buf[72];  // "Cmt:\n" + comment (up to 63)
-            snprintf(buf, sizeof(buf), "Dist: %.1f km", st[idx].distance_km);
+            char dist[16];
+            units::fmt_dist(dist, sizeof(dist), config::get().unit_dist, st[idx].distance_km);
+            snprintf(buf, sizeof(buf), "Dist: %s", dist);
             if (privacy::HIDE_POSITIONS) snprintf(buf, sizeof(buf), "Dist: --");  // screenshot builds
             lv_label_set_text(lbl_r_dist, buf);
             
@@ -59,8 +63,10 @@ namespace ui {
             }
         }
 
-        char r_buf[16]; 
-        snprintf(r_buf, sizeof(r_buf), "Rng: %.0fkm", max_visible_dist);
+        char r_buf[16];
+        // The scope still shows stations up to 100 km; only the label follows the distance unit.
+        const uint8_t du = config::get().unit_dist;
+        snprintf(r_buf, sizeof(r_buf), "Rng: %.0f%s", units::dist_in(du, max_visible_dist), units::dist_unit(du));
         lv_label_set_text(lbl_r_range, r_buf);
 
         float radar_scale = 102.0f / max_visible_dist;
@@ -142,7 +148,7 @@ namespace ui {
         lv_obj_set_width(lbl_r_cmt, 79);
 
         lbl_r_range = lv_label_create(r_card);
-        lv_label_set_text(lbl_r_range, "Rng: --km");
+        lv_label_set_text(lbl_r_range, config::get().unit_dist == config::DIST_MI ? "Rng: --mi" : "Rng: --km");
         lv_obj_set_style_text_font(lbl_r_range, &font_jetbrains_10, 0);
         lv_obj_set_style_text_color(lbl_r_range, theme_color(COLOR_TEXT_MUTED), 0);
         lv_obj_align(lbl_r_range, LV_ALIGN_TOP_LEFT, 1, 175);

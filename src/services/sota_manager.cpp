@@ -1,4 +1,5 @@
 #include "sources.h"
+#include "../core/utf8_trim.h"
 #include "link_watch.h"
 #include "fresh_registry.h"
 #include "list_release.h"
@@ -72,12 +73,12 @@ namespace services {
     void SotaManager::store_spot(const sota_cluster::ParsedSpot& p) {
         SotaSpot s{};
         strncpy(s.time, p.time, sizeof(s.time) - 1);
-        strncpy(s.summit, p.summit, sizeof(s.summit) - 1);
+        utf8_copy(s.summit, sizeof(s.summit), p.summit);
         strncpy(s.mode, p.mode, sizeof(s.mode) - 1);
         strncpy(s.activator, p.activator, sizeof(s.activator) - 1);
         s.freq = p.freq_mhz;
         if (p.comment[0]) {
-            strncpy(s.comment, p.comment, sizeof(s.comment) - 1);
+            utf8_copy(s.comment, sizeof(s.comment), p.comment);
             strncat(s.comment, " | ", sizeof(s.comment) - strlen(s.comment) - 1);
         }
         strncat(s.comment, "de ", sizeof(s.comment) - strlen(s.comment) - 1);

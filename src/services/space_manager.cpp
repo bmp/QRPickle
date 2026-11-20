@@ -1,4 +1,5 @@
 #include "sources.h"
+#include "../core/utf8_trim.h"
 #include "fresh_registry.h"
 #include "../core/crashlog.h"
 #include "space_schedule.h"
@@ -115,13 +116,21 @@ namespace services {
         return false;
     }
 
+    // Reads s until the key (space::KeyScan: JSON whitespace allowed around ':'); false at the end.
+    static bool find_key(Stream& s, const char* key, char open) {
+        space::KeyScan k(key, open);
+        while (s.available())
+            if (k.feed((char)s.read())) return true;
+        return false;
+    }
+
     // Walks the usable satellites of a feed file in order (the order of the indices everywhere).
     // fn(index, sat) returns false to stop. Returns the number visited; generated is set if found.
     template <typename Fn>
     static int each_sat(File& f, char* buf, uint32_t* generated, Fn fn) {
         f.setTimeout(20);
-        if (generated) *generated = f.find("\"generated\":") ? (uint32_t)f.parseInt() : 0;
-        if (!f.find("\"sats\":[")) return 0;
+        if (generated) *generated = find_key(f, "generated", ':') ? (uint32_t)f.parseInt() : 0;
+        if (!find_key(f, "sats", '[')) return 0;
         int n = 0;
         Sat s;
         while (n < MAX_SATS && read_object(f, buf, OBJ_BUF)) {
@@ -273,7 +282,7 @@ namespace services {
             sgp->site(lat, lon, 0);
             count = each_sat(f, buf, &generated, [&](int i, const Sat& s) {
                 info[i] = {s.norad, {}, s.categories};
-                strlcpy(info[i].name, s.name, sizeof(info[i].name));
+                utf8_copy(info[i].name, sizeof(info[i].name), s.name);
                 if (s.norad == ISS) {
                     memcpy(iss1, s.tle1, sizeof(iss1));
                     memcpy(iss2, s.tle2, sizeof(iss2));
@@ -304,7 +313,7 @@ namespace services {
                 vTaskDelay(1);  // let other tasks run between satellites
                 return true;
             });
-            if (f.find("\"events\":[")) {
+            if (find_key(f, "events", '[')) {
                 while (n_ev < MAX_EVENTS && read_object(f, buf, OBJ_BUF)) {
                     JsonDocument doc;
                     if (buf[0] && !deserializeJson(doc, buf) && parse_event(doc.as<JsonObjectConst>(), ev[n_ev]))

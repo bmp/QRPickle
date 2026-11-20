@@ -2,6 +2,41 @@
 
 User-facing changes per release, newest first. Each section is also the release commit message (see `docs/RELEASING.md`).
 
+## v0.3.1 (2026-11-20)
+
+Set up over USB, your own units and clock (°F, inHg, mph or knots, miles, 12-hour time), accented names
+
+Update with Cloud OTA or the web console; your settings, profiles and logos
+stay, and the display stays metric until you change it. The web console's
+new settings also need the web console files (littlefs.bin, System Info tab).
+
+New
+- Units (asked for in issue #25): temperature in °C or °F, pressure in hPa
+  or inHg, wind in m/s, km/h, mph or knots, distance in km or miles, set in
+  the web console (Basic Settings; untick "Metric units" to choose). Every
+  screen and the web console's System tab follow them; profiles keep them.
+- Local clock in 12- or 24-hour form (web console). UTC stays 24-hour. In
+  12-hour form the status bar shows "2:05" and the clock tile "2:05 PM".
+- Set up over USB: right after installing, the website's "Set up over USB"
+  page (Chrome or Edge) sends your callsign, location, units, WiFi and keys
+  to the board over the USB cable, without joining its setup hotspot.
+
+Fixes
+- Accented letters (É, ñ, ü) in park, city and ARISS event names showed as
+  boxes ("□cole"); the text fonts now include them.
+- The OpenWeather tab's temperature unit no longer overlaps three-digit or
+  negative temperatures.
+- New WiFi details now take effect at once: saving them (web console,
+  device Settings or a profile) restarts the board so it joins the network.
+  At first setup the board used to stay in its hotspot until restarted.
+- An accented letter cut off at the end of a long name or comment no longer
+  shows as a box.
+- After a restart, a router that refused the first connection attempts no
+  longer leaves the board waiting 20 seconds and then opening its setup
+  hotspot: it tries again every few seconds until the router accepts it.
+- An own satellite feed (web console, Satellites) written with spaces after
+  ':' (valid JSON, e.g. "sats": [) was rejected; the device now reads it.
+
 ## v0.3.0 (2026-11-08)
 
 New platform with security updates, POTA spots load again when you open xOTA, faster WiFi recovery, and data that says how old it is

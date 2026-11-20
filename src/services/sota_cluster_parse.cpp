@@ -1,4 +1,5 @@
 #include "sota_cluster_parse.h"
+#include "../core/utf8_trim.h"
 #include <cctype>
 #include <cstdlib>
 #include <cstring>
@@ -7,10 +8,7 @@
 namespace services {
 namespace sota_cluster {
 
-    static void copy_str(char* dst, size_t n, const char* src) {
-        strncpy(dst, src, n - 1);
-        dst[n - 1] = '\0';
-    }
+    static void copy_str(char* dst, size_t n, const char* src) { utf8_copy(dst, n, src); }
 
     bool is_summit_ref(const char* s) {
         size_t len = strlen(s);

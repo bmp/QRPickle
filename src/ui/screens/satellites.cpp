@@ -6,6 +6,7 @@
 #include "../fonts.h"
 #include "../../config/config.h"
 #include "../../services/space_manager.h"
+#include "../../core/units.h"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -43,11 +44,13 @@ namespace ui {
             lv_obj_t* row[ROWS];
             uint8_t row_pass[ROWS];  // index into passes() of each row
             lv_obj_t* geo;
+            lv_obj_t* hdr;  // the passes header; its time column follows the clock setting
             lv_obj_t* status;
             lv_obj_t* age;
             lv_obj_t* refresh_btn;
             uint32_t drawn_version;
             uint32_t drawn_minute;
+            uint8_t drawn_units;  // config::display_units_key() the rows were drawn with
             int detail;  // pass shown in detail, -1 = the list
             bool busy_tap;  // refresh refused (busy or too soon)
         };
@@ -74,16 +77,20 @@ namespace ui {
             return r;
         }
 
-        // "Mon 12 Oct 14:05" in local time.
+        // "Mon 12 Oct 14:05" (or "Mon 12 Oct 2:05 PM") in local time.
         void local_day_time(char* out, size_t len, uint32_t utc) {
             static const char* const DAYS[7] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
             static const char* const MONTHS[12] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun",
                                                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
-            const time_t local = (time_t)utc + (time_t)config::get().tz_offset_hh * 1800;
-            struct tm tm;
-            gmtime_r(&local, &tm);
-            snprintf(out, len, "%s %d %s %02d:%02d", DAYS[tm.tm_wday], tm.tm_mday, MONTHS[tm.tm_mon], tm.tm_hour,
-                     tm.tm_min);
+            const config::Config& c = config::get();
+            struct tm tm{};
+            if (!units::utc_to_local(utc, c.tz_offset_hh, &tm)) {
+                snprintf(out, len, "--");
+                return;
+            }
+            char hm[12];
+            units::fmt_clock(hm, sizeof(hm), c.clock_12h, tm.tm_hour, tm.tm_min, 0, false);
+            snprintf(out, len, "%s %d %s %s", DAYS[tm.tm_wday], tm.tm_mday, MONTHS[tm.tm_mon], hm);
         }
 
         void freq_text(char* out, size_t len, uint32_t hz) { snprintf(out, len, "%lu.%03lu", (unsigned long)(hz / 1000000), (unsigned long)(hz / 1000 % 1000)); }
@@ -103,8 +110,7 @@ namespace ui {
         void show_tab(Tab t);
 
         void draw_passes_tab(lv_obj_t* body) {
-            lv_obj_t* hdr = text(body, COLOR_TEXT_MUTED, 6, 1);
-            lv_label_set_text(hdr, "LOCAL SATELLITE     MAX  FROM>TO  MIN");
+            s.hdr = text(body, COLOR_TEXT_MUTED, 6, 1);
             for (int i = 0; i < ROWS; i++) {
                 s.row[i] = text(body, COLOR_TEXT_MAIN, 6, ROW_Y + i * ROW_H);
                 lv_obj_set_size(s.row[i], SCREEN_W - 12, ROW_H);
@@ -121,6 +127,11 @@ namespace ui {
         }
 
         void refresh_passes_tab() {
+            const bool h12 = config::get().clock_12h;
+            const int when_w = h12 ? 8 : 5;  // "11:59 PM" / "14:05"
+            if (s.hdr)
+                lv_label_set_text(s.hdr, h12 ? "LOCAL    SATELLITE     MAX  FROM>TO  MIN"
+                                             : "LOCAL SATELLITE     MAX  FROM>TO  MIN");
             const auto& v = SpaceManager::view();
             const uint32_t now = (uint32_t)time(nullptr);
             for (int i = 0; i < ROWS; i++) {
@@ -134,13 +145,13 @@ namespace ui {
             for (int i = 0; i < v.pass_count && r < ROWS; i++) {
                 if (p[i].los <= now) continue;
                 const bool up = p[i].aos <= now;
-                char when[8], line[64];
+                char when[12], line[64];
                 if (up) snprintf(when, sizeof(when), " NOW ");
                 else band_local_hhmm(when, sizeof(when), p[i].aos);
                 const char* mark = (p[i].flags & space::PASS_CONTACT)      ? " ARISS"
                                    : (p[i].flags & space::PASS_SSTV_EVENT) ? " SSTV"
                                                                            : "";
-                snprintf(line, sizeof(line), "%-5s %-12.12s %2u\xc2\xb0 %3s>%-3s %3u%s", when, sats[p[i].sat].name,
+                snprintf(line, sizeof(line), "%-*s %-12.12s %2u\xc2\xb0 %3s>%-3s %3u%s", when_w, when, sats[p[i].sat].name,
                          p[i].max_el, space::compass(p[i].az_aos), space::compass(p[i].az_los),
                          (unsigned)((p[i].los - p[i].aos + 30) / 60), mark);
                 lv_label_set_text(s.row[r], line);
@@ -180,10 +191,11 @@ namespace ui {
             lv_obj_clean(s.body);
             for (auto& r : s.row) r = nullptr;
             s.geo = nullptr;
+            s.hdr = nullptr;
 
             char* buf = static_cast<char*>(malloc(900));
             if (!buf) return;
-            char aos[24], tca[8], los[8];
+            char aos[28], tca[12], los[12];
             local_day_time(aos, sizeof(aos), p.aos);
             band_local_hhmm(tca, sizeof(tca), p.tca);
             band_local_hhmm(los, sizeof(los), p.los);
@@ -263,7 +275,7 @@ namespace ui {
                     n += snprintf(buf + n, 1800 - n, "ISS SSTV: %s\n%s to %s\n%s%s%s %s\n", ev[e].title, from, to,
                                   *f ? f : "Frequency: see ariss.org", *f ? " MHz" : "", "", ev[e].mode);
                     if (count[e]) {
-                        char t[8];
+                        char t[12];
                         band_local_hhmm(t, sizeof(t), first[e]);
                         n += snprintf(buf + n, 1800 - n, "Passes over you: %u listed, the first at %s.\n\n", count[e], t);
                     } else {
@@ -338,12 +350,14 @@ namespace ui {
         void refresh(bool force) {
             const auto& v = SpaceManager::view();
             const uint32_t minute = (uint32_t)time(nullptr) / 60;  // rows move on as passes end
-            if (!force && v.version == s.drawn_version && minute == s.drawn_minute) {
+            const uint8_t units_key = config::display_units_key(config::get());
+            if (!force && v.version == s.drawn_version && minute == s.drawn_minute && units_key == s.drawn_units) {
                 draw_footer();
                 return;
             }
             s.drawn_version = v.version;
             s.drawn_minute = minute;
+            s.drawn_units = units_key;
             if (active_tab == TAB_PASSES && s.detail < 0 && s.row[0]) refresh_passes_tab();
             draw_footer();
         }
@@ -359,6 +373,7 @@ namespace ui {
             lv_obj_clean(s.body);  // only the open tab's objects exist (less LVGL memory)
             for (auto& r : s.row) r = nullptr;
             s.geo = nullptr;
+            s.hdr = nullptr;
             lv_obj_scroll_to_y(s.body, 0, LV_ANIM_OFF);
             lv_obj_set_scrollable(s.body, false);
             if (t == TAB_PASSES) draw_passes_tab(s.body);

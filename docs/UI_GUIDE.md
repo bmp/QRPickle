@@ -110,8 +110,15 @@ delete. A stale pointer to a deleted label is the classic crash.
   version it last drew, so several screens can follow the same data without clearing each other's
   "dirty" flag (older managers use `is_dirty()/clear_dirty()`).
 - Redraw only what changed: update label texts and colours; don't rebuild the page on every tick.
+- Show temperatures, pressures, wind speeds, distances and local times through `core/units.h`
+  (`fmt_temp`, `fmt_pres`, `fmt_wind`, `fmt_dist`, `fmt_clock`, `utc_to_local`) with the user's
+  settings, never as hard-coded `°C`/`hPa`/`km`/`HH:MM`; give local times a 12-byte buffer
+  ("11:59 PM"). A view that redraws only on new data also redraws when
+  `config::display_units_key()` changes. Check the longest form fits ("29.92 inHg", "-40.0°F").
 
-**Text and fonts.** Use the fonts in `fonts.h`; their glyphs are ASCII only (0x20-0x7E). The
+**Text and fonts.** Use the fonts in `fonts.h`; their glyphs are ASCII (0x20-0x7E) plus, in the
+text fonts, the Latin-1 letters U+00C0-00FF (É, ñ, ü) for names from downloads; JetBrains Mono 24
+(numbers only) is ASCII. The
 fallback is an icons-only font (`font_symbols_10/14`, from Font Awesome 5) holding exactly the
 `LV_SYMBOL_*` icons in use plus the degree sign and the bullet. A new `LV_SYMBOL_` (in our code or a
 newly enabled LVGL widget) needs its code point added to `scripts/build_fonts.sh` and the fonts

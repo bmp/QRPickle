@@ -8,17 +8,23 @@ Typography assets are generated using the node-backed engine workspace or the st
 ## Compilation Parameters Layout
 To introduce or modify custom typography classes, execute the generation call matching these parameters:
 
-```bash
-# Generate the dense monospaced diagnostic console font asset parameters
-lv_font_conv --font assets/fonts/JetBrainsMono-Bold.ttf -r 0x20-0x7F,0xB0 --size 10 --format lvgl --bpp 4 -o src/ui/fonts/font_jetbrains_10.c
+`scripts/build_fonts.sh` runs these for every font (and prepends the OFL header); run it instead of
+calling `lv_font_conv` by hand:
 
-# Generate standard readable structural UI label parameters
-lv_font_conv --font assets/fonts/Atkinson-Hyperlegible.ttf -r 0x20-0x7F --size 14 --format lvgl --bpp 4 -o src/ui/fonts/font_atkinson_14.c
+```bash
+# Text fonts: ASCII plus the Latin-1 letters (U+00C0-00FF) for accented names from downloads
+lv_font_conv --no-compress --no-prefilter --bpp 4 --size 14 --font assets/fonts/AtkinsonHyperlegible-Regular.ttf \
+    -r 0x20-0x7F,0xC0-0xFF --format lvgl --lv-include lvgl.h -o src/ui/fonts/font_atkinson_14_raw.c
+
+# JetBrains Mono 24 shows numbers only and stays ASCII
+lv_font_conv --no-compress --no-prefilter --bpp 4 --size 24 --font assets/fonts/JetBrainsMono-Bold.ttf \
+    -r 0x20-0x7F --format lvgl --lv-include lvgl.h -o src/ui/fonts/font_jetbrains_24_raw.c
 ```
 
 ## Explanatory Flag Matrix
 * `--font`: Specifies the incoming TrueType source tracking container path.
-* `-r 0x20-0x7F,0xB0`: Sets the ASCII glyph character range restriction (including the degree symbol `°` via `0xB0`). This prevents compiling unnecessary glyph fields, saving massive amounts of flash.
+* `-r 0x20-0x7F,0xC0-0xFF`: the glyph ranges. Each range costs flash (the Latin-1 letters added ~20 KB
+  for five fonts in v0.3.1). The degree sign `°` and the icons come from the fallback symbol fonts.
 * `--size`: Set height parameters matched in vertical screen pixels.
 * `--bpp 4`: Sets the anti-aliasing bit depth level to 4 bits per pixel, creating smooth text elements without generating oversized files.
 

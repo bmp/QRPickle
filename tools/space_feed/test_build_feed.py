@@ -77,6 +77,12 @@ SSTV = """<p>Upcoming SSTV events</p>
 
 
 class Events(unittest.TestCase):
+    def test_page_text_strips_script_and_style(self):
+        # A closing tag with a space (valid HTML) ends the script; the regex filter missed it.
+        raw = ("<p>A</p><script>alert(1)</script >B &amp; C<br><STYLE >p{}</STYLE ><p>D</p>"
+               "Contact is go for: Mon 2026-11-09 14:05 UTC")
+        self.assertEqual(b.page_text(raw), ["A", "B & C", "D", "Contact is go for: Mon 2026-11-09 14:05 UTC"])
+
     def test_contacts(self):
         ev = b.parse_contacts(CONTACTS)
         self.assertEqual(len(ev), 2)

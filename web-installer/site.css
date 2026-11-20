@@ -67,3 +67,13 @@ esp-web-install-button.disabled { opacity:.4; pointer-events:none; }
 .msg-error { border-color:#d9534f; background:rgba(217,83,79,.12); }
 .msg-warn { border-color:var(--note-border); background:var(--note-bg); }
 .msg-info { border-color:var(--link-color); background:var(--row-odd); }
+
+/* Set up over USB form (pages/setup.html) */
+form.setup fieldset { border:1px solid var(--td-border); margin:0 0 1rem; padding:.5rem .9rem .8rem; }
+form.setup legend { font-weight:bold; padding:0 .3em; }
+form.setup label { display:block; margin:.45rem 0; }
+form.setup label.check { display:flex; gap:.4em; align-items:center; }
+form.setup input:not([type=checkbox]) { font:inherit; width:100%; max-width:22rem; display:block; padding:.25em .4em;
+  background:var(--input-bg); color:var(--input-color); border:1px solid var(--td-border); }
+form.setup select { display:block; }
+#status { margin:1rem 0; }

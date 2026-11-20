@@ -78,7 +78,11 @@ namespace ui {
     static void update_hub_ui(lv_timer_t* t) {
         if(!scr || !rows) return;
 
-        if (services::AprsManager::is_dirty() || force_ui_refresh) {
+        // Redraw also when the distance unit changes (web console).
+        static uint8_t drawn_units = 0xFF;
+        const uint8_t units_key = config::display_units_key(config::get());
+        if (services::AprsManager::is_dirty() || force_ui_refresh || units_key != drawn_units) {
+            drawn_units = units_key;
             force_ui_refresh = false;
             const auto* st = services::AprsManager::get_stations();
             size_t c = services::AprsManager::get_station_count();
@@ -94,7 +98,7 @@ namespace ui {
 
                     char line[64];
                     services::aprs_row_text(st[i].callsign, st[i].type, st[i].distance_km, st[i].bearing_deg,
-                                            privacy::HIDE_POSITIONS, line, sizeof(line));
+                                            privacy::HIDE_POSITIONS, config::get().unit_dist, line, sizeof(line));
                     lv_label_set_text(rows[vis].l_line, line);
 
                     lv_obj_set_hidden(rows[vis].base, false);

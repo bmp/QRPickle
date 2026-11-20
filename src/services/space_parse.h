@@ -2,6 +2,7 @@
 #include <ArduinoJson.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <string.h>
 
 // The space feed (tools/space_feed/build_feed.py) in compact records, and the logic around passes
 // that doesn't need the SGP4 library. Host-safe: unit-tested in test/test_parsers.
@@ -76,6 +77,54 @@ namespace services {
                                      SOON,
                                      NOW };
         Alert alert_state(const Pass* passes, size_t n, uint32_t now, uint32_t lead_s);
+
+        // Finds "key" in a JSON text read one character at a time: the quoted key, then optional
+        // whitespace, ':' and, unless open is ':', optional whitespace and open (e.g. '['). feed()
+        // returns true on the character that completes it, so a stream stands just after it (like
+        // Stream::find("\"sats\":[") did, which missed a hand-made feed with "sats": [).
+        struct KeyScan {
+            KeyScan(const char* k, char o) : key(k), len(strlen(k)), open(o) {}
+            bool feed(char c) {
+                const bool space = c == ' ' || c == '\n' || c == '\r' || c == '\t';
+                if (state == 1) {  // after the key: wait for ':'
+                    if (space) return false;
+                    if (c == ':') {
+                        if (open == ':') return done();
+                        state = 2;
+                        return false;
+                    }
+                } else if (state == 2) {  // after ':': wait for open
+                    if (space) return false;
+                    if (c == open) return done();
+                }
+                state = 0;
+                match(c);
+                return false;
+            }
+
+        private:
+            const char* key;
+            size_t len;
+            char open;
+            size_t i = 0;  // characters of "key" (with its quotes) matched so far
+            uint8_t state = 0;  // 0 key, 1 colon, 2 open
+            bool done() {
+                state = 0;
+                i = 0;
+                return true;
+            }
+            void match(char c) {
+                const char want = (i == 0 || i == len + 1) ? '"' : key[i - 1];
+                if (c == want) {
+                    if (++i == len + 2) {
+                        state = 1;
+                        i = 0;
+                    }
+                } else {
+                    i = c == '"' ? 1 : 0;  // a quote may start the key again
+                }
+            }
+        };
 
         // "NW" for an azimuth in degrees (16-point compass).
         const char* compass(uint16_t az);

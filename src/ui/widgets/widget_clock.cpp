@@ -2,6 +2,8 @@
 #include "../fonts.h"
 #include "../theme.h" // <-- ADD THIS
 #include "../../core/timekeeper.h"
+#include "../../core/units.h"
+#include "../../config/config.h"
 #include <string.h>
 
 namespace ui {
@@ -15,13 +17,14 @@ namespace ui {
         lv_obj_t* loc_lbl = lv_obj_get_child(widget, 0);
         lv_obj_t* utc_lbl = lv_obj_get_child(widget, 1);
 
-        const char* raw_local = timekeeper_get_local_string();
         const char* raw_utc = timekeeper_get_utc_string();
 
-        if (loc_lbl && raw_local != nullptr && strlen(raw_local) >= 5) {
-            char buf_loc[6];
-            strncpy(buf_loc, raw_local, 5);
-            buf_loc[5] = '\0';
+        if (loc_lbl) {
+            struct tm local{};
+            char buf_loc[12];
+            const bool synced = timekeeper_get_local_tm(&local);
+            units::fmt_clock(buf_loc, sizeof(buf_loc), config::get().clock_12h, synced ? local.tm_hour : -1,
+                             local.tm_min, 0, false);
             lv_label_set_text(loc_lbl, buf_loc);
         }
 

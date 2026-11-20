@@ -80,6 +80,8 @@ class Device:
             self._challenge()
         self.nc += 1
         nc, cnonce = f"{self.nc:08x}", secrets.token_hex(8)
+        # HTTP Digest auth (RFC 7616) requires MD5: the device's web server speaks Digest MD5 only.
+        # Nothing is stored; this only answers the login challenge.
         md5 = lambda x: hashlib.md5(x.encode()).hexdigest()  # noqa: E731
         ha1 = md5(f"admin:{self.realm}:{self.password}")
         resp = md5(f"{ha1}:{self.nonce}:{nc}:{cnonce}:auth:{md5(f'{method}:{path}')}")
