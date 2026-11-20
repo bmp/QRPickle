@@ -92,6 +92,8 @@ static void queue_config(config::Config* staged) {
     delete pending_config.exchange(staged);
 }
 
+void web_server_stage_config(config::Config* staged) { queue_config(staged); }
+
 const char fallback_html[] PROGMEM = R"rawhtml(
 <!DOCTYPE html>
 <html lang="en">

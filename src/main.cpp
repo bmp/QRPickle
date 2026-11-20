@@ -1,4 +1,5 @@
 #include "services/ota_manager.h"
+#include "services/setup_serial.h"
 #include "core/crashlog.h"
 #include "core/mem_stats.h"
 #include <Arduino.h>
@@ -114,7 +115,9 @@ void loop() {
     crashlog::mark(crashlog::SLOT_LOOP, 1); wifi_manager_update();
     crashlog::mark(crashlog::SLOT_LOOP, 2); timekeeper_update();
     crashlog::mark(crashlog::SLOT_LOOP, 3); ui::display_update();
-    crashlog::mark(crashlog::SLOT_LOOP, 4); web_server_update();
+    crashlog::mark(crashlog::SLOT_LOOP, 4);
+    services::setup_serial_update();  // Setup over USB; queues settings that
+    web_server_update();              // web_server_update() applies in this same pass
     crashlog::mark(crashlog::SLOT_LOOP, 5); services::display_manager::update();
     crashlog::mark(crashlog::SLOT_LOOP, 6); services::weather_manager::update();
     crashlog::mark(crashlog::SLOT_LOOP, 8);

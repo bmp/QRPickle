@@ -7,6 +7,13 @@ void web_server_init();
 // Shuts down the socket threads cleanly to release memory when transitioning out of AP mode
 void web_server_stop();
 
+// Hands a new config to the main loop like a web console save (sanitized again there; a WiFi
+// change restarts the board). Takes ownership of staged (new'd). Used by Setup over USB.
+namespace config {
+    struct Config;
+}
+void web_server_stage_config(config::Config* staged);
+
 // Monitored flag hook that checks if an incoming web submit requires a system reboot
 void web_server_update();
 
