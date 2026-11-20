@@ -47,6 +47,8 @@ In the web console's **Basic Settings** tab:
 | Grid Square | your 4- or 6-character locator |
 | Station Latitude / Longitude | *optional*, more precise than the grid square for sunrise, band conditions and satellite passes; tick "Use latitude/longitude for band conditions" |
 | UTC Offset (Hours) | your time zone, e.g. `5.5` for India (half-hour steps; no automatic daylight saving: change it twice a year where clocks change) |
+| Local Clock | *optional*, 24-hour (default) or 12-hour with AM/PM for local times; UTC stays 24-hour |
+| Metric units | *optional*, ticked by default (°C, hPa, m/s, km); untick to choose °F, inHg, mph, km/h or knots, and miles |
 | Local Network SSID / WPA Passphrase | your 2.4 GHz WiFi |
 
 Click **Save Configuration**. The CYD joins your WiFi and closes the hotspot. Its new address is on the
