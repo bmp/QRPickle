@@ -16,6 +16,13 @@ namespace config {
     constexpr uint8_t SAT_MIN_EL_MAX = 60, SAT_MIN_EL_DEFAULT = 10;
     constexpr uint8_t PASS_ALERT_MIN_MAX = 120, PASS_ALERT_MIN_DEFAULT = 30;
 
+    // Display units (issue #25). Readings stay metric inside; only the display converts
+    // (core/units.h). 0 = metric everywhere, so boards upgraded from v0.3.0 look the same.
+    enum : uint8_t { TEMP_C = 0, TEMP_F = 1, TEMP_UNITS };
+    enum : uint8_t { PRES_HPA = 0, PRES_INHG = 1, PRES_UNITS };
+    enum : uint8_t { WIND_MPS = 0, WIND_KMH = 1, WIND_MPH = 2, WIND_KN = 3, WIND_UNITS };
+    enum : uint8_t { DIST_KM = 0, DIST_MI = 1, DIST_UNITS };
+
     struct Config {
         char callsign[12];
         char grid[8];
@@ -25,6 +32,11 @@ namespace config {
         int8_t tz_offset_hh;  // UTC offset in HALF-hours (e.g. 11 = +5:30); no DST
         uint8_t screen_timeout_min;  // backlight sleep after N minutes idle; 0 = manual sleep only
         uint8_t forecast_slots;  // bitmask of forecast slots shown (set in the web UI; default 0x0F)
+        uint8_t unit_temp;  // TEMP_*; set in the web console only
+        uint8_t unit_pres;  // PRES_*
+        uint8_t unit_wind;  // WIND_*
+        uint8_t unit_dist;  // DIST_*
+        bool clock_12h;  // local times as 12-hour with AM/PM; UTC is always 24-hour
 
         char wifi_ssid[33];
         char wifi_password[64];
