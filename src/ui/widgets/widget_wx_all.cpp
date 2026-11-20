@@ -4,9 +4,11 @@
 #include "../ui.h" 
 #include "../../hw/sensor.h"
 #include "../../config/config.h"
+#include "../../core/units.h"
 #include "../../services/weather_manager.h" 
 #include <cstdio>
 #include <cstring>
+#include <math.h>
 #include <Arduino.h>
 #include <LittleFS.h> // Included to read files directly to RAM
 
@@ -55,6 +57,17 @@ namespace ui {
     }
     // -------------------------------------
 
+    // "27.1 °C\n66 %\n1013 hPa" in the chosen units; NAN gives "--".
+    static void three_lines(char* buf, size_t len, float temp_c, int humidity, float hpa) {
+        const config::Config& c = config::get();
+        char t[16], p[16];
+        units::fmt_temp(t, sizeof(t), c.unit_temp, temp_c, 1);
+        units::fmt_pres(p, sizeof(p), c.unit_pres, hpa);
+        const size_t num = strlen(t) - strlen(units::temp_unit(c.unit_temp));  // the tile keeps "27.1 °C"
+        if (humidity < 0) snprintf(buf, len, "%.*s %s\n-- %%\n%s", (int)num, t, t + num, p);
+        else snprintf(buf, len, "%.*s %s\n%d %%\n%s", (int)num, t, t + num, humidity, p);
+    }
+
     static void repaint_widget_metrics() {
         if (!lbl_data) return;
         char buf[128];
@@ -76,7 +89,7 @@ namespace ui {
                 float t = sensor_get_temp();
                 float h = sensor_get_humidity();
                 lv_obj_set_style_text_font(lbl_data, &font_jetbrains_14, 0);
-                snprintf(buf, sizeof(buf), "%.1f °C\n%.0f %%\n%.0f hPa", t, h, p);
+                three_lines(buf, sizeof(buf), t, (int)lroundf(h), p);
             } else {
                 lv_obj_set_style_text_font(lbl_data, &font_atkinson_10, 0);
                 snprintf(buf, sizeof(buf), "SENSOR OFFLINE\n\nNo local environmental\ndata detected.");
@@ -93,9 +106,9 @@ namespace ui {
                 
                 const auto& cur = services::weather_manager::get_current();
                 if (cur.valid) {
-                    snprintf(buf, sizeof(buf), "%.1f °C\n%d %%\n%.0f hPa", cur.temp, cur.humidity, cur.pressure);
+                    three_lines(buf, sizeof(buf), cur.temp, cur.humidity, cur.pressure);
                 } else {
-                    snprintf(buf, sizeof(buf), "-- °C\n-- %%\n-- hPa");
+                    three_lines(buf, sizeof(buf), NAN, -1, NAN);
                 }
             }
         }

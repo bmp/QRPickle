@@ -14,7 +14,10 @@ namespace units {
         using config::WIND_MPH;
 
         size_t finish(char* buf, size_t len, int n) {
-            if (n < 0) { buf[0] = '\0'; return 0; }
+            if (n < 0) {
+                buf[0] = '\0';
+                return 0;
+            }
             return (size_t)n < len ? (size_t)n : len - 1;
         }
 
@@ -33,15 +36,18 @@ namespace units {
         }
     }  // namespace
 
-    const char* temp_unit(uint8_t unit) { return unit == TEMP_F ? "\xC2\xB0" "F" : "\xC2\xB0" "C"; }
+    const char* temp_unit(uint8_t unit) { return unit == TEMP_F ? "\xC2\xB0"
+                                                                  "F"
+                                                                : "\xC2\xB0"
+                                                                  "C"; }
     const char* pres_unit(uint8_t unit) { return unit == PRES_INHG ? "inHg" : "hPa"; }
     const char* dist_unit(uint8_t unit) { return unit == DIST_MI ? "mi" : "km"; }
     const char* wind_unit(uint8_t unit) {
         switch (unit) {
             case WIND_KMH: return "km/h";
             case WIND_MPH: return "mph";
-            case WIND_KN: return "kn";
-            default: return "m/s";
+            case WIND_KN:  return "kn";
+            default:       return "m/s";
         }
     }
 
@@ -62,16 +68,21 @@ namespace units {
     size_t fmt_wind(char* buf, size_t len, uint8_t unit, float mps, uint8_t decimals) {
         float v = mps;
         switch (unit) {
-            case WIND_KMH: v = mps * 3.6f; decimals = 0; break;
+            case WIND_KMH:
+                v = mps * 3.6f;
+                decimals = 0;
+                break;
             case WIND_MPH: v = mps * 2.23694f; break;
-            case WIND_KN: v = mps * 1.94384f; break;
-            default: break;
+            case WIND_KN:  v = mps * 1.94384f; break;
+            default:       break;
         }
         return number(buf, len, v, decimals ? 1 : 0, " ", wind_unit(unit));
     }
 
+    float dist_in(uint8_t unit, float km) { return unit == DIST_MI ? km * 0.621371f : km; }
+
     size_t fmt_dist(char* buf, size_t len, uint8_t unit, float km) {
-        return number(buf, len, unit == DIST_MI ? km * 0.621371f : km, 1, " ", dist_unit(unit));
+        return number(buf, len, dist_in(unit, km), 1, " ", dist_unit(unit));
     }
 
     size_t fmt_clock(char* buf, size_t len, bool h12, int h, int m, int s, bool with_seconds) {

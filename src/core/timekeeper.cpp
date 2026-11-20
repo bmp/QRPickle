@@ -1,6 +1,7 @@
 #include "timekeeper.h"
 #include "../config/config.h" // Wire directly into our new NVS storage system
 #include "../hw/led_rgb.h"     // RGB LED controller inclusion
+#include "units.h"
 #include <WiFi.h>
 #include <Arduino.h>
 #include <time.h>
@@ -10,6 +11,7 @@ static char utc_time_str[32] = "--:--:-- UTC";
 static char local_time_str[32] = "--:--:-- LOC";
 static bool ntp_requested = false;
 static bool ntp_synchronized = false;
+static struct tm local_tm;  // valid once ntp_synchronized
 
 void timekeeper_init() {
     // Internal software clock tracking initialization
@@ -37,14 +39,13 @@ void timekeeper_update() {
     }
 
     if (ntp_synchronized) {
-        // Calculate local offsets by decoding packed NVS integer half-hours (e.g., 11 * 0.5 = 5.5 hours for IST)
-        time_t local_epoch = now + (time_t)(config::get().tz_offset_hh * 0.5f * 3600.0f);
+        const config::Config& c = config::get();
+        units::utc_to_local((uint32_t)now, c.tz_offset_hh, &local_tm);
+        char clock[16];
+        units::fmt_clock(clock, sizeof(clock), c.clock_12h, local_tm.tm_hour, local_tm.tm_min, local_tm.tm_sec, true);
+        snprintf(local_time_str, sizeof(local_time_str), "%s LOC", clock);
 
         struct tm timeinfo;
-        gmtime_r(&local_epoch, &timeinfo);
-        snprintf(local_time_str, sizeof(local_time_str), "%02d:%02d:%02d LOC",
-                 timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
-
         gmtime_r(&now, &timeinfo);
         snprintf(utc_time_str, sizeof(utc_time_str), "%02d:%02d:%02d UTC",
                  timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
@@ -53,6 +54,12 @@ void timekeeper_update() {
         strncpy(local_time_str, "--:--:-- LOC", sizeof(local_time_str) - 1);
         strncpy(utc_time_str, "--:--:-- UTC", sizeof(utc_time_str) - 1);
     }
+}
+
+bool timekeeper_get_local_tm(struct tm* out) {
+    if (!ntp_synchronized || !out) return false;
+    *out = local_tm;
+    return true;
 }
 
 bool timekeeper_is_synced() {

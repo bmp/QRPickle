@@ -329,7 +329,10 @@ void test_secret_tails_and_clear() {
 // Display units (issue #25): stored metric-first; 0 = metric everywhere.
 void test_units_round_trip_json() {
     Config src = base(), dst = base();
-    src.unit_temp = TEMP_F; src.unit_pres = PRES_INHG; src.unit_wind = WIND_MPH; src.unit_dist = DIST_MI;
+    src.unit_temp = TEMP_F;
+    src.unit_pres = PRES_INHG;
+    src.unit_wind = WIND_MPH;
+    src.unit_dist = DIST_MI;
     src.clock_12h = true;
     JsonDocument doc;
     to_json(src, doc.to<JsonObject>(), Secrets::Mask);
@@ -347,7 +350,10 @@ void test_units_round_trip_json() {
 void test_units_bad_values_reset_to_metric() {
     Config prev = base(), c = base();
     prev.unit_wind = WIND_KN;
-    c.unit_temp = 7; c.unit_pres = 3; c.unit_wind = 9; c.unit_dist = 5;
+    c.unit_temp = 7;
+    c.unit_pres = 3;
+    c.unit_wind = 9;
+    c.unit_dist = 5;
     sanitize(c, prev);
     TEST_ASSERT_EQUAL_UINT8(TEMP_C, c.unit_temp);
     TEST_ASSERT_EQUAL_UINT8(PRES_HPA, c.unit_pres);
@@ -357,13 +363,42 @@ void test_units_bad_values_reset_to_metric() {
 
 void test_units_missing_keys_keep_live() {
     Config c = base();
-    c.unit_temp = TEMP_F; c.unit_wind = WIND_KN; c.clock_12h = true;
+    c.unit_temp = TEMP_F;
+    c.unit_wind = WIND_KN;
+    c.clock_12h = true;
     JsonDocument doc;
     doc["callsign"] = "VU2XYZ";  // an old profile: no unit keys
     from_json(c, doc.as<JsonObjectConst>());
     TEST_ASSERT_EQUAL_UINT8(TEMP_F, c.unit_temp);
     TEST_ASSERT_EQUAL_UINT8(WIND_KN, c.unit_wind);
     TEST_ASSERT_TRUE(c.clock_12h);
+}
+
+void test_display_units_key_changes_with_each_setting() {
+    Config c = base();
+    const uint8_t metric = display_units_key(c);
+    c.unit_temp = TEMP_F;
+    const uint8_t k1 = display_units_key(c);
+    c = base();
+    c.unit_pres = PRES_INHG;
+    const uint8_t k2 = display_units_key(c);
+    c = base();
+    c.unit_wind = WIND_KN;
+    const uint8_t k3 = display_units_key(c);
+    c = base();
+    c.unit_dist = DIST_MI;
+    const uint8_t k4 = display_units_key(c);
+    c = base();
+    c.clock_12h = true;
+    const uint8_t k5 = display_units_key(c);
+    const uint8_t keys[] = {metric, k1, k2, k3, k4, k5};
+    for (int i = 0; i < 6; i++)
+        for (int j = i + 1; j < 6; j++) TEST_ASSERT_NOT_EQUAL(keys[i], keys[j]);
+    c = base();
+    c.unit_wind = WIND_KMH;
+    const uint8_t a = display_units_key(c);
+    c.unit_wind = WIND_MPH;
+    TEST_ASSERT_NOT_EQUAL(a, display_units_key(c));
 }
 
 int main(int, char**) {
@@ -387,5 +422,6 @@ int main(int, char**) {
     RUN_TEST(test_units_round_trip_json);
     RUN_TEST(test_units_bad_values_reset_to_metric);
     RUN_TEST(test_units_missing_keys_keep_live);
+    RUN_TEST(test_display_units_key_changes_with_each_setting);
     return UNITY_END();
 }

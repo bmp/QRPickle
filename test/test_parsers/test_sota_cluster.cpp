@@ -155,6 +155,7 @@ int main(int, char**) {
     RUN_TEST(test_mem_web_can_serve);
     RUN_TEST(test_xota_row_text_columns);
     RUN_TEST(test_aprs_row_text_columns);
+    RUN_TEST(test_aprs_row_text_miles);
     RUN_TEST(test_lock_watch_warns_then_restarts);
     RUN_TEST(test_lock_held_s_never_wraps);
     RUN_TEST(test_list_release_only_when_unused);

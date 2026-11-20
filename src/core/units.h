@@ -21,6 +21,9 @@ namespace units {
     // "14:05" / "2:05 PM", with seconds "14:05:33" / "2:05:33 PM"; h < 0 gives "--:--".
     size_t fmt_clock(char* buf, size_t len, bool h12, int h, int m, int s, bool with_seconds);
 
+    // A distance in the chosen unit (km or miles), for labels with their own format.
+    float dist_in(uint8_t unit, float km);
+
     const char* temp_unit(uint8_t unit);  // "°C" / "°F"
     const char* pres_unit(uint8_t unit);  // "hPa" / "inHg"
     const char* wind_unit(uint8_t unit);  // "m/s" / "km/h" / "mph" / "kn"

@@ -18,10 +18,20 @@ namespace config {
 
     // Display units (issue #25). Readings stay metric inside; only the display converts
     // (core/units.h). 0 = metric everywhere, so boards upgraded from v0.3.0 look the same.
-    enum : uint8_t { TEMP_C = 0, TEMP_F = 1, TEMP_UNITS };
-    enum : uint8_t { PRES_HPA = 0, PRES_INHG = 1, PRES_UNITS };
-    enum : uint8_t { WIND_MPS = 0, WIND_KMH = 1, WIND_MPH = 2, WIND_KN = 3, WIND_UNITS };
-    enum : uint8_t { DIST_KM = 0, DIST_MI = 1, DIST_UNITS };
+    enum : uint8_t { TEMP_C = 0,
+                     TEMP_F = 1,
+                     TEMP_UNITS };
+    enum : uint8_t { PRES_HPA = 0,
+                     PRES_INHG = 1,
+                     PRES_UNITS };
+    enum : uint8_t { WIND_MPS = 0,
+                     WIND_KMH = 1,
+                     WIND_MPH = 2,
+                     WIND_KN = 3,
+                     WIND_UNITS };
+    enum : uint8_t { DIST_KM = 0,
+                     DIST_MI = 1,
+                     DIST_UNITS };
 
     struct Config {
         char callsign[12];
@@ -77,6 +87,13 @@ namespace config {
         // Web console login (user "admin") and setup-AP WPA2 key. Generated on first boot.
         char admin_password[17];
     };
+
+    // The display settings in one byte. Screens that redraw only when their data changes keep
+    // the key they drew with and redraw when it differs, so a units change shows at once.
+    inline uint8_t display_units_key(const Config& c) {
+        return (uint8_t)((c.unit_temp & 1) | (c.unit_pres & 1) << 1 | (c.unit_wind & 3) << 2 | (c.unit_dist & 1) << 4 |
+                         (c.clock_12h ? 1 : 0) << 5);
+    }
 
     void load();
     void save();

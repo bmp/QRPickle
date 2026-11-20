@@ -29,7 +29,8 @@ namespace ui {
     const char* band_light_text(const services::BandView& v, bool short_form = false);
     // "just now", "25m ago", "3h ago"; age in seconds.
     void band_age_text(char* out, size_t len, uint32_t age_s);
-    // Local "HH:MM" (config time zone) of a UTC time.
+    // Local time of a UTC time (config time zone and clock): "14:05" or "2:05 PM" (up to 8
+    // characters; give it a 12-byte buffer). "--:--" for utc 0.
     void band_local_hhmm(char* out, size_t len, uint32_t utc);
 
 }  // namespace ui

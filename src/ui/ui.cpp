@@ -30,6 +30,7 @@
 #include "../config/config.h"
 #include "../hw/sensor.h"
 #include "../core/timekeeper.h"
+#include "../core/units.h"
 #include "../services/wifi_manager.h"
 #include <lvgl.h>
 #include <WiFi.h>
@@ -53,16 +54,15 @@ namespace ui {
     static lv_obj_t* global_home_btn = nullptr; 
 
     static void global_ui_timer_cb(lv_timer_t* timer) {
-        const char* full_time = timekeeper_get_local_string();
-
-        if (full_time != nullptr && strlen(full_time) >= 5) {
-            char short_time[6];
-            strncpy(short_time, full_time, 5);
-            short_time[5] = '\0';
-            status_bar_set_clock(short_time);
-        } else {
-            status_bar_set_clock("--:--");
-        }
+        struct tm local{};
+        char clock[12];
+        const bool synced = timekeeper_get_local_tm(&local);
+        units::fmt_clock(clock, sizeof(clock), config::get().clock_12h, synced ? local.tm_hour : -1, local.tm_min, 0,
+                         false);
+        // 12-hour: "2:05" without AM/PM, like a phone's status bar; "2:05 PM" is 59 px and would
+        // cover the settings icon (the clock tile and the other screens show AM/PM).
+        if (char* space = strchr(clock, ' ')) *space = '\0';
+        status_bar_set_clock(clock);
 
         status_bar_set_wifi(WiFi.isConnected());
     }

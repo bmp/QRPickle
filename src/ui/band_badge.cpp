@@ -2,6 +2,7 @@
 #include "fonts.h"
 #include "theme.h"
 #include "../config/config.h"
+#include "../core/units.h"
 #include <cstdio>
 #include <time.h>
 
@@ -106,10 +107,10 @@ namespace ui {
     }
 
     void band_local_hhmm(char* out, size_t len, uint32_t utc) {
-        time_t local = (time_t)utc + (time_t)config::get().tz_offset_hh * 1800;
-        struct tm tm_l;
-        gmtime_r(&local, &tm_l);
-        snprintf(out, len, "%02d:%02d", tm_l.tm_hour, tm_l.tm_min);
+        const config::Config& c = config::get();
+        struct tm tm_l{};
+        const bool ok = units::utc_to_local(utc, c.tz_offset_hh, &tm_l);
+        units::fmt_clock(out, len, c.clock_12h, ok ? tm_l.tm_hour : -1, tm_l.tm_min, 0, false);
     }
 
 }  // namespace ui
