@@ -147,7 +147,7 @@ switched off, or an `LV_SYMBOL_*` the icons font lacks.
 
 | Available | Switched off |
 |---|---|
-| label, button, image, textarea, keyboard (+ buttonmatrix), dropdown, checkbox, slider (+ bar), msgbox, tabview | arc, spinner, switch, list, menu, win, tileview, LED, line, canvas, span, imagebutton, animimg, arclabel, chart, scale, calendar, table, roller, spinbox |
+| label, button, image, textarea, keyboard (+ buttonmatrix), dropdown, checkbox, slider (+ bar), msgbox, tabview, QR code (+ canvas, v0.3.2: the board report code) | arc, spinner, switch, list, menu, win, tileview, LED, line, span, imagebutton, animimg, arclabel, chart, scale, calendar, table, roller, spinbox |
 | flex layout | grid layout, observer (subjects) |
 | fonts in `fonts.h` + icons-only fallback (`font_symbols_10/14`) | LVGL's Montserrat fonts |
 | RGB565 screen, RGB565A8 images, A8 masks | other colour formats (ARGB8888 layers among them) |
@@ -158,6 +158,20 @@ switched off, or an `LV_SYMBOL_*` the icons font lacks.
 (`/api/status` → `mem`, `docs/MEMORY.md`). A widget often brings theme styles and icons with it:
 the guard tells you which icons to add to `scripts/build_fonts.sh`. Prefer composing the
 available parts (a "switch" can be a checkbox; a "list" a flex column of buttons, as the WiFi scan does).
+
+## Board notices (v0.3.2)
+
+`src/ui/board_notice.cpp`, 1.5 s after the splash, at most one of (approved mockups, design section 10):
+- **Board:** "Detected: <model>. Turn the CYD over: does the number on the back match?" [Correct] [Choose
+  another] (a flex column of buttons: boards with the same screen chip). Only on boards with working touch.
+- **Board check:** the user's choice contradicts the screen: [Use it anyway] [Use detected]. No warning
+  symbol in the title: `LV_SYMBOL_WARNING` isn't in the icons font.
+- **Untested board:** once per firmware version (NVS `qrp_board/note_fw`): [Show report code] [Later];
+  without touch the text points to the web console or USB and closes after 30 s.
+- **Report code:** full screen on `lv_layer_top()`, text left, QR code 180 px right (dark on white in every
+  theme, white margin); a tap closes it.
+- The Network screen gets a "Board: <model> (untested)" line with [Report] only on untested boards, so a
+  tested board's screens stay pixel-identical.
 
 ## Dashboard and tiles
 

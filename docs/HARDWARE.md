@@ -1,6 +1,6 @@
 # Hardware and Wiring
 
-QRPickle runs on the **ESP32-2432S028R "Cheap Yellow Display" (CYD)**, the 2.8" ILI9341 version with a resistive touch screen. Nothing needs soldering. The only optional extra is a **BME280** sensor for indoor temperature, humidity and pressure.
+QRPickle is tested on the **ESP32-2432S028R "Cheap Yellow Display" (CYD)**, the 2.8" version with a resistive touch screen, and drives the other CYD-family boards in the **[board list](BOARDS.md)** (2.4", 3.2", 3.5", Guition JC2432W328C; untested until someone reports them). Nothing needs soldering. The only optional extra is a **BME280** sensor for indoor temperature, humidity and pressure.
 
 ## Board pinout
 
@@ -10,7 +10,7 @@ QRPickle runs on the **ESP32-2432S028R "Cheap Yellow Display" (CYD)**, the 2.8" 
 
 The BME280 connector is the one labelled **"Temp humidity interface"** (CN1) at the bottom of the image.
 
-> **Not the 3.2" board.** The ESP32-2432S032 ("CYD v2") uses a different display and pin map, so QRPickle doesn't support it.
+> **Other boards** use different screens and pins (the 3.2" ESP32-2432S032, the 3.5" ESP32-3248S035, ...). QRPickle detects them at start-up or you choose the board; their pins, touch chips and connectors are in the [board list](BOARDS.md). This page describes the 2.8" board; on the others the BME280 connector isn't mapped yet, so the sensor stays off.
 
 ## The board
 

@@ -225,6 +225,7 @@ def main():
     by_title = dict(sections)
     for readme_title, title in README_APPENDICES.items():
         appendices.append((title, by_title[readme_title], 2))
+    appendices.append(("Supported Boards", read_doc("docs/BOARDS.md"), 1))
     appendices.append(("Screens, Widgets and Themes", read_doc("docs/UI_GUIDE.md"), 1))
     appendices.append(("Third-Party Notices", read_doc("THIRD_PARTY_NOTICES.md"), 1))
     notices = chr(ord("A") + len(appendices) - 1)  # the last appendix
@@ -281,7 +282,8 @@ def main():
     # Chapters and appendices link to each other inside the manual, not to GitHub.
     targets = {"docs/SETUP.md": "first-time-setup", "docs/HARDWARE.md": "hardware-and-wiring"}
     appendix_docs = {"LED Colours": "docs/LEDColours.md", "How Band Conditions Are Rated": "docs/BAND_RATING.md",
-                     "Screens, Widgets and Themes": "docs/UI_GUIDE.md", "Third-Party Notices": "THIRD_PARTY_NOTICES.md"}
+                     "Supported Boards": "docs/BOARDS.md", "Screens, Widgets and Themes": "docs/UI_GUIDE.md",
+                     "Third-Party Notices": "THIRD_PARTY_NOTICES.md"}
     for i, (title, _, _) in enumerate(appendices):
         doc_path = appendix_docs.get(title)
         if doc_path:

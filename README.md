@@ -90,6 +90,7 @@ console and stay on the device.
 * **Status LED:** setup and network states, a faint pulse when data arrives, a strobe for HamAlert or APRS messages, and a purple signal before ISS SSTV and school-contact passes ([LED Colours](docs/LEDColours.md)).
 * **Themes:** 7 themes in LVGL 9, including Tactical Field Red, Terminal Green and two E-Ink styles.
 * **Display:** sleep timeout, manual or automatic brightness (light sensor).
+* **Boards:** the board is detected at start-up from its screen, or chosen in the web console or over USB (check the number printed on the back). One firmware for the CYD family: tested on the ESP32-2432S028R; the 2.4", 3.2" and 3.5" CYDs and the Guition JC2432W328C are listed from their makers' data ([board list](docs/BOARDS.md)). Bigger screens show the 320 x 240 dashboard centred. An untested board asks once for a short report: the web console, Set up over USB or a QR code on the screen opens GitHub's board report form with the details filled in.
 * **Units and clock:** metric by default, or your own choice of °F, inHg, mph, km/h or knots and miles, and a 12- or 24-hour local clock (web console); UTC always stays 24-hour. Accented names (É, ñ, ü) in park, city and event names show as they should.
 * **Privacy:** passwords and network details are masked on screen and in the serial log.
 * **Splash logos:** your own logos left and right of the title on the start screen (uploaded in the web console, scaled into 60 x 60; kept across updates and in backups; "Preview on the device" shows the start screen for 10 seconds without a restart).
@@ -123,7 +124,7 @@ QRPickle's own code is MIT-licensed (see [`License`](License)). The fonts are un
 ## Libraries & Frameworks
 
 * **[LVGL (Light and Versatile Graphics Library) v9.x](https://lvgl.io/):** Core C-based UI framework handling all screens, layouts, animations, and touch interactions.
-* **[TFT_eSPI](https://github.com/Bodmer/TFT_eSPI):** Highly optimized SPI driver for the ILI9341 display.
+* **Display:** LVGL's pixels go to the screen over SPI with Arduino's `writePixels`; each board's start-up sequence comes from the board list (from [TFT_eSPI](https://github.com/Bodmer/TFT_eSPI) for the 2.8" panel clones and from LVGL for the ILI9341, ST7789 and ST7796).
 * **[XPT2046_Touchscreen](https://github.com/PaulStoffregen/XPT2046_Touchscreen):** Driver for the resistive touch controller (on its own SPI bus).
 * **[ESPAsyncWebServer](https://github.com/ESP32Async/ESPAsyncWebServer):** The web console and its REST API, with Digest authentication.
 * **[Sgp4](https://github.com/Hopperpop/Sgp4-Library):** Satellite orbit propagation (Vallado's SGP4) for the pass predictions.
@@ -159,7 +160,7 @@ The installer and the manual flashing steps below use exactly these addresses fo
 The project is built entirely within **PlatformIO** (VS Code).
 
 ### 1. Pre-Flight Setup
-QRPickle targets the ESP32-2432S028R (2.8" CYD); no soldering is needed. The pins it uses and the wiring for the optional BME280 sensor are in **[Hardware and Wiring](docs/HARDWARE.md)**.
+QRPickle is tested on the ESP32-2432S028R (2.8" CYD) and drives the other boards in the **[board list](docs/BOARDS.md)**; no soldering is needed. The pins it uses and the wiring for the optional BME280 sensor are in **[Hardware and Wiring](docs/HARDWARE.md)**.
 
 ### 2. Uploading the Filesystem (Web UI & Profiles)
 Before the firmware will function fully (especially the Web UI), you must write the `data/` folder to the LittleFS partition.
