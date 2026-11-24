@@ -212,6 +212,19 @@ void web_server_init() {
         else request->send(404, "text/plain", "JS Missing");
     });
 
+    server.on("/board_report.js", HTTP_GET, [](AsyncWebServerRequest* request) {
+        REQUIRE_AUTH(request);
+        if (www_exists("/www/board_report.js")) request->send(LittleFS, "/www/board_report.js", "application/javascript");
+        else request->send(404, "text/plain", "JS Missing");
+    });
+
+    // The board list (generated from boards/boards.toml by scripts/gen_boards.py).
+    server.on("/boards.json", HTTP_GET, [](AsyncWebServerRequest* request) {
+        REQUIRE_AUTH(request);
+        if (www_exists("/www/boards.json")) request->send(LittleFS, "/www/boards.json", "application/json");
+        else request->send(404, "application/json", "{\"boards\":[]}");
+    });
+
     server.on("/logo.js", HTTP_GET, [](AsyncWebServerRequest* request) {
         REQUIRE_AUTH(request);
         if (www_exists("/www/logo.js")) request->send(LittleFS, "/www/logo.js", "application/javascript");

@@ -359,6 +359,46 @@
                 <div class="sys-card"><label>Native Espressif IDF</label><div id="sys-lib-idf" class="val">--</div></div>
             </div>
 
+            <div class="sys-section-title" style="margin-top: 25px;">Board</div>
+            <div id="board-note" class="board-note hidden" role="status"></div>
+            <div class="sys-grid">
+                <div class="sys-card"><label>Model</label><div id="board-model" class="val">--</div></div>
+                <div class="sys-card"><label>Status</label><div id="board-status" class="val">--</div></div>
+                <div class="sys-card"><label>How it was found</label><div id="board-decision" class="val">--</div></div>
+                <div class="sys-card"><label>Screen ID</label><div id="board-ids" class="val">--</div></div>
+            </div>
+            <div class="sys-card board-setting" style="max-width: 100%; box-sizing: border-box;">
+                <label for="board-select">Board setting</label>
+                <p class="hint">Check the number printed on the back of the board before choosing. Saving restarts the CYD.
+                    <a href="https://github.com/bmp/QRPickle/blob/main/docs/BOARDS.md" target="_blank" rel="noopener">Board list</a></p>
+                <select id="board-select"><option value="auto">Auto-detect (recommended)</option></select>
+                <p class="board-actions">
+                    <button class="btn btn-primary" id="board-save-btn" onclick="saveBoard()">Save</button>
+                    <button class="btn" id="board-report-btn" onclick="toggleBoardReport()">Report this board</button>
+                    <span id="board-msg" class="hint" role="status"></span>
+                </p>
+            </div>
+            <div id="board-report" class="sys-card board-report hidden" style="max-width: 100%; box-sizing: border-box;">
+                <label>Report this board</label>
+                <p class="hint">Opens GitHub's "Board report" form with these details filled in. You sign in, attach a photo of the back of the board and submit. Nothing is sent from here.</p>
+                <dl id="board-report-auto" class="board-report-auto"></dl>
+                <label for="board-back">Number printed on the back</label>
+                <input type="text" id="board-back" maxlength="40" placeholder="e.g. ESP32-2432S028R">
+                <fieldset class="board-works">
+                    <legend>What works</legend>
+                    <label><input type="checkbox" data-work="picture"> Picture</label>
+                    <label><input type="checkbox" data-work="colours"> Colours</label>
+                    <label><input type="checkbox" data-work="orientation"> Right way up</label>
+                    <label><input type="checkbox" data-work="touch"> Touch</label>
+                    <label><input type="checkbox" data-work="backlight"> Backlight</label>
+                    <label><input type="checkbox" data-work="led"> LED</label>
+                    <label><input type="checkbox" data-work="sensor"> Sensor</label>
+                </fieldset>
+                <label for="board-notes">Notes</label>
+                <textarea id="board-notes" rows="3" maxlength="2000" placeholder="What looks wrong, anything else you noticed"></textarea>
+                <p><button class="btn btn-primary" onclick="openBoardReport()">Open report on GitHub</button></p>
+            </div>
+
             <div class="sys-section-title" style="margin-top: 25px;">Splash Logos</div>
             <p class="hint">Your own logo left and/or right of the title on the start screen, scaled into 60 x 60. Shown from the next restart; "Preview on the device" shows the start screen for 10 seconds now. Kept across updates; included in backups.</p>
             <div class="sys-grid">
@@ -473,6 +513,7 @@
     </footer>
 
     <script src="logo.js"></script>
+    <script src="board_report.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

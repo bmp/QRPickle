@@ -7,7 +7,7 @@ import gzip
 import os
 import shutil
 
-COMPRESS = (".html", ".js", ".css", ".svg")
+COMPRESS = (".html", ".js", ".css", ".svg", ".json")
 
 src = env.subst("$PROJECT_DATA_DIR")
 dst = os.path.join(env.subst("$BUILD_DIR"), "data_gz")

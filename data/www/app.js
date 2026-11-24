@@ -119,7 +119,7 @@ function initTabsEngine() {
                 }
             });
             
-            if (targetTab === "system") { fetchSystemTelemetry(); refreshLogos(); }
+            if (targetTab === "system") { fetchSystemTelemetry(); refreshLogos(); fetchBoard(); }
             if (targetTab === "about") fetchAboutDetails();
             if (targetTab === "cloudota") fetchCloudOTADetails();
         });
@@ -337,6 +337,129 @@ function fetchSystemTelemetry() {
             document.getElementById("sys-lib-idf").innerText = data.ver_idf || "v5.x";
         })
         .catch(err => console.warn("Polling dropped telemetry. Re-syncing line link...", err));
+}
+
+// --- BOARD (System Info) ---
+// /api/board says which board this is and how it was found; /boards.json is the board list
+// (boards/boards.toml). The choice is saved with POST /api/board and restarts the CYD.
+let boardInfo = null;
+let boardList = null;
+
+function boardStatusText(s) {
+    return s === "tested" ? "Tested" : s === "reported" ? "Reported working" : "Untested";
+}
+
+const BOARD_DECISIONS = {
+    detected: "Detected from the screen",
+    chosen: "Your choice",
+    anyway: "Your choice (kept despite the warning)",
+    mismatch: "Your choice (the screen disagrees)",
+    upgrade: "Kept from v0.3.1 (confirm on the CYD)",
+    ambiguous: "Not sure: several boards possible",
+    unknown: "Not recognised",
+};
+
+async function fetchBoard() {
+    try {
+        const [b, list] = await Promise.all([
+            fetch("/api/board", { cache: "no-store" }).then(r => r.json()),
+            boardList ? boardList : fetch("/boards.json").then(r => r.json()).catch(() => ({ boards: [] })),
+        ]);
+        boardInfo = b;
+        boardList = list;
+        renderBoard();
+    } catch (e) {
+        console.warn("Board details unavailable", e);
+    }
+}
+
+function renderBoard() {
+    const b = boardInfo;
+    if (!b) return;
+    document.getElementById("board-model").innerText = b.name || b.model || "--";
+    document.getElementById("board-status").innerText = boardStatusText(b.status);
+    document.getElementById("board-decision").innerText = BOARD_DECISIONS[b.decision_code] || b.decision || "--";
+    document.getElementById("board-ids").innerText = b.readable ? [b.rddid, b.rdid4, b.rdid4_indexed].join(" / ") : "No answer";
+
+    const sel = document.getElementById("board-select");
+    sel.innerHTML = '<option value="auto">Auto-detect (recommended)</option>' +
+        (boardList.boards || []).filter(x => x.selectable !== false)
+            .map(x => `<option value="${esc(x.id)}">${esc(x.name)} (${esc(boardStatusText(x.status).toLowerCase())})</option>`).join("");
+    const setting = (b.setting || "auto").replace(/!$/, "");
+    sel.value = [...sel.options].some(o => o.value === setting) ? setting : "auto";
+
+    const report = '<button class="btn" onclick="toggleBoardReport(true)">Report this board</button>';
+    let html = "";
+    if (b.warn_mismatch) {
+        html = `You chose <b>${esc(b.name)}</b>, but the screen reports a different chip. It may not work: check the number ` +
+               `printed on the back of the board.<br><button class="btn" onclick="postBoard('${esc(b.id)}!')">Use it anyway</button>` +
+               `<button class="btn" onclick="postBoard('auto')">Use the detected board</button>`;
+    } else if (b.decision_code === "ambiguous" || b.decision_code === "unknown") {
+        const maybe = (b.candidates || []).length ? ` It could be: ${b.candidates.map(esc).join(", ")}.` : "";
+        html = `This board wasn't recognised for certain, so touch and the sensor are off.${maybe} Choose it below ` +
+               `(check the number on the back), then please report how it works.<br>${report}`;
+    } else if (b.status !== "tested") {
+        html = `This board hasn't been tested yet. Please tell us how it works: it takes a minute.<br>${report}`;
+    }
+    if (b.setting_unknown) html += (html ? "<br>" : "") + "The saved board setting named a board this firmware doesn't know; it was ignored.";
+    if (b.touch_note) html += (html ? "<br>" : "") + `${esc(b.touch_note)}: use this web console for settings.`;
+    const note = document.getElementById("board-note");
+    note.innerHTML = html;
+    note.classList.toggle("hidden", !html);
+}
+
+async function postBoard(value) {
+    const msg = document.getElementById("board-msg");
+    const btn = document.getElementById("board-save-btn");
+    btn.disabled = true;
+    try {
+        const res = await fetch("/api/board", { method: "POST", headers: { "Content-Type": "application/json" },
+                                                body: JSON.stringify({ board: value }) });
+        const j = await res.json().catch(() => ({}));
+        if (!res.ok) {
+            msg.innerText = j.status === "unknown_board" ? "The CYD doesn't know that board." : `The CYD refused (HTTP ${res.status}).`;
+        } else if (j.restart) {
+            msg.innerText = "Saved. The CYD restarts now…";
+            msg.innerText = (await waitForDevice()) ? "The CYD is back." : "The CYD hasn't come back yet: reload this page in a minute.";
+            await fetchBoard();
+        } else {
+            msg.innerText = "Saved (unchanged).";
+        }
+    } catch (e) {
+        msg.innerText = "The CYD didn't answer.";
+    }
+    btn.disabled = false;
+}
+
+function saveBoard() {
+    let value = document.getElementById("board-select").value;
+    // Saving the same board again keeps an accepted warning ("<id>!").
+    if (boardInfo && boardInfo.setting === value + "!") value = boardInfo.setting;
+    postBoard(value);
+}
+
+function toggleBoardReport(show) {
+    const card = document.getElementById("board-report");
+    const open = show === undefined ? card.classList.contains("hidden") : show;
+    card.classList.toggle("hidden", !open);
+    if (!open || !boardInfo) return;
+    const a = autoFromBoard(boardInfo);
+    const rows = [["Firmware", a.fw], ["Board QRPickle used", boardInfo.name || a.board], ["How it was found", BOARD_DECISIONS[a.decision] || a.decision],
+                  ["Screen ID answers", a.ids],
+                  ["Touch probes", a.touch === "-1.-1.-1" ? "not needed" : a.touch]];
+    document.getElementById("board-report-auto").innerHTML = rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("");
+    card.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+function openBoardReport() {
+    const works = {};
+    document.querySelectorAll("#board-report [data-work]").forEach(c => { works[c.dataset.work] = c.checked; });
+    const url = reportUrl(autoFromBoard(boardInfo), {
+        back: document.getElementById("board-back").value.trim(),
+        works,
+        notes: document.getElementById("board-notes").value,
+    });
+    window.open(url, "_blank", "noopener");
 }
 
 function fetchAboutDetails() {
