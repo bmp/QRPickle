@@ -4,8 +4,11 @@
 namespace services {
     namespace display_manager {
 
-        // Sets up the GPIO pins and logic boundaries for screen control
+        // Sets up the backlight (off) and light sensor from the active board (hw::board)
         void init();
+
+        // The panel has been cleared: switch the backlight on at the configured level
+        void backlight_ready();
 
         // Polled inside the main loop to handle inactivity timeouts
         void update();

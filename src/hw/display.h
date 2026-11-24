@@ -9,4 +9,11 @@ void display_init();
 
 // Services the LVGL internal timer task handler and increments systemic tick timings inside the main runtime loop
 
+// Waits until the last pixel transfer has finished (no-op: transfers are blocking).
+void display_wait_idle();
+#ifdef QRP_BENCH
+// Test builds only: logs full-screen redraw times and memory 20 s after boot, three times.
+void display_bench_start();
+#endif
+
 #endif // DISPLAY_H
