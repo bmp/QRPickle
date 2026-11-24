@@ -10,7 +10,9 @@ namespace hw {
     constexpr int BOARD_FALLBACK = 0;  // 2432S028R-2USB: drives the screen as v0.3.1 did
 
     // clang-format off
-    constexpr BoardDef BOARDS[BOARD_COUNT] = {
+    // inline: one copy for the whole firmware (a plain constexpr array in a header is copied into
+    // every source file that uses it, so addresses differ between files).
+    inline constexpr BoardDef BOARDS[BOARD_COUNT] = {
     {"2432S028R-2USB", "ESP32-2432S028R", "ESP32-2432S028R (2.8\", USB-C + micro-USB)", BoardStatus::Mapped, true, true, PanelInit::ILI9341_2, 0x8181B3u, 0xFFFFFFFFu, 320, 240, true, false, false, true, true, 0, 0, 14, 13, 12, 15, 2, 21, true, 4, 16, 17, true, TouchType::XPT2046Own, 25, 32, 39, 33, 36, NO_PIN, NO_PIN, NO_PIN, 0x00, {300, 3800, 200, 3800}, "", 27, 22, 34, 5, 0x9000081000ull},
     {"2432S028R", "ESP32-2432S028R", "ESP32-2432S028R (2.8\", micro-USB only)", BoardStatus::Mapped, true, false, PanelInit::ILI9341, 0xFFFFFFFFu, 0x9341u, 320, 240, true, false, false, true, false, 0, 0, 14, 13, 12, 15, 2, 21, true, 4, 16, 17, true, TouchType::XPT2046Own, 25, 32, 39, 33, 36, NO_PIN, NO_PIN, NO_PIN, 0x00, {300, 3800, 200, 3800}, "", 27, 22, 34, 5, 0x9000081000ull},
     {"2432S028R-ST7789", "ESP32-2432S028R", "ESP32-2432S028R (2.8\", USB-C + micro-USB, ST7789 screen)", BoardStatus::Mapped, true, false, PanelInit::ST7789, 0xFFFFFFFFu, 0xFFFFFFFFu, 320, 240, true, true, false, true, false, 0, 0, 14, 13, 12, 15, 2, 21, true, 4, 16, 17, true, TouchType::XPT2046Own, 25, 32, 39, 33, 36, NO_PIN, NO_PIN, NO_PIN, 0x00, {300, 3800, 200, 3800}, "", 27, 22, 34, 5, 0x9000080000ull},
@@ -25,7 +27,7 @@ namespace hw {
 
     // BOARD_CONFLICT[fitted][chosen]: GPIOs (bit n = GPIO n) the chosen board would drive as outputs
     // while a chip on the fitted board drives them. They stay off whenever the fitted board is in doubt.
-    constexpr uint64_t BOARD_CONFLICT[BOARD_MAX][BOARD_MAX] = {
+    inline constexpr uint64_t BOARD_CONFLICT[BOARD_MAX][BOARD_MAX] = {
     {0x0ull, 0x0ull, 0x0ull, 0x0ull, 0x0ull, 0x0ull, 0x0ull, 0x0ull, 0x0ull, 0x0ull, 0, 0, 0, 0, 0, 0},
     {0x0ull, 0x0ull, 0x0ull, 0x0ull, 0x0ull, 0x0ull, 0x0ull, 0x0ull, 0x0ull, 0x0ull, 0, 0, 0, 0, 0, 0},
     {0x0ull, 0x0ull, 0x0ull, 0x0ull, 0x0ull, 0x0ull, 0x0ull, 0x0ull, 0x0ull, 0x0ull, 0, 0, 0, 0, 0, 0},

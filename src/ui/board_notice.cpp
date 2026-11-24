@@ -138,18 +138,18 @@ namespace ui {
                     if (!b.complete || b.init != now.init) continue;
                     lv_obj_t* btn = lv_button_create(content);
                     lv_obj_set_width(btn, lv_pct(100));
-                    lv_obj_set_style_bg_color(btn, theme_color(&b == &now ? COLOR_ACCENT_PRIMARY : COLOR_BG_BAR), 0);
+                    lv_obj_set_style_bg_color(btn, theme_color(strcmp(b.id, now.id) == 0 ? COLOR_ACCENT_PRIMARY : COLOR_BG_BAR), 0);
                     lv_obj_t* l = lv_label_create(btn);
                     lv_label_set_long_mode(l, LV_LABEL_LONG_WRAP);
                     lv_obj_set_width(l, lv_pct(100));
                     char t[80];
                     snprintf(t, sizeof(t), "%s%s", b.name, b.status == hw::BoardStatus::Tested ? "" : "  (untested)");
                     lv_label_set_text(l, t);
-                    lv_obj_set_style_text_color(l, theme_color(&b == &now ? COLOR_TEXT_ON_ACCENT : COLOR_TEXT_MAIN), 0);
+                    lv_obj_set_style_text_color(l, theme_color(strcmp(b.id, now.id) == 0 ? COLOR_TEXT_ON_ACCENT : COLOR_TEXT_MAIN), 0);
                     lv_obj_add_event_cb(btn, [](lv_event_t* e) {
                         const hw::BoardDef* b = (const hw::BoardDef*)lv_event_get_user_data(e);
                         save_board(b->id);
-                        if (b != &hw::board::active()) restart_soon();
+                        if (strcmp(b->id, hw::board::active().id) != 0) restart_soon();  // ids: see boards_gen.h
                         lv_msgbox_close(lv_obj_get_parent(lv_obj_get_parent((lv_obj_t*)lv_event_get_target(e)))); }, LV_EVENT_CLICKED, (void*)&b);
                 }
                 button(m, "Cancel", false, close_box);

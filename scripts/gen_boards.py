@@ -131,13 +131,15 @@ namespace hw {{
     constexpr int BOARD_FALLBACK = {fallback};  // {data['fallback']}: drives the screen as v0.3.1 did
 
     // clang-format off
-    constexpr BoardDef BOARDS[BOARD_COUNT] = {{
+    // inline: one copy for the whole firmware (a plain constexpr array in a header is copied into
+    // every source file that uses it, so addresses differ between files).
+    inline constexpr BoardDef BOARDS[BOARD_COUNT] = {{
 {rows}
     }};
 
     // BOARD_CONFLICT[fitted][chosen]: GPIOs (bit n = GPIO n) the chosen board would drive as outputs
     // while a chip on the fitted board drives them. They stay off whenever the fitted board is in doubt.
-    constexpr uint64_t BOARD_CONFLICT[BOARD_MAX][BOARD_MAX] = {{
+    inline constexpr uint64_t BOARD_CONFLICT[BOARD_MAX][BOARD_MAX] = {{
 {conf_rows}
     }};
     // clang-format on
