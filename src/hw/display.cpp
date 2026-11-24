@@ -1,7 +1,8 @@
 // The screen: LVGL draws; this file starts the panel the active board's way (src/hw/board.h,
 // display_init_seq.h) and sends LVGL's pixels over SPI with Arduino's writePixels (swaps each RGB565
-// pixel while filling the FIFO: measured 235 ms per full redraw on the owner's board vs 253 ms with
-// TFT_eSPI, 2026-11-24). The LVGL display is always 320x240; bigger panels show it centred.
+// pixel while filling the FIFO). Full redraw of a fixed test screen on the owner's board: 146 ms vs
+// 139.7 ms with TFT_eSPI (2026-11-25; display_bench.cpp). The LVGL display is always 320x240; bigger
+// panels show it centred.
 #include "led_rgb.h"
 #include "display.h"
 #include "board.h"
