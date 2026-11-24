@@ -14,8 +14,9 @@ QRPickle's own code is MIT-licensed (see [`License`](License)). The firmware and
 | Weather condition icons (`assets/img/[0-9]*`) | No published icon licence; attributed | © OpenWeather, [openweathermap.org](https://openweathermap.org/weather-conditions) | [`assets/img/SOURCES.md`](assets/img/SOURCES.md) |
 | International amateur radio symbol (splash screen; web console favicon `data/www/favicon.svg`) | Public domain | Denelson83, [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:International_amateur_radio_symbol.svg) | [`assets/img/SOURCES.md`](assets/img/SOURCES.md) |
 | Bangalore Amateur Radio Club (VU2ARC) logo (splash screen) | Not MIT; used with the club's permission | © Bangalore Amateur Radio Club, [barc.in](https://www.barc.in/) | [`assets/img/SOURCES.md`](assets/img/SOURCES.md) |
-| LVGL 9.6 | MIT | © LVGL Kft, [lvgl/lvgl](https://github.com/lvgl/lvgl) | in the library |
-| TFT_eSPI 2.5 | MIT (per library.json) | Bodmer, [Bodmer/TFT_eSPI](https://github.com/Bodmer/TFT_eSPI) | in the library |
+| LVGL 9.6; also its ILI9341, ST7789 and ST7796 start-up lists in `src/hw/display_init_seq.h` | MIT | © LVGL Kft, [lvgl/lvgl](https://github.com/lvgl/lvgl) | in the library |
+| qrcodegen (QR code generator) inside LVGL's QR code widget: the board report code on the CYD | MIT | © Project Nayuki, [nayuki.io](https://www.nayuki.io/page/qr-code-generator-library) | in LVGL (`src/libs/qrcode/`) |
+| TFT_eSPI 2.5: its ILI9341_2 start-up sequence for CYD panel clones in `src/hw/display_init_seq.h` (the library itself no longer draws the screen from v0.3.2) | MIT (per library.json) | Bodmer, [Bodmer/TFT_eSPI](https://github.com/Bodmer/TFT_eSPI) | in the library |
 | ArduinoJson 7 | MIT | © Benoît Blanchon, [arduinojson.org](https://arduinojson.org) | in the library |
 | ESPAsyncWebServer 3.12, AsyncTCP 3.5 | LGPL-3.0 | [ESP32Async](https://github.com/ESP32Async) | in the library; QRPickle's full source is public, so the firmware can be relinked with modified versions |
 | Adafruit BME280 Library | BSD | © Adafruit Industries | in the library |
@@ -27,6 +28,10 @@ QRPickle's own code is MIT-licensed (see [`License`](License)). The firmware and
 | Arduino-ESP32 core 3.3.12 (platform `https://github.com/pioarduino/platform-espressif32/releases/download/55.03.312/platform-espressif32.zip`) | LGPL-2.1 | © Espressif Systems and contributors | [espressif/arduino-esp32](https://github.com/espressif/arduino-esp32) |
 | pioarduino platform-espressif32 55.03.312 (build platform) | Apache-2.0 | © pioarduino and contributors | [pioarduino/platform-espressif32](https://github.com/pioarduino/platform-espressif32) |
 | ESP-IDF 5.5 (incl. FreeRTOS, lwIP, mbedTLS 3) | Apache-2.0 (FreeRTOS: MIT, lwIP: BSD) | © Espressif Systems and the respective authors | [espressif/esp-idf](https://github.com/espressif/esp-idf) |
+
+Board pin data in `boards/boards.toml` (screen, touch and LED pins of each CYD model) comes from the boards'
+published definitions, listed per board in [`docs/BOARDS.md`](docs/BOARDS.md); pin numbers are facts, no code is
+copied. Board photos in `boards/img/` are the owner's own or contributed with permission ([`boards/img/README.md`](boards/img/README.md)).
 
 The libraries are fetched by PlatformIO at the versions pinned in `platformio.ini`; their licence files come with them. Image assets and their sources are listed in [`assets/img/SOURCES.md`](assets/img/SOURCES.md).
 
