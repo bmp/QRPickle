@@ -22,14 +22,19 @@ static int16_t off_x = 0, off_y = 0;  // where the 320x240 UI sits on the panel
 #define DRAW_BUF_SIZE (320 * 10)
 alignas(4) static uint8_t draw_buf[DRAW_BUF_SIZE * 2];
 
+// When the screen has the SPI bus to itself (touch on another bus), the bus is claimed once after the
+// start-up instead of for every strip: each claim reconfigures the SPI unit and cost ~0.5 ms per strip
+// (24 strips per full redraw). Boards whose touch shares the bus claim it per transfer.
+static bool bus_owned = false;
+
 static void begin_write() {
-    lcd_spi.beginTransaction(LCD_SPI);
+    if (!bus_owned) lcd_spi.beginTransaction(LCD_SPI);
     digitalWrite(pin_cs, LOW);
 }
 
 static void end_write() {
     digitalWrite(pin_cs, HIGH);
-    lcd_spi.endTransaction();
+    if (!bus_owned) lcd_spi.endTransaction();
 }
 
 // Inside a transaction: a command byte (DC low), then data follows with DC high.
@@ -68,7 +73,14 @@ static void window(int32_t x1, int32_t y1, int32_t x2, int32_t y2) {
     lcd_spi.writeBytes(ra, 4);
 }
 
+#ifdef QRP_BENCH
+uint32_t display_flush_us = 0;  // time spent sending pixels (display_bench.cpp)
+#endif
+
 static void flush_cb(lv_display_t* disp, const lv_area_t* area, uint8_t* px_map) {
+#ifdef QRP_BENCH
+    const uint32_t t0 = micros();
+#endif
 #ifdef QRP_SCREEN_TOOLS
     screen_tools::on_flush(area->x1, area->y1, area->x2, area->y2, px_map);
 #endif
@@ -78,6 +90,9 @@ static void flush_cb(lv_display_t* disp, const lv_area_t* area, uint8_t* px_map)
     cmd(0x2C);
     lcd_spi.writePixels(px_map, n * 2);
     end_write();
+#ifdef QRP_BENCH
+    display_flush_us += micros() - t0;
+#endif
     lv_display_flush_ready(disp);
 }
 
@@ -132,6 +147,10 @@ void display_init() {
     clear_panel(b.width, b.height);
     command(0x29);  // display on
     delay(20);
+    if (b.touch != hw::TouchType::XPT2046Shared) {
+        lcd_spi.beginTransaction(LCD_SPI);  // held for good: nothing else uses this bus
+        bus_owned = true;
+    }
 
     Serial.println("  [Display Sub-Check] Initializing LVGL core subsystem structures (lv_init)..."); Serial.flush();
     lv_init();
