@@ -5,7 +5,7 @@ import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 const { buildSettings, chunks, parseReply, runSetup, MAX_DATA, openLinePort, closeLinePort, resultText } =
     require("../../web-installer/setup-usb.js");
-const { serialSupport } = require("../../web-installer/setup-usb.js");
+const { serialSupport, readBoard } = require("../../web-installer/setup-usb.js");
 
 const bytes = s => new TextEncoder().encode(s).length;
 
@@ -43,7 +43,7 @@ assert.equal(parseReply("[Wi-Fi] Disconnected, reason 8"), null);
 // ---- runSetup against a fake board ------------------------------------------------------------
 // The fake answers like the firmware; time is simulated (readLine with nothing to read advances
 // the clock by its timeout instead of waiting).
-function fakeBoard({ readyAfterMs = 0, busyTimes = 0, silent = false, restart = false } = {}) {
+function fakeBoard({ readyAfterMs = 0, busyTimes = 0, silent = false, restart = false, info = undefined } = {}) {
     let clock = 0, busy = busyTimes, json = "", want = 0, seq = 0;
     const out = [], sent = [];
     return {
@@ -52,7 +52,8 @@ function fakeBoard({ readyAfterMs = 0, busyTimes = 0, silent = false, restart = 
             sent.push(line);
             if (silent) return;
             const m = line.match(/^QRPSETUP (\w+) ?(\d+)? ?(.*)$/s);
-            if (m[1] === "HELLO") { if (clock >= readyAfterMs) out.push("[boot log line]", "QRPSETUP READY v0.3.1"); }
+            if (m[1] === "HELLO") { if (clock >= readyAfterMs) out.push("[boot log line]", `QRPSETUP READY ${info ? "v0.3.2" : "v0.3.1"}`); }
+            else if (m[1] === "INFO") out.push(info ? `QRPSETUP BOARD ${JSON.stringify(info)}` : "QRPSETUP ERR command");
             else if (m[1] === "BEGIN") { want = +m[2]; json = ""; seq = 0; out.push("QRPSETUP ACK BEGIN"); }
             else if (m[1] === "DATA") {
                 if (+m[2] !== seq) { out.push("QRPSETUP ERR seq"); return; }
@@ -93,6 +94,26 @@ await assert.rejects(runSetup(b, { unit_temp: 1 }, opts(b)), /too old|no answer/
 
 b = fakeBoard({ busyTimes: 100 });  // busy for more than 30 s
 await assert.rejects(runSetup(b, { unit_temp: 1 }, opts(b)), /busy/i);
+
+// ---- v0.3.2: the board's details (INFO) and the board choice --------------------------------------
+const INFO = { id: "2432S028R-2USB", name: "ESP32-2432S028R (2.8\", USB-C + micro-USB)", status: "tested",
+               decision_code: "detected", rddid: "8181B3", rdid4: "FFFFFF", rdid4_indexed: "FFFFFF", fw: "v0.3.2" };
+assert.deepEqual(parseReply(`QRPSETUP BOARD ${JSON.stringify(INFO)}`), { type: "board", info: INFO });
+assert.equal(parseReply("QRPSETUP BOARD {not json"), null);
+b = fakeBoard({ info: INFO, readyAfterMs: 2000 });
+assert.deepEqual(await readBoard(b, opts(b)), { version: "v0.3.2", info: INFO });
+assert.ok(b.sent.includes("QRPSETUP INFO"));
+b = fakeBoard();  // v0.3.1: doesn't know INFO
+assert.deepEqual(await readBoard(b, opts(b)), { version: "v0.3.1", info: null });
+b = fakeBoard({ silent: true });
+await assert.rejects(readBoard(b, opts(b)), /too old|no answer/i);
+// The choice goes with the other settings; "auto" and "" are left out unless chosen explicitly.
+assert.equal(buildSettings({ board: "3248S035R" }).board, "3248S035R");
+assert.equal(buildSettings({ board: "auto" }).board, "auto");
+assert.equal("board" in buildSettings({ board: "" }), false);
+b = fakeBoard({ info: INFO });
+r = await runSetup(b, buildSettings({ callsign: "VU2ABC", board: "3248S035R" }), opts(b));
+assert.equal(b.applied.board, "3248S035R");
 
 // ---- the Web Serial port: lines in, lines out, and a clean close ------------------------------
 // Like Chrome's SerialPort: open() twice throws, close() throws while a stream is locked.

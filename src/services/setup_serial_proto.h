@@ -1,7 +1,7 @@
 #pragma once
 // Setup over USB: the line protocol between the web installer page and the board (host-safe;
 // test/test_setup_serial). Page -> board, one line each, prefix "QRPSETUP ":
-//   HELLO | BEGIN <bytes> | DATA <seq> <text> | APPLY
+//   HELLO | BEGIN <bytes> | DATA <seq> <text> | APPLY | INFO
 // The board answers READY, ACK BEGIN, ACK <seq> or ERR length|seq|timeout|command. The JSON
 // (at most MAX_JSON bytes, chunks of at most MAX_DATA) is malloc'd at BEGIN and freed by done(),
 // an error or the timeout, so the protocol costs no RAM while nobody is setting up.
@@ -16,7 +16,8 @@ namespace services {
 
         enum class Act : uint8_t { None,
                                    Reply,
-                                   Apply };
+                                   Apply,
+                                   Info };  // INFO: the board answers "BOARD <json>" (what it detected)
         struct Result {
             Act act = Act::None;
             char reply[48] = "";

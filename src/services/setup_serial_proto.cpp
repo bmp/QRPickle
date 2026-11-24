@@ -84,6 +84,13 @@ namespace services {
                 return reply(t);
             }
 
+            if (strcmp(cmd, "INFO") == 0) {
+                if (buf) return fail("seq");  // mid-transfer: finish or time out first
+                Result r;
+                r.act = Act::Info;
+                return r;
+            }
+
             if (strcmp(cmd, "APPLY") == 0) {
                 if (!buf) return fail("seq");
                 if (have != want) return fail("length");

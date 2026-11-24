@@ -463,6 +463,19 @@ void test_board_changed() {
     TEST_ASSERT_TRUE(board_changed(a, b));
 }
 
+// Set up over USB sends "board" with the other settings: applied explicitly (not via config_json).
+void test_setup_board_key_not_in_profile() {
+    Config c = base();
+    TEST_ASSERT_TRUE(apply_board_setting(c, "2432S028R-2USB"));
+    TEST_ASSERT_EQUAL_STRING("2432S028R-2USB", c.board);
+    TEST_ASSERT_FALSE(apply_board_setting(c, "<script>"));
+    TEST_ASSERT_EQUAL_STRING("2432S028R-2USB", c.board);  // unchanged on a bad value
+    TEST_ASSERT_FALSE(apply_board_setting(c, nullptr));
+    JsonDocument out;
+    to_json(c, out.to<JsonObject>(), Secrets::Include);
+    TEST_ASSERT_TRUE(out["board"].isNull());  // still never in a profile
+}
+
 int main(int, char**) {
     UNITY_BEGIN();
     RUN_TEST(test_valid_config_is_normalised_not_reverted);
@@ -490,5 +503,6 @@ int main(int, char**) {
     RUN_TEST(test_board_setting_unknown_becomes_auto);
     RUN_TEST(test_board_setting_not_in_json);
     RUN_TEST(test_board_changed);
+    RUN_TEST(test_setup_board_key_not_in_profile);
     return UNITY_END();
 }

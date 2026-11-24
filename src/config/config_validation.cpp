@@ -130,6 +130,13 @@ namespace config {
         return false;
     }
 
+    bool apply_board_setting(Config& c, const char* value) {
+        if (!is_valid_board_setting(value)) return false;
+        strncpy(c.board, value, sizeof(c.board) - 1);
+        c.board[sizeof(c.board) - 1] = '\0';
+        return true;
+    }
+
     void sanitize(Config& c, const Config& prev) {
         terminate(c.callsign);
         terminate(c.grid);

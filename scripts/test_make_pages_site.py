@@ -20,7 +20,7 @@ class Site(unittest.TestCase):
             self.assertTrue(os.path.exists(path), frag)
             text = open(path, encoding="utf-8").read()
             for src in re.findall(r'<script src="\.\./([^"]+)"', text):
-                self.assertIn(src, site.SITE_FILES, f"{frag} loads {src}, which the site doesn't copy")
+                self.assertIn(src, site.SITE_FILES + site.WWW_FILES, f"{frag} loads {src}, which the site doesn't copy")
         self.assertIn(("setup.html", "setup", "Set up over USB"), site.PAGES)
 
     def test_partition_offsets_match_the_fixed_layout(self):

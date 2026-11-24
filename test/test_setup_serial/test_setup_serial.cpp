@@ -87,6 +87,16 @@ void test_timeout_frees_the_transfer() {
     expect_reply(p.line("QRPSETUP DATA 1 de", 31000), "QRPSETUP ERR seq");
 }
 
+// v0.3.2: the page asks what the board detected (Set up over USB shows it and fills the report).
+void test_info_command() {
+    Proto p;
+    const Result r = p.line("QRPSETUP INFO", 0);
+    TEST_ASSERT_EQUAL_INT((int)Act::Info, (int)r.act);
+    // Not in the middle of a transfer: the JSON would be lost.
+    expect_reply(p.line("QRPSETUP BEGIN 10", 10), "QRPSETUP ACK BEGIN");
+    expect_reply(p.line("QRPSETUP INFO", 20), "QRPSETUP ERR seq");
+}
+
 int main(int, char**) {
     UNITY_BEGIN();
     RUN_TEST(test_hello_gets_ready);
@@ -96,5 +106,6 @@ int main(int, char**) {
     RUN_TEST(test_length_errors);
     RUN_TEST(test_other_lines_are_ignored);
     RUN_TEST(test_timeout_frees_the_transfer);
+    RUN_TEST(test_info_command);
     return UNITY_END();
 }

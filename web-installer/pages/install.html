@@ -70,6 +70,23 @@
     <span slot="unsupported" class="note">This browser can't access USB serial ports. Use Chrome or Edge on a computer.</span>
     <span slot="not-allowed" class="note">The installer needs a secure (https) page.</span>
   </esp-web-install-button>
+  <dialog id="board-check" class="board-check" aria-labelledby="board-check-title">
+    <h3 id="board-check-title">Before installing</h3>
+    <p>Turn the CYD over and find the number printed on the back of the board:</p>
+    <img src="../boards/2432S028R-2USB-back.jpg" class="board-photo"
+         alt="The back of an ESP32-2432S028R: the model number is printed on the board">
+    <table class="board-list">
+      <thead><tr><th>Board (number on the back)</th><th>Status</th></tr></thead>
+      <tbody id="board-check-list"><tr><td colspan="2">Loading the board list…</td></tr></tbody>
+    </table>
+    <p class="small"><strong>Tested</strong>: run by the developer. <strong>Untested</strong>: wired up from the maker's
+       data; it should work, please report how it does (the web console's System Info, or Set up over USB).
+       Not listed? It may still work: install, then report it.</p>
+    <p class="board-check-buttons">
+      <button type="button" id="board-check-cancel">Cancel</button>
+      <button type="button" id="board-check-continue" class="install-btn">Continue</button>
+    </p>
+  </dialog>
   <p class="small">Settings live in <code>nvs</code> at <code>0x9000</code>: Full install and Firmware only never write there, so they keep your settings unless you tick "Erase device".</p>
   <p><strong>Installed?</strong> Close the installer's dialog and <a href="../setup/">set up the board over USB</a>
      (callsign, location, WiFi, keys) from this computer, without the hotspot below (v0.3.1 or newer).</p>
@@ -86,6 +103,37 @@
      backup first (web console → Profiles → Download Backup) where available.</p>
 <!-- scripts -->
   <script src="../install-plan.js"></script>
+  <script>
+    // "Before installing" (v0.3.2): check the number on the back first. The dialog sits in front of
+    // ESP Web Tools' own button: a capture listener on the wrapper sees the click first.
+    (() => {
+      const dlg = document.getElementById("board-check");
+      const wrapper = document.getElementById("install");
+      const statusText = s => (s === "tested" ? "Tested" : s === "reported" ? "Reported working" : "Untested");
+      let checked = false;
+      fetch("../boards.json").then(r => r.json()).then(list => {
+        const esc = t => String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+        document.getElementById("board-check-list").innerHTML = (list.boards || [])
+          .map(b => `<tr><td>${esc(b.name)}<br><span class="small">${esc(b.recognise)}${b.touch_note ? " " + esc(b.touch_note[0].toUpperCase() + b.touch_note.slice(1)) + "." : ""}</span></td>` +
+                    `<td>${esc(statusText(b.status))}</td></tr>`).join("");
+      }).catch(() => {
+        document.getElementById("board-check-list").innerHTML = '<tr><td colspan="2">The board list didn\'t load: see the manual.</td></tr>';
+      });
+      wrapper.addEventListener("click", e => {
+        if (checked || !e.target.closest('[slot="activate"]')) return;
+        e.preventDefault();
+        e.stopPropagation();
+        dlg.showModal();
+      }, true);
+      document.getElementById("board-check-cancel").addEventListener("click", () => dlg.close());
+      document.getElementById("board-check-continue").addEventListener("click", () => {
+        dlg.close();
+        checked = true;  // let this click through to ESP Web Tools; ask again on the next visit
+        wrapper.querySelector('[slot="activate"]').click();
+        checked = false;
+      });
+    })();
+  </script>
   <script>
     // versions.json (scripts/make_pages_site.py): versions newest first, and the five images with their
     // addresses (from partitions.csv). Each mode is a manifest built here for ESP Web Tools.

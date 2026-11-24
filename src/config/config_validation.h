@@ -19,6 +19,9 @@ namespace config {
 
     // The board setting: "auto", a board id from boards_gen.h, or "<id>!".
     bool is_valid_board_setting(const char* s);
+    // Sets c.board when value is a valid board setting; false (c unchanged) otherwise.
+    struct Config;
+    bool apply_board_setting(Config& c, const char* value);
 
     // Profile file names: [A-Za-z0-9_-], 1..24 chars (no paths, no markup).
     bool is_valid_profile_name(const char* s);
