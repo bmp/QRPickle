@@ -15,8 +15,8 @@ namespace services {
         static unsigned long last_ldr_read_ms = 0;
         static float smoothed_pwm = 0.0f;
 
-        static bool ready = false;    // the panel is cleared: the backlight may come on
-        static int8_t bl_pin = -1;    // -1: this board's backlight must stay off (board selection)
+        static bool ready = false;  // the panel is cleared: the backlight may come on
+        static int8_t bl_pin = -1;  // -1: this board's backlight must stay off (board selection)
         static bool bl_active_high = true;
         static int ldr_channel = -1;  // ADC1 channel of the light sensor, -1 if the board has none
 
@@ -110,7 +110,7 @@ namespace services {
         void sleep() {
             if (sleeping) return;
             sleeping = true;
-            write_bl(0); 
+            write_bl(0);
             Serial.println("[DisplayManager] Screen asleep.");
         }
 

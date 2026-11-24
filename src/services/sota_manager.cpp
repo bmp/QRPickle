@@ -30,8 +30,8 @@ namespace services {
 
     // Set before the task is created, cleared by the task as its last action.
     static std::atomic<bool> task_alive{false};
-    static std::atomic<bool> link_up{false};          // logged in (task writes, UI reads)
-    static std::atomic<uint32_t> link_since{0};       // UTC epoch of the login, 0 if the clock isn't set
+    static std::atomic<bool> link_up{false};  // logged in (task writes, UI reads)
+    static std::atomic<uint32_t> link_since{0};  // UTC epoch of the login, 0 if the clock isn't set
     static uint32_t last_rx = 0;  // millis() of the last byte received (link_watch.h); task only
     // Guards the spot list while the task reorders it; the UI reads it from loop().
     static portMUX_TYPE spots_mux = portMUX_INITIALIZER_UNLOCKED;

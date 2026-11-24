@@ -7,8 +7,8 @@
 #include <esp_heap_caps.h>
 #include <lvgl.h>
 
-static void bench_cb(lv_timer_t *) {
-    lv_display_t * d = lv_display_get_default();
+static void bench_cb(lv_timer_t*) {
+    lv_display_t* d = lv_display_get_default();
     const int N = 10;
     uint32_t sum = 0, best = UINT32_MAX, worst = 0;
     for (int i = 0; i < N; i++) {
@@ -31,7 +31,7 @@ static void bench_cb(lv_timer_t *) {
 }
 
 void display_bench_start() {
-    lv_timer_t * t = lv_timer_create(bench_cb, 20000, NULL);
+    lv_timer_t* t = lv_timer_create(bench_cb, 20000, NULL);
     lv_timer_set_repeat_count(t, 3);
 }
 #endif

@@ -84,9 +84,9 @@ static void flush_cb(lv_display_t* disp, const lv_area_t* area, uint8_t* px_map)
 static const uint8_t* start_list(hw::PanelInit init) {
     switch (init) {
         case hw::PanelInit::ILI9341: return hw::init_seq::ILI9341;
-        case hw::PanelInit::ST7789: return hw::init_seq::ST7789;
-        case hw::PanelInit::ST7796: return hw::init_seq::ST7796;
-        default: return hw::init_seq::ILI9341_2;
+        case hw::PanelInit::ST7789:  return hw::init_seq::ST7789;
+        case hw::PanelInit::ST7796:  return hw::init_seq::ST7796;
+        default:                     return hw::init_seq::ILI9341_2;
     }
 }
 

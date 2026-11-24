@@ -117,8 +117,7 @@ namespace ui {
                         const hw::BoardDef* b = (const hw::BoardDef*)lv_event_get_user_data(e);
                         save_board(b->id);
                         if (b != &hw::board::active()) restart_soon();
-                        lv_msgbox_close(lv_obj_get_parent(lv_obj_get_parent((lv_obj_t*)lv_event_get_target(e))));
-                    }, LV_EVENT_CLICKED, (void*)&b);
+                        lv_msgbox_close(lv_obj_get_parent(lv_obj_get_parent((lv_obj_t*)lv_event_get_target(e)))); }, LV_EVENT_CLICKED, (void*)&b);
                 }
                 button(m, "Cancel", false, close_box);
             }
@@ -143,8 +142,10 @@ namespace ui {
             // ---- mockup 2: the choice contradicts the screen ----
             void show_mismatch() {
                 char text[220];
-                snprintf(text, sizeof(text), "You chose %s, but the screen reports a different chip. It may not work. "
-                         "Check the number on the back.", hw::board::active().name);
+                snprintf(text, sizeof(text),
+                         "You chose %s, but the screen reports a different chip. It may not work. "
+                         "Check the number on the back.",
+                         hw::board::active().name);
                 lv_obj_t* m = box("Board check", text);  // no warning symbol: not in the icons font
                 button(m, "Use it anyway", false, [](lv_event_t* e) {
                     char v[sizeof(config::Config::board)];
@@ -167,7 +168,8 @@ namespace ui {
                 if (s.warn_mismatch && s.touch_on) show_mismatch();
                 else if (s.ask_confirm) show_confirm();
                 else show_untested();
-            }, 1500, nullptr);
+            },
+                                            1500, nullptr);
             lv_timer_set_repeat_count(t, 1);
         }
 
@@ -181,16 +183,16 @@ namespace ui {
             lv_obj_set_style_bg_color(scr, theme_color(COLOR_BG_APP), 0);
             lv_obj_set_style_bg_opa(scr, LV_OPA_COVER, 0);
             lv_obj_set_clickable(scr, true);
-            lv_obj_add_event_cb(scr, [](lv_event_t* e) { lv_obj_delete((lv_obj_t*)lv_event_get_current_target(e)); },
-                                LV_EVENT_CLICKED, nullptr);
+            lv_obj_add_event_cb(scr, [](lv_event_t* e) { lv_obj_delete((lv_obj_t*)lv_event_get_current_target(e)); }, LV_EVENT_CLICKED, nullptr);
 
             lv_obj_t* l = lv_label_create(scr);
             lv_label_set_long_mode(l, LV_LABEL_LONG_WRAP);
             lv_obj_set_width(l, 118);
             lv_obj_set_style_text_font(l, &font_atkinson_14, 0);
             lv_obj_set_style_text_color(l, theme_color(COLOR_TEXT_MAIN), 0);
-            lv_label_set_text(l, "Scan to report this board\n\nOpens GitHub with the board details filled in. Add the number on "
-                                 "the back and a photo.\n\nTap to close");
+            lv_label_set_text(l,
+                              "Scan to report this board\n\nOpens GitHub with the board details filled in. Add the number on "
+                              "the back and a photo.\n\nTap to close");
             lv_obj_align(l, LV_ALIGN_LEFT_MID, 8, 0);
 
             // Dark on white in every theme, with a light margin: phones read it reliably.

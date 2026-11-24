@@ -6,20 +6,28 @@
 
 namespace hw {
 
-    enum class BoardStatus : uint8_t { Tested, Reported, Mapped };
-    enum class PanelInit : uint8_t { ILI9341_2, ILI9341, ST7789, ST7796 };
-    enum class TouchType : uint8_t { None, XPT2046Own, XPT2046Shared, GT911 };
+    enum class BoardStatus : uint8_t { Tested,
+                                       Reported,
+                                       Mapped };
+    enum class PanelInit : uint8_t { ILI9341_2,
+                                     ILI9341,
+                                     ST7789,
+                                     ST7796 };
+    enum class TouchType : uint8_t { None,
+                                     XPT2046Own,
+                                     XPT2046Shared,
+                                     GT911 };
 
     constexpr int8_t NO_PIN = -1;
     constexpr uint32_t NO_ID = 0xFFFFFFFFu;  // the board's list entry has no such ID
 
     struct BoardDef {
-        const char* id;     // stable key (NVS "board", reports)
+        const char* id;  // stable key (NVS "board", reports)
         const char* model;  // printed on the back
-        const char* name;   // "ESP32-2432S028R (2.8", USB-C + micro-USB)"
+        const char* name;  // "ESP32-2432S028R (2.8", USB-C + micro-USB)"
         BoardStatus status;
-        bool complete;      // every required value present; else never selectable
-        bool addons_v04;    // v0.4 add-ons tested on this board
+        bool complete;  // every required value present; else never selectable
+        bool addons_v04;  // v0.4 add-ons tested on this board
 
         // Screen (landscape, as TFT_eSPI rotation 1)
         PanelInit init;
@@ -38,10 +46,10 @@ namespace hw {
 
         TouchType touch;
         int8_t t_sclk, t_mosi, t_miso, t_cs, t_irq;  // XPT2046 (shared bus: only cs and irq)
-        int8_t t_sda, t_scl, t_rst;                  // I2C touch chips (also for probing)
-        uint8_t t_addr;                              // I2C address, 0 if none
-        int16_t cal[4];                              // XPT2046 x_min, x_max, y_min, y_max
-        const char* touch_note;                      // "" or e.g. "touch not supported yet (CST816S)"
+        int8_t t_sda, t_scl, t_rst;  // I2C touch chips (also for probing)
+        uint8_t t_addr;  // I2C address, 0 if none
+        int16_t cal[4];  // XPT2046 x_min, x_max, y_min, y_max
+        const char* touch_note;  // "" or e.g. "touch not supported yet (CST816S)"
 
         int8_t i2c_sda, i2c_scl;  // module connector; NO_PIN = sensors off
         int8_t ldr_gpio;

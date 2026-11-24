@@ -310,38 +310,38 @@ void web_server_init() {
 
     // The board (v0.3.2): what was detected and the "board" setting. Not part of /api/config, profiles
     // or backups (it describes the hardware); changing it restarts the board.
-    server.on("/api/board", HTTP_GET, [](AsyncWebServerRequest *request) {
+    server.on("/api/board", HTTP_GET, [](AsyncWebServerRequest* request) {
         REQUIRE_AUTH(request);
         JsonDocument doc;
         hw::board::to_json(doc.to<JsonObject>());
-        AsyncResponseStream *response = request->beginResponseStream("application/json");
+        AsyncResponseStream* response = request->beginResponseStream("application/json");
         serializeJson(doc, *response);
         request->send(response);
     });
 
     server.on("/api/board", HTTP_POST, auth_gate, nullptr,
-             [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
-                 if (!authorized(request)) return;
-                 const char* body = collect_body(request, data, len, index, total);
-                 if (!body) return;
-                 JsonDocument doc;
-                 char board[sizeof(config::Config::board)] = "";
-                 if (deserializeJson(doc, body, total) || !doc["board"].is<const char*>()) {
-                     request->send(400, "application/json", "{\"status\":\"malformed\"}");
-                     return;
-                 }
-                 services::copy_str(board, doc["board"]);
-                 if (!config::is_valid_board_setting(board)) {
-                     request->send(400, "application/json", "{\"status\":\"unknown_board\"}");
-                     return;
-                 }
-                 auto* c = new config::Config(config::get());
-                 strlcpy(c->board, board, sizeof(c->board));
-                 const bool restart = config::board_changed(config::get(), *c);
-                 queue_config(c);
-                 request->send(200, "application/json",
-                               restart ? "{\"status\":\"success\",\"restart\":true}" : "{\"status\":\"success\"}");
-             });
+              [](AsyncWebServerRequest* request, uint8_t* data, size_t len, size_t index, size_t total) {
+                  if (!authorized(request)) return;
+                  const char* body = collect_body(request, data, len, index, total);
+                  if (!body) return;
+                  JsonDocument doc;
+                  char board[sizeof(config::Config::board)] = "";
+                  if (deserializeJson(doc, body, total) || !doc["board"].is<const char*>()) {
+                      request->send(400, "application/json", "{\"status\":\"malformed\"}");
+                      return;
+                  }
+                  services::copy_str(board, doc["board"]);
+                  if (!config::is_valid_board_setting(board)) {
+                      request->send(400, "application/json", "{\"status\":\"unknown_board\"}");
+                      return;
+                  }
+                  auto* c = new config::Config(config::get());
+                  strlcpy(c->board, board, sizeof(c->board));
+                  const bool restart = config::board_changed(config::get(), *c);
+                  queue_config(c);
+                  request->send(200, "application/json",
+                                restart ? "{\"status\":\"success\",\"restart\":true}" : "{\"status\":\"success\"}");
+              });
 
     server.on("/api/config", HTTP_GET, [](AsyncWebServerRequest *request) {
         REQUIRE_AUTH(request);

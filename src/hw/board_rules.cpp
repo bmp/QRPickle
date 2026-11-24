@@ -45,13 +45,13 @@ namespace hw {
 
         const char* decision_name(Decision d) {
             switch (d) {
-                case Decision::Detected: return "detected";
-                case Decision::Chosen: return "chosen";
+                case Decision::Detected:     return "detected";
+                case Decision::Chosen:       return "chosen";
                 case Decision::ChosenAnyway: return "chosen anyway";
-                case Decision::Mismatch: return "mismatch";
-                case Decision::Upgrade: return "kept from v0.3.1";
-                case Decision::Ambiguous: return "ambiguous";
-                default: return "unknown";
+                case Decision::Mismatch:     return "mismatch";
+                case Decision::Upgrade:      return "kept from v0.3.1";
+                case Decision::Ambiguous:    return "ambiguous";
+                default:                     return "unknown";
             }
         }
 
@@ -128,13 +128,13 @@ namespace hw {
 
         const char* decision_code(Decision d) {
             switch (d) {
-                case Decision::Detected: return "detected";
-                case Decision::Chosen: return "chosen";
+                case Decision::Detected:     return "detected";
+                case Decision::Chosen:       return "chosen";
                 case Decision::ChosenAnyway: return "anyway";
-                case Decision::Mismatch: return "mismatch";
-                case Decision::Upgrade: return "upgrade";
-                case Decision::Ambiguous: return "ambiguous";
-                default: return "unknown";
+                case Decision::Mismatch:     return "mismatch";
+                case Decision::Upgrade:      return "upgrade";
+                case Decision::Ambiguous:    return "ambiguous";
+                default:                     return "unknown";
             }
         }
 

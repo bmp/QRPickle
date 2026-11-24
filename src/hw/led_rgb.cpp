@@ -1,6 +1,6 @@
 #include "../core/crashlog.h"
 #include "led_rgb.h"
-#include "../services/display_manager.h" 
+#include "../services/display_manager.h"
 
 #include "boards_gen.h"
 

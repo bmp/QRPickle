@@ -427,18 +427,34 @@ void test_wifi_changed() {
 // accepted the "screen reports a different chip" warning). Anything else falls back to "auto".
 void test_board_setting_valid_values_kept() {
     Config prev = base(), c = base();
-    strcpy(c.board, "auto"); sanitize(c, prev); TEST_ASSERT_EQUAL_STRING("auto", c.board);
-    strcpy(c.board, "2432S028R-2USB"); sanitize(c, prev); TEST_ASSERT_EQUAL_STRING("2432S028R-2USB", c.board);
-    strcpy(c.board, "3248S035R!"); sanitize(c, prev); TEST_ASSERT_EQUAL_STRING("3248S035R!", c.board);
+    strcpy(c.board, "auto");
+    sanitize(c, prev);
+    TEST_ASSERT_EQUAL_STRING("auto", c.board);
+    strcpy(c.board, "2432S028R-2USB");
+    sanitize(c, prev);
+    TEST_ASSERT_EQUAL_STRING("2432S028R-2USB", c.board);
+    strcpy(c.board, "3248S035R!");
+    sanitize(c, prev);
+    TEST_ASSERT_EQUAL_STRING("3248S035R!", c.board);
 }
 
 void test_board_setting_unknown_becomes_auto() {
     Config prev = base(), c = base();
-    strcpy(c.board, "nope"); sanitize(c, prev); TEST_ASSERT_EQUAL_STRING("auto", c.board);
-    strcpy(c.board, "nope!"); sanitize(c, prev); TEST_ASSERT_EQUAL_STRING("auto", c.board);
-    strcpy(c.board, ""); sanitize(c, prev); TEST_ASSERT_EQUAL_STRING("auto", c.board);
-    strcpy(c.board, "auto!"); sanitize(c, prev); TEST_ASSERT_EQUAL_STRING("auto", c.board);
-    memset(c.board, 'x', sizeof(c.board)); sanitize(c, prev); TEST_ASSERT_EQUAL_STRING("auto", c.board);
+    strcpy(c.board, "nope");
+    sanitize(c, prev);
+    TEST_ASSERT_EQUAL_STRING("auto", c.board);
+    strcpy(c.board, "nope!");
+    sanitize(c, prev);
+    TEST_ASSERT_EQUAL_STRING("auto", c.board);
+    strcpy(c.board, "");
+    sanitize(c, prev);
+    TEST_ASSERT_EQUAL_STRING("auto", c.board);
+    strcpy(c.board, "auto!");
+    sanitize(c, prev);
+    TEST_ASSERT_EQUAL_STRING("auto", c.board);
+    memset(c.board, 'x', sizeof(c.board));
+    sanitize(c, prev);
+    TEST_ASSERT_EQUAL_STRING("auto", c.board);
 }
 
 void test_board_setting_not_in_json() {
@@ -457,7 +473,8 @@ void test_board_setting_not_in_json() {
 
 void test_board_changed() {
     Config a = base(), b = base();
-    strcpy(a.board, "auto"); strcpy(b.board, "auto");
+    strcpy(a.board, "auto");
+    strcpy(b.board, "auto");
     TEST_ASSERT_FALSE(board_changed(a, b));
     strcpy(b.board, "2432S028R-2USB");
     TEST_ASSERT_TRUE(board_changed(a, b));

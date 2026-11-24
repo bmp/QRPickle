@@ -188,7 +188,8 @@ namespace hw {
             out["id"] = b.id;
             out["model"] = b.model;
             out["name"] = b.name;
-            out["status"] = b.status == BoardStatus::Tested ? "tested" : b.status == BoardStatus::Reported ? "reported" : "mapped";
+            out["status"] = b.status == BoardStatus::Tested ? "tested" : b.status == BoardStatus::Reported ? "reported"
+                                                                                                           : "mapped";
             out["decision"] = rules::decision_name(sel.decision);
             out["decision_code"] = rules::decision_code(sel.decision);
             out["setting"] = config::get().board;

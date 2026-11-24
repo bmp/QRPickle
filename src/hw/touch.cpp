@@ -100,7 +100,8 @@ void touch_init() {
                 break;
         }
     }
-    Serial.printf("[Touch] %s\n", xpt ? "XPT2046" : use_gt911 ? "GT911" : "off (no supported touch chip)");
+    Serial.printf("[Touch] %s\n", xpt ? "XPT2046" : use_gt911 ? "GT911"
+                                                              : "off (no supported touch chip)");
 
     lv_indev_t* indev = lv_indev_create();
     lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);

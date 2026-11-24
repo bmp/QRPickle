@@ -13,15 +13,41 @@ void tearDown() {}
 
 static BoardDef fixture(const char* id, uint32_t rddid, uint32_t rdid4, int8_t bl, TouchType touch, uint8_t t_addr = 0) {
     BoardDef b{};
-    b.id = id; b.model = id; b.name = id; b.status = BoardStatus::Mapped; b.complete = true;
-    b.init = PanelInit::ILI9341; b.rddid = rddid; b.rdid4 = rdid4;
-    b.width = 320; b.height = 240; b.swap_xy = true; b.bgr = true;
-    b.sclk = 14; b.mosi = 13; b.miso = 12; b.cs = 15; b.dc = 2;
-    b.bl_pin = bl; b.bl_active_high = true;
-    b.led_r = 4; b.led_g = 16; b.led_b = 17; b.led_active_low = true;
-    b.touch = touch; b.t_cs = 33; b.t_irq = 36; b.t_addr = t_addr;
-    b.t_sda = t_addr ? 33 : NO_PIN; b.t_scl = t_addr ? 32 : NO_PIN; b.t_rst = t_addr ? 25 : NO_PIN;
-    b.i2c_sda = 27; b.i2c_scl = 22; b.ldr_gpio = 34; b.sd_cs = 5; b.touch_note = "";
+    b.id = id;
+    b.model = id;
+    b.name = id;
+    b.status = BoardStatus::Mapped;
+    b.complete = true;
+    b.init = PanelInit::ILI9341;
+    b.rddid = rddid;
+    b.rdid4 = rdid4;
+    b.width = 320;
+    b.height = 240;
+    b.swap_xy = true;
+    b.bgr = true;
+    b.sclk = 14;
+    b.mosi = 13;
+    b.miso = 12;
+    b.cs = 15;
+    b.dc = 2;
+    b.bl_pin = bl;
+    b.bl_active_high = true;
+    b.led_r = 4;
+    b.led_g = 16;
+    b.led_b = 17;
+    b.led_active_low = true;
+    b.touch = touch;
+    b.t_cs = 33;
+    b.t_irq = 36;
+    b.t_addr = t_addr;
+    b.t_sda = t_addr ? 33 : NO_PIN;
+    b.t_scl = t_addr ? 32 : NO_PIN;
+    b.t_rst = t_addr ? 25 : NO_PIN;
+    b.i2c_sda = 27;
+    b.i2c_scl = 22;
+    b.ldr_gpio = 34;
+    b.sd_cs = 5;
+    b.touch_note = "";
     return b;
 }
 
@@ -69,7 +95,7 @@ void test_auto_ambiguous_fresh_safe() {
     Selection s = sel({0x858552, 0, 0}, "auto");
     TEST_ASSERT_EQUAL((int)Decision::Ambiguous, (int)s.decision);
     TEST_ASSERT_EQUAL(3, s.n_candidates);  // R, C, NT
-    TEST_ASSERT_FALSE(s.backlight_on);    // 27 vs 21: the candidates disagree
+    TEST_ASSERT_FALSE(s.backlight_on);  // 27 vs 21: the candidates disagree
     TEST_ASSERT_FALSE(s.sensors_on);
     TEST_ASSERT_FALSE(s.touch_on);
     TEST_ASSERT_FALSE(s.ask_confirm);
@@ -85,16 +111,21 @@ void test_auto_ambiguous_same_bl_keeps_backlight() {
 }
 
 void test_probe_resolves_ambiguity() {
-    Probes p; p.i2c_addr = 0x5D; p.xpt_shared = 0;
+    Probes p;
+    p.i2c_addr = 0x5D;
+    p.xpt_shared = 0;
     Selection s = sel({0x858552, 0, 0}, "auto", false, p);
     TEST_ASSERT_EQUAL(2, s.board);  // C: the GT911 answered
     TEST_ASSERT_EQUAL((int)Decision::Detected, (int)s.decision);
-    Probes q; q.i2c_addr = 0; q.xpt_shared = 1;
+    Probes q;
+    q.i2c_addr = 0;
+    q.xpt_shared = 1;
     TEST_ASSERT_EQUAL(1, sel({0x858552, 0, 0}, "auto", false, q).board);  // R
 }
 
 void test_probe_that_rules_out_everything_is_ignored() {
-    Probes p; p.i2c_addr = 0x14;  // nothing in the list uses 0x14
+    Probes p;
+    p.i2c_addr = 0x14;  // nothing in the list uses 0x14
     Selection s = sel({0x858552, 0, 0}, "auto", false, p);
     TEST_ASSERT_EQUAL(3, s.n_candidates);
 }
@@ -141,7 +172,7 @@ void test_choice_contradicts_warns() {
     TEST_ASSERT_EQUAL((int)Decision::Mismatch, (int)s.decision);
     TEST_ASSERT_TRUE(s.warn_mismatch);
     TEST_ASSERT_EQUAL_UINT64(1ull << 21, s.pins_off);  // C is a candidate: its interrupt is on 21
-    TEST_ASSERT_FALSE(s.backlight_on);                  // OWN's backlight is GPIO21
+    TEST_ASSERT_FALSE(s.backlight_on);  // OWN's backlight is GPIO21
 }
 
 void test_choice_anyway_no_warning() {
@@ -185,13 +216,18 @@ void test_readable() {
 
 void test_touch_offset_maps_into_ui() {
     BoardDef big = B[3];
-    big.width = 480; big.height = 320; big.ui_x = 80; big.ui_y = 40;
+    big.width = 480;
+    big.height = 320;
+    big.ui_x = 80;
+    big.ui_y = 40;
     int ux, uy;
     TEST_ASSERT_TRUE(map_touch(big, 240, 160, &ux, &uy));
-    TEST_ASSERT_EQUAL(160, ux); TEST_ASSERT_EQUAL(120, uy);
+    TEST_ASSERT_EQUAL(160, ux);
+    TEST_ASSERT_EQUAL(120, uy);
     TEST_ASSERT_FALSE(map_touch(big, 10, 10, &ux, &uy));  // in the border
     TEST_ASSERT_TRUE(map_touch(B[0], 319, 239, &ux, &uy));
-    TEST_ASSERT_EQUAL(319, ux); TEST_ASSERT_EQUAL(239, uy);
+    TEST_ASSERT_EQUAL(319, ux);
+    TEST_ASSERT_EQUAL(239, uy);
 }
 
 // The real list (boards/boards.toml): the owner's board is recognised by its measured ID alone.
@@ -212,7 +248,10 @@ void test_real_list_ili9341_ambiguous_until_probed() {
     PanelIds ili{0, 0xFFFFFF, 0x009341};
     Selection s = select(BOARDS, BOARD_COUNT, BOARD_CONFLICT, ili, NOPROBE, "auto", false, BOARD_FALLBACK);
     TEST_ASSERT_EQUAL((int)Decision::Ambiguous, (int)s.decision);  // 2.8" one-USB, 2.4" R, 2.4" C
-    Probes p; p.i2c_addr = 0; p.xpt_shared = 0; p.xpt_own = 1;
+    Probes p;
+    p.i2c_addr = 0;
+    p.xpt_shared = 0;
+    p.xpt_own = 1;
     Selection t = select(BOARDS, BOARD_COUNT, BOARD_CONFLICT, ili, p, "auto", false, BOARD_FALLBACK);
     TEST_ASSERT_EQUAL((int)Decision::Detected, (int)t.decision);
     TEST_ASSERT_EQUAL_STRING("2432S028R", BOARDS[t.board].id);
@@ -220,11 +259,15 @@ void test_real_list_ili9341_ambiguous_until_probed() {
 
 void test_qr_url_exact_and_short() {
     char buf[200];
-    Probes p; p.i2c_addr = 0; p.xpt_own = 1;
+    Probes p;
+    p.i2c_addr = 0;
+    p.xpt_own = 1;
     size_t n = report_qr_url(buf, sizeof(buf), "v0.3.2", "2432S028R-2USB", {0x8181B3, 0xFFFFFF, 0},
                              Decision::ChosenAnyway, p);
-    TEST_ASSERT_EQUAL_STRING("https://github.com/bmp/QRPickle/issues/new?template=board_report.yml&fw=v0.3.2"
-                             "&board=2432S028R-2USB&ids=8181B3-FFFFFF-000000&decision=anyway&touch=0.1.-1", buf);
+    TEST_ASSERT_EQUAL_STRING(
+        "https://github.com/bmp/QRPickle/issues/new?template=board_report.yml&fw=v0.3.2"
+        "&board=2432S028R-2USB&ids=8181B3-FFFFFF-000000&decision=anyway&touch=0.1.-1",
+        buf);
     TEST_ASSERT_EQUAL(strlen(buf), n);
     TEST_ASSERT_TRUE(n <= 170);  // QR version 9 (medium ECC, 180 B): 53 dots, 3 px each on 180 px
     // Longest board id and fw, worst probes: still within 170.

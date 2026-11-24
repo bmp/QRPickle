@@ -12,8 +12,8 @@ namespace hw {
         // What the screen answered. A value of 0x000000 or 0xFFFFFF means no answer (data-out not
         // connected, or a chip that doesn't support the command).
         struct PanelIds {
-            uint32_t rddid;          // 0x04, 24 bits after one dummy clock
-            uint32_t rdid4_direct;   // 0xD3 read directly (ST7796)
+            uint32_t rddid;  // 0x04, 24 bits after one dummy clock
+            uint32_t rdid4_direct;  // 0xD3 read directly (ST7796)
             uint32_t rdid4_indexed;  // 0xD3 read through the 0xD9 index (ILI9341)
         };
         bool readable(const PanelIds& ids);
@@ -26,25 +26,25 @@ namespace hw {
         };
 
         enum class Decision : uint8_t {
-            Detected,      // auto, exactly one board matched
-            Chosen,        // the user's choice (screen agrees, or can't tell)
+            Detected,  // auto, exactly one board matched
+            Chosen,  // the user's choice (screen agrees, or can't tell)
             ChosenAnyway,  // the user's choice although the screen disagrees ("<id>!")
-            Mismatch,      // the user's choice, the screen disagrees, not accepted yet: warn
-            Upgrade,       // auto, settings from before v0.3.2, not sure: drive the screen as v0.3.1 did
-            Ambiguous,     // auto, several boards matched (fresh install): safe mode
-            Unknown,       // auto, no board matched (fresh install): safe mode
+            Mismatch,  // the user's choice, the screen disagrees, not accepted yet: warn
+            Upgrade,  // auto, settings from before v0.3.2, not sure: drive the screen as v0.3.1 did
+            Ambiguous,  // auto, several boards matched (fresh install): safe mode
+            Unknown,  // auto, no board matched (fresh install): safe mode
         };
         const char* decision_name(Decision d);  // for people: "kept from v0.3.1"
         const char* decision_code(Decision d);  // one word, for links and the issue form: "upgrade"
 
         struct Selection {
-            int board = 0;          // index into the board list; always valid
+            int board = 0;  // index into the board list; always valid
             Decision decision = Decision::Unknown;
             uint64_t pins_off = 0;  // GPIOs never driven (bit n = GPIO n)
-            bool ask_confirm = false;    // "Detected X: check the number on the back" (touch boards only)
+            bool ask_confirm = false;  // "Detected X: check the number on the back" (touch boards only)
             bool warn_mismatch = false;  // the choice contradicts the screen and wasn't accepted
             bool backlight_on = true;
-            bool sensors_on = true;      // module I2C (BME280, v0.4 add-ons)
+            bool sensors_on = true;  // module I2C (BME280, v0.4 add-ons)
             bool touch_on = true;
             bool setting_unknown = false;  // the stored setting named a board that isn't in the list
             uint8_t n_candidates = 0;
