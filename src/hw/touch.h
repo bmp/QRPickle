@@ -5,4 +5,7 @@
 // Initializes the dedicated touch SPI bus and registers the input tracking pointer device with the LVGL engine.
 void touch_init();
 
+// true when the board has a touch chip QRPickle drives (false: no tap can wake the screen)
+bool touch_available();
+
 #endif // TOUCH_H

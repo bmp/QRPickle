@@ -1,6 +1,7 @@
 #include "display_manager.h"
 #include "../config/config.h"
 #include "../hw/board.h"
+#include "../hw/touch.h"
 #include <lvgl.h>
 #include <driver/adc.h>
 
@@ -62,21 +63,17 @@ namespace services {
         void update() {
             if (sleeping) return;
 
-            // Pull dynamic timer target from active configuration
-            uint32_t timeout_min = config::get().screen_timeout_min;
-            
-            // 0 means manual sleep only (bypass inactivity checks entirely)
-            if (timeout_min == 0) return;
-
-            if (timeout_min > 0) {
-                uint32_t timeout_ms = timeout_min * 60000;
-                if (lv_display_get_inactive_time(lv_display_get_default()) > timeout_ms) {
-                    sleep();
-                    return; // Stop processing if we went to sleep
-                }
+            // Sleep after the configured idle time. 0 = manual sleep only. Without a working touch chip
+            // nothing could wake the screen again, so it never sleeps by itself there. (Before v0.3.2 a
+            // timeout of 0 also returned here and so skipped the brightness logic below.)
+            const uint32_t timeout_min = config::get().screen_timeout_min;
+            if (timeout_min > 0 && touch_available() &&
+                lv_display_get_inactive_time(lv_display_get_default()) > timeout_min * 60000) {
+                sleep();
+                return;
             }
 
-            // 2. LDR Auto-Brightness Logic (Runs every 15 seconds)
+            // LDR Auto-Brightness Logic (Runs every 15 seconds)
             if (config::get().auto_brightness && ldr_channel >= 0) {
                 if (millis() - last_ldr_read_ms > 15000) {
                     last_ldr_read_ms = millis();
@@ -107,12 +104,6 @@ namespace services {
 
                     Serial.printf("[Display] Manual Mode | PWM Restored: %d\n", last_manual_write);
                 }
-            }
-
-            uint32_t timeout_ms = timeout_min * 60000;
-
-            if (lv_display_get_inactive_time(lv_display_get_default()) > timeout_ms) {
-                sleep();
             }
         }
 

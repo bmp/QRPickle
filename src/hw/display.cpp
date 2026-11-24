@@ -154,3 +154,5 @@ void display_init() {
 }
 
 void display_wait_idle() {}
+
+SPIClass& display_spi() { return lcd_spi; }

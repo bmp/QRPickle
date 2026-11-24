@@ -9,6 +9,10 @@ void display_init();
 
 // Services the LVGL internal timer task handler and increments systemic tick timings inside the main runtime loop
 
+// The screen's SPI bus object: touch chips that share the bus (XPT2046 on the R boards) use it too.
+class SPIClass;
+SPIClass& display_spi();
+
 // Waits until the last pixel transfer has finished (no-op: transfers are blocking).
 void display_wait_idle();
 #ifdef QRP_BENCH

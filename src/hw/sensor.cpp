@@ -1,17 +1,21 @@
 #include "sensor.h"
+#include "board.h"
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
-
-// Standard physical hardware pin mappings for the external CN1 port on the CYD board
-#define I2C_SDA 27
-#define I2C_SCL 22
 
 static Adafruit_BME280 bme;
 static bool sensor_online = false;
 
 void sensor_init() {
-    Wire.begin(I2C_SDA, I2C_SCL);
+    // The module connector's I2C pins come from the board (CN1 on the 2.8" boards: IO27/IO22). Boards
+    // without a mapped connector, or a board in doubt, leave the sensor off.
+    const hw::BoardDef& b = hw::board::active();
+    if (!hw::board::selection().sensors_on || b.i2c_sda < 0 || b.i2c_scl < 0) {
+        Serial.println("[Sensor] Module connector not mapped for this board; BME280 off.");
+        return;
+    }
+    Wire.begin(b.i2c_sda, b.i2c_scl);
 
     // Attempt connection on either standard default I2C slave address addresses (0x76 or 0x77)
     if (bme.begin(0x76, &Wire) || bme.begin(0x77, &Wire)) {
