@@ -1,5 +1,6 @@
 #include "config_validation.h"
 #include "config.h"
+#include "../hw/boards_gen.h"
 #include <ctype.h>
 #include <string.h>
 
@@ -118,6 +119,17 @@ namespace config {
 
     template <size_t N> static void terminate(char (&s)[N]) { s[N - 1] = '\0'; }
 
+    bool is_valid_board_setting(const char* s) {
+        if (!s) return false;
+        if (strcmp(s, "auto") == 0) return true;
+        size_t n = strnlen(s, 24);
+        if (n == 0 || n >= 24) return false;
+        if (s[n - 1] == '!') n--;
+        for (size_t i = 0; i < hw::BOARD_COUNT; i++)
+            if (strlen(hw::BOARDS[i].id) == n && strncmp(hw::BOARDS[i].id, s, n) == 0) return true;
+        return false;
+    }
+
     void sanitize(Config& c, const Config& prev) {
         terminate(c.callsign);
         terminate(c.grid);
@@ -135,6 +147,8 @@ namespace config {
         for (auto& m : c.aprs_macros) terminate(m);
         terminate(c.hamalert_password);
         terminate(c.admin_password);
+        terminate(c.board);
+        if (!is_valid_board_setting(c.board)) strcpy(c.board, "auto");
 
         if (!normalize_callsign(c.callsign, sizeof(c.callsign))) memcpy(c.callsign, prev.callsign, sizeof(c.callsign));
         if (!normalize_grid(c.grid, sizeof(c.grid))) memcpy(c.grid, prev.grid, sizeof(c.grid));

@@ -11,6 +11,7 @@ namespace config {
     // The single live config (review 1.10: replaces a heap pointer behind `#define cfg`).
     static Config cfg;
     static bool initialized = false;
+    static bool upgrade = false;  // settings from before v0.3.2 (no board key): see is_upgrade()
 
     // One table drives NVS load and save (review 1.9). NVS keys are unchanged so existing
     // devices keep their settings. Add a field here once instead of in two lists.
@@ -66,6 +67,7 @@ namespace config {
         FIELD_STR_AT("mac4", aprs_macros, 4),
         FIELD("ham_pass",   STR,  hamalert_password),
         FIELD("admin_pw",   STR,  admin_password),
+        FIELD("board",      STR,  board),
     };
     #undef FIELD
     #undef FIELD_STR_AT
@@ -155,6 +157,7 @@ namespace config {
         strncpy(cfg.aprs_macros[4], "Testing APRS-IS link.", sizeof(cfg.aprs_macros[4]) - 1);
 
         cfg.hamalert_password[0] = '\0';
+        strncpy(cfg.board, "auto", sizeof(cfg.board) - 1);
     }
 
     void load() {
@@ -164,9 +167,12 @@ namespace config {
         p.begin(NS, true);
         // Settings exist once a callsign has been saved; the admin password is managed on its own.
         const bool has_settings = p.isKey("callsign");
+        // Settings from before v0.3.2 have no board key: the board selection keeps v0.3.1's screen.
+        upgrade = has_settings && !p.isKey("board");
         for (const Field& f : FIELDS) {
-            bool is_admin = strcmp(f.key, "admin_pw") == 0;
-            if ((has_settings || is_admin) && p.isKey(f.key)) read_field(p, f);
+            // The admin password and the board can be set before any other setting (USB setup).
+            bool standalone = strcmp(f.key, "admin_pw") == 0 || strcmp(f.key, "board") == 0;
+            if ((has_settings || standalone) && p.isKey(f.key)) read_field(p, f);
         }
         // Upgrade from v0.2.3 (no marker yet): lat/lon other than the factory values were entered.
         if (has_settings && !p.isKey("ll_set")) cfg.latlon_set = cfg.lat != DEFAULT_LAT || cfg.lon != DEFAULT_LON;
@@ -186,7 +192,11 @@ namespace config {
         cfg.brightness   = clamp_brightness((int)cfg.brightness);
         cfg.theme_id     = clamp_theme_id((int)cfg.theme_id);
         cfg.tz_offset_hh = clamp_tz_hh((int)cfg.tz_offset_hh);
+        cfg.board[sizeof(cfg.board) - 1] = '\0';
+        if (!is_valid_board_setting(cfg.board)) strncpy(cfg.board, "auto", sizeof(cfg.board));
     }
+
+    bool is_upgrade() { return upgrade; }
 
     void save() {
         if (!initialized) return;

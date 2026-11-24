@@ -87,6 +87,11 @@ namespace config {
 
         // Web console login (user "admin") and setup-AP WPA2 key. Generated on first boot.
         char admin_password[17];
+
+        // Which board this is (boards/boards.toml): "auto" (detect at boot), a board id, or "<id>!"
+        // (the user kept their choice although the screen reported a different chip). Hardware, not a
+        // preference: kept out of config_json, so never in /api/config, profiles or backups.
+        char board[24];
     };
 
     // The display settings in one byte. Screens that redraw only when their data changes keep
@@ -94,6 +99,11 @@ namespace config {
     inline uint8_t display_units_key(const Config& c) {
         return (uint8_t)((c.unit_temp & 1) | (c.unit_pres & 1) << 1 | (c.unit_wind & 3) << 2 | (c.unit_dist & 1) << 4 |
                          (c.clock_12h ? 1 : 0) << 5);
+    }
+
+    // The board's pins are fixed at boot, so a changed board setting restarts the board.
+    inline bool board_changed(const Config& a, const Config& b) {
+        return strncmp(a.board, b.board, sizeof(a.board)) != 0;
     }
 
     // New WiFi details take effect only after a restart (in the first-setup hotspot the board
@@ -105,6 +115,9 @@ namespace config {
 
     void load();
     void save();
+    // True when the stored settings predate v0.3.2 (they have no board key yet): the board selection
+    // then keeps the screen as v0.3.1 drove it. Valid after load().
+    bool is_upgrade();
     const Config& get();
     Config& mutable_get();
     void reset_to_defaults();

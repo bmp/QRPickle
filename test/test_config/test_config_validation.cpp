@@ -18,6 +18,7 @@ static Config base() {
     c.brightness = 100; c.theme_id = 1; c.tz_offset_hh = 11; c.screen_timeout_min = 5;
     c.lat = 12.9f; c.lon = 77.6f; c.dx_port_primary = 7300; c.dx_port_secondary = 7373;
     c.aprs_ssid = 7; strcpy(c.admin_password, "abcd2345");
+    strcpy(c.board, "auto");
     return c;
 }
 
@@ -422,6 +423,46 @@ void test_wifi_changed() {
     TEST_ASSERT_TRUE(wifi_changed(empty, a));
 }
 
+// v0.3.2: the board setting is "auto", a board id from boards/boards.toml, or "<id>!" (the user
+// accepted the "screen reports a different chip" warning). Anything else falls back to "auto".
+void test_board_setting_valid_values_kept() {
+    Config prev = base(), c = base();
+    strcpy(c.board, "auto"); sanitize(c, prev); TEST_ASSERT_EQUAL_STRING("auto", c.board);
+    strcpy(c.board, "2432S028R-2USB"); sanitize(c, prev); TEST_ASSERT_EQUAL_STRING("2432S028R-2USB", c.board);
+    strcpy(c.board, "3248S035R!"); sanitize(c, prev); TEST_ASSERT_EQUAL_STRING("3248S035R!", c.board);
+}
+
+void test_board_setting_unknown_becomes_auto() {
+    Config prev = base(), c = base();
+    strcpy(c.board, "nope"); sanitize(c, prev); TEST_ASSERT_EQUAL_STRING("auto", c.board);
+    strcpy(c.board, "nope!"); sanitize(c, prev); TEST_ASSERT_EQUAL_STRING("auto", c.board);
+    strcpy(c.board, ""); sanitize(c, prev); TEST_ASSERT_EQUAL_STRING("auto", c.board);
+    strcpy(c.board, "auto!"); sanitize(c, prev); TEST_ASSERT_EQUAL_STRING("auto", c.board);
+    memset(c.board, 'x', sizeof(c.board)); sanitize(c, prev); TEST_ASSERT_EQUAL_STRING("auto", c.board);
+}
+
+void test_board_setting_not_in_json() {
+    Config c = base();
+    strcpy(c.board, "3248S035R!");
+    JsonDocument a, b;
+    to_json(c, a.to<JsonObject>(), Secrets::Include);
+    to_json(c, b.to<JsonObject>(), Secrets::Mask);
+    TEST_ASSERT_TRUE(a["board"].isNull());  // not in profiles or backups
+    TEST_ASSERT_TRUE(b["board"].isNull());  // not in /api/config (it has /api/board)
+    JsonDocument in;
+    in["board"] = "2432S028R";
+    from_json(c, in.as<JsonObjectConst>());
+    TEST_ASSERT_EQUAL_STRING("3248S035R!", c.board);  // a profile can't change it
+}
+
+void test_board_changed() {
+    Config a = base(), b = base();
+    strcpy(a.board, "auto"); strcpy(b.board, "auto");
+    TEST_ASSERT_FALSE(board_changed(a, b));
+    strcpy(b.board, "2432S028R-2USB");
+    TEST_ASSERT_TRUE(board_changed(a, b));
+}
+
 int main(int, char**) {
     UNITY_BEGIN();
     RUN_TEST(test_valid_config_is_normalised_not_reverted);
@@ -445,5 +486,9 @@ int main(int, char**) {
     RUN_TEST(test_units_missing_keys_keep_live);
     RUN_TEST(test_display_units_key_changes_with_each_setting);
     RUN_TEST(test_wifi_changed);
+    RUN_TEST(test_board_setting_valid_values_kept);
+    RUN_TEST(test_board_setting_unknown_becomes_auto);
+    RUN_TEST(test_board_setting_not_in_json);
+    RUN_TEST(test_board_changed);
     return UNITY_END();
 }
