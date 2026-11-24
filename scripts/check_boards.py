@@ -88,6 +88,13 @@ def check(data, root=gen_boards.ROOT):
                 errors.append(f"{bid}: GPIO{pin} used twice ({seen[pin]} and {role})")
             seen.setdefault(pin, role)
 
+    # The screen ID is read on the screen's SPI pins before the board is known: every board must use
+    # the same ones, or detection would drive another board's pins.
+    spi = {tuple(b.get("screen", {}).get(k) for k in ("sclk", "mosi", "miso", "cs", "dc")) for b in boards}
+    if len(spi) > 1:
+        errors.append(f"screen SPI pins differ between boards {sorted(spi, key=str)}: detection reads the "
+                      "screen ID on them before the board is known (src/hw/board.cpp)")
+
     # The status LED starts before the board is known (boot faults stay visible): every board must
     # have it on the same pins, or the LED would drive another board's pins.
     leds = {(b.get("led", {}).get("r"), b.get("led", {}).get("g"), b.get("led", {}).get("b"),

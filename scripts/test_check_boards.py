@@ -116,6 +116,13 @@ def test_led_pins_must_match():
 
 
 @case
+def test_screen_pins_must_match():
+    other = board(id="B")
+    other["screen"] = dict(other["screen"], dc=4)
+    has(data(board(), other), "screen SPI pins differ")
+
+
+@case
 def test_conflict_chip_output_vs_backlight():
     # A: a touch chip drives GPIO21 (interrupt output), backlight on 27.
     a = board(id="A", backlight={"pin": 27, "active_high": True}, chip_outputs=[12, 21])
