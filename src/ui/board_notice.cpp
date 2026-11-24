@@ -7,6 +7,7 @@
 #include "../core/metadata.h"
 #include <Arduino.h>
 #include <Preferences.h>
+#include <src/libs/qrcode/qrcodegen.h>
 
 namespace ui {
     namespace board_notice {
@@ -14,6 +15,38 @@ namespace ui {
         namespace {
             constexpr const char* NS = "qrp_board";  // NVS: which firmware version already showed the notice
             constexpr uint32_t NO_TOUCH_CLOSE_MS = 30000;
+
+            constexpr int QR_MAX_VERSION = 10;  // up to 213 bytes at medium error correction
+            constexpr int QR_PX = 190;          // white square incl. the quiet zone
+            uint8_t qr_modules[qrcodegen_BUFFER_LEN_FOR_VERSION(QR_MAX_VERSION)];
+
+            void draw_qr(lv_event_t* e) {
+                lv_obj_t* obj = (lv_obj_t*)lv_event_get_current_target(e);
+                lv_layer_t* layer = lv_event_get_layer(e);
+                const int n = qrcodegen_getSize(qr_modules);
+                const int scale = QR_PX / (n + 4);  // at least 2 modules of quiet zone on each side
+                lv_area_t box;
+                lv_obj_get_coords(obj, &box);
+                const int x0 = box.x1 + (QR_PX - n * scale) / 2, y0 = box.y1 + (QR_PX - n * scale) / 2;
+                lv_draw_rect_dsc_t d;
+                lv_draw_rect_dsc_init(&d);
+                d.bg_color = lv_color_black();
+                d.bg_opa = LV_OPA_COVER;
+                d.radius = 0;
+                for (int y = 0; y < n; y++) {
+                    for (int x = 0; x < n;) {
+                        if (!qrcodegen_getModule(qr_modules, x, y)) {
+                            x++;
+                            continue;
+                        }
+                        int run = x;
+                        while (run < n && qrcodegen_getModule(qr_modules, run, y)) run++;
+                        lv_area_t a = {x0 + x * scale, y0 + y * scale, x0 + run * scale - 1, y0 + y * scale + scale - 1};
+                        lv_draw_rect(layer, &d, &a);
+                        x = run;
+                    }
+                }
+            }
 
             void restart_soon() {
                 lv_timer_create([](lv_timer_t*) { ESP.restart(); }, 600, nullptr);
@@ -187,7 +220,7 @@ namespace ui {
 
             lv_obj_t* l = lv_label_create(scr);
             lv_label_set_long_mode(l, LV_LABEL_LONG_WRAP);
-            lv_obj_set_width(l, 118);
+            lv_obj_set_width(l, 104);
             lv_obj_set_style_text_font(l, &font_atkinson_14, 0);
             lv_obj_set_style_text_color(l, theme_color(COLOR_TEXT_MAIN), 0);
             lv_label_set_text(l,
@@ -195,39 +228,38 @@ namespace ui {
                               "the back and a photo.\n\nTap to close");
             lv_obj_align(l, LV_ALIGN_LEFT_MID, 8, 0);
 
-            // Dark on white in every theme, with a light margin: phones read it reliably.
-            lv_obj_t* qr = lv_qrcode_create(scr);
-            lv_qrcode_set_size(qr, 180);
-            lv_qrcode_set_dark_color(qr, lv_color_black());
-            lv_qrcode_set_light_color(qr, lv_color_white());
-            lv_qrcode_update(qr, url, strlen(url));
-            lv_obj_set_style_border_color(qr, lv_color_white(), 0);
-            lv_obj_set_style_border_width(qr, 6, 0);
+            // Dark modules on white, drawn as rectangles (runs per row). LVGL's QR widget renders a
+            // 1-bit image that LVGL 9 can only draw after converting it to 32-bit colour (~129 KB for
+            // 180 px), far beyond this board's heap; qrcodegen's bitmap here is ~400 bytes.
+            uint8_t temp[qrcodegen_BUFFER_LEN_FOR_VERSION(QR_MAX_VERSION)];
+            if (!qrcodegen_encodeText(url, temp, qr_modules, qrcodegen_Ecc_MEDIUM, 1, QR_MAX_VERSION, qrcodegen_Mask_AUTO,
+                                      false))
+                return;
+            lv_obj_t* qr = lv_obj_create(scr);
+            lv_obj_remove_style_all(qr);
+            lv_obj_set_size(qr, QR_PX, QR_PX);
+            lv_obj_set_style_bg_color(qr, lv_color_white(), 0);
+            lv_obj_set_style_bg_opa(qr, LV_OPA_COVER, 0);
+            lv_obj_add_event_cb(qr, draw_qr, LV_EVENT_DRAW_MAIN, nullptr);
             lv_obj_align(qr, LV_ALIGN_RIGHT_MID, -8, 0);
         }
 
         int add_network_line(lv_obj_t* page, int y) {
             if (!untested()) return 0;
+            // One line, tappable when the board has touch: the Reconnect/Scan buttons start ~16 px below.
             lv_obj_t* l = lv_label_create(page);
-            char t[64];
-            snprintf(t, sizeof(t), "Board: %s (untested)", hw::board::active().model);
+            char t[72];
+            snprintf(t, sizeof(t), "%s untested%s", hw::board::active().model,
+                     hw::board::selection().touch_on ? " - tap to report" : ": report in the web console");
             lv_label_set_text(l, t);
             lv_obj_set_style_text_font(l, &font_jetbrains_10, 0);
             lv_obj_set_style_text_color(l, theme_color(COLOR_STATUS_WARN), 0);
-            lv_obj_align(l, LV_ALIGN_TOP_LEFT, 20, y + 6);
-            if (!hw::board::selection().touch_on) return 26;
-            lv_obj_t* b = lv_button_create(page);
-            lv_obj_set_size(b, 70, 24);
-            lv_obj_align(b, LV_ALIGN_TOP_RIGHT, -12, y);
-            lv_obj_set_style_bg_color(b, theme_color(COLOR_BG_BAR), 0);
-            lv_obj_set_style_border_color(b, theme_color(COLOR_BORDER), 0);
-            lv_obj_set_style_border_width(b, 1, 0);
-            lv_obj_t* bl = lv_label_create(b);
-            lv_label_set_text(bl, "Report");
-            lv_obj_set_style_text_color(bl, theme_color(COLOR_TEXT_MAIN), 0);
-            lv_obj_center(bl);
-            lv_obj_add_event_cb(b, [](lv_event_t*) { show_report_code(); }, LV_EVENT_CLICKED, nullptr);
-            return 26;
+            lv_obj_align(l, LV_ALIGN_TOP_LEFT, 20, y);
+            if (hw::board::selection().touch_on) {
+                lv_obj_set_clickable(l, true);
+                lv_obj_add_event_cb(l, [](lv_event_t*) { show_report_code(); }, LV_EVENT_CLICKED, nullptr);
+            }
+            return 14;
         }
 
     }  // namespace board_notice

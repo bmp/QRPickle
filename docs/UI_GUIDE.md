@@ -168,10 +168,12 @@ available parts (a "switch" can be a checkbox; a "list" a flex column of buttons
   symbol in the title: `LV_SYMBOL_WARNING` isn't in the icons font.
 - **Untested board:** once per firmware version (NVS `qrp_board/note_fw`): [Show report code] [Later];
   without touch the text points to the web console or USB and closes after 30 s.
-- **Report code:** full screen on `lv_layer_top()`, text left, QR code 180 px right (dark on white in every
-  theme, white margin); a tap closes it.
-- The Network screen gets a "Board: <model> (untested)" line with [Report] only on untested boards, so a
-  tested board's screens stay pixel-identical.
+- **Report code:** full screen on `lv_layer_top()`, text left (104 px), QR code right in a 190 px white
+  square (dark on white in every theme). Drawn from qrcodegen's modules as rectangles (runs per row): LVGL's
+  QR widget renders a 1-bit image that LVGL 9 converts to 32-bit colour to draw (~129 KB for 180 px), which
+  showed as a black square. No extra LVGL memory. A tap closes it.
+- The Network screen gets a "<model> untested - tap to report" line in the free band above the stats, only
+  on untested boards, so a tested board's screens stay pixel-identical.
 
 ## Dashboard and tiles
 
