@@ -125,7 +125,7 @@ QRPickle's own code is MIT-licensed (see [`License`](License)). The fonts are un
 
 ## Libraries & Frameworks
 
-Arduino-ESP32 3.3 (ESP-IDF 5.5) and LVGL 9.6; the libraries and their versions are listed in
+The Arduino core, ESP-IDF, LVGL and the other libraries, with their versions and licences, are listed in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ---
@@ -136,15 +136,17 @@ This project utilizes a heavily customized partition table (`partitions.csv`) to
 
 The full flash map, from the start of the chip. The bootloader and the partition table sit at fixed addresses before the first partition; the rest comes from `partitions.csv`:
 
+<!-- BEGIN generated: partitions (scripts/gen_flash_docs.py from partitions.csv) -->
 | Address | Region | Size | Contents | Written at install |
 | :--- | :--- | :--- | :--- | :--- |
-| `0x001000` | Bootloader | | ESP32 second-stage bootloader | `bootloader.bin` |
-| `0x008000` | Partition table | | The table below | `partitions.bin` |
+| `0x001000` | Bootloader |  | ESP32 second-stage bootloader | `bootloader.bin` |
+| `0x008000` | Partition table |  | The table below | `partitions.bin` |
 | `0x009000` | **`nvs`** | `0x005000` (20 KB) | Settings: WiFi, callsign, keys, admin password | Kept (cleared only by "Erase device") |
 | `0x00E000` | **`otadata`** | `0x002000` (8 KB) | Which app slot boots (`app0` or `app1`) | `boot_app0.bin` (boot `app0`) |
 | `0x010000` | **`app0`** | `0x1C0000` (1.75 MB) | Firmware slot 1 | `firmware.bin` |
 | `0x1D0000` | **`app1`** | `0x1C0000` (1.75 MB) | Firmware slot 2: updates (web upload or Cloud OTA) are written to whichever slot isn't running, so a failed update can roll back | Not written |
 | `0x390000` | **`spiffs`** | `0x070000` (448 KB) | LittleFS: web console (`www/`), images, about text, saved profiles | `littlefs.bin` |
+<!-- END generated: partitions -->
 
 The installer and the manual flashing steps below use exactly these addresses for every version. Changing `partitions.csv` breaks OTA for devices already in use.
 
@@ -247,9 +249,12 @@ into download mode by itself there). Other Chromium-based browsers on Linux may 
 2. Open the **[Espressif Web Flasher Tool](https://espressif.github.io/esptool-js/)**.
 3. Set your baud rate to `921600` and click **Connect**.
 4. Add the release files to the flash tool using their exact partition offsets:
+   <!-- BEGIN generated: flash offsets (scripts/gen_flash_docs.py from partitions.csv) -->
    * **`0x1000`** ➔ `bootloader.bin`
    * **`0x8000`** ➔ `partitions.bin`
+   * **`0xE000`** ➔ `boot_app0.bin`
    * **`0x10000`** ➔ `firmware.bin`
    * **`0x390000`** ➔ `littlefs.bin`
+   <!-- END generated: flash offsets -->
 5. Click **Program** and wait for the process to finish. The device will automatically reboot into QRPickle!
 6. And the device should boot up, and create a WiFi access-point called `QRPickle-Setup` protected with the admin password shown on the device's **Network** screen (see [Web Console Login](#web-console-login)).

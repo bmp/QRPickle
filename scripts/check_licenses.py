@@ -41,6 +41,14 @@ def lib_name(dep):
     return dep.split("/")[-1]
 
 
+def notice_version(cell, name):
+    """The version written right after the library's name in a notices cell ("LVGL 9.6", "Sgp4
+    (Hopperpop) 1.0.3", "..., AsyncTCP 3.5"), or None when the row doesn't state one."""
+    words = re.escape(name).replace(r"\ ", r"[\s_]+")
+    m = re.search(rf"{words}(?:\s+Library)?(?:\s*\([^)]*\))?\s+v?(\d+(?:\.\d+)*)\b", cell, re.I)
+    return m.group(1) if m else None
+
+
 def declared_licence(lib_dir):
     path = os.path.join(lib_dir, "library.json")
     if os.path.exists(path):
@@ -101,8 +109,14 @@ def check(root):
 
     # 1. Declared libraries.
     for dep in filter(None, (d.strip() for d in env.get("lib_deps", "").splitlines())):
-        if not row_for(lib_name(dep)):
+        row = row_for(lib_name(dep))
+        if not row:
             errors.append(f"lib_deps '{lib_name(dep)}' is not in {NOTICES}")
+            continue
+        pin = dep.split("@", 1)[1].split(";")[0].strip() if "@" in dep else None
+        written = notice_version(row.split("|")[1], lib_name(dep))
+        if pin and written and not (pin + ".").startswith(written + "."):
+            errors.append(f"{NOTICES} says {lib_name(dep)} {written}, platformio.ini pins {pin}")
 
     # 2. Fetched libraries (only after PlatformIO installed them) and their declared licence.
     libdeps = os.path.join(root, ".pio", "libdeps", "cyd")
