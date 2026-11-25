@@ -1,44 +1,13 @@
 <!-- title: Set up QRPickle over USB -->
   <h2>Set up QRPickle over USB</h2>
 <p>Send your callsign, location, WiFi and keys to a CYD on the USB cable, straight from this page, without
-   joining its <code>QRPickle-Setup</code> hotspot, and check which board it is (v0.3.2 or newer). Works with QRPickle v0.3.1 or newer, in
+   joining its <code>QRPickle-Setup</code> hotspot. Works with QRPickle v0.3.1 or newer, in
    <strong>Chrome or Edge</strong> on a computer. Nothing you type here leaves your computer except over the
    USB cable to the board.</p>
 <p class="small">Fields you leave empty keep what the board has. Everything else (profiles, APRS, DX servers,
    screen cycling) is in the web console afterwards.</p>
 
 <form id="setup-form" class="setup" onsubmit="return false;">
-  <fieldset>
-    <legend>Board</legend>
-    <p class="small">Turn the CYD over and find the number printed on the back
-       (<a href="#" id="board-photo-link">where to look</a>), then check it matches what the board detected.
-       The <a href="https://github.com/bmp/QRPickle/blob/main/docs/BOARDS.md">board list</a> shows which boards are tested.</p>
-    <img id="board-photo" class="board-photo hidden" src="../boards/2432S028R-2USB-back.jpg"
-         alt="The back of an ESP32-2432S028R: the model number is printed on the board">
-    <p><button id="read-board" type="button">Read the board over USB</button></p>
-    <div id="board-found" class="msg msg-info hidden" role="status"></div>
-    <label>Board <select id="board">
-      <option value="">Keep the board's setting</option>
-      <option value="auto">Auto-detect (recommended)</option>
-    </select></label>
-    <p class="small">Choosing a board restarts the CYD after sending (v0.3.2 or newer).</p>
-    <div id="board-report" class="hidden">
-      <p><strong>Report this board</strong>: opens GitHub's "Board report" form with the details filled in; you
-         sign in, attach a photo of the back and submit. Nothing is sent from this page.</p>
-      <label>Number printed on the back <input id="board-back" maxlength="40" placeholder="e.g. ESP32-2432S028R"></label>
-      <div class="board-works">What works:
-        <label class="check"><input type="checkbox" data-work="picture"> Picture</label>
-        <label class="check"><input type="checkbox" data-work="colours"> Colours</label>
-        <label class="check"><input type="checkbox" data-work="orientation"> Right way up</label>
-        <label class="check"><input type="checkbox" data-work="touch"> Touch</label>
-        <label class="check"><input type="checkbox" data-work="backlight"> Backlight</label>
-        <label class="check"><input type="checkbox" data-work="led"> LED</label>
-        <label class="check"><input type="checkbox" data-work="sensor"> Sensor</label>
-      </div>
-      <label>Notes <textarea id="board-notes" rows="3" maxlength="2000"></textarea></label>
-      <p><button id="board-report-open" type="button">Open report on GitHub</button></p>
-    </div>
-  </fieldset>
   <fieldset>
     <legend>Station</legend>
     <label>Callsign <input id="callsign" maxlength="11" autocomplete="off"></label>
@@ -69,6 +38,36 @@
     <label>OpenWeather API key <input id="apikey" maxlength="39" autocomplete="off"></label>
     <label>HamAlert password <input id="hamalert_pass" type="password" maxlength="32" autocomplete="off"></label>
     <label>APRS-IS passcode <input id="aprs_pass" type="password" maxlength="7" autocomplete="off"></label>
+  </fieldset>
+  <fieldset>
+    <legend>Board (only if the screen stays dark or shows the wrong board)</legend>
+    <p class="small">Read what the board detected; choose it only if that's wrong (the number printed on the
+       back, <a href="#" id="board-photo-link">where to look</a>), and report boards that aren't tested yet.</p>
+    <img id="board-photo" class="board-photo hidden" src="../boards/2432S028R-2USB-back.jpg"
+         alt="The back of an ESP32-2432S028R: the model number is printed on the board">
+    <p><button id="read-board" type="button">Read the board over USB</button></p>
+    <div id="board-found" class="msg msg-info hidden" role="status"></div>
+    <label>Board <select id="board">
+      <option value="">Keep the board's setting</option>
+      <option value="auto">Auto-detect (recommended)</option>
+    </select></label>
+    <p class="small">Choosing a board restarts the CYD after sending (v0.3.2 or newer).</p>
+    <div id="board-report" class="hidden">
+      <p><strong>Report this board</strong>: opens GitHub's "Board report" form with the details filled in; you
+         sign in, attach a photo of the back and submit. Nothing is sent from this page.</p>
+      <label>Number printed on the back <input id="board-back" maxlength="40" placeholder="e.g. ESP32-2432S028R"></label>
+      <div class="board-works">What works:
+        <label class="check"><input type="checkbox" data-work="picture"> Picture</label>
+        <label class="check"><input type="checkbox" data-work="colours"> Colours</label>
+        <label class="check"><input type="checkbox" data-work="orientation"> Right way up</label>
+        <label class="check"><input type="checkbox" data-work="touch"> Touch</label>
+        <label class="check"><input type="checkbox" data-work="backlight"> Backlight</label>
+        <label class="check"><input type="checkbox" data-work="led"> LED</label>
+        <label class="check"><input type="checkbox" data-work="sensor"> Sensor</label>
+      </div>
+      <label>Notes <textarea id="board-notes" rows="3" maxlength="2000"></textarea></label>
+      <p><button id="board-report-open" type="button">Open report on GitHub</button></p>
+    </div>
   </fieldset>
   <p><button id="send" class="install-btn" type="button">Connect and send</button></p>
 </form>
