@@ -17,7 +17,7 @@ namespace ui {
             constexpr uint32_t NO_TOUCH_CLOSE_MS = 30000;
 
             constexpr int QR_MAX_VERSION = 10;  // up to 213 bytes at medium error correction
-            constexpr int QR_PX = 190;          // white square incl. the quiet zone
+            constexpr int QR_PX = 190;  // white square incl. the quiet zone
             uint8_t qr_modules[qrcodegen_BUFFER_LEN_FOR_VERSION(QR_MAX_VERSION)];
 
             void draw_qr(lv_event_t* e) {

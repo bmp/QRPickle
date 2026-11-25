@@ -8,9 +8,10 @@ import re
 import unittest
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
-# Deliberate gaps: the APRS macros have their own NVS keys; the admin password is never in JSON.
+# Deliberate gaps: the APRS macros have their own NVS keys; the admin password is never in JSON; the
+# board setting describes the hardware, so it stays out of profiles and backups (/api/board, v0.3.2).
 NOT_IN_NVS_TABLE = {"aprs_macros"}
-NOT_IN_JSON = {"admin_password"}
+NOT_IN_JSON = {"admin_password", "board"}
 
 
 def read(path):
