@@ -52,12 +52,11 @@ The release build must **not** use the `cyd-debug` environment, `-DQRP_TEST_CRAS
 Nothing here is automatic; tick each one that applies before the version bump.
 
 **Single source of truth** (CLAUDE.md lists the sources):
-- [ ] Changed facts were edited only at their source and regenerated (`gen_boards.py`, `gen_flash_docs.py`, `gen_data_flow.py`); the build's checks pass.
+- [ ] Changed facts were edited only at their source and regenerated (`gen_boards.py`, `gen_flash_docs.py`, `gen_data_flow.py`, `gen_features.py`); the build's checks pass.
 - [ ] No doc or website page repeats a generated fact by hand (tested boards, versions, addresses, sizes); it links instead.
 
 **Features** (whenever one is added, changed or removed in this release):
-- [ ] `README.md` → **Features and Data Sources**: the screen's row (what it shows, where its data comes from) and the bullets under the table. The manual (PDF and the website's Manual page) is built from the README, so it follows.
-- [ ] `web-installer/pages/home.html` → **Features** list on the website's home page.
+- [ ] `docs/features.toml`: the screen's row (what it shows, where its data comes from) or the feature's bullet, and its `home` line for the website. Then `python3 -I scripts/gen_features.py`; the README section, the manual and the website's home list all follow (the build checks the README).
 - [ ] `docs/SETUP.md` (**First-time Setup**, also a manual chapter): new or changed settings, accounts a service needs, first-start steps, menu or button names, and the troubleshooting table.
 - [ ] A changed download, background job, list or screen visit: `src/services/sources.h` and `docs/DATA_FLOW.md` (`python3 -I scripts/gen_data_flow.py`; the build checks they match).
 - [ ] A new data source or library: `THIRD_PARTY_NOTICES.md` (the build's licence check catches libraries, not web services).

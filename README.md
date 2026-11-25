@@ -72,8 +72,8 @@ Saved secrets (WiFi password, API keys, passcodes) are never shown again in the 
 
 ## Features and Data Sources
 
-What each screen shows and where its data comes from. Accounts and keys are entered in the web
-console and stay on the device.
+<!-- BEGIN generated: features (scripts/gen_features.py from docs/features.toml) -->
+What each screen shows and where its data comes from. Accounts and keys are entered in the web console and stay on the device.
 
 | Screen | What it shows | Data from |
 | :--- | :--- | :--- |
@@ -106,6 +106,7 @@ console and stay on the device.
 * One network session at a time and streamed JSON parsing keep HTTPS (about 40 KB per session) within memory; long-running work runs in background tasks, never in the UI loop ([memory budget](docs/MEMORY.md)).
 * WiFi transmit power is capped (15 dBm) to avoid brownouts on the CYD's regulator.
 * Guides for hardware, releasing, debugging and assets: [docs/](docs/README.md).
+<!-- END generated: features -->
 
 ---
 

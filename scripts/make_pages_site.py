@@ -26,6 +26,9 @@ import subprocess
 import sys
 import tempfile
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import gen_features  # noqa: E402  (the feature list: docs/features.toml)
+
 PARTITIONS_CSV = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "partitions.csv")
 
 
@@ -144,6 +147,8 @@ def render_pages(out, ref):
         if m:
             head, text = m.group(1).rstrip(), text.replace(m.group(0), "")
         body, _, scripts = text.partition("<!-- scripts -->\n")
+        if "{{FEATURES}}" in body:  # the feature list's single source: docs/features.toml
+            body = body.replace("{{FEATURES}}", gen_features.home_html(gen_features.load(REPO_ROOT)))
         if "{{MANUAL}}" in body:
             body = body.replace("{{MANUAL}}", manual_html(ref))
         root = "../" if folder else ""

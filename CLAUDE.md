@@ -33,6 +33,7 @@ Build guards and tests:
 - `scripts/gzip_data.py` (pre-build) builds the LittleFS image from a staged copy of `data/` with `www/*.html|js|css|svg|json` gzipped (103KB → 26KB); the server sends the `.gz` files with `Content-Encoding: gzip`. It also appends the About tab's software list generated from `THIRD_PARTY_NOTICES.md` (`scripts/about_credits.py`) to the staged `about.txt`. Edit the plain files in `data/`; never commit `.gz`.
 - `scripts/check_boards.py` (pre-build, also standalone) fails the build when `boards/boards.toml` breaks a rule (ids, required values, flash/input-only pins, pins used twice, statuses, sources, photos; identical LED and screen pins on every board, which start before detection) or a generated file is out of date (run `python3 -I scripts/gen_boards.py`). It also computes the pin-conflict table. Tests: `scripts/test_check_boards.py`.
 - `scripts/check_flash_docs.py` (pre-build, also standalone) fails the build when the flash layout in README.md or docs/RELEASING.md differs from `partitions.csv` (run `python3 -I scripts/gen_flash_docs.py`). Tests: `scripts/test_flash_docs.py`.
+- `scripts/check_features.py` (pre-build, also standalone) fails the build when README.md's feature section differs from `docs/features.toml` (run `python3 -I scripts/gen_features.py`). Tests: `scripts/test_features.py`.
 - `scripts/check_lvgl_usage.py` (pre-build, also standalone) fails the build when code uses an LVGL widget switched off in `include/lv_conf.h`, or an `LV_SYMBOL_*` missing from the icons-only font (`scripts/build_fonts.sh`). What is switched off: `docs/UI_GUIDE.md`.
 - `scripts/check_size.py` (post-build) fails if static DRAM headroom is under 4KB or the image is over 95% of the OTA slot.
 - Native unit tests (host): `test/test_parsers` (SOTA cluster, APRS parsing, version compare, solarxml + fetch schedule, sun/grid, band rating model, HamAlert spot lines) `test/test_config` (validation, profile names, the JSON field table) `test/test_led` (status LED colours and timings from `src/hw/led_pattern`) `test/test_units` (display units and local time, `src/core/units`), `test/test_setup_serial` (the Setup over USB line protocol, `src/services/setup_serial_proto`) and `test/test_boards` (board selection rules, `src/hw/board_rules`). The native env compiles only the host-safe sources in `build_src_filter`; tests may `#include` other host-safe `.cpp` files directly. `test_filter` takes one pattern per line.
@@ -49,12 +50,12 @@ Each fact lives in one file; every other place is generated from it or only link
 | Downloads, background jobs, refreshes | `src/services/sources.h` | `gen_data_flow.py` → `docs/DATA_FLOW.md`; `check_data_flow.py` |
 | Libraries, versions, licences | `THIRD_PARTY_NOTICES.md` (versions = `platformio.ini` pins) | `check_licenses.py` (names, licences, versions); About tab via `about_credits.py`. Other docs link to it, no own lists |
 | Firmware version | `FW_VERSION` in `src/core/metadata.h` | CI checks the tag and the CHANGELOG section |
+| Features (README section, website home list) | `docs/features.toml` | `gen_features.py` → README section; `make_pages_site.py` builds the home list from it; `check_features.py` |
 | Settings | `config_json` field table | `/api/config` and profiles |
 
 Rules:
 - Prose names no generated fact (which board is tested, versions, addresses, sizes): link to the source or its generated doc.
 - A new fact that more than one doc needs gets a source and a generator with a `--check` (pre-build + CI) before it is used twice.
-- Still kept by hand in several places (check together, `docs/RELEASING.md` step 1b): the feature list (README table, `web-installer/pages/home.html`, `docs/SETUP.md`).
 
 Open work, owner checks and known gaps: `docs/TASKS.md` (the single tracker; don't add new TODO files).
 
@@ -80,7 +81,7 @@ Current gaps (don't assume these work):
 
 ## Release process (important)
 
-Work happens on a branch per release from `main` (`release/vX.Y.Z`), merged by pull request; personal notes stay in the gitignored `docs/private/` (never commit them, never rewrite history to hide files). Release notes are the `CHANGELOG.md` section for the version (`scripts/release_notes.py`). When a feature is added, changed or removed, update the README's **Features and Data Sources** table, the website's feature list (`web-installer/pages/home.html`) and the first-time setup guide (`docs/SETUP.md`) where settings, accounts or first-start steps change; new or changed screens also need their screenshots and the screen tour (checklist: `docs/RELEASING.md` step 1b). Releases happen **only** when a `v*` tag matching `FW_VERSION` (`src/core/metadata.h`) is pushed. CI checks the tag, runs the tests, builds, publishes `firmware.bin`, `firmware.bin.sha256` and `littlefs.bin` to the Release, and deploys GitHub Pages (`ota/`, `install/`). Pushing to `main` does not release; `ci.yml` checks every push and PR. Never push tags without explicit confirmation. Full procedure: `docs/RELEASING.md`.
+Work happens on a branch per release from `main` (`release/vX.Y.Z`), merged by pull request; personal notes stay in the gitignored `docs/private/` (never commit them, never rewrite history to hide files). Release notes are the `CHANGELOG.md` section for the version (`scripts/release_notes.py`). When a feature is added, changed or removed, edit `docs/features.toml` (it generates the README's **Features and Data Sources** section and the website's feature list) and the first-time setup guide (`docs/SETUP.md`) where settings, accounts or first-start steps change; new or changed screens also need their screenshots and the screen tour (checklist: `docs/RELEASING.md` step 1b). Releases happen **only** when a `v*` tag matching `FW_VERSION` (`src/core/metadata.h`) is pushed. CI checks the tag, runs the tests, builds, publishes `firmware.bin`, `firmware.bin.sha256` and `littlefs.bin` to the Release, and deploys GitHub Pages (`ota/`, `install/`). Pushing to `main` does not release; `ci.yml` checks every push and PR. Never push tags without explicit confirmation. Full procedure: `docs/RELEASING.md`.
 
 ## Architecture
 
