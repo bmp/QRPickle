@@ -183,6 +183,9 @@ def doc(data):
         lines.append(f"| {name(b)} | {b['size']} | {b['recognise']} | {b['status']} | "
                      f"{b['screen']['chip']}, {b['screen']['width']} x {b['screen']['height']} | {touch} |")
     lines += ["", "Not listed? It may still work: install, then report it.", ""]
+    TOUCH_TEXT = {"xpt2046_own": "XPT2046 (resistive, own SPI bus)",
+                  "xpt2046_shared": "XPT2046 (resistive, shares the screen's SPI bus)",
+                  "gt911": "GT911 (capacitive, I2C)", "none": "none"}
     for b in boards:
         s, t = b["screen"], b.get("touch", {})
         ids = ", ".join(f"{k.upper()} 0x{s[k]:06X}" for k in ("rddid", "rdid4") if k in s) or "none"
@@ -194,7 +197,7 @@ def doc(data):
             f"SPI SCLK {s['sclk']}, MOSI {s['mosi']}, MISO {s['miso']}, CS {s['cs']}, DC {s['dc']}; "
             f"screen ID {ids} ({s.get('id_source', 'unknown')})",
             f"- **Backlight:** GPIO{b['backlight']['pin']}",
-            f"- **Touch:** {t.get('type', 'none')}"
+            f"- **Touch:** {TOUCH_TEXT.get(t.get('type', 'none'), t.get('type'))}"
             + (f" ({t['note']})" if t.get("note") else "")
             + "".join(f", {k.upper()} {t[k]}" for k in ("sclk", "mosi", "miso", "cs", "irq", "sda", "scl", "rst")
                       if k in t),
