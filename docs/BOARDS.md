@@ -23,21 +23,21 @@ Not listed? It may still work: install, then report it.
 
 ## ESP32-2432S028R (2.8", USB-C + micro-USB)
 
-- **Id:** `2432S028R-2USB` · **Status:** tested (the owner's board, v0.3.2 (2026-11-25): detection, screens, touch, dialogs, updates, 30-minute soak)
-- **Screen:** ILI9341-compatible (answers 81 81 B3), start-up `ili9341_2`, 320 x 240; SPI SCLK 14, MOSI 13, MISO 12, CS 15, DC 2; screen ID RDDID 0x8181B3 (measured on the owner's board, 2026-11-24)
+- **Id:** `2432S028R-2USB` · **Status:** tested (the developer's board, v0.3.2)
+- **Screen:** ILI9341-compatible (answers 81 81 B3), start-up `ili9341_2`, 320 x 240; SPI SCLK 14, MOSI 13, MISO 12, CS 15, DC 2; screen ID RDDID 0x8181B3 (measured)
 - **Backlight:** GPIO21
-- **Touch:** xpt2046_own, SCLK 25, MOSI 32, MISO 39, CS 33, IRQ 36
+- **Touch:** XPT2046 (resistive, own SPI bus), SCLK 25, MOSI 32, MISO 39, CS 33, IRQ 36
 - **Module connector (BME280):** CN1 SDA GPIO27, SCL GPIO22
 - **RGB LED:** GPIO4/16/17 · **Light sensor:** GPIO34 · **SD card CS:** GPIO5
 - **v0.4 add-ons:** tested
-- **Sources:** QRPickle v0.3.1 (TFT_eSPI ILI9341_2_DRIVER, rotation 1, inverted): runs on the owner's board; Screen ID measured on the owner's board 2026-11-24 (spike/display-detect)
+- **Sources:** The developer's board (measured)
 
 ## ESP32-2432S028R (2.8", micro-USB only)
 
 - **Id:** `2432S028R` · **Status:** mapped
 - **Screen:** ILI9341, start-up `ili9341`, 320 x 240; SPI SCLK 14, MOSI 13, MISO 12, CS 15, DC 2; screen ID RDID4 0x009341 (datasheet (ILI9341 RDID4 read through the 0xD9 index))
 - **Backlight:** GPIO21
-- **Touch:** xpt2046_own, SCLK 25, MOSI 32, MISO 39, CS 33, IRQ 36
+- **Touch:** XPT2046 (resistive, own SPI bus), SCLK 25, MOSI 32, MISO 39, CS 33, IRQ 36
 - **Module connector (BME280):** CN1 SDA GPIO27, SCL GPIO22
 - **RGB LED:** GPIO4/16/17 · **Light sensor:** GPIO34 · **SD card CS:** GPIO5
 - **v0.4 add-ons:** not tested on this board
@@ -48,7 +48,7 @@ Not listed? It may still work: install, then report it.
 - **Id:** `2432S028R-ST7789` · **Status:** mapped
 - **Screen:** ST7789, start-up `st7789`, 320 x 240; SPI SCLK 14, MOSI 13, MISO 12, CS 15, DC 2; screen ID none (none: the screen's data out isn't connected)
 - **Backlight:** GPIO21
-- **Touch:** xpt2046_own, SCLK 25, MOSI 32, MISO 39, CS 33, IRQ 36
+- **Touch:** XPT2046 (resistive, own SPI bus), SCLK 25, MOSI 32, MISO 39, CS 33, IRQ 36
 - **Module connector (BME280):** CN1 SDA GPIO27, SCL GPIO22
 - **RGB LED:** GPIO4/16/17 · **Light sensor:** GPIO34 · **SD card CS:** GPIO5
 - **v0.4 add-ons:** not tested on this board
@@ -59,7 +59,7 @@ Not listed? It may still work: install, then report it.
 - **Id:** `2432S024R` · **Status:** mapped
 - **Screen:** ILI9341, start-up `ili9341`, 320 x 240; SPI SCLK 14, MOSI 13, MISO 12, CS 15, DC 2; screen ID RDID4 0x009341 (datasheet (ILI9341 RDID4 read through the 0xD9 index))
 - **Backlight:** GPIO27
-- **Touch:** xpt2046_shared (calibration taken from the 2.8" board; may be off), CS 33, IRQ 36
+- **Touch:** XPT2046 (resistive, shares the screen's SPI bus) (calibration taken from the 2.8" board; may be off), CS 33, IRQ 36
 - **Module connector (BME280):** not mapped yet
 - **RGB LED:** GPIO4/16/17 · **Light sensor:** GPIO34 · **SD card CS:** GPIO5
 - **v0.4 add-ons:** not tested on this board
@@ -81,7 +81,7 @@ Not listed? It may still work: install, then report it.
 - **Id:** `2432S032R` · **Status:** mapped
 - **Screen:** ST7789 (IPS), start-up `st7789`, 320 x 240; SPI SCLK 14, MOSI 13, MISO 12, CS 15, DC 2; screen ID RDDID 0x858552 (datasheet (ST7789V RDDID))
 - **Backlight:** GPIO27
-- **Touch:** xpt2046_shared (calibration taken from the 2.8" board; may be off), CS 33, IRQ 36
+- **Touch:** XPT2046 (resistive, shares the screen's SPI bus) (calibration taken from the 2.8" board; may be off), CS 33, IRQ 36
 - **Module connector (BME280):** not mapped yet
 - **RGB LED:** GPIO4/16/17 · **Light sensor:** GPIO34 · **SD card CS:** GPIO5
 - **v0.4 add-ons:** not tested on this board
@@ -92,7 +92,7 @@ Not listed? It may still work: install, then report it.
 - **Id:** `2432S032C` · **Status:** mapped
 - **Screen:** ST7789 (IPS), start-up `st7789`, 320 x 240; SPI SCLK 14, MOSI 13, MISO 12, CS 15, DC 2; screen ID RDDID 0x858552 (datasheet (ST7789V RDDID))
 - **Backlight:** GPIO27
-- **Touch:** gt911, IRQ 21, SDA 33, SCL 32, RST 25
+- **Touch:** GT911 (capacitive, I2C), IRQ 21, SDA 33, SCL 32, RST 25
 - **Module connector (BME280):** not mapped yet
 - **RGB LED:** GPIO4/16/17 · **Light sensor:** GPIO34 · **SD card CS:** GPIO5
 - **v0.4 add-ons:** not tested on this board
@@ -103,7 +103,7 @@ Not listed? It may still work: install, then report it.
 - **Id:** `3248S035R` · **Status:** mapped
 - **Screen:** ST7796, start-up `st7796`, 480 x 320; SPI SCLK 14, MOSI 13, MISO 12, CS 15, DC 2; screen ID RDID4 0x007796 (datasheet (ST7796S RDID4))
 - **Backlight:** GPIO27
-- **Touch:** xpt2046_shared (calibration taken from the 2.8" board; may be off), CS 33, IRQ 36
+- **Touch:** XPT2046 (resistive, shares the screen's SPI bus) (calibration taken from the 2.8" board; may be off), CS 33, IRQ 36
 - **Module connector (BME280):** not mapped yet
 - **RGB LED:** GPIO4/16/17 · **Light sensor:** GPIO34 · **SD card CS:** GPIO5
 - **v0.4 add-ons:** not tested on this board
@@ -114,7 +114,7 @@ Not listed? It may still work: install, then report it.
 - **Id:** `3248S035C` · **Status:** mapped
 - **Screen:** ST7796, start-up `st7796`, 480 x 320; SPI SCLK 14, MOSI 13, MISO 12, CS 15, DC 2; screen ID RDID4 0x007796 (datasheet (ST7796S RDID4))
 - **Backlight:** GPIO27
-- **Touch:** gt911, IRQ 21, SDA 33, SCL 32, RST 25
+- **Touch:** GT911 (capacitive, I2C), IRQ 21, SDA 33, SCL 32, RST 25
 - **Module connector (BME280):** not mapped yet
 - **RGB LED:** GPIO4/16/17 · **Light sensor:** GPIO34 · **SD card CS:** GPIO5
 - **v0.4 add-ons:** not tested on this board

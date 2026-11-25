@@ -56,12 +56,20 @@ jobs:
           python3 -m unittest scripts/test_source_tables.py
           python3 -m unittest scripts/test_data_flow.py
           python3 -I scripts/test_check_boards.py
+          python3 -m unittest scripts/test_flash_docs.py
+          python3 -m unittest scripts/test_features.py
 
       - name: Data-flow doc matches the code (docs/DATA_FLOW.md vs src/services/sources.h)
         run: python3 scripts/check_data_flow.py
 
       - name: Board list and its generated files agree (boards/boards.toml)
         run: python3 scripts/check_boards.py
+
+      - name: Flash layout in the docs matches partitions.csv
+        run: python3 scripts/check_flash_docs.py
+
+      - name: README feature list matches docs/features.toml
+        run: python3 scripts/check_features.py
 
       - name: Release notes exist for FW_VERSION (CHANGELOG.md)
         run: python3 scripts/release_notes.py "$(grep FW_VERSION src/core/metadata.h | cut -d'"' -f2)" > /dev/null

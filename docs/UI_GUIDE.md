@@ -147,7 +147,7 @@ switched off, or an `LV_SYMBOL_*` the icons font lacks.
 
 | Available | Switched off |
 |---|---|
-| label, button, image, textarea, keyboard (+ buttonmatrix), dropdown, checkbox, slider (+ bar), msgbox, tabview, QR code (+ canvas, v0.3.2: the board report code) | arc, spinner, switch, list, menu, win, tileview, LED, line, span, imagebutton, animimg, arclabel, chart, scale, calendar, table, roller, spinbox |
+| label, button, image, textarea, keyboard (+ buttonmatrix), dropdown, checkbox, slider (+ bar), msgbox, tabview, QR code (+ canvas) | arc, spinner, switch, list, menu, win, tileview, LED, line, span, imagebutton, animimg, arclabel, chart, scale, calendar, table, roller, spinbox |
 | flex layout | grid layout, observer (subjects) |
 | fonts in `fonts.h` + icons-only fallback (`font_symbols_10/14`) | LVGL's Montserrat fonts |
 | RGB565 screen, RGB565A8 images, A8 masks | other colour formats (ARGB8888 layers among them) |
@@ -159,21 +159,18 @@ switched off, or an `LV_SYMBOL_*` the icons font lacks.
 the guard tells you which icons to add to `scripts/build_fonts.sh`. Prefer composing the
 available parts (a "switch" can be a checkbox; a "list" a flex column of buttons, as the WiFi scan does).
 
-## Board notices (v0.3.2)
+## Board notices
 
-`src/ui/board_notice.cpp`, 1.5 s after the splash, at most one of (approved mockups, design section 10):
-- **Board:** "Detected: <model>. Turn the CYD over: does the number on the back match?" [Correct] [Choose
-  another] (a flex column of buttons: boards with the same screen chip). Only on boards with working touch.
-- **Board check:** the user's choice contradicts the screen: [Use it anyway] [Use detected]. No warning
-  symbol in the title: `LV_SYMBOL_WARNING` isn't in the icons font.
-- **Untested board:** once per firmware version (NVS `qrp_board/note_fw`): [Show report code] [Later];
-  without touch the text points to the web console or USB and closes after 30 s.
-- **Report code:** full screen on `lv_layer_top()`, text left (104 px), QR code right in a 190 px white
-  square (dark on white in every theme). Drawn from qrcodegen's modules as rectangles (runs per row): LVGL's
-  QR widget renders a 1-bit image that LVGL 9 converts to 32-bit colour to draw (~129 KB for 180 px), which
-  showed as a black square. No extra LVGL memory. A tap closes it.
-- The Network screen gets a "<model> untested - tap to report" line in the free band above the stats, only
-  on untested boards, so a tested board's screens stay pixel-identical.
+Shown once after the splash, when needed (`src/ui/board_notice.cpp`):
+
+| Screen | When | Buttons |
+|---|---|---|
+| **Board** | first start, board detected | Correct · Choose another |
+| **Board check** | the chosen board doesn't match the screen | Use it anyway · Use detected |
+| **Untested board** | once per firmware version on an untested board | Show report code · Later |
+| **Report code** | from the untested-board notice or the Network screen | tap to close |
+
+Boards without touch get the text only. Untested boards also show a "tap to report" line on the Network screen.
 
 ## Dashboard and tiles
 

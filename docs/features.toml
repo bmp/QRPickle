@@ -1,0 +1,138 @@
+# The feature list: the one place to add, change or remove a feature.
+# scripts/gen_features.py writes README.md's "Features and Data Sources" section from it (checked before
+# every build and in CI), and scripts/make_pages_site.py builds the website home page's list from it.
+# Text is Markdown (links, **bold**, `code`). `home` = the one-line version on the website (with
+# `home_name`); a feature without `home` is listed only in the README.
+
+intro = "What each screen shows and where its data comes from. Accounts and keys are entered in the web console and stay on the device."
+
+[[screen]]
+name = "Dashboard"
+shows = "Local and UTC time, indoor sensor and weather, band conditions for your chosen band groups"
+data = "the screens below"
+
+[[screen]]
+name = "DX Cluster"
+shows = "Live DX spots, filtered by band and mode"
+data = "DX cluster over telnet (default `dxspider.co.uk:7300`, fallback `dxc.w6bgr.com:7373`; both configurable)"
+home_name = "DX Cluster"
+home = "live spots from DX cluster servers, filtered by band and mode."
+
+[[screen]]
+name = "xOTA"
+shows = "POTA and SOTA activators on air, filtered by band, mode and QRP; says how old the POTA list is"
+data = "[POTA](https://pota.app) (`api.pota.app`); [SOTA cluster](https://www.sota.org.uk) (`cluster.sota.org.uk`, telnet)"
+home_name = "POTA and SOTA"
+home = "activators on air, filtered by band, mode and QRP, with the age of the list."
+
+[[screen]]
+name = "HamAlert"
+shows = "Spots matching your own triggers"
+data = "[HamAlert](https://hamalert.org) (your account, telnet)"
+home_name = "HamAlert"
+home = "spots matching your own triggers."
+
+[[screen]]
+name = "APRS"
+shows = "Stations heard (list and radar), messages, your position beacon"
+data = "[APRS-IS](https://www.aprs-is.net) (`rotate.aprs.net`; your callsign and passcode)"
+home_name = "APRS"
+home = "stations heard (list and radar), messages and your position beacon, over APRS-IS."
+
+[[screen]]
+name = "Band Conditions"
+shows = "11 bands (160 m to 6 m) rated for day and night at your location, greyline, next sunrise/sunset, solar indicators explained ([how bands are rated](docs/BAND_RATING.md))"
+data = "[HAMQSL.com](https://www.hamqsl.com/solar.html) solar data, courtesy of N0NBH (every 3 hours, hourly in storms), or your own source"
+home_name = "Band conditions"
+home = "11 bands rated for day and night at your location, greyline and sunrise/sunset, from HAMQSL.com solar data."
+
+[[screen]]
+name = "Satellites"
+shows = "The next passes over your station of popular amateur satellites (FM, linear, SSTV, voice beacons, optionally APRS) with times, directions and frequencies; ISS SSTV events and ARISS school contacts"
+data = "A feed built every 6 hours from [SatNOGS DB](https://db.satnogs.org) (CC BY-SA 4.0), [CelesTrak](https://celestrak.org) orbits and [ARISS](https://www.ariss.org) ([about the feed](https://quixotic.bharathpalavalli.com/QRPickle/space/)); passes computed on the device, your location is never sent"
+home_name = "Satellites"
+home = "the next passes of popular amateur satellites over your station, ISS SSTV events and school contacts, with an LED reminder."
+
+[[screen]]
+name = "Weather"
+shows = "Indoor temperature, humidity and pressure; current conditions (with their age) and a 24-hour forecast"
+data = "BME280 sensor (optional, [wiring](docs/HARDWARE.md)); [OpenWeather](https://openweathermap.org) (your free API key)"
+home_name = "Weather and clock"
+home = "local and UTC time, an optional indoor sensor, OpenWeather conditions and forecast, in metric or your own units (°F, inHg, mph, miles) and a 12- or 24-hour clock."
+
+[[screen]]
+name = "Network, Settings, Cloud OTA"
+shows = "WiFi, station and display settings on the device; updates"
+data = "[GitHub Pages](https://bmp.github.io/QRPickle/ota/ota.json) for updates; time from `pool.ntp.org`"
+
+[[group]]
+title = "On the device"
+
+[[group.item]]
+name = "Screen cycling"
+text = "chosen screens in turn, in your order (10 s each by default); a touch pauses it, a status-bar icon shows and toggles it."
+home_name = "Made for the field"
+home = "screen cycling in your order, 7 themes including red and E-Ink styles, automatic brightness, a status LED."
+
+[[group.item]]
+name = "Status LED"
+text = "setup and network states, a faint pulse when data arrives, a strobe for HamAlert or APRS messages, and a purple signal before ISS SSTV and school-contact passes ([LED Colours](docs/LEDColours.md))."
+
+[[group.item]]
+name = "Themes"
+text = "7 themes in LVGL 9, including Tactical Field Red, Terminal Green and two E-Ink styles."
+
+[[group.item]]
+name = "Display"
+text = "sleep timeout, manual or automatic brightness (light sensor)."
+
+[[group.item]]
+name = "Boards"
+text = "detects which CYD it runs on, or you choose it. Untested boards ask once for a short report ([board list](docs/BOARDS.md))."
+home_name = "CYD boards"
+home = "detects the board from its screen or lets you choose it; untested boards ask for a short report, filled in for you ([board list](https://github.com/bmp/QRPickle/blob/main/docs/BOARDS.md))."
+
+[[group.item]]
+name = "Units and clock"
+text = "metric by default, or your own choice of °F, inHg, mph, km/h or knots and miles, and a 12- or 24-hour local clock (web console); UTC always stays 24-hour. Accented names (É, ñ, ü) in park, city and event names show as they should."
+
+[[group.item]]
+name = "Privacy"
+text = "passwords and network details are masked on screen and in the serial log."
+home_name = "Private and open"
+home = "passes and band ratings are worked out on the device, your location stays there; MIT-licensed, [source on GitHub](https://github.com/bmp/QRPickle)."
+
+[[group.item]]
+name = "Splash logos"
+text = "your own logos left and right of the title on the start screen (uploaded in the web console, scaled into 60 x 60; kept across updates and in backups; \"Preview on the device\" shows the start screen for 10 seconds without a restart)."
+home_name = "Your own logos"
+home = "a club logo or callsign badge on the start screen, uploaded in the web console and previewed on the device."
+
+[[group]]
+title = "Web console and updates"
+
+[[group.item]]
+name = "Web console"
+text = "every setting, profiles (save and switch complete setups for home, mobile and field; download/restore a backup without passwords and keys; a filesystem update keeps profiles and logos; saved secrets show their last 2 characters and can be cleared), APRS messaging and system information. Digest login; the setup hotspot (`192.168.4.1`) takes over when no network is reachable."
+home_name = "Easy to run"
+home = "set up over USB right after installing, a web console for every setting, profiles for home and field, updates over WiFi."
+
+[[group.item]]
+name = "Set up over USB"
+text = "right after installing, the website's [Set up over USB](https://quixotic.bharathpalavalli.com/QRPickle/setup/) page sends your callsign, location, units, WiFi and keys to the board over the USB cable (Chrome or Edge), without joining its hotspot."
+
+[[group.item]]
+name = "Updates"
+text = "firmware upload in the web console, or **Cloud OTA** from GitHub Pages with a mandatory SHA-256 and verified HTTPS. A new image that doesn't come up healthy within 3 boots is rolled back. First installs: the [web installer](https://quixotic.bharathpalavalli.com/QRPickle/install/)."
+
+[[group]]
+title = "How it fits on an ESP32 without PSRAM"
+
+[[group.item]]
+text = "One network session at a time and streamed JSON parsing keep HTTPS (about 40 KB per session) within memory; long-running work runs in background tasks, never in the UI loop ([memory budget](docs/MEMORY.md))."
+
+[[group.item]]
+text = "WiFi transmit power is capped (15 dBm) to avoid brownouts on the CYD's regulator."
+
+[[group.item]]
+text = "Guides for hardware, releasing, debugging and assets: [docs/](docs/README.md)."

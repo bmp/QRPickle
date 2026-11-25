@@ -72,8 +72,8 @@ Saved secrets (WiFi password, API keys, passcodes) are never shown again in the 
 
 ## Features and Data Sources
 
-What each screen shows and where its data comes from. Accounts and keys are entered in the web
-console and stay on the device.
+<!-- BEGIN generated: features (scripts/gen_features.py from docs/features.toml) -->
+What each screen shows and where its data comes from. Accounts and keys are entered in the web console and stay on the device.
 
 | Screen | What it shows | Data from |
 | :--- | :--- | :--- |
@@ -92,7 +92,7 @@ console and stay on the device.
 * **Status LED:** setup and network states, a faint pulse when data arrives, a strobe for HamAlert or APRS messages, and a purple signal before ISS SSTV and school-contact passes ([LED Colours](docs/LEDColours.md)).
 * **Themes:** 7 themes in LVGL 9, including Tactical Field Red, Terminal Green and two E-Ink styles.
 * **Display:** sleep timeout, manual or automatic brightness (light sensor).
-* **Boards:** the board is detected at start-up from its screen, or chosen in the web console or over USB (check the number printed on the back). One firmware for the CYD family: tested on the ESP32-2432S028R; the 2.4", 3.2" and 3.5" CYDs and the Guition JC2432W328C are listed from their makers' data ([board list](docs/BOARDS.md)). Bigger screens show the 320 x 240 dashboard centred. An untested board asks once for a short report: the web console, Set up over USB or a QR code on the screen opens GitHub's board report form with the details filled in.
+* **Boards:** detects which CYD it runs on, or you choose it. Untested boards ask once for a short report ([board list](docs/BOARDS.md)).
 * **Units and clock:** metric by default, or your own choice of °F, inHg, mph, km/h or knots and miles, and a 12- or 24-hour local clock (web console); UTC always stays 24-hour. Accented names (É, ñ, ü) in park, city and event names show as they should.
 * **Privacy:** passwords and network details are masked on screen and in the serial log.
 * **Splash logos:** your own logos left and right of the title on the start screen (uploaded in the web console, scaled into 60 x 60; kept across updates and in backups; "Preview on the device" shows the start screen for 10 seconds without a restart).
@@ -106,6 +106,7 @@ console and stay on the device.
 * One network session at a time and streamed JSON parsing keep HTTPS (about 40 KB per session) within memory; long-running work runs in background tasks, never in the UI loop ([memory budget](docs/MEMORY.md)).
 * WiFi transmit power is capped (15 dBm) to avoid brownouts on the CYD's regulator.
 * Guides for hardware, releasing, debugging and assets: [docs/](docs/README.md).
+<!-- END generated: features -->
 
 ---
 
@@ -125,15 +126,8 @@ QRPickle's own code is MIT-licensed (see [`License`](License)). The fonts are un
 
 ## Libraries & Frameworks
 
-* **[LVGL (Light and Versatile Graphics Library) v9.x](https://lvgl.io/):** Core C-based UI framework handling all screens, layouts, animations, and touch interactions.
-* **Display:** LVGL's pixels go to the screen over SPI with Arduino's `writePixels`; each board's start-up sequence comes from the board list (from [TFT_eSPI](https://github.com/Bodmer/TFT_eSPI) for the 2.8" panel clones and from LVGL for the ILI9341, ST7789 and ST7796).
-* **[XPT2046_Touchscreen](https://github.com/PaulStoffregen/XPT2046_Touchscreen):** Driver for the resistive touch controller (on its own SPI bus).
-* **[ESPAsyncWebServer](https://github.com/ESP32Async/ESPAsyncWebServer):** The web console and its REST API, with Digest authentication.
-* **[Sgp4](https://github.com/Hopperpop/Sgp4-Library):** Satellite orbit propagation (Vallado's SGP4) for the pass predictions.
-* **[ArduinoJson v7](https://arduinojson.org/):** Zero-allocation stream parsing for OpenWeatherMap, POTA, and SOTA HTTPS payloads.
-* **ESP-IDF Native APIs** (Arduino core 3.3.12 / ESP-IDF 5.5 since v0.3.0): utilized directly alongside the Arduino Core wrapper for strict Wi-Fi TX power limits, FreeRTOS task handling, and lwIP socket management.
-
-The complete list, with licences, is in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+The Arduino core, ESP-IDF, LVGL and the other libraries, with their versions and licences, are listed in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ---
 
@@ -143,15 +137,17 @@ This project utilizes a heavily customized partition table (`partitions.csv`) to
 
 The full flash map, from the start of the chip. The bootloader and the partition table sit at fixed addresses before the first partition; the rest comes from `partitions.csv`:
 
+<!-- BEGIN generated: partitions (scripts/gen_flash_docs.py from partitions.csv) -->
 | Address | Region | Size | Contents | Written at install |
 | :--- | :--- | :--- | :--- | :--- |
-| `0x001000` | Bootloader | | ESP32 second-stage bootloader | `bootloader.bin` |
-| `0x008000` | Partition table | | The table below | `partitions.bin` |
+| `0x001000` | Bootloader |  | ESP32 second-stage bootloader | `bootloader.bin` |
+| `0x008000` | Partition table |  | The table below | `partitions.bin` |
 | `0x009000` | **`nvs`** | `0x005000` (20 KB) | Settings: WiFi, callsign, keys, admin password | Kept (cleared only by "Erase device") |
 | `0x00E000` | **`otadata`** | `0x002000` (8 KB) | Which app slot boots (`app0` or `app1`) | `boot_app0.bin` (boot `app0`) |
 | `0x010000` | **`app0`** | `0x1C0000` (1.75 MB) | Firmware slot 1 | `firmware.bin` |
 | `0x1D0000` | **`app1`** | `0x1C0000` (1.75 MB) | Firmware slot 2: updates (web upload or Cloud OTA) are written to whichever slot isn't running, so a failed update can roll back | Not written |
 | `0x390000` | **`spiffs`** | `0x070000` (448 KB) | LittleFS: web console (`www/`), images, about text, saved profiles | `littlefs.bin` |
+<!-- END generated: partitions -->
 
 The installer and the manual flashing steps below use exactly these addresses for every version. Changing `partitions.csv` breaks OTA for devices already in use.
 
@@ -162,7 +158,7 @@ The installer and the manual flashing steps below use exactly these addresses fo
 The project is built entirely within **PlatformIO** (VS Code).
 
 ### 1. Pre-Flight Setup
-QRPickle is tested on the ESP32-2432S028R (2.8" CYD) and drives the other boards below; no soldering is needed. What else you need (USB cable, the optional BME280 sensor) and the wiring are in **[Hardware and Wiring](docs/HARDWARE.md)**.
+Supported boards (no soldering needed). What else you need (USB cable, the optional BME280 sensor) and the wiring are in **[Hardware and Wiring](docs/HARDWARE.md)**.
 
 <!-- BEGIN generated: boards (scripts/gen_boards.py from boards/boards.toml) -->
 | Board (number on the back) | Screen | Touch | Status |
@@ -254,9 +250,12 @@ into download mode by itself there). Other Chromium-based browsers on Linux may 
 2. Open the **[Espressif Web Flasher Tool](https://espressif.github.io/esptool-js/)**.
 3. Set your baud rate to `921600` and click **Connect**.
 4. Add the release files to the flash tool using their exact partition offsets:
+   <!-- BEGIN generated: flash offsets (scripts/gen_flash_docs.py from partitions.csv) -->
    * **`0x1000`** ➔ `bootloader.bin`
    * **`0x8000`** ➔ `partitions.bin`
+   * **`0xE000`** ➔ `boot_app0.bin`
    * **`0x10000`** ➔ `firmware.bin`
    * **`0x390000`** ➔ `littlefs.bin`
+   <!-- END generated: flash offsets -->
 5. Click **Program** and wait for the process to finish. The device will automatically reboot into QRPickle!
 6. And the device should boot up, and create a WiFi access-point called `QRPickle-Setup` protected with the admin password shown on the device's **Network** screen (see [Web Console Login](#web-console-login)).
