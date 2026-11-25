@@ -2,7 +2,7 @@
 
 User-facing changes per release, newest first. Each section is also the release commit message (see `docs/RELEASING.md`).
 
-## v0.3.2 (unreleased)
+## v0.3.2 (2026-11-25)
 
 QRPickle knows which CYD it runs on: one board list, detection at start-up or your choice, reports for untested boards
 

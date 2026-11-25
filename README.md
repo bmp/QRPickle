@@ -36,6 +36,8 @@ This project is inspired by [cburns42/HamClockCYD](https://github.com/cburns42/H
 | <img src="docs/pics/screens/network.png" alt="Network" width="250"> | <img src="docs/pics/screens/wifi-scan.png" alt="WiFi Scan" width="250"> | <img src="docs/pics/screens/cloud-ota.png" alt="Cloud Updates" width="250"> |
 | **On-Device Settings** | **On-Screen Keyboard** |   |
 | <img src="docs/pics/screens/settings.png" alt="On-Device Settings" width="250"> | <img src="docs/pics/screens/keyboard.png" alt="On-Screen Keyboard" width="250"> |   |
+| **Board Check (first start)** | **Board Doesn't Match the Screen** | **Report an Untested Board** |
+| <img src="docs/pics/screens/board-confirm.png" alt="Board check at the first start" width="250"> | <img src="docs/pics/screens/board-check.png" alt="Board choice doesn't match the screen" width="250"> | <img src="docs/pics/screens/board-report-code.png" alt="QR code to report a board" width="250"> |
 
 Screenshots are taken on the device (`tools/device_screens.py`, Classic theme); network names, addresses and positions are replaced or hidden in them. **Smart sleep:** after the screen timeout the backlight turns off; a touch wakes it (the first touch only wakes).
 
