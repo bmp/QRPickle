@@ -89,3 +89,10 @@ dialog.board-check { max-width:min(92vw, 44rem); background:var(--bg-color); col
 dialog.board-check::backdrop { background:rgba(0,0,0,.6); }
 dialog.board-check .board-list { width:100%; margin:.5rem 0; }
 .board-check-buttons { display:flex; gap:.8rem; justify-content:flex-end; }
+.board-card { border:1px solid var(--td-border); padding:.5rem .9rem .8rem; margin:1.5rem 0; }
+.board-card h3 { margin:.3rem 0 .5rem; }
+.board-card input:not([type=checkbox]), .board-card textarea { font:inherit; width:100%; max-width:32rem; display:block;
+  padding:.25em .4em; box-sizing:border-box; background:var(--input-bg); color:var(--input-color); border:1px solid var(--td-border); }
+.board-card label { display:block; margin:.45rem 0; }
+.board-card label.check { display:inline-flex; gap:.4em; align-items:center; margin:.2rem 1rem .2rem 0; }
+#board-msg { margin:.6rem 0; }

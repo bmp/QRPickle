@@ -39,36 +39,6 @@
     <label>HamAlert password <input id="hamalert_pass" type="password" maxlength="32" autocomplete="off"></label>
     <label>APRS-IS passcode <input id="aprs_pass" type="password" maxlength="7" autocomplete="off"></label>
   </fieldset>
-  <fieldset>
-    <legend>Board (only if the screen stays dark or shows the wrong board)</legend>
-    <p class="small">Read what the board detected; choose it only if that's wrong (the number printed on the
-       back, <a href="#" id="board-photo-link">where to look</a>), and report boards that aren't tested yet.</p>
-    <img id="board-photo" class="board-photo hidden" src="../boards/2432S028R-2USB-back.jpg"
-         alt="The back of an ESP32-2432S028R: the model number is printed on the board">
-    <p><button id="read-board" type="button">Read the board over USB</button></p>
-    <div id="board-found" class="msg msg-info hidden" role="status"></div>
-    <label>Board <select id="board">
-      <option value="">Keep the board's setting</option>
-      <option value="auto">Auto-detect (recommended)</option>
-    </select></label>
-    <p class="small">Choosing a board restarts the CYD after sending (v0.3.2 or newer).</p>
-    <div id="board-report" class="hidden">
-      <p><strong>Report this board</strong>: opens GitHub's "Board report" form with the details filled in; you
-         sign in, attach a photo of the back and submit. Nothing is sent from this page.</p>
-      <label>Number printed on the back <input id="board-back" maxlength="40" placeholder="e.g. ESP32-2432S028R"></label>
-      <div class="board-works">What works:
-        <label class="check"><input type="checkbox" data-work="picture"> Picture</label>
-        <label class="check"><input type="checkbox" data-work="colours"> Colours</label>
-        <label class="check"><input type="checkbox" data-work="orientation"> Right way up</label>
-        <label class="check"><input type="checkbox" data-work="touch"> Touch</label>
-        <label class="check"><input type="checkbox" data-work="backlight"> Backlight</label>
-        <label class="check"><input type="checkbox" data-work="led"> LED</label>
-        <label class="check"><input type="checkbox" data-work="sensor"> Sensor</label>
-      </div>
-      <label>Notes <textarea id="board-notes" rows="3" maxlength="2000"></textarea></label>
-      <p><button id="board-report-open" type="button">Open report on GitHub</button></p>
-    </div>
-  </fieldset>
   <p><button id="send" class="install-btn" type="button">Connect and send</button></p>
 </form>
 <p id="unsupported" class="note hidden">This browser can't access USB serial ports. Use Chrome or Edge on a computer.</p>
@@ -79,6 +49,42 @@
 <p class="small">"No answer from the board"? Close other programs using the port (and the installer's dialog),
    replug the cable and try again. On Linux run <code>stty -F /dev/ttyUSB0 115200</code> first (see the
    <a href="../install/">Install</a> page).</p>
+
+<section class="board-card" aria-labelledby="board-title">
+  <h3 id="board-title">Board (optional)</h3>
+  <p class="small">Only needed if the CYD's screen stays dark or shows the wrong board (v0.3.2 or newer).
+     Setup above doesn't need it.</p>
+  <p><button id="board-check" type="button">Check which board the CYD detected</button>
+     <span class="small">reads it over USB, changes nothing</span></p>
+  <div id="board-found" class="msg msg-info hidden" role="status"></div>
+  <p><label>Change the board to <select id="board">
+      <option value="auto">Auto-detect (recommended)</option>
+    </select></label>
+     <span class="small">Check the number printed on the back first
+       (<a href="#" id="board-photo-link">where to look</a>).</span></p>
+  <img id="board-photo" class="board-photo hidden" src="../boards/2432S028R-2USB-back.jpg"
+       alt="The back of an ESP32-2432S028R: the model number is printed on the board">
+  <p><button id="board-send" type="button">Send the board choice</button>
+     <span class="small">sends only this; the CYD restarts if it changes</span></p>
+  <div id="board-msg" class="msg msg-info hidden" role="status"></div>
+  <div id="board-report" class="hidden">
+    <h4>Report how this board works</h4>
+    <p class="small">Opens GitHub's "Board report" form with the details filled in; you sign in, attach a photo
+       of the back and submit. Nothing is sent from this page.</p>
+    <label>Number printed on the back <input id="board-back" maxlength="40" placeholder="e.g. ESP32-2432S028R"></label>
+    <div class="board-works">What works:
+      <label class="check"><input type="checkbox" data-work="picture"> Picture</label>
+      <label class="check"><input type="checkbox" data-work="colours"> Colours</label>
+      <label class="check"><input type="checkbox" data-work="orientation"> Right way up</label>
+      <label class="check"><input type="checkbox" data-work="touch"> Touch</label>
+      <label class="check"><input type="checkbox" data-work="backlight"> Backlight</label>
+      <label class="check"><input type="checkbox" data-work="led"> LED</label>
+      <label class="check"><input type="checkbox" data-work="sensor"> Sensor</label>
+    </div>
+    <label>Notes <textarea id="board-notes" rows="3" maxlength="2000"></textarea></label>
+    <p><button id="board-report-open" type="button">Open report on GitHub</button></p>
+  </div>
+</section>
 
 <!-- scripts -->
   <script src="../setup-usb.js"></script>
@@ -125,7 +131,7 @@
     async function withPort(fn) {
       let port;
       try { port = await navigator.serial.requestPort(); } catch (e) { return; }  // no port picked
-      $("send").disabled = $("read-board").disabled = true;
+      $("send").disabled = $("board-check").disabled = $("board-send").disabled = true;
       let lp = null;
       try {
         if (port.readable || port.writable) await closeLinePort(null, port);  // left open by an earlier run
@@ -136,11 +142,26 @@
         show(escapeHtml(e.message || e), "error");
       } finally {
         await closeLinePort(lp, port);
-        $("send").disabled = $("read-board").disabled = false;
+        $("send").disabled = $("board-check").disabled = $("board-send").disabled = false;
       }
     }
 
-    $("read-board").addEventListener("click", () => withPort(async lp => {
+    function boardMsg(html, kind = "info") {
+      const m = $("board-msg");
+      m.className = `msg msg-${kind}`;
+      m.innerHTML = html;
+    }
+
+    $("board-send").addEventListener("click", () => withPort(async lp => {
+      const value = $("board").value;
+      boardMsg("Connected. Waiting for the board (it may restart, up to 40 seconds)...");
+      const r = await runSetup(lp, { board: value });  // only the board: the setup fields above aren't sent
+      if (r.saved.includes("board")) boardMsg(`Saved: the CYD restarts as ${escapeHtml($("board").selectedOptions[0].textContent)}.`);
+      else if (r.kept.includes("board")) boardMsg("The board didn't accept this choice (firmware too old?).", "error");
+      else boardMsg("No change: the CYD already uses this setting.");
+    }));
+
+    $("board-check").addEventListener("click", () => withPort(async lp => {
       show("Connected. Waiting for the board (it may restart, up to 40 seconds)...");
       showBoard(await readBoard(lp));
       $("status").classList.add("hidden");
@@ -165,7 +186,6 @@
                        "aprs_pass", "unit_temp", "unit_pres", "unit_wind", "unit_dist"]) f[k] = $(k).value;
       f.clock_12h = $("clock").value === "1";
       f.metric = $("metric").checked;
-      f.board = $("board").value;
       const settings = buildSettings(f);
       await withPort(async lp => {
         show("Connected. Waiting for the board (it may restart, up to 40 seconds)...");

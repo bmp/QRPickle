@@ -66,7 +66,11 @@ try {
     await send("Page.navigate", { url: `${SITE}/setup/` });
     await sleep(2000);
     const opts = await js(`[...document.getElementById("board").options].map(o => o.value)`);
-    check(opts[0] === "" && opts[1] === "auto" && opts.length === 12, `board choice: keep, auto + 10 boards (${opts.length})`);
+    check(opts[0] === "auto" && opts.length === 11, `board choice: auto + 10 boards (${opts.length})`);
+    check(await js(`!document.getElementById("setup-form").contains(document.getElementById("board"))`),
+          "the board card is separate from the setup form");
+    check(await js(`!!document.getElementById("board-send") && !!document.getElementById("board-check")`),
+          "the board card has its own check and send buttons");
     check(await js(`document.getElementById("board-report").classList.contains("hidden")`), "report hidden until the board was read");
     await js(`document.getElementById("board-photo-link").click()`);
     check(!await js(`document.getElementById("board-photo").classList.contains("hidden")`), "where to look: photo shows");

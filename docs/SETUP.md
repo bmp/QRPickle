@@ -43,9 +43,10 @@ doesn't answer, close other programs using the port and try again, or use the ho
 **The board (v0.3.2 or newer):** QRPickle detects the board from its screen at the first start. When the
 screen works, it asks once: *"Detected ESP32-2432S028R (2.8", ...). Turn the CYD over: does the number on the
 back match?"* Tap **Correct**, or **Choose another** to pick the right one (the CYD restarts). If the screen
-stays dark or white, the board wasn't recognised: on the Set up over USB page, in the last section **Board**,
-click **Read the board over USB** to see what it detected, choose your board (check the number on the back)
-and send;
+stays dark or white, the board wasn't recognised. On the Set up over USB page, the **Board** card below the
+setup form handles it on its own (the setup's **Connect and send** doesn't touch the board): **Check which
+board the CYD detected** reads it over USB and changes nothing; if it's wrong, pick yours under **Change the
+board to** (check the number on the back first) and click **Send the board choice** (the CYD restarts);
 or later in the web console under **System Info → Board**. A board marked *untested* asks once for a short
 report: the web console's **Report this board**, the same form on the Set up over USB page, or the QR code
 on the CYD opens GitHub's board report form with the details filled in (you add a photo of the back).
