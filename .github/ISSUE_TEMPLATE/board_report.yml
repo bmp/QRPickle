@@ -1,0 +1,50 @@
+name: Board report
+description: How QRPickle runs on your CYD board (opened from the web console, Set up over USB or the CYD's QR code)
+title: "Board report: "
+labels: [board-report]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! Reports move boards from "mapped" to "reported" in the [board list](https://github.com/bmp/QRPickle/blob/main/docs/BOARDS.md).
+        **Please attach a photo of the back of the board** (drag it into the notes box) so the number printed there is readable.
+        **Don't paste passwords, API keys or passcodes.** The details below come from the board and never contain them.
+  - type: input
+    id: back
+    attributes:
+      label: Number printed on the back
+      description: For example ESP32-2432S028R, ESP32-3248S035C, JC2432W328C.
+    validations:
+      required: true
+  - type: input
+    id: works
+    attributes:
+      label: What works
+      description: Any of picture, colours, orientation (right way up), touch, backlight, LED, sensor.
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes and photo
+      description: What looks wrong, anything else you noticed. Attach the photo of the back here.
+  - type: input
+    id: fw
+    attributes:
+      label: Firmware version (filled in by the board)
+  - type: input
+    id: board
+    attributes:
+      label: Board QRPickle used (filled in)
+  - type: input
+    id: ids
+    attributes:
+      label: Screen ID answers (filled in)
+      description: RDDID - RDID4 - RDID4 through the 0xD9 index.
+  - type: input
+    id: decision
+    attributes:
+      label: How the board was chosen (filled in)
+  - type: input
+    id: touch
+    attributes:
+      label: Touch probes (filled in)
+      description: I2C address that answered . XPT2046 on its own bus . XPT2046 on the screen bus (-1 = not tried).

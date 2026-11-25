@@ -36,6 +36,8 @@ This project is inspired by [cburns42/HamClockCYD](https://github.com/cburns42/H
 | <img src="docs/pics/screens/network.png" alt="Network" width="250"> | <img src="docs/pics/screens/wifi-scan.png" alt="WiFi Scan" width="250"> | <img src="docs/pics/screens/cloud-ota.png" alt="Cloud Updates" width="250"> |
 | **On-Device Settings** | **On-Screen Keyboard** |   |
 | <img src="docs/pics/screens/settings.png" alt="On-Device Settings" width="250"> | <img src="docs/pics/screens/keyboard.png" alt="On-Screen Keyboard" width="250"> |   |
+| **Board Check (first start)** | **Board Doesn't Match the Screen** | **Report an Untested Board** |
+| <img src="docs/pics/screens/board-confirm.png" alt="Board check at the first start" width="250"> | <img src="docs/pics/screens/board-check.png" alt="Board choice doesn't match the screen" width="250"> | <img src="docs/pics/screens/board-report-code.png" alt="QR code to report a board" width="250"> |
 
 Screenshots are taken on the device (`tools/device_screens.py`, Classic theme); network names, addresses and positions are replaced or hidden in them. **Smart sleep:** after the screen timeout the backlight turns off; a touch wakes it (the first touch only wakes).
 
@@ -90,6 +92,7 @@ console and stay on the device.
 * **Status LED:** setup and network states, a faint pulse when data arrives, a strobe for HamAlert or APRS messages, and a purple signal before ISS SSTV and school-contact passes ([LED Colours](docs/LEDColours.md)).
 * **Themes:** 7 themes in LVGL 9, including Tactical Field Red, Terminal Green and two E-Ink styles.
 * **Display:** sleep timeout, manual or automatic brightness (light sensor).
+* **Boards:** the board is detected at start-up from its screen, or chosen in the web console or over USB (check the number printed on the back). One firmware for the CYD family: tested on the ESP32-2432S028R; the 2.4", 3.2" and 3.5" CYDs and the Guition JC2432W328C are listed from their makers' data ([board list](docs/BOARDS.md)). Bigger screens show the 320 x 240 dashboard centred. An untested board asks once for a short report: the web console, Set up over USB or a QR code on the screen opens GitHub's board report form with the details filled in.
 * **Units and clock:** metric by default, or your own choice of °F, inHg, mph, km/h or knots and miles, and a 12- or 24-hour local clock (web console); UTC always stays 24-hour. Accented names (É, ñ, ü) in park, city and event names show as they should.
 * **Privacy:** passwords and network details are masked on screen and in the serial log.
 * **Splash logos:** your own logos left and right of the title on the start screen (uploaded in the web console, scaled into 60 x 60; kept across updates and in backups; "Preview on the device" shows the start screen for 10 seconds without a restart).
@@ -123,7 +126,7 @@ QRPickle's own code is MIT-licensed (see [`License`](License)). The fonts are un
 ## Libraries & Frameworks
 
 * **[LVGL (Light and Versatile Graphics Library) v9.x](https://lvgl.io/):** Core C-based UI framework handling all screens, layouts, animations, and touch interactions.
-* **[TFT_eSPI](https://github.com/Bodmer/TFT_eSPI):** Highly optimized SPI driver for the ILI9341 display.
+* **Display:** LVGL's pixels go to the screen over SPI with Arduino's `writePixels`; each board's start-up sequence comes from the board list (from [TFT_eSPI](https://github.com/Bodmer/TFT_eSPI) for the 2.8" panel clones and from LVGL for the ILI9341, ST7789 and ST7796).
 * **[XPT2046_Touchscreen](https://github.com/PaulStoffregen/XPT2046_Touchscreen):** Driver for the resistive touch controller (on its own SPI bus).
 * **[ESPAsyncWebServer](https://github.com/ESP32Async/ESPAsyncWebServer):** The web console and its REST API, with Digest authentication.
 * **[Sgp4](https://github.com/Hopperpop/Sgp4-Library):** Satellite orbit propagation (Vallado's SGP4) for the pass predictions.
@@ -159,7 +162,24 @@ The installer and the manual flashing steps below use exactly these addresses fo
 The project is built entirely within **PlatformIO** (VS Code).
 
 ### 1. Pre-Flight Setup
-QRPickle targets the ESP32-2432S028R (2.8" CYD); no soldering is needed. The pins it uses and the wiring for the optional BME280 sensor are in **[Hardware and Wiring](docs/HARDWARE.md)**.
+QRPickle is tested on the ESP32-2432S028R (2.8" CYD) and drives the other boards below; no soldering is needed. What else you need (USB cable, the optional BME280 sensor) and the wiring are in **[Hardware and Wiring](docs/HARDWARE.md)**.
+
+<!-- BEGIN generated: boards (scripts/gen_boards.py from boards/boards.toml) -->
+| Board (number on the back) | Screen | Touch | Status |
+|---|---|---|---|
+| ESP32-2432S028R (2.8", USB-C + micro-USB) | 320 x 240 | resistive | **tested** |
+| ESP32-2432S028R (2.8", micro-USB only) | 320 x 240 | resistive | untested |
+| ESP32-2432S028R (2.8", USB-C + micro-USB, ST7789 screen) | 320 x 240 | resistive | untested |
+| ESP32-2432S024R (2.4") | 320 x 240 | resistive | untested |
+| ESP32-2432S024C (2.4") | 320 x 240 | not supported yet | untested |
+| ESP32-2432S032R (3.2") | 320 x 240 | resistive | untested |
+| ESP32-2432S032C (3.2") | 320 x 240 | capacitive | untested |
+| ESP32-3248S035R (3.5") | 480 x 320 | resistive | untested |
+| ESP32-3248S035C (3.5") | 480 x 320 | capacitive | untested |
+| JC2432W328C (2.8", Guition, capacitive touch) | 320 x 240 | not supported yet | untested |
+
+Pins, connectors and sources for each board: [board list](docs/BOARDS.md).
+<!-- END generated: boards -->
 
 ### 2. Uploading the Filesystem (Web UI & Profiles)
 Before the firmware will function fully (especially the Web UI), you must write the `data/` folder to the LittleFS partition.

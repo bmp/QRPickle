@@ -1,0 +1,544 @@
+# QRPickle board list: the one place that says which boards QRPickle knows and how each is wired.
+#
+# Edit this file when a user reports a discrepancy, then run   python3 -I scripts/gen_boards.py
+# which writes src/hw/boards_gen.h (firmware), docs/BOARDS.md (readable list) and
+# data/www/boards.json (web console, installer). scripts/check_boards.py fails the build when the
+# generated files don't match this file or an entry breaks a rule (see that script).
+#
+# Status (shown wherever a board is named):
+#   tested   = run on the owner's bench for a release (status_note says which)
+#   reported = a user's report confirmed it works (status_note says what was confirmed; reports = issues)
+#   mapped   = taken from the board's schematic or maker data; nobody has run QRPickle on it yet
+#
+# Fields per [[board]] (required unless marked optional):
+#   id          stable key: stored on the device (board setting) and sent in reports; never rename
+#   model       as printed on the back of the board
+#   size        screen size, e.g. '2.8"'
+#   feature     optional: what tells it apart when the model number isn't enough (shown in brackets)
+#   recognise   how a user recognises it (ports, colour, printing)
+#   status, status_note (required for tested/reported), sources (required for mapped), reports
+#   addons_v04  true only where the v0.4 add-ons (battery, GPS, RTC, INA219) were tested
+#   [board.screen]   chip (free text), init (start-up list: ili9341_2 | ili9341 | st7789 | st7796),
+#                    width/height (landscape), swap_xy/mirror_x/mirror_y/bgr/invert (landscape address
+#                    mode, as TFT_eSPI rotation 1), sclk/mosi/miso/cs/dc, optional ids:
+#                    rddid (0x04, 24 bits), rdid4 (0xD3: ST7796 direct, ILI9341 via the 0xD9 index),
+#                    id_source (measured ... | datasheet)
+#                    ui_x/ui_y optional: where the 320x240 UI sits (default: centred)
+#   [board.backlight] pin, active_high
+#   [board.led]       r, g, b, active_low
+#   [board.touch]     optional: type = xpt2046_own | xpt2046_shared | gt911 | none; pins; cal for
+#                     XPT2046 (x_min, x_max, y_min, y_max); note when touch isn't supported yet
+#   [board.i2c]       optional: sda, scl, connector (where a BME280/v0.4 module plugs in); absent = off
+#   [board.ldr]       optional: gpio
+#   [board.sd]        optional: cs
+#   chip_outputs      GPIOs that chips on the board drive (touch/screen data out, touch interrupt,
+#                     SD data out): QRPickle must never drive these as outputs (pin-conflict check)
+#
+# Pins of mapped boards come from rzeldent/platformio-espressif32-sunton (board definitions with the
+# makers' pin data) and witnessmenow/ESP32-Cheap-Yellow-Display; each entry lists its sources.
+
+schema = 1
+# Board assumed when a device updated from v0.3.1 can't be identified: it drives the screen exactly as
+# v0.3.1 did (ILI9341_2 start-up, inverted, backlight 21), so existing users keep their picture.
+fallback = "2432S028R-2USB"
+
+[[board]]
+id = "2432S028R-2USB"
+model = "ESP32-2432S028R"
+size = '2.8"'
+feature = "USB-C + micro-USB"
+recognise = "Yellow board, 2.8\" screen, a USB-C and a micro-USB port; ESP32-2432S028 printed on the back."
+photo = "2432S028R-2USB-back.jpg"
+status = "tested"
+status_note = "the owner's board, v0.3.2 (2026-11-25): detection, screens, touch, dialogs, updates, 30-minute soak"
+addons_v04 = true
+sources = [
+  "QRPickle v0.3.1 (TFT_eSPI ILI9341_2_DRIVER, rotation 1, inverted): runs on the owner's board",
+  "Screen ID measured on the owner's board 2026-11-24 (spike/display-detect)",
+]
+reports = []
+chip_outputs = [12, 19, 36, 39]
+[board.screen]
+chip = "ILI9341-compatible (answers 81 81 B3)"
+init = "ili9341_2"
+width = 320
+height = 240
+swap_xy = true
+mirror_x = false
+mirror_y = false
+bgr = true
+invert = true
+sclk = 14
+mosi = 13
+miso = 12
+cs = 15
+dc = 2
+rddid = 0x8181B3
+id_source = "measured on the owner's board, 2026-11-24"
+[board.backlight]
+pin = 21
+active_high = true
+[board.led]
+r = 4
+g = 16
+b = 17
+active_low = true
+[board.touch]
+type = "xpt2046_own"
+sclk = 25
+mosi = 32
+miso = 39
+cs = 33
+irq = 36
+cal = [300, 3800, 200, 3800]
+[board.i2c]
+sda = 27
+scl = 22
+connector = "CN1"
+[board.ldr]
+gpio = 34
+[board.sd]
+cs = 5
+
+[[board]]
+id = "2432S028R"
+model = "ESP32-2432S028R"
+size = '2.8"'
+feature = "micro-USB only"
+recognise = "Yellow board, 2.8\" screen, one micro-USB port; ESP32-2432S028 printed on the back. The original CYD."
+status = "mapped"
+addons_v04 = false
+sources = [
+  "https://github.com/rzeldent/platformio-espressif32-sunton/blob/main/esp32-2432S028R.json",
+  "https://github.com/witnessmenow/ESP32-Cheap-Yellow-Display/blob/main/cyd.md (colours not inverted on the one-USB board)",
+  "docs/HARDWARE.md (CN1 = IO22, IO27)",
+]
+reports = []
+chip_outputs = [12, 19, 36, 39]
+[board.screen]
+chip = "ILI9341"
+init = "ili9341"
+width = 320
+height = 240
+swap_xy = true
+mirror_x = false
+mirror_y = false
+bgr = true
+invert = false
+sclk = 14
+mosi = 13
+miso = 12
+cs = 15
+dc = 2
+rdid4 = 0x009341
+id_source = "datasheet (ILI9341 RDID4 read through the 0xD9 index)"
+[board.backlight]
+pin = 21
+active_high = true
+[board.led]
+r = 4
+g = 16
+b = 17
+active_low = true
+[board.touch]
+type = "xpt2046_own"
+sclk = 25
+mosi = 32
+miso = 39
+cs = 33
+irq = 36
+cal = [300, 3800, 200, 3800]
+[board.i2c]
+sda = 27
+scl = 22
+connector = "CN1"
+[board.ldr]
+gpio = 34
+[board.sd]
+cs = 5
+
+[[board]]
+id = "2432S028R-ST7789"
+model = "ESP32-2432S028R"
+size = '2.8"'
+feature = "USB-C + micro-USB, ST7789 screen"
+recognise = "Like the USB-C + micro-USB 2.8\" board, but with an ST7789 screen (the screen doesn't answer the ID read, so choose it by hand)."
+status = "mapped"
+addons_v04 = false
+sources = [
+  "https://github.com/witnessmenow/ESP32-Cheap-Yellow-Display/blob/main/DisplayConfig/CYD2USB/User_Setup.h (ST7789, BGR, inversion off, BL 21)",
+  "https://github.com/rzeldent/platformio-espressif32-sunton/blob/main/esp32-2432S028Rv3.json (ST7789, screen MISO not connected; says RGB: sources disagree on colour order)",
+]
+reports = []
+chip_outputs = [19, 36, 39]
+[board.screen]
+chip = "ST7789"
+init = "st7789"
+width = 320
+height = 240
+swap_xy = true
+mirror_x = true
+mirror_y = false
+bgr = true
+invert = false
+sclk = 14
+mosi = 13
+miso = 12
+cs = 15
+dc = 2
+id_source = "none: the screen's data out isn't connected"
+[board.backlight]
+pin = 21
+active_high = true
+[board.led]
+r = 4
+g = 16
+b = 17
+active_low = true
+[board.touch]
+type = "xpt2046_own"
+sclk = 25
+mosi = 32
+miso = 39
+cs = 33
+irq = 36
+cal = [300, 3800, 200, 3800]
+[board.i2c]
+sda = 27
+scl = 22
+connector = "CN1"
+[board.ldr]
+gpio = 34
+[board.sd]
+cs = 5
+
+[[board]]
+id = "2432S024R"
+model = "ESP32-2432S024R"
+size = '2.4"'
+recognise = "2.4\" screen with resistive touch; ESP32-2432S024R printed on the back."
+status = "mapped"
+addons_v04 = false
+sources = ["https://github.com/rzeldent/platformio-espressif32-sunton/blob/main/esp32-2432S024R.json"]
+reports = []
+chip_outputs = [12, 19, 36]
+[board.screen]
+chip = "ILI9341"
+init = "ili9341"
+width = 320
+height = 240
+swap_xy = true
+mirror_x = false
+mirror_y = false
+bgr = true
+invert = false
+sclk = 14
+mosi = 13
+miso = 12
+cs = 15
+dc = 2
+rdid4 = 0x009341
+id_source = "datasheet (ILI9341 RDID4 read through the 0xD9 index)"
+[board.backlight]
+pin = 27
+active_high = true
+[board.led]
+r = 4
+g = 16
+b = 17
+active_low = true
+[board.touch]
+type = "xpt2046_shared"
+cs = 33
+irq = 36
+cal = [300, 3800, 200, 3800]
+note = "calibration taken from the 2.8\" board; may be off"
+[board.ldr]
+gpio = 34
+[board.sd]
+cs = 5
+
+[[board]]
+id = "2432S024C"
+model = "ESP32-2432S024C"
+size = '2.4"'
+recognise = "2.4\" screen with capacitive touch; ESP32-2432S024C printed on the back."
+status = "mapped"
+addons_v04 = false
+sources = ["https://github.com/rzeldent/platformio-espressif32-sunton/blob/main/esp32-2432S024C.json"]
+reports = []
+chip_outputs = [12, 19, 21]
+[board.screen]
+chip = "ILI9341"
+init = "ili9341"
+width = 320
+height = 240
+swap_xy = true
+mirror_x = false
+mirror_y = false
+bgr = true
+invert = false
+sclk = 14
+mosi = 13
+miso = 12
+cs = 15
+dc = 2
+rdid4 = 0x009341
+id_source = "datasheet (ILI9341 RDID4 read through the 0xD9 index)"
+[board.backlight]
+pin = 27
+active_high = true
+[board.led]
+r = 4
+g = 16
+b = 17
+active_low = true
+[board.touch]
+type = "none"
+chip = "CST816S"
+sda = 33
+scl = 32
+rst = 25
+irq = 21
+addr = 0x15
+note = "touch not supported yet (CST816S)"
+[board.ldr]
+gpio = 34
+[board.sd]
+cs = 5
+
+[[board]]
+id = "2432S032R"
+model = "ESP32-2432S032R"
+size = '3.2"'
+recognise = "3.2\" IPS screen with resistive touch; ESP32-2432S032R printed on the back."
+status = "mapped"
+addons_v04 = false
+sources = ["https://github.com/rzeldent/platformio-espressif32-sunton/blob/main/esp32-2432S032R.json"]
+reports = []
+chip_outputs = [12, 19, 36]
+[board.screen]
+chip = "ST7789 (IPS)"
+init = "st7789"
+width = 320
+height = 240
+swap_xy = true
+mirror_x = true
+mirror_y = false
+bgr = false
+invert = true
+sclk = 14
+mosi = 13
+miso = 12
+cs = 15
+dc = 2
+rddid = 0x858552
+id_source = "datasheet (ST7789V RDDID)"
+[board.backlight]
+pin = 27
+active_high = true
+[board.led]
+r = 4
+g = 16
+b = 17
+active_low = true
+[board.touch]
+type = "xpt2046_shared"
+cs = 33
+irq = 36
+cal = [300, 3800, 200, 3800]
+note = "calibration taken from the 2.8\" board; may be off"
+[board.ldr]
+gpio = 34
+[board.sd]
+cs = 5
+
+[[board]]
+id = "2432S032C"
+model = "ESP32-2432S032C"
+size = '3.2"'
+recognise = "3.2\" IPS screen with capacitive touch; ESP32-2432S032C printed on the back."
+status = "mapped"
+addons_v04 = false
+sources = ["https://github.com/rzeldent/platformio-espressif32-sunton/blob/main/esp32-2432S032C.json"]
+reports = []
+chip_outputs = [12, 19, 21]
+[board.screen]
+chip = "ST7789 (IPS)"
+init = "st7789"
+width = 320
+height = 240
+swap_xy = true
+mirror_x = true
+mirror_y = false
+bgr = false
+invert = true
+sclk = 14
+mosi = 13
+miso = 12
+cs = 15
+dc = 2
+rddid = 0x858552
+id_source = "datasheet (ST7789V RDDID)"
+[board.backlight]
+pin = 27
+active_high = true
+[board.led]
+r = 4
+g = 16
+b = 17
+active_low = true
+[board.touch]
+type = "gt911"
+sda = 33
+scl = 32
+rst = 25
+irq = 21
+addr = 0x5D
+[board.ldr]
+gpio = 34
+[board.sd]
+cs = 5
+
+[[board]]
+id = "3248S035R"
+model = "ESP32-3248S035R"
+size = '3.5"'
+recognise = "3.5\" screen (480 x 320) with resistive touch; ESP32-3248S035R printed on the back."
+status = "mapped"
+addons_v04 = false
+sources = ["https://github.com/rzeldent/platformio-espressif32-sunton/blob/main/esp32-3248S035R.json"]
+reports = []
+chip_outputs = [12, 19, 36]
+[board.screen]
+chip = "ST7796"
+init = "st7796"
+width = 480
+height = 320
+swap_xy = true
+mirror_x = false
+mirror_y = false
+bgr = true
+invert = false
+sclk = 14
+mosi = 13
+miso = 12
+cs = 15
+dc = 2
+rdid4 = 0x007796
+id_source = "datasheet (ST7796S RDID4)"
+[board.backlight]
+pin = 27
+active_high = true
+[board.led]
+r = 4
+g = 16
+b = 17
+active_low = true
+[board.touch]
+type = "xpt2046_shared"
+cs = 33
+irq = 36
+cal = [300, 3800, 200, 3800]
+note = "calibration taken from the 2.8\" board; may be off"
+[board.ldr]
+gpio = 34
+[board.sd]
+cs = 5
+
+[[board]]
+id = "3248S035C"
+model = "ESP32-3248S035C"
+size = '3.5"'
+recognise = "3.5\" screen (480 x 320) with capacitive touch; ESP32-3248S035C printed on the back."
+status = "mapped"
+addons_v04 = false
+sources = ["https://github.com/rzeldent/platformio-espressif32-sunton/blob/main/esp32-3248S035C.json"]
+reports = []
+chip_outputs = [12, 19, 21]
+[board.screen]
+chip = "ST7796"
+init = "st7796"
+width = 480
+height = 320
+swap_xy = true
+mirror_x = false
+mirror_y = false
+bgr = true
+invert = false
+sclk = 14
+mosi = 13
+miso = 12
+cs = 15
+dc = 2
+rdid4 = 0x007796
+id_source = "datasheet (ST7796S RDID4)"
+[board.backlight]
+pin = 27
+active_high = true
+[board.led]
+r = 4
+g = 16
+b = 17
+active_low = true
+[board.touch]
+type = "gt911"
+sda = 33
+scl = 32
+rst = 25
+irq = 21
+addr = 0x5D
+[board.ldr]
+gpio = 34
+[board.sd]
+cs = 5
+
+[[board]]
+id = "JC2432W328C"
+model = "JC2432W328C"
+size = '2.8"'
+feature = "Guition, capacitive touch"
+recognise = "2.8\" IPS screen with capacitive touch; JC2432W328C printed on the back (Guition)."
+status = "mapped"
+addons_v04 = false
+sources = ["https://github.com/rzeldent/platformio-espressif32-sunton/blob/main/JC2432W328C.json"]
+reports = []
+chip_outputs = [12, 19, 21]
+[board.screen]
+chip = "ST7789 (IPS)"
+init = "st7789"
+width = 320
+height = 240
+swap_xy = true
+mirror_x = true
+mirror_y = false
+bgr = false
+invert = true
+sclk = 14
+mosi = 13
+miso = 12
+cs = 15
+dc = 2
+rddid = 0x858552
+id_source = "datasheet (ST7789V RDDID)"
+[board.backlight]
+pin = 27
+active_high = true
+[board.led]
+r = 4
+g = 16
+b = 17
+active_low = true
+[board.touch]
+type = "none"
+chip = "CST816S"
+sda = 33
+scl = 32
+rst = 25
+irq = 21
+addr = 0x15
+note = "touch not supported yet (CST816S)"
+[board.ldr]
+gpio = 34
+[board.sd]
+cs = 5

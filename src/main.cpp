@@ -1,3 +1,4 @@
+#include "hw/board.h"
 #include "services/ota_manager.h"
 #include "services/setup_serial.h"
 #include "core/crashlog.h"
@@ -57,6 +58,8 @@ void setup() {
     config::load();
     config::log_summary();
     Serial.flush();
+    // Before any board pin is driven (the status LED is on the same pins on every board: check_boards.py).
+    hw::board::select_at_boot();
     services::SpaceManager::init();
 
     Serial.println("[Boot Check] Initializing Sensors...");

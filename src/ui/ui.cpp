@@ -1,3 +1,4 @@
+#include "board_notice.h"
 #include "ui.h"
 #include "layout.h"
 #include "status_bar.h"
@@ -165,6 +166,7 @@ namespace ui {
             });
 
             cycle::init();  // screen cycling (off unless enabled in the settings)
+            board_notice::start();  // confirm / mismatch / untested board (v0.3.2)
 
             if (config::get().aprs_enabled) {
                 services::AprsManager::start();

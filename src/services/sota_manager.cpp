@@ -11,6 +11,7 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <atomic>
+#include <time.h>
 #include <cstring>
 #include <strings.h>
 
@@ -29,6 +30,8 @@ namespace services {
 
     // Set before the task is created, cleared by the task as its last action.
     static std::atomic<bool> task_alive{false};
+    static std::atomic<bool> link_up{false};  // logged in (task writes, UI reads)
+    static std::atomic<uint32_t> link_since{0};  // UTC epoch of the login, 0 if the clock isn't set
     static uint32_t last_rx = 0;  // millis() of the last byte received (link_watch.h); task only
     // Guards the spot list while the task reorders it; the UI reads it from loop().
     static portMUX_TYPE spots_mux = portMUX_INITIALIZER_UNLOCKED;
@@ -112,6 +115,7 @@ namespace services {
             }
 
             if (!client.connected()) {
+                link_up = false;
                 Serial.printf("[SOTA] Connecting to %s:%u...\n", CLUSTER_HOST, CLUSTER_PORT);
                 crashlog::mark(crashlog::SLOT_SOTA, 1);
                 // Milliseconds: core 3 uses Stream::setTimeout(); core 2's WiFiClient took seconds, and
@@ -128,6 +132,11 @@ namespace services {
                 idx = 0;
                 fetching = false;
                 Serial.println("[SOTA] Logged in to SOTA cluster.");
+                {
+                    const time_t now = time(nullptr);
+                    link_since = now > 1700000000 ? (uint32_t)now : 0;  // before NTP: no time to show
+                    link_up = true;
+                }
                 last_rx = millis();
             }
 
@@ -156,9 +165,13 @@ namespace services {
 
         client.stop();
         fetching = false;
+        link_up = false;
         Serial.println("[SOTA] Cluster session closed.");
         task_alive = false;
         vTaskDelete(NULL);
     }
+
+    bool SotaManager::is_connected() { return link_up; }
+    uint32_t SotaManager::connected_since() { return link_since; }
 
 } // namespace services

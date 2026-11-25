@@ -97,6 +97,7 @@ PAGES = [("home.html", "", "Home"), ("install.html", "install", "Install"), ("se
          ("space.html", "space", "Space feed")]
 # Files next to the pages (web-installer/), copied as they are; pages load them as "../<name>".
 SITE_FILES = ("site.css", "site.js", "install-plan.js", "setup-usb.js")
+WWW_FILES = ("board_report.js", "boards.json")  # shared with the web console (data/www)
 # mailto with the address as HTML entities, as on bharathpalavalli.com (fewer harvesters).
 CONTACT = "".join(f"&#{ord(c)};" for c in "mailto:vu3glj@disroot.org")
 EXTERNAL_NAV = [("Releases", "https://github.com/bmp/QRPickle/releases"),
@@ -159,6 +160,13 @@ def render_pages(out, ref):
             f.write(page)
     for name in SITE_FILES:
         shutil.copy(os.path.join(SITE, name), os.path.join(out, name))
+    # v0.3.2: the board list, report links and board photos (Set up over USB, Install)
+    for name in WWW_FILES:
+        shutil.copy(os.path.join(REPO_ROOT, "data", "www", name), os.path.join(out, name))
+    os.makedirs(os.path.join(out, "boards"), exist_ok=True)
+    for name in sorted(os.listdir(os.path.join(REPO_ROOT, "boards", "img"))):
+        if name.endswith(".jpg"):
+            shutil.copy(os.path.join(REPO_ROOT, "boards", "img", name), os.path.join(out, "boards", name))
     shutil.copy(os.path.join(REPO_ROOT, "docs", "pics", "qrpickle-tour.gif"), os.path.join(out, "tour.gif"))
 
 

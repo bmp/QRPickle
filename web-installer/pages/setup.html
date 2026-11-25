@@ -39,6 +39,36 @@
     <label>HamAlert password <input id="hamalert_pass" type="password" maxlength="32" autocomplete="off"></label>
     <label>APRS-IS passcode <input id="aprs_pass" type="password" maxlength="7" autocomplete="off"></label>
   </fieldset>
+  <fieldset>
+    <legend>Board (only if the screen stays dark or shows the wrong board)</legend>
+    <p class="small">Read what the board detected; choose it only if that's wrong (the number printed on the
+       back, <a href="#" id="board-photo-link">where to look</a>), and report boards that aren't tested yet.</p>
+    <img id="board-photo" class="board-photo hidden" src="../boards/2432S028R-2USB-back.jpg"
+         alt="The back of an ESP32-2432S028R: the model number is printed on the board">
+    <p><button id="read-board" type="button">Read the board over USB</button></p>
+    <div id="board-found" class="msg msg-info hidden" role="status"></div>
+    <label>Board <select id="board">
+      <option value="">Keep the board's setting</option>
+      <option value="auto">Auto-detect (recommended)</option>
+    </select></label>
+    <p class="small">Choosing a board restarts the CYD after sending (v0.3.2 or newer).</p>
+    <div id="board-report" class="hidden">
+      <p><strong>Report this board</strong>: opens GitHub's "Board report" form with the details filled in; you
+         sign in, attach a photo of the back and submit. Nothing is sent from this page.</p>
+      <label>Number printed on the back <input id="board-back" maxlength="40" placeholder="e.g. ESP32-2432S028R"></label>
+      <div class="board-works">What works:
+        <label class="check"><input type="checkbox" data-work="picture"> Picture</label>
+        <label class="check"><input type="checkbox" data-work="colours"> Colours</label>
+        <label class="check"><input type="checkbox" data-work="orientation"> Right way up</label>
+        <label class="check"><input type="checkbox" data-work="touch"> Touch</label>
+        <label class="check"><input type="checkbox" data-work="backlight"> Backlight</label>
+        <label class="check"><input type="checkbox" data-work="led"> LED</label>
+        <label class="check"><input type="checkbox" data-work="sensor"> Sensor</label>
+      </div>
+      <label>Notes <textarea id="board-notes" rows="3" maxlength="2000"></textarea></label>
+      <p><button id="board-report-open" type="button">Open report on GitHub</button></p>
+    </div>
+  </fieldset>
   <p><button id="send" class="install-btn" type="button">Connect and send</button></p>
 </form>
 <p id="unsupported" class="note hidden">This browser can't access USB serial ports. Use Chrome or Edge on a computer.</p>
@@ -52,11 +82,77 @@
 
 <!-- scripts -->
   <script src="../setup-usb.js"></script>
+  <script src="../board_report.js"></script>
   <script>
     const $ = id => document.getElementById(id);
     $("metric").addEventListener("change", () => $("units").classList.toggle("hidden", $("metric").checked));
     const support = serialSupport(window);
     if (support !== "ok") { $(support).classList.remove("hidden"); $("send").disabled = true; }
+
+    // ---- the board: list, what the CYD detected, report ----
+    let boardInfo = null;
+    const statusText = s => (s === "tested" ? "tested" : s === "reported" ? "reported working" : "untested");
+    fetch("../boards.json").then(r => r.json()).then(list => {
+      for (const b of list.boards || []) {
+        if (b.selectable === false) continue;
+        const o = document.createElement("option");
+        o.value = b.id;
+        o.textContent = `${b.name} (${statusText(b.status)})`;
+        $("board").appendChild(o);
+      }
+    }).catch(() => {});
+    $("board-photo-link").addEventListener("click", e => { e.preventDefault(); $("board-photo").classList.toggle("hidden"); });
+
+    function showBoard(r) {
+      const box = $("board-found");
+      box.classList.remove("hidden");
+      if (!r.info) {
+        box.className = "msg msg-warn";
+        box.innerHTML = `The board runs QRPickle ${escapeHtml(r.version)}, which can't report its board yet (v0.3.2 or newer).`;
+        return;
+      }
+      boardInfo = r.info;
+      const b = r.info;
+      const untested = b.status !== "tested";
+      box.className = `msg msg-${b.warn_mismatch || untested ? "warn" : "info"}`;
+      box.innerHTML = `The board detected: <strong>${escapeHtml(b.name)}</strong> (${escapeHtml(statusText(b.status))}; ` +
+        `${escapeHtml(b.decision)}; screen ID ${escapeHtml(b.rddid)} / ${escapeHtml(b.rdid4)} / ${escapeHtml(b.rdid4_indexed)}).` +
+        (b.warn_mismatch ? "<br>Its board setting doesn't match the screen: check the number on the back." : "") +
+        (untested ? "<br>This board hasn't been tested yet: please report how it works (below)." : "");
+      $("board-report").classList.remove("hidden");
+    }
+
+    async function withPort(fn) {
+      let port;
+      try { port = await navigator.serial.requestPort(); } catch (e) { return; }  // no port picked
+      $("send").disabled = $("read-board").disabled = true;
+      let lp = null;
+      try {
+        if (port.readable || port.writable) await closeLinePort(null, port);  // left open by an earlier run
+        await port.open({ baudRate: 115200 });
+        lp = openLinePort(port);
+        await fn(lp);
+      } catch (e) {
+        show(escapeHtml(e.message || e), "error");
+      } finally {
+        await closeLinePort(lp, port);
+        $("send").disabled = $("read-board").disabled = false;
+      }
+    }
+
+    $("read-board").addEventListener("click", () => withPort(async lp => {
+      show("Connected. Waiting for the board (it may restart, up to 40 seconds)...");
+      showBoard(await readBoard(lp));
+      $("status").classList.add("hidden");
+    }));
+
+    $("board-report-open").addEventListener("click", () => {
+      if (!boardInfo) return;
+      const works = {};
+      document.querySelectorAll("#board-report [data-work]").forEach(c => { works[c.dataset.work] = c.checked; });
+      window.open(reportUrl(autoFromBoard(boardInfo), { back: $("board-back").value.trim(), works, notes: $("board-notes").value }),
+                  "_blank", "noopener");
+    });
 
     function show(html, kind = "info") {
       const s = $("status");
@@ -69,25 +165,12 @@
                        "aprs_pass", "unit_temp", "unit_pres", "unit_wind", "unit_dist"]) f[k] = $(k).value;
       f.clock_12h = $("clock").value === "1";
       f.metric = $("metric").checked;
+      f.board = $("board").value;
       const settings = buildSettings(f);
-      let port;
-      try {
-        port = await navigator.serial.requestPort();
-      } catch (e) { return; }  // no port picked
-      $("send").disabled = true;
-      let lp = null;
-      try {
-        if (port.readable || port.writable) await closeLinePort(null, port);  // left open by an earlier run
-        await port.open({ baudRate: 115200 });
-        lp = openLinePort(port);
+      await withPort(async lp => {
         show("Connected. Waiting for the board (it may restart, up to 40 seconds)...");
         const r = await runSetup(lp, settings, { log: t => show(escapeHtml(t)) });
         show(resultText(r), "info");
-      } catch (e) {
-        show(escapeHtml(e.message || e), "error");
-      } finally {
-        await closeLinePort(lp, port);
-        $("send").disabled = false;
-      }
+      });
     });
   </script>

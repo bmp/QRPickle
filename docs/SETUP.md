@@ -8,7 +8,7 @@ need free accounts, listed first so you can get them ready.
 
 | Need | For | Where to get it |
 | :--- | :--- | :--- |
-| ESP32-2432S028R "Cheap Yellow Display" (2.8", resistive touch) | everything | see [Hardware and Wiring](HARDWARE.md) |
+| A "Cheap Yellow Display": tested on the ESP32-2432S028R (2.8", resistive touch); other CYD boards in the [board list](BOARDS.md) | everything | see [Hardware and Wiring](HARDWARE.md); **check the number printed on the back of the board** |
 | A USB **data** cable and Chrome or Edge on a computer | installing | some cables only charge |
 | A 2.4 GHz WiFi network (name and password) | everything online | the CYD can't use 5 GHz networks |
 | Your callsign and Maidenhead grid square (e.g. `MK82tw`) | spots, band conditions, satellites | |
@@ -21,7 +21,9 @@ DX cluster, POTA, SOTA, band conditions and satellites need no account.
 ## 2. Install QRPickle
 
 Open the [web installer](https://quixotic.bharathpalavalli.com/QRPickle/install/), connect the CYD and choose
-**Full install** (for a new board, tick **Erase device** when asked). It takes about two minutes.
+**Full install** (for a new board, tick **Erase device** when asked). It takes about two minutes. Before
+installing, the page asks you to turn the board over and find the number printed on the back, and shows
+which boards are tested. A board that isn't listed may still work: install it, then report it.
 
 - "Failed to initialize": hold the **BOOT** button while clicking Install, and release it once installing
   starts. On Linux see [Web installer on Linux](../README.md#downloading-pre-compiled-releases).
@@ -37,6 +39,16 @@ saved and the admin password; the CYD restarts and joins your WiFi. Its address 
 **Network** screen: open it in your browser, log in as `admin`, and carry on at section 4 for the rest.
 Nothing you type there leaves your computer except over the USB cable. If the page says the board
 doesn't answer, close other programs using the port and try again, or use the hotspot below.
+
+**The board (v0.3.2 or newer):** QRPickle detects the board from its screen at the first start. When the
+screen works, it asks once: *"Detected ESP32-2432S028R (2.8", ...). Turn the CYD over: does the number on the
+back match?"* Tap **Correct**, or **Choose another** to pick the right one (the CYD restarts). If the screen
+stays dark or white, the board wasn't recognised: on the Set up over USB page, in the last section **Board**,
+click **Read the board over USB** to see what it detected, choose your board (check the number on the back)
+and send;
+or later in the web console under **System Info → Board**. A board marked *untested* asks once for a short
+report: the web console's **Report this board**, the same form on the Set up over USB page, or the QR code
+on the CYD opens GitHub's board report form with the details filled in (you add a photo of the back).
 
 **Or with the setup hotspot:**
 

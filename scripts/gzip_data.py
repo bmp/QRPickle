@@ -6,8 +6,12 @@ Import("env")
 import gzip
 import os
 import shutil
+import sys
 
-COMPRESS = (".html", ".js", ".css", ".svg")
+sys.path.insert(0, os.path.join(env.subst("$PROJECT_DIR"), "scripts"))
+import about_credits  # noqa: E402  (the About tab's software list, from THIRD_PARTY_NOTICES.md)
+
+COMPRESS = (".html", ".js", ".css", ".svg", ".json")
 
 src = env.subst("$PROJECT_DATA_DIR")
 dst = os.path.join(env.subst("$BUILD_DIR"), "data_gz")
@@ -15,6 +19,12 @@ dst = os.path.join(env.subst("$BUILD_DIR"), "data_gz")
 if os.path.isdir(src):
     shutil.rmtree(dst, ignore_errors=True)
     shutil.copytree(src, dst)
+    about = os.path.join(dst, "about.txt")
+    if os.path.isfile(about):
+        with open(os.path.join(env.subst("$PROJECT_DIR"), "THIRD_PARTY_NOTICES.md"), encoding="utf-8") as f:
+            credits = about_credits.credits_section(f.read())
+        with open(about, "a", encoding="utf-8") as f:
+            f.write(credits)
     before = after = 0
     for root, _, files in os.walk(os.path.join(dst, "www")):
         for name in files:

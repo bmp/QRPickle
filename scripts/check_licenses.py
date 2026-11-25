@@ -138,6 +138,8 @@ def check(root):
         for macro, family in LVGL_FONTS.items():
             if re.search(rf"#define\s+LV_FONT_{macro}\w*\s+1\b", lv_conf) and norm(family) not in n_notices:
                 errors.append(f"lv_conf.h enables LVGL's {family} font, which is not in {NOTICES}")
+        if re.search(r"#define\s+LV_USE_QRCODE\s+1\b", lv_conf) and norm("qrcodegen") not in n_notices:
+            errors.append(f"lv_conf.h enables LVGL's QR code (qrcodegen, Project Nayuki), which is not in {NOTICES}")
     except OSError:
         pass
 

@@ -1,3 +1,4 @@
+#include "../hw/board.h"
 #include "setup_serial.h"
 #include "setup_serial_proto.h"
 #include "net_lock.h"
@@ -9,6 +10,7 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <string.h>
+#include "json_copy.h"
 
 namespace services {
 
@@ -44,12 +46,18 @@ namespace services {
             JsonDocument allowed;
             for (const char* k : KEYS)
                 if (!in[k].isNull()) allowed[k] = in[k];
+            // The board is hardware, not a profile setting: it isn't in config_json (v0.3.2).
+            char board[sizeof(config::Config::board)] = "";
+            const bool has_board = in["board"].is<const char*>();
+            if (has_board) copy_str(board, in["board"]);  // services::copy_str (json_copy.h)
             in.clear();
 
             const config::Config& live = config::get();
             auto* staged = new config::Config(live);
             config::from_json(*staged, allowed.as<JsonObjectConst>());
             config::sanitize(*staged, live);
+            bool board_kept = false;
+            if (has_board && !config::apply_board_setting(*staged, board)) board_kept = true;
 
             JsonDocument before, after;
             config::to_json(live, before.to<JsonObject>(), config::Secrets::Include);
@@ -67,7 +75,13 @@ namespace services {
             }
             before.clear();
             after.clear();
-            const bool restart = config::wifi_changed(live, *staged);
+            if (config::board_changed(live, *staged)) {
+                append_key(saved, sizeof(saved), "board");
+                n_saved++;
+            } else if (board_kept) {
+                append_key(kept, sizeof(kept), "board");
+            }
+            const bool restart = config::wifi_changed(live, *staged) || config::board_changed(live, *staged);
             web_server_stage_config(staged);  // applied and saved by web_server_update() this loop
 
             Serial.printf("[Setup] USB setup: saved %d fields\n", n_saved);
@@ -80,6 +94,13 @@ namespace services {
             if (r.act == setup_proto::Act::Reply) {
                 if (strcmp(r.reply, "QRPSETUP READY") == 0) Serial.printf("QRPSETUP READY %s\n", meta::FW_VERSION);
                 else Serial.println(r.reply);
+            } else if (r.act == setup_proto::Act::Info) {
+                // What the board detected, for the page's board check and report (no secrets).
+                JsonDocument doc;
+                hw::board::to_json(doc.to<JsonObject>());
+                Serial.print("QRPSETUP BOARD ");
+                serializeJson(doc, Serial);
+                Serial.println();
             } else if (r.act == setup_proto::Act::Apply) {
                 apply(r.json, r.json_len);
                 proto.done();

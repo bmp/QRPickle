@@ -1,10 +1,13 @@
 #include "../core/crashlog.h"
 #include "led_rgb.h"
-#include "../services/display_manager.h" 
+#include "../services/display_manager.h"
 
-#define LED_PIN_R  4
-#define LED_PIN_G  16
-#define LED_PIN_B  17
+#include "boards_gen.h"
+
+// The LED starts before the board is known; scripts/check_boards.py makes every board use these pins.
+static constexpr int8_t LED_PIN_R = hw::BOARDS[0].led_r;
+static constexpr int8_t LED_PIN_G = hw::BOARDS[0].led_g;
+static constexpr int8_t LED_PIN_B = hw::BOARDS[0].led_b;
 
 namespace hw {
     namespace led_rgb {

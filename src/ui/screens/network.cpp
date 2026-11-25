@@ -1,3 +1,4 @@
+#include "../board_notice.h"
 #include "network.h"
 #include "../layout.h"
 #include "../fonts.h"
@@ -183,6 +184,9 @@ namespace ui {
         lv_obj_center(lbl_eye);
 
         network_timer_cb(nullptr);
+
+        // Untested boards only: a "Board" line with [Report] (a tested board's screen stays as before).
+        board_notice::add_network_line(page, 2);  // the free band above the stats
 
         // Reconnect Button
         lv_obj_t* btn_recon = lv_btn_create(page);

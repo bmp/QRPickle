@@ -18,7 +18,8 @@ namespace services {
     };
 
     // SOTA spots from the SOTA cluster (cluster.sota.org.uk:7300, telnet). The connection
-    // runs only while the xOTA SOTA tab is open; the cluster replays recent spots on login.
+    // runs only while the xOTA SOTA tab is open. The cluster sends only spots posted after login (no
+    // replay; "sh/dx" returns nothing, tested 2026-11-24), so the tab says it's waiting until one comes.
     class SotaManager {
     public:
         static void start();
@@ -37,6 +38,9 @@ namespace services {
         static bool is_dirty() { return dirty; }
         static void clear_dirty() { dirty = false; }
         static uint32_t get_last_fetch_time() { return last_fetch_time; }
+        // Logged in to the cluster now; and since when (UTC epoch seconds, 0 if the clock isn't set yet).
+        static bool is_connected();
+        static uint32_t connected_since();
         static void expire_timer() { last_fetch_time = 0; }
 
     private:

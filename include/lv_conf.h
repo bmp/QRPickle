@@ -44,7 +44,7 @@
 #define LV_USE_ANIMIMG     0
 #define LV_USE_ARC         0
 #define LV_USE_ARCLABEL    0
-#define LV_USE_CANVAS      0
+#define LV_USE_CANVAS      1  /* needed by the QR code (v0.3.2 board report) */
 #define LV_USE_IMAGEBUTTON 0
 #define LV_USE_LED         0
 #define LV_USE_LINE        0
@@ -119,5 +119,8 @@ extern struct _lv_font_t font_jetbrains_24;
 
 /* Set our runtime-patched Atkinson 14px as the global default layout font */
 #define LV_FONT_DEFAULT &font_atkinson_14
+
+/* QR code of the board report link (src/ui/board_notice.cpp, v0.3.2; qrcodegen by Project Nayuki, MIT) */
+#define LV_USE_QRCODE 1
 
 #endif /*LV_CONF_H*/

@@ -20,6 +20,8 @@ function buildSettings(f) {
     if (Number.isFinite(offset)) out.offset = offset;
     out.clock_12h = !!f.clock_12h;
     for (const k of ["unit_temp", "unit_pres", "unit_wind", "unit_dist"]) out[k] = f.metric ? 0 : (parseInt(f[k]) || 0);
+    const board = (f.board ?? "").toString().trim();  // v0.3.2: "auto" or a board id (boards.json)
+    if (board) out.board = board;
     return out;
 }
 
@@ -45,6 +47,9 @@ function parseReply(line) {
     if (cmd === "ACK") return { type: "ack", seq: rest };
     if (cmd === "ERR") return { type: "err", code: rest };
     if (cmd === "RESTART") return { type: "restart" };
+    if (cmd === "BOARD") {
+        try { return { type: "board", info: JSON.parse(rest) }; } catch (e) { return null; }
+    }
     if (cmd === "SAVED") {
         const s = /^(\S+) KEPT (\S+) ADMIN (\S+)$/.exec(rest);
         if (!s) return null;
@@ -64,19 +69,32 @@ async function nextReply(port, ms, now) {
     return null;
 }
 
+// HELLO until the board answers READY (opening the port may restart it); rejects when it never does.
+async function hello(port, now) {
+    const helloEnd = now() + READY_WAIT_MS;
+    while (now() < helloEnd) {
+        await port.write("QRPSETUP HELLO");
+        const r = await nextReply(port, 1000, now);
+        if (r?.type === "ready") return r;
+    }
+    throw new Error("No answer from the board: its firmware is too old for setup over USB (v0.3.1 or newer), " +
+                    "or another program has the port open.");
+}
+
+// What the board detected (v0.3.2 and newer): { version, info } with info = the BOARD reply's JSON
+// (as /api/board), or null when the firmware doesn't know INFO (v0.3.1).
+async function readBoard(port, { now = () => Date.now() } = {}) {
+    const ready = await hello(port, now);
+    await port.write("QRPSETUP INFO");
+    const r = await nextReply(port, 3000, now);
+    return { version: ready.version, info: r?.type === "board" ? r.info : null };
+}
+
 // port: { write(line), readLine(timeoutMs) -> line or null }. Resolves to
 // { version, saved, kept, admin, restart }; rejects with a message for the page.
 async function runSetup(port, settings, { now = () => Date.now(), sleep = ms => new Promise(r => setTimeout(r, ms)),
                                           log = () => {} } = {}) {
-    let ready = null;
-    const helloEnd = now() + READY_WAIT_MS;
-    while (!ready && now() < helloEnd) {
-        await port.write("QRPSETUP HELLO");
-        const r = await nextReply(port, 1000, now);
-        if (r?.type === "ready") ready = r;
-    }
-    if (!ready) throw new Error("No answer from the board: its firmware is too old for setup over USB (v0.3.1 or newer), " +
-                                "or another program has the port open.");
+    const ready = await hello(port, now);
     log(`Board answered: QRPickle ${ready.version}`);
 
     const json = JSON.stringify(settings);
@@ -177,6 +195,6 @@ function resultText(r) {
 }
 
 if (typeof module !== "undefined") {
-    module.exports = { MAX_DATA, buildSettings, chunks, parseReply, runSetup, openLinePort, closeLinePort, resultText,
-                       escapeHtml, serialSupport };
+    module.exports = { MAX_DATA, buildSettings, chunks, parseReply, runSetup, readBoard, openLinePort, closeLinePort,
+                       resultText, escapeHtml, serialSupport };
 }

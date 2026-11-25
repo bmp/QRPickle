@@ -1,3 +1,4 @@
+#include "../hw/board.h"
 #include "web_server.h"
 #include "net_lock.h"
 #include "fresh_registry.h"
@@ -211,6 +212,19 @@ void web_server_init() {
         else request->send(404, "text/plain", "JS Missing");
     });
 
+    server.on("/board_report.js", HTTP_GET, [](AsyncWebServerRequest* request) {
+        REQUIRE_AUTH(request);
+        if (www_exists("/www/board_report.js")) request->send(LittleFS, "/www/board_report.js", "application/javascript");
+        else request->send(404, "text/plain", "JS Missing");
+    });
+
+    // The board list (generated from boards/boards.toml by scripts/gen_boards.py).
+    server.on("/boards.json", HTTP_GET, [](AsyncWebServerRequest* request) {
+        REQUIRE_AUTH(request);
+        if (www_exists("/www/boards.json")) request->send(LittleFS, "/www/boards.json", "application/json");
+        else request->send(404, "application/json", "{\"boards\":[]}");
+    });
+
     server.on("/logo.js", HTTP_GET, [](AsyncWebServerRequest* request) {
         REQUIRE_AUTH(request);
         if (www_exists("/www/logo.js")) request->send(LittleFS, "/www/logo.js", "application/javascript");
@@ -228,6 +242,12 @@ void web_server_init() {
         links["aprs"] = services::AprsManager::is_connected();
         links["hamalert"] = services::HamAlertManager::is_connected();
         links["dx"] = (int)services::DxManager::get_status();  // 0 off .. 4 connected  // esp_reset_reason_t: 1 power-on, 3 software, 4 panic
+        {
+            JsonObject board = doc["board"].to<JsonObject>();  // for reports and tests (no secrets)
+            board["id"] = hw::board::active().id;
+            board["decision"] = hw::rules::decision_name(hw::board::selection().decision);
+            board["warn_mismatch"] = hw::board::selection().warn_mismatch;
+        }
         doc["ui_page"] = static_cast<int>(ui::ui_active_page());  // ui::LocalPage (tests, screen cycling)
         doc["heap"] = ESP.getFreeHeap();
         const auto& m = mem_stats::get();  // sampled on the main loop every 5 s
@@ -287,6 +307,41 @@ void web_server_init() {
         serializeJson(doc, *response);
         request->send(response);
     });
+
+    // The board (v0.3.2): what was detected and the "board" setting. Not part of /api/config, profiles
+    // or backups (it describes the hardware); changing it restarts the board.
+    server.on("/api/board", HTTP_GET, [](AsyncWebServerRequest* request) {
+        REQUIRE_AUTH(request);
+        JsonDocument doc;
+        hw::board::to_json(doc.to<JsonObject>());
+        AsyncResponseStream* response = request->beginResponseStream("application/json");
+        serializeJson(doc, *response);
+        request->send(response);
+    });
+
+    server.on("/api/board", HTTP_POST, auth_gate, nullptr,
+              [](AsyncWebServerRequest* request, uint8_t* data, size_t len, size_t index, size_t total) {
+                  if (!authorized(request)) return;
+                  const char* body = collect_body(request, data, len, index, total);
+                  if (!body) return;
+                  JsonDocument doc;
+                  char board[sizeof(config::Config::board)] = "";
+                  if (deserializeJson(doc, body, total) || !doc["board"].is<const char*>()) {
+                      request->send(400, "application/json", "{\"status\":\"malformed\"}");
+                      return;
+                  }
+                  services::copy_str(board, doc["board"]);
+                  if (!config::is_valid_board_setting(board)) {
+                      request->send(400, "application/json", "{\"status\":\"unknown_board\"}");
+                      return;
+                  }
+                  auto* c = new config::Config(config::get());
+                  strlcpy(c->board, board, sizeof(c->board));
+                  const bool restart = config::board_changed(config::get(), *c);
+                  queue_config(c);
+                  request->send(200, "application/json",
+                                restart ? "{\"status\":\"success\",\"restart\":true}" : "{\"status\":\"success\"}");
+              });
 
     server.on("/api/config", HTTP_GET, [](AsyncWebServerRequest *request) {
         REQUIRE_AUTH(request);
@@ -719,9 +774,10 @@ void web_server_update() {
     const bool aprs_was = config::get().aprs_enabled;
     // New WiFi details take effect only after a restart (in the first-setup hotspot the board never
     // reconnects by itself): a save or profile that changes them restarts the board.
-    bool wifi_new = false;
+    bool wifi_new = false, board_new = false;
     if (config::Config* staged = pending_config.exchange(nullptr)) {
         wifi_new = config::wifi_changed(config::get(), *staged);
+        board_new = config::board_changed(config::get(), *staged);  // pins are fixed at boot
         config::mutable_get() = *staged;
         delete staged;
         config::save();
@@ -733,6 +789,11 @@ void web_server_update() {
             flag_trigger_ui_refresh = true;
             wifi_new = wifi_new || profile_wifi;
         }
+    }
+    if (board_new && !flag_trigger_reboot) {
+        Serial.printf("[BOARD] Board setting now '%s': restarting\n", config::get().board);
+        flag_trigger_reboot = true;
+        reboot_timer_mark = millis();
     }
     if (wifi_new && !flag_trigger_reboot) {
         Serial.println("[Wi-Fi] New network settings saved: restarting to join");

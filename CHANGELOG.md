@@ -2,6 +2,41 @@
 
 User-facing changes per release, newest first. Each section is also the release commit message (see `docs/RELEASING.md`).
 
+## v0.3.2 (2026-11-25)
+
+QRPickle knows which CYD it runs on: one board list, detection at start-up or your choice, reports for untested boards
+
+Update with Cloud OTA or the web console; your settings, profiles and logos
+stay, and the 2.8" board looks exactly as before. On the first start it asks
+once whether the detected board matches the number printed on the back. The
+web console's new Board section also needs the web console files
+(littlefs.bin, System Info tab).
+
+New
+- Boards: QRPickle reads the screen's ID at start-up and drives that board's
+  own pins: tested on the ESP32-2432S028R (2.8"), and listed from the makers'
+  data for the 2.8" one-USB and ST7789 versions, the 2.4" and 3.2" CYDs (R and
+  C), the 3.5" ESP32-3248S035 (R and C) and the Guition JC2432W328C. Bigger
+  screens show the dashboard centred. The board list: docs/BOARDS.md.
+- Choose the board yourself (check the number on the back): in the web
+  console (System Info, Board), on the website's Set up over USB page, or on
+  the CYD when it asks. If your choice doesn't match the screen, QRPickle warns
+  and lets you keep it.
+- Untested boards ask once for a short report: the web console, the Set up
+  over USB page or a QR code on the CYD opens GitHub's board report form with
+  the board's details filled in.
+- The installer asks you to check the number on the back before installing.
+- The SOTA tab says it's live and waiting for spots (the SOTA cluster only
+  sends spots posted after you open the tab).
+- The web console's About tab lists the software QRPickle is built from.
+
+Fixes
+- With the screen timeout at 0 (manual sleep only), automatic brightness from
+  the light sensor never ran.
+- No stripes or leftover pictures on the screen while the CYD starts.
+- The original one-USB 2.8" CYD gets its own colour settings: v0.3.1 used
+  the USB-C version's inverted colours on every board.
+
 ## v0.3.1 (2026-11-20)
 
 Set up over USB, your own units and clock (°F, inHg, mph or knots, miles, 12-hour time), accented names

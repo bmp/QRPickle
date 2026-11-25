@@ -1,0 +1,125 @@
+{
+ "fallback": "2432S028R-2USB",
+ "boards": [
+  {
+   "id": "2432S028R-2USB",
+   "model": "ESP32-2432S028R",
+   "name": "ESP32-2432S028R (2.8\", USB-C + micro-USB)",
+   "size": "2.8\"",
+   "recognise": "Yellow board, 2.8\" screen, a USB-C and a micro-USB port; ESP32-2432S028 printed on the back.",
+   "status": "tested",
+   "chip": "ILI9341-compatible (answers 81 81 B3)",
+   "touch_note": "",
+   "photo": "2432S028R-2USB-back.jpg",
+   "selectable": true
+  },
+  {
+   "id": "2432S028R",
+   "model": "ESP32-2432S028R",
+   "name": "ESP32-2432S028R (2.8\", micro-USB only)",
+   "size": "2.8\"",
+   "recognise": "Yellow board, 2.8\" screen, one micro-USB port; ESP32-2432S028 printed on the back. The original CYD.",
+   "status": "mapped",
+   "chip": "ILI9341",
+   "touch_note": "",
+   "photo": "",
+   "selectable": true
+  },
+  {
+   "id": "2432S028R-ST7789",
+   "model": "ESP32-2432S028R",
+   "name": "ESP32-2432S028R (2.8\", USB-C + micro-USB, ST7789 screen)",
+   "size": "2.8\"",
+   "recognise": "Like the USB-C + micro-USB 2.8\" board, but with an ST7789 screen (the screen doesn't answer the ID read, so choose it by hand).",
+   "status": "mapped",
+   "chip": "ST7789",
+   "touch_note": "",
+   "photo": "",
+   "selectable": true
+  },
+  {
+   "id": "2432S024R",
+   "model": "ESP32-2432S024R",
+   "name": "ESP32-2432S024R (2.4\")",
+   "size": "2.4\"",
+   "recognise": "2.4\" screen with resistive touch; ESP32-2432S024R printed on the back.",
+   "status": "mapped",
+   "chip": "ILI9341",
+   "touch_note": "calibration taken from the 2.8\" board; may be off",
+   "photo": "",
+   "selectable": true
+  },
+  {
+   "id": "2432S024C",
+   "model": "ESP32-2432S024C",
+   "name": "ESP32-2432S024C (2.4\")",
+   "size": "2.4\"",
+   "recognise": "2.4\" screen with capacitive touch; ESP32-2432S024C printed on the back.",
+   "status": "mapped",
+   "chip": "ILI9341",
+   "touch_note": "touch not supported yet (CST816S)",
+   "photo": "",
+   "selectable": true
+  },
+  {
+   "id": "2432S032R",
+   "model": "ESP32-2432S032R",
+   "name": "ESP32-2432S032R (3.2\")",
+   "size": "3.2\"",
+   "recognise": "3.2\" IPS screen with resistive touch; ESP32-2432S032R printed on the back.",
+   "status": "mapped",
+   "chip": "ST7789 (IPS)",
+   "touch_note": "calibration taken from the 2.8\" board; may be off",
+   "photo": "",
+   "selectable": true
+  },
+  {
+   "id": "2432S032C",
+   "model": "ESP32-2432S032C",
+   "name": "ESP32-2432S032C (3.2\")",
+   "size": "3.2\"",
+   "recognise": "3.2\" IPS screen with capacitive touch; ESP32-2432S032C printed on the back.",
+   "status": "mapped",
+   "chip": "ST7789 (IPS)",
+   "touch_note": "",
+   "photo": "",
+   "selectable": true
+  },
+  {
+   "id": "3248S035R",
+   "model": "ESP32-3248S035R",
+   "name": "ESP32-3248S035R (3.5\")",
+   "size": "3.5\"",
+   "recognise": "3.5\" screen (480 x 320) with resistive touch; ESP32-3248S035R printed on the back.",
+   "status": "mapped",
+   "chip": "ST7796",
+   "touch_note": "calibration taken from the 2.8\" board; may be off",
+   "photo": "",
+   "selectable": true
+  },
+  {
+   "id": "3248S035C",
+   "model": "ESP32-3248S035C",
+   "name": "ESP32-3248S035C (3.5\")",
+   "size": "3.5\"",
+   "recognise": "3.5\" screen (480 x 320) with capacitive touch; ESP32-3248S035C printed on the back.",
+   "status": "mapped",
+   "chip": "ST7796",
+   "touch_note": "",
+   "photo": "",
+   "selectable": true
+  },
+  {
+   "id": "JC2432W328C",
+   "model": "JC2432W328C",
+   "name": "JC2432W328C (2.8\", Guition, capacitive touch)",
+   "size": "2.8\"",
+   "recognise": "2.8\" IPS screen with capacitive touch; JC2432W328C printed on the back (Guition).",
+   "status": "mapped",
+   "chip": "ST7789 (IPS)",
+   "touch_note": "touch not supported yet (CST816S)",
+   "photo": "",
+   "selectable": true
+  }
+ ]
+}

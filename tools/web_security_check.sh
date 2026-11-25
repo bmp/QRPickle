@@ -25,6 +25,8 @@ check "GET /api/logos/get requires auth"         "$(code "$B/api/logos/get?side=
 check "POST /api/logos/upload requires auth"     "$(code -X POST -F 'f=@/dev/null' "$B/api/logos/upload?side=left")" 401
 check "POST /api/logos/delete requires auth"     "$(code -X POST "$B/api/logos/delete?side=left")" 401
 check "POST /api/splash/preview requires auth"   "$(code -X POST "$B/api/splash/preview")" 401
+check "GET /api/board requires auth"             "$(code "$B/api/board")" 401
+check "POST /api/board requires auth"            "$(code -X POST -H 'Content-Type: application/json' -d '{"board":"auto"}' "$B/api/board")" 401
 check "GET /api/config with auth"                "$(code "${auth[@]}" "$B/api/config")" 200
 
 cfg=$(curl -s -m 10 "${auth[@]}" "$B/api/config")
@@ -41,5 +43,8 @@ up2=$(curl -s -m 10 "${auth[@]}" "$B/api/status" | python3 -c 'import sys,json;p
 check "device did not reboot after bad JSON"     "$([ "${up2:-0}" -ge "${up1:-0}" ] && echo yes || echo no)" yes
 check "path-traversal profile name rejected"     "$(code "${auth[@]}" "$B/api/profiles/get?name=../www/app")" 404
 check "markup profile name rejected"             "$(code "${auth[@]}" -X POST -H 'Content-Type: application/json' -d '{"name":"<img src=x>","config":{}}' "$B/api/profiles/save")" 400
+check "unknown board rejected"                   "$(code "${auth[@]}" -X POST -H 'Content-Type: application/json' -d '{"board":"<x>"}' "$B/api/board")" 400
+check "non-string board rejected"                "$(code "${auth[@]}" -X POST -H 'Content-Type: application/json' -d '{"board":5}' "$B/api/board")" 400
+check "board not in /api/config"                 "$(echo "$cfg" | python3 -c 'import sys,json;print("board" not in json.load(sys.stdin))')" True
 check "path-traversal profile delete rejected"  "$(code "${auth[@]}" -X POST "$B/api/profiles/delete?name=..%2Fwww%2Findex.html")" 404
 echo "RESULT pass=$pass fail=$fail"; [ "$fail" -eq 0 ]

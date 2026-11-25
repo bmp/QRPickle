@@ -150,7 +150,9 @@ went from 85.5 % to 81.9 % (66 KB):
 
 - **No `sscanf`** (~10 KB of scanf code): parse with `strtol`/`strtof` (`version.h`, `solar_parse`,
   `hamalert_parse`). The libc time-zone code keeps the integer-only scanf engine anyway.
-- **TFT_eSPI fonts 2-8 and smooth fonts off** (`src/hw/User_Setup.h`, ~19 KB): LVGL draws all text.
+- **No TFT_eSPI drawing (v0.3.2):** LVGL draws everything and `src/hw/display.cpp` sends the pixels
+  (`writePixels`), so TFT_eSPI's fonts and drawing code are gone (-10.7 KB with the earlier font trim);
+  the board list, detection, dialogs and the QR code (+canvas) came on top (v0.3.2: 1,649,312 B).
 - **Unused LVGL widgets off** (`include/lv_conf.h`, ~17 KB): enable a widget there before using it.
 - **Icons-only fallback font** instead of Montserrat 10/14 (~20 KB, see `docs/UI_GUIDE.md`).
 

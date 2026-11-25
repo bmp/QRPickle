@@ -17,6 +17,7 @@
 #include <cstring>
 #include <strings.h>
 #include <Arduino.h>
+#include <time.h>
 
 namespace ui {
 
@@ -229,6 +230,29 @@ namespace ui {
                 strlcpy(footer_last, line, sizeof(footer_last));
                 lv_label_set_text(lbl_comment, line);
                 lv_obj_set_style_text_color(lbl_comment, theme_color(stale ? COLOR_STATUS_WARN : COLOR_TEXT_MUTED), 0);
+            }
+        }
+
+        // SOTA tab, nothing tapped: the cluster only sends new spots, so say it's live and waiting.
+        if (lbl_comment && footer_default && !fetching && active_tab == TAB_SOTA) {
+            char line[64];
+            const uint32_t since = services::SotaManager::connected_since();
+            const bool any = services::SotaManager::get_spot_count() > 0;
+            if (!services::SotaManager::is_connected()) {
+                snprintf(line, sizeof(line), "Connecting to the SOTA cluster...");
+            } else if (since) {
+                const time_t s = (time_t)since;
+                struct tm tmv;
+                gmtime_r(&s, &tmv);
+                snprintf(line, sizeof(line), "Live since %02d:%02d UTC - %s", tmv.tm_hour, tmv.tm_min,
+                         any ? "tap a row to read" : "waiting for spots");
+            } else {
+                snprintf(line, sizeof(line), "Live - %s", any ? "tap a row to read" : "waiting for spots");
+            }
+            if (strcmp(line, footer_last) != 0) {
+                strlcpy(footer_last, line, sizeof(footer_last));
+                lv_label_set_text(lbl_comment, line);
+                lv_obj_set_style_text_color(lbl_comment, theme_color(COLOR_TEXT_MUTED), 0);
             }
         }
 

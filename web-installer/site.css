@@ -77,3 +77,15 @@ form.setup input:not([type=checkbox]) { font:inherit; width:100%; max-width:22re
   background:var(--input-bg); color:var(--input-color); border:1px solid var(--td-border); }
 form.setup select { display:block; }
 #status { margin:1rem 0; }
+form.setup textarea { font:inherit; width:100%; max-width:32rem; display:block; padding:.25em .4em; box-sizing:border-box;
+  background:var(--input-bg); color:var(--input-color); border:1px solid var(--td-border); }
+form.setup .board-works { margin:.45rem 0; }
+form.setup .board-works label.check { display:inline-flex; margin:.2rem 1rem .2rem 0; }
+.board-photo { display:block; max-width:min(100%, 520px); margin:.5rem 0; border:1px solid var(--td-border); }
+#board-found { margin:.6rem 0; }
+/* Install: "Before installing" board check (pages/install.html) */
+dialog.board-check { max-width:min(92vw, 44rem); background:var(--bg-color); color:var(--text-color);
+  border:1px solid var(--td-border); border-radius:6px; padding:1rem 1.2rem; }
+dialog.board-check::backdrop { background:rgba(0,0,0,.6); }
+dialog.board-check .board-list { width:100%; margin:.5rem 0; }
+.board-check-buttons { display:flex; gap:.8rem; justify-content:flex-end; }
