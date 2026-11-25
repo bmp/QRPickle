@@ -44,11 +44,17 @@ PROFILES = {
 }
 STATUS = {**META, "uptime": 5321, "heap": 95064, "rssi": -55, "ip": "192.168.1.50", "sensor_online": True,
           "temp": 28.5, "humidity": 51.7, "pressure": 913.6,
-          "ver_lvgl": "v9.5.0", "ver_json": "v7.4.3", "ver_core": "v2.0.17", "ver_idf": "v4.4.7"}
+          "ver_lvgl": "v9.6.0", "ver_json": "v7.4.3", "ver_core": "v3.3.12", "ver_idf": "v5.5"}
+BOARD = {"id": "2432S028R-2USB", "model": "ESP32-2432S028R", "name": "ESP32-2432S028R (2.8\", USB-C + micro-USB)",
+         "status": "tested", "decision": "detected", "decision_code": "detected", "setting": "2432S028R-2USB",
+         "setting_unknown": False, "warn_mismatch": False, "readable": True, "rddid": "8181B3", "rdid4": "FFFFFF",
+         "rdid4_indexed": "FFFFFF", "probes": {"i2c": -1, "xpt_own": -1, "xpt_shared": -1},
+         "candidates": ["2432S028R-2USB"], "backlight_on": True, "touch_on": True, "sensors_on": True,
+         "touch_note": "", "fw": FW_VERSION}
 CLOUD_OTA = {"available": False, "latest_ver": FW_VERSION, "notes": "", "local_ver": FW_VERSION}
 APRS_MESSAGES = [{"from": "N0CALL-9", "text": "QSY to 145.500, see you there"},
                  {"from": "N0CALL-7", "text": "Activating VU/KA-001 at 0600z"}]
-TYPES = {".html": "text/html", ".js": "application/javascript", ".css": "text/css"}
+TYPES = {".html": "text/html", ".js": "application/javascript", ".css": "text/css", ".json": "application/json"}
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -73,6 +79,7 @@ class Handler(BaseHTTPRequestHandler):
             "/api/cloud_ota/check": lambda: CLOUD_OTA,
             "/api/aprs/messages": lambda: APRS_MESSAGES,
             "/api/logos": lambda: LOGOS,
+            "/api/board": lambda: BOARD,
         }
         if url.path in routes:
             return self.send(routes[url.path]())
