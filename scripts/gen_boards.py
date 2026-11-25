@@ -18,6 +18,10 @@ TOML = os.path.join(ROOT, "boards", "boards.toml")
 HEADER = os.path.join(ROOT, "src", "hw", "boards_gen.h")
 DOC = os.path.join(ROOT, "docs", "BOARDS.md")
 SITE_JSON = os.path.join(ROOT, "data", "www", "boards.json")
+HARDWARE_MD = os.path.join(ROOT, "docs", "HARDWARE.md")
+README = os.path.join(ROOT, "README.md")
+BEGIN = "<!-- BEGIN generated: boards (scripts/gen_boards.py from boards/boards.toml) -->"
+END = "<!-- END generated: boards -->"
 
 BOARD_MAX = 16
 UI_W, UI_H = 320, 240
@@ -208,6 +212,32 @@ def doc(data):
     return "\n".join(lines)
 
 
+def summary_table(data, link):
+    """The short board table for README.md and docs/HARDWARE.md (link: path to BOARDS.md from there)."""
+    status = {"tested": "**tested**", "reported": "reported working", "mapped": "untested"}
+    lines = ["| Board (number on the back) | Screen | Touch | Status |", "|---|---|---|---|"]
+    for b in data["board"]:
+        t = b.get("touch", {})
+        touch = {"xpt2046_own": "resistive", "xpt2046_shared": "resistive", "gt911": "capacitive",
+                 "none": "not supported yet" if t.get("chip") else "none"}[t.get("type", "none")]
+        s = b["screen"]
+        lines.append(f"| {name(b)} | {s['width']} x {s['height']} | {touch} | {status[b['status']]} |")
+    lines.append("")
+    lines.append(f"Pins, connectors and sources for each board: [board list]({link}).")
+    return "\n".join(lines) + "\n"
+
+
+def with_section(path, table):
+    """The file's text with the generated board table between BEGIN and END (unchanged if no markers)."""
+    with open(path, encoding="utf-8") as f:
+        text = f.read()
+    if BEGIN not in text or END not in text:
+        return text
+    head, rest = text.split(BEGIN, 1)
+    tail = rest.split(END, 1)[1]
+    return f"{head}{BEGIN}\n{table}{END}{tail}"
+
+
 def site_json(data):
     out = []
     for b in data["board"]:
@@ -221,7 +251,9 @@ def site_json(data):
 
 def outputs_for(data):
     """{path: content} of every generated file."""
-    return {HEADER: header(data), DOC: doc(data), SITE_JSON: site_json(data)}
+    return {HEADER: header(data), DOC: doc(data), SITE_JSON: site_json(data),
+            HARDWARE_MD: with_section(HARDWARE_MD, summary_table(data, "BOARDS.md")),
+            README: with_section(README, summary_table(data, "docs/BOARDS.md"))}
 
 
 def main():

@@ -160,7 +160,24 @@ The installer and the manual flashing steps below use exactly these addresses fo
 The project is built entirely within **PlatformIO** (VS Code).
 
 ### 1. Pre-Flight Setup
-QRPickle is tested on the ESP32-2432S028R (2.8" CYD) and drives the other boards in the **[board list](docs/BOARDS.md)**; no soldering is needed. The pins it uses and the wiring for the optional BME280 sensor are in **[Hardware and Wiring](docs/HARDWARE.md)**.
+QRPickle is tested on the ESP32-2432S028R (2.8" CYD) and drives the other boards below; no soldering is needed. What else you need (USB cable, the optional BME280 sensor) and the wiring are in **[Hardware and Wiring](docs/HARDWARE.md)**.
+
+<!-- BEGIN generated: boards (scripts/gen_boards.py from boards/boards.toml) -->
+| Board (number on the back) | Screen | Touch | Status |
+|---|---|---|---|
+| ESP32-2432S028R (2.8", USB-C + micro-USB) | 320 x 240 | resistive | **tested** |
+| ESP32-2432S028R (2.8", micro-USB only) | 320 x 240 | resistive | untested |
+| ESP32-2432S028R (2.8", USB-C + micro-USB, ST7789 screen) | 320 x 240 | resistive | untested |
+| ESP32-2432S024R (2.4") | 320 x 240 | resistive | untested |
+| ESP32-2432S024C (2.4") | 320 x 240 | not supported yet | untested |
+| ESP32-2432S032R (3.2") | 320 x 240 | resistive | untested |
+| ESP32-2432S032C (3.2") | 320 x 240 | capacitive | untested |
+| ESP32-3248S035R (3.5") | 480 x 320 | resistive | untested |
+| ESP32-3248S035C (3.5") | 480 x 320 | capacitive | untested |
+| JC2432W328C (2.8", Guition, capacitive touch) | 320 x 240 | not supported yet | untested |
+
+Pins, connectors and sources for each board: [board list](docs/BOARDS.md).
+<!-- END generated: boards -->
 
 ### 2. Uploading the Filesystem (Web UI & Profiles)
 Before the firmware will function fully (especially the Web UI), you must write the `data/` folder to the LittleFS partition.
