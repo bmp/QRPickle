@@ -8,7 +8,7 @@ Status: **tested** = run by the developer for a release; **reported** = a user c
 
 | Model (back of the board) | Size | How to recognise it | Status | Screen | Touch |
 |---|---|---|---|---|---|
-| ESP32-2432S028R (2.8", USB-C + micro-USB) | 2.8" | Yellow board, 2.8" screen, a USB-C and a micro-USB port; ESP32-2432S028 printed on the back. | mapped | ILI9341-compatible (answers 81 81 B3), 320 x 240 | resistive (XPT2046) |
+| ESP32-2432S028R (2.8", USB-C + micro-USB) | 2.8" | Yellow board, 2.8" screen, a USB-C and a micro-USB port; ESP32-2432S028 printed on the back. | tested | ILI9341-compatible (answers 81 81 B3), 320 x 240 | resistive (XPT2046) |
 | ESP32-2432S028R (2.8", micro-USB only) | 2.8" | Yellow board, 2.8" screen, one micro-USB port; ESP32-2432S028 printed on the back. The original CYD. | mapped | ILI9341, 320 x 240 | resistive (XPT2046) |
 | ESP32-2432S028R (2.8", USB-C + micro-USB, ST7789 screen) | 2.8" | Like the USB-C + micro-USB 2.8" board, but with an ST7789 screen (the screen doesn't answer the ID read, so choose it by hand). | mapped | ST7789, 320 x 240 | resistive (XPT2046) |
 | ESP32-2432S024R (2.4") | 2.4" | 2.4" screen with resistive touch; ESP32-2432S024R printed on the back. | mapped | ILI9341, 320 x 240 | resistive (XPT2046); calibration taken from the 2.8" board; may be off |
@@ -23,7 +23,7 @@ Not listed? It may still work: install, then report it.
 
 ## ESP32-2432S028R (2.8", USB-C + micro-USB)
 
-- **Id:** `2432S028R-2USB` · **Status:** mapped (the owner's board; becomes tested with v0.3.2)
+- **Id:** `2432S028R-2USB` · **Status:** tested (the owner's board, v0.3.2 (2026-11-25): detection, screens, touch, dialogs, updates, 30-minute soak)
 - **Screen:** ILI9341-compatible (answers 81 81 B3), start-up `ili9341_2`, 320 x 240; SPI SCLK 14, MOSI 13, MISO 12, CS 15, DC 2; screen ID RDDID 0x8181B3 (measured on the owner's board, 2026-11-24)
 - **Backlight:** GPIO21
 - **Touch:** xpt2046_own, SCLK 25, MOSI 32, MISO 39, CS 33, IRQ 36

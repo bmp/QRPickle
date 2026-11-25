@@ -7,7 +7,7 @@
    "name": "ESP32-2432S028R (2.8\", USB-C + micro-USB)",
    "size": "2.8\"",
    "recognise": "Yellow board, 2.8\" screen, a USB-C and a micro-USB port; ESP32-2432S028 printed on the back.",
-   "status": "mapped",
+   "status": "tested",
    "chip": "ILI9341-compatible (answers 81 81 B3)",
    "touch_note": "",
    "photo": "2432S028R-2USB-back.jpg",

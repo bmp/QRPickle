@@ -49,8 +49,8 @@ size = '2.8"'
 feature = "USB-C + micro-USB"
 recognise = "Yellow board, 2.8\" screen, a USB-C and a micro-USB port; ESP32-2432S028 printed on the back."
 photo = "2432S028R-2USB-back.jpg"
-status = "mapped"
-status_note = "the owner's board; becomes tested with v0.3.2"
+status = "tested"
+status_note = "the owner's board, v0.3.2 (2026-11-25): detection, screens, touch, dialogs, updates, 30-minute soak"
 addons_v04 = true
 sources = [
   "QRPickle v0.3.1 (TFT_eSPI ILI9341_2_DRIVER, rotation 1, inverted): runs on the owner's board",
